@@ -1,0 +1,75 @@
+{
+  "name": "Research-poc-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Research POC Agent",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs --dts --clean --sourcemap",
+    "start": "node dist/index.js",
+    "dev": "tsup src/index.ts --format cjs --dts --sourcemap --watch --onSuccess \"node dist/index.js\"",
+    "lint": "echo 'Linting API...'",
+    "type-check": "echo 'Type checking API...'",
+    "up_lattice": "pnpm up @axiom-lattice/core@latest @axiom-lattice/gateway@latest",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "gen_outputs": "ts-node src/__tests__/gen_outputs.ts",
+    "eval": "ts-node src/__tests__/eval.ts"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@axiom-lattice/core": "^2.1.12",
+    "@axiom-lattice/gateway": "^2.1.17",
+    "@fastify/cors": "^11.1.0",
+    "@fastify/multipart": "^9.3.0",
+    "@fastify/swagger": "^9.5.1",
+    "@fastify/swagger-ui": "^5.2.3",
+    "@langchain/community": "^1.1.0",
+    "@langchain/core": "^1.1.8",
+    "@langchain/langgraph": "1.0.4",
+    "@langchain/langgraph-checkpoint-postgres": "^0.1.2",
+    "@types/bcrypt": "^6.0.0",
+    "@types/pg": "^8.16.0",
+    "axios": "^1.7.0",
+    "bcrypt": "^6.0.0",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.6.1",
+    "fastify": "^5.5.0",
+    "fuse.js": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "langchain": "^1.2.3",
+    "pg": "^8.16.3",
+    "uuid": "^9.0.1",
+    "xlsx": "^0.18.5",
+    "zod": "3.25.76",
+    "zod-to-json-schema": "^3.24.3"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/lodash": "^4.17.16",
+    "@types/node": "^20.19.27",
+    "@types/uuid": "^9.0.8",
+    "@typescript-eslint/eslint-plugin": "^7.2.0",
+    "@typescript-eslint/parser": "^7.2.0",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.9",
+    "pnpm": "^10.27.0",
+    "ts-jest": "^29.4.0",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "@langchain/core": "1.1.4",
+      "@langchain/langgraph": "1.0.4",
+      "langchain": "1.0.6",
+      "zod": "3.25.76"
+    }
+  }
+}
