@@ -3286,3 +3286,942 @@ def run_sales_forecast(dataset_id: str, req: SalesForecastRequest):
     except Exception as e:
         # Surface the root cause to the client for easier debugging in demo environments.
         raise HTTPException(status_code=500, detail=f"Sales forecast failed: {e}")
+
+
+# -----------------------------
+# Stock Allocation (Demo)
+# -----------------------------
+
+
+class StockAllocationRunRequest(BaseModel):
+    """
+    Stock allocation simulation request.
+
+    This is intentionally lightweight and explainable for demo purposes.
+    """
+
+    product_name: str = Field(..., description="Product Name as shown in the dataset (store_sales_data.csv)")
+
+    objective: str = Field("profit", description="profit | fairness | strategic")
+
+    # Constraints
+    enable_vip_new_york: bool = Field(True, description="Hard constraint: New York must meet a minimum fill rate")
+    vip_new_york_min_fill: float = Field(0.5, ge=0.0, le=1.0, description="Minimum fill rate for New York when enabled")
+
+    enable_min_shipment: bool = Field(True, description="Hard constraint: allocations must be 0 or >= min_shipment_units")
+    min_shipment_units: int = Field(10, ge=1, le=1_000_000)
+
+    # Soft constraint (used by the fairness objective)
+    min_fill_rate: float = Field(0.3, ge=0.0, le=1.0, description="Minimum fill rate for all cities under fairness objective")
+
+    # Simulation knobs
+    demand_shock_pct: float = Field(0.0, ge=-50.0, le=50.0, description="Demand shock, percentage")
+    inventory_shrink_pct: float = Field(0.0, ge=-20.0, le=0.0, description="Inventory shrink, percentage (negative)")
+
+    # Horizon / replenishment (fixed defaults for the demo)
+    horizon_days: int = Field(7, ge=1, le=30)
+    inbound_days: int = Field(3, ge=0, le=30)
+    inbound_units: int = Field(2000, ge=0, le=10_000_000)
+
+    # Optional overrides
+    target_total_demand_units: int = Field(10000, ge=100, le=10_000_000, description="Scale demand to a demo-friendly total")
+    base_inventory_units: Optional[int] = Field(None, ge=0, le=10_000_000, description="If omitted, defaults to 50% of target_total_demand_units")
+    max_cities: int = Field(15, ge=3, le=50)
+
+    # Forecast model selection (repo-level model asset).
+    model_id: str = Field("store_sales_forecast:v1.0.0", description="Model asset id (models/{name}/{version}/model.pkl)")
+    holiday_country: str = Field("US", description="holidays country code")
+    context_window_days: int = Field(365, ge=30, le=3650)
+
+    # Insight (LLM)
+    include_ai_explanation: bool = Field(
+        True,
+        description="When true, generate an AI explanation (Markdown) for why the allocation looks like this.",
+    )
+
+
+def _stock_alloc_parse_store_date(series: pd.Series) -> pd.Series:
+    # The sample dataset uses day-first dates (e.g., 08/11/2017 = 8 Nov 2017).
+    dt = pd.to_datetime(series, errors="coerce", dayfirst=True)
+    # Fallback: try US-style month-first when parsing fails.
+    if dt.isna().mean() > 0.5:
+        dt2 = pd.to_datetime(series, errors="coerce", dayfirst=False)
+        if dt2.notna().sum() > dt.notna().sum():
+            dt = dt2
+    return dt.dt.floor("D")
+
+
+def _stock_alloc_city_alias(city: str) -> str:
+    c = (city or "").strip()
+    if c.lower() in {"new york"}:
+        return "New York City"
+    return c
+
+
+def _stock_alloc_city_latlon(city: str) -> tuple[float, float]:
+    # Minimal US city map for the demo. Unknown cities are placed deterministically.
+    known = {
+        "San Francisco": (37.7749, -122.4194),
+        "New York City": (40.7128, -74.0060),
+        "Chicago": (41.8781, -87.6298),
+        "Los Angeles": (34.0522, -118.2437),
+        "Seattle": (47.6062, -122.3321),
+        "Dallas": (32.7767, -96.7970),
+        "Houston": (29.7604, -95.3698),
+        "Phoenix": (33.4484, -112.0740),
+        "Philadelphia": (39.9526, -75.1652),
+        "San Diego": (32.7157, -117.1611),
+        "San Jose": (37.3382, -121.8863),
+        "Austin": (30.2672, -97.7431),
+        "Jacksonville": (30.3322, -81.6557),
+        "Columbus": (39.9612, -82.9988),
+        "Fort Worth": (32.7555, -97.3308),
+        "Charlotte": (35.2271, -80.8431),
+        "Detroit": (42.3314, -83.0458),
+        "El Paso": (31.7619, -106.4850),
+        "Memphis": (35.1495, -90.0490),
+        "Boston": (42.3601, -71.0589),
+        "Denver": (39.7392, -104.9903),
+        "Washington": (38.9072, -77.0369),
+        "Nashville": (36.1627, -86.7816),
+        "Baltimore": (39.2904, -76.6122),
+        "Oklahoma City": (35.4676, -97.5164),
+        "Portland": (45.5152, -122.6784),
+        "Las Vegas": (36.1699, -115.1398),
+        "Louisville": (38.2527, -85.7585),
+        "Milwaukee": (43.0389, -87.9065),
+        "Albuquerque": (35.0844, -106.6504),
+        "Tucson": (32.2226, -110.9747),
+        "Fresno": (36.7378, -119.7871),
+        "Sacramento": (38.5816, -121.4944),
+        "Mesa": (33.4152, -111.8315),
+        "Atlanta": (33.7490, -84.3880),
+        "Miami": (25.7617, -80.1918),
+        "Minneapolis": (44.9778, -93.2650),
+        "Cleveland": (41.4993, -81.6944),
+        "Kansas City": (39.0997, -94.5786),
+        "Indianapolis": (39.7684, -86.1581),
+    }
+    c = _stock_alloc_city_alias(city)
+    if c in known:
+        return known[c]
+
+    # Deterministic pseudo-location within US bounds.
+    # Lat: [25, 49], Lon: [-124, -67]
+    h = hashlib.sha1(c.encode("utf-8")).hexdigest()
+    a = int(h[:8], 16)
+    b = int(h[8:16], 16)
+    lat = 25.0 + (a % 2400) / 2400.0 * (49.0 - 25.0)
+    lon = -124.0 + (b % 2800) / 2800.0 * (-67.0 - (-124.0))
+    return lat, lon
+
+
+def _stock_alloc_generate_explanation_markdown_fallback(
+    *,
+    objective: str,
+    constraints: Dict[str, Any],
+    simulation: Dict[str, Any],
+    totals: Dict[str, Any],
+    kpis: Dict[str, Any],
+    top_cities: List[Dict[str, Any]],
+) -> str:
+    """Deterministic fallback explanation (English, Markdown)."""
+    total_demand = int(totals.get("total_demand_units") or 0)
+    supply_total = int(totals.get("supply_total_units") or 0)
+    fill_rate = float(kpis.get("fill_rate") or 0.0)
+    profit = float(kpis.get("profit") or 0.0)
+    lost_sales = float(kpis.get("lost_sales") or 0.0)
+    risk = int(kpis.get("risk_store_count") or 0)
+
+    vip_on = bool(constraints.get("enable_vip_new_york"))
+    vip_min = float(constraints.get("vip_new_york_min_fill") or 0.0)
+    min_ship_on = bool(constraints.get("enable_min_shipment"))
+    min_ship_units = int(constraints.get("min_shipment_units") or 0)
+    min_fill = float(constraints.get("min_fill_rate") or 0.0)
+
+    demand_shock = float(simulation.get("demand_shock_pct") or 0.0)
+    shrink = float(simulation.get("inventory_shrink_pct") or 0.0)
+
+    lines: List[str] = []
+    lines.append("### Executive Summary")
+    lines.append(
+        f"- Simulated demand: {total_demand:,} units; supply considered: {supply_total:,} units; global fill rate: {fill_rate*100:.0f}%."
+    )
+    lines.append(f"- Estimated profit: ${profit:,.0f}; lost sales proxy: ${lost_sales:,.0f}; risk stores (<20% fill): {risk}.")
+    lines.append("")
+
+    lines.append("### Why This Allocation Looks Like This")
+    if objective == "profit":
+        lines.append("- Objective = Profit Max: allocate inventory to higher-margin cities first to maximize profit per unit.")
+    elif objective == "fairness":
+        lines.append(
+            f"- Objective = Fairness: enforce a minimum fill rate baseline for all cities (current: {min_fill*100:.0f}%), then distribute remaining supply."
+        )
+    else:
+        lines.append("- Objective = Strategic: prioritize core cities (e.g., San Francisco) after hard constraints, then allocate by margin.")
+
+    if vip_on:
+        lines.append(f"- VIP constraint: New York City must receive at least {vip_min*100:.0f}% of its forecast demand (hard constraint).")
+    if min_ship_on:
+        lines.append(f"- Minimum shipment constraint: allocations are either 0 or >= {min_ship_units:,} units; this can zero-out tiny leftovers.")
+
+    if abs(demand_shock) > 1e-9:
+        lines.append(f"- Demand shock applied: {demand_shock:+.0f}% (stress test).")
+    if shrink < -1e-9:
+        lines.append(f"- Inventory shrink applied: {shrink:.0f}% (unexpected warehouse loss).")
+    lines.append("")
+
+    lines.append("### Recommended Actions")
+    if fill_rate < 0.6:
+        lines.append("- Consider increasing available inventory (or expediting inbound) to lift the global fill rate.")
+    if risk > 0:
+        lines.append("- Review the riskiest cities (<20% fill) and decide whether to add fairness constraints or relax profit focus.")
+    if objective == "profit":
+        lines.append("- If customer experience is impacted, switch to Fairness or add city-level minimum fill constraints for key accounts.")
+    if objective == "fairness":
+        lines.append("- Tune the minimum fill slider to balance customer coverage vs. profit (higher floor -> lower profit).")
+    if min_ship_on:
+        lines.append("- If too many cities get 0 allocation, lower the minimum shipment size to reduce drop-offs.")
+    if not any(l.startswith("-") for l in lines[-3:]):
+        lines.append("- Re-run with alternative objectives to compare KPIs and trade-offs.")
+
+    if top_cities:
+        lines.append("")
+        lines.append("#### Quick View (Top Cities)")
+        for c in top_cities[:8]:
+            city = str(c.get("city") or "")
+            d = int(c.get("forecast_demand") or 0)
+            a = int(c.get("allocated") or 0)
+            fr = float(c.get("fill_rate") or 0.0)
+            tier = str(c.get("margin_tier") or "")
+            lines.append(f"- {city}: demand {d:,}, allocated {a:,}, fill {fr*100:.0f}%, margin {tier}")
+
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _stock_alloc_generate_explanation_markdown_ai(*, context: Dict[str, Any]) -> str:
+    """AI explanation generator for stock allocation (English, Markdown)."""
+    model = os.getenv("VOLCENGINE_MODEL") or os.getenv("STOCK_ALLOC_INSIGHT_MODEL") or "kimi-k2-250905"
+    timeout_seconds = int(os.getenv("STOCK_ALLOC_AI_TIMEOUT_SECONDS") or "30")
+    max_tokens = int(os.getenv("STOCK_ALLOC_AI_MAX_TOKENS") or "900")
+
+    system = (
+        "You are a supply chain optimization analyst.\n"
+        "Explain why a simulated stock allocation plan looks the way it does.\n"
+        "Output MUST be Markdown and MUST contain exactly these three sections (use '### ' headings):\n"
+        "1) ### Executive Summary\n"
+        "2) ### Why This Allocation Looks Like This\n"
+        "3) ### Recommended Actions\n"
+        "Rules:\n"
+        "- Write in English.\n"
+        "- Reference the provided numbers where possible (fill rate, profit, lost sales, risk stores).\n"
+        "- Explicitly mention objective, hard constraints, and what-if shocks.\n"
+        "- Be concise and executive-friendly.\n"
+        "- Do NOT invent data that is not in the JSON context.\n"
+    )
+
+    user = "Stock allocation context (JSON):\n" + json.dumps(context, ensure_ascii=False, separators=(",", ":"))
+    return _call_volcengine_chat_completion(
+        model=model,
+        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+        temperature=0.2,
+        max_tokens=max_tokens,
+        timeout_seconds=timeout_seconds,
+    )
+
+
+def _stock_alloc_margin_for_region(region: str) -> tuple[str, float]:
+    r = (region or "").strip().lower()
+    if r == "west":
+        return "High", 0.50
+    if r == "east":
+        return "Low", 0.15
+    if r == "central":
+        return "Med", 0.30
+    if r == "south":
+        return "Med", 0.30
+    return "Med", 0.30
+
+
+def _stock_alloc_feature_row(history: List[float], ts: pd.Timestamp, holiday_country: str) -> Dict[str, float]:
+    # Feature schema must match the training script `train_store_sales_forecast_lgbm.py`.
+    lags = (1, 7, 14, 28)
+    rolls = (7, 14, 28)
+
+    def _lag(k: int) -> float:
+        if k <= 0:
+            return 0.0
+        if len(history) < k:
+            return 0.0
+        return float(history[-k])
+
+    def _roll_mean(w: int) -> float:
+        if w <= 0:
+            return 0.0
+        window = history[-w:] if len(history) >= w else history
+        if not window:
+            return 0.0
+        return float(np.mean(window))
+
+    def _roll_std(w: int) -> float:
+        if w <= 0:
+            return 0.0
+        window = history[-w:] if len(history) >= w else history
+        if not window:
+            return 0.0
+        return float(np.std(window))
+
+    lag1 = _lag(1)
+    lag7 = _lag(7)
+    mom7 = (lag1 - lag7) / (abs(lag1) + abs(lag7) + 1e-6)
+
+    return {
+        "month": float(int(ts.month)),
+        "day_of_week": float(int(ts.dayofweek)),
+        "is_weekend": float(int(ts.dayofweek >= 5)),
+        "day_of_year": float(int(ts.dayofyear)),
+        "is_holiday": float(_sales_forecast_is_holiday(ts, holiday_country)),
+        **{f"lag_{k}": float(_lag(k)) for k in lags},
+        **{f"rolling_mean_{w}": float(_roll_mean(w)) for w in rolls},
+        **{f"rolling_std_{w}": float(_roll_std(w)) for w in rolls},
+        "mom_7": float(mom7),
+    }
+
+
+def _stock_alloc_forecast_daily_units(
+    *,
+    model: Any,
+    history: List[float],
+    reference_date: pd.Timestamp,
+    horizon_days: int,
+    holiday_country: str,
+) -> List[float]:
+    # Iterative day-ahead simulation, same as the sales_forecast module style.
+    feature_cols = [
+        "month",
+        "day_of_week",
+        "is_weekend",
+        "day_of_year",
+        "is_holiday",
+        "lag_1",
+        "lag_7",
+        "lag_14",
+        "lag_28",
+        "rolling_mean_7",
+        "rolling_mean_14",
+        "rolling_mean_28",
+        "rolling_std_7",
+        "rolling_std_14",
+        "rolling_std_28",
+        "mom_7",
+    ]
+
+    hist = [float(max(0.0, v)) for v in history]
+    preds: List[float] = []
+    for step in range(1, int(horizon_days) + 1):
+        ts = (pd.Timestamp(reference_date) + pd.Timedelta(days=int(step))).floor("D")
+        row = _stock_alloc_feature_row(hist, ts, holiday_country)
+        X = pd.DataFrame([[row.get(c, 0.0) for c in feature_cols]], columns=feature_cols)
+        yhat = float(model.predict(X)[0])
+        yhat = float(max(0.0, yhat))
+        preds.append(yhat)
+        hist.append(yhat)
+    return preds
+
+
+def _stock_alloc_allocate(
+    *,
+    demands: Dict[str, int],
+    margin_rate: Dict[str, float],
+    objective: str,
+    supply_units: int,
+    enable_min_shipment: bool,
+    min_shipment_units: int,
+    enable_vip_new_york: bool,
+    vip_new_york_min_fill: float,
+    min_fill_rate: float,
+    strategic_cities: Optional[List[str]] = None,
+) -> Dict[str, int]:
+    obj = (objective or "profit").strip().lower()
+    if obj not in {"profit", "fairness", "strategic"}:
+        raise HTTPException(status_code=400, detail="objective must be 'profit', 'fairness', or 'strategic'")
+
+    remaining = int(max(0, supply_units))
+    alloc: Dict[str, int] = {c: 0 for c in demands.keys()}
+
+    def _min_ship_ok(v: int) -> bool:
+        if not enable_min_shipment:
+            return True
+        return v == 0 or v >= int(min_shipment_units)
+
+    # Build required mins.
+    required: Dict[str, int] = {c: 0 for c in demands.keys()}
+    if enable_vip_new_york:
+        for c in demands.keys():
+            if _stock_alloc_city_alias(c).lower() == "new york city":
+                required[c] = max(required[c], int(math.ceil(float(demands[c]) * float(vip_new_york_min_fill))))
+
+    if obj == "fairness":
+        for c in demands.keys():
+            required[c] = max(required[c], int(math.ceil(float(demands[c]) * float(min_fill_rate))))
+
+    # Apply min-shipment constraint to required mins.
+    for c, req in list(required.items()):
+        req = int(min(req, demands[c]))
+        if enable_min_shipment and 0 < req < int(min_shipment_units):
+            req = 0
+        required[c] = req
+
+    required_total = int(sum(required.values()))
+    if required_total > remaining:
+        # Not enough supply to meet mins: allocate VIP first, then proportionally by demand.
+        vip_city: Optional[str] = None
+        if enable_vip_new_york:
+            for c in demands.keys():
+                if _stock_alloc_city_alias(c).lower() == "new york city":
+                    vip_city = c
+                    break
+
+        if vip_city and required.get(vip_city, 0) > 0:
+            take = int(min(remaining, required[vip_city]))
+            alloc[vip_city] = take
+            remaining -= take
+
+        total_demand = float(sum(demands.values()) or 1.0)
+        if remaining > 0:
+            # Proportional to demand; keep deterministic ordering.
+            for c in sorted(demands.keys()):
+                if remaining <= 0:
+                    break
+                if c == vip_city:
+                    continue
+                share = float(demands[c]) / total_demand
+                take = int(math.floor(float(remaining) * share))
+                take = int(min(take, demands[c]))
+                if enable_min_shipment and 0 < take < int(min_shipment_units):
+                    take = 0
+                if take > 0:
+                    alloc[c] = take
+        return alloc
+
+    # 1) Allocate required mins.
+    if required_total > 0:
+        # VIP first for better story alignment.
+        ordered = sorted(required.keys(), key=lambda c: (0 if _stock_alloc_city_alias(c).lower() == "new york city" else 1, c))
+        for c in ordered:
+            req = required[c]
+            if req <= 0:
+                continue
+            take = int(min(req, remaining))
+            if take <= 0:
+                continue
+            alloc[c] = take
+            remaining -= take
+
+    # 2) Allocate remaining by objective.
+    def _remaining_demand(c: str) -> int:
+        return int(max(0, demands[c] - alloc.get(c, 0)))
+
+    # Strategic: fill core cities first (after mins), then behave like profit.
+    if obj == "strategic":
+        cores = [c for c in (strategic_cities or ["San Francisco"]) if c in demands]
+        for c in cores:
+            if remaining <= 0:
+                break
+            need = _remaining_demand(c)
+            if need <= 0:
+                continue
+            take = int(min(need, remaining))
+            if enable_min_shipment and 0 < take < int(min_shipment_units):
+                take = 0
+            alloc[c] += take
+            remaining -= take
+
+    # Profit-like distribution for the rest.
+    ordered_cities = sorted(
+        demands.keys(),
+        key=lambda c: (float(margin_rate.get(c, 0.0)), float(demands.get(c, 0))),
+        reverse=True,
+    )
+    for c in ordered_cities:
+        if remaining <= 0:
+            break
+        need = _remaining_demand(c)
+        if need <= 0:
+            continue
+        take = int(min(need, remaining))
+        if enable_min_shipment and 0 < take < int(min_shipment_units):
+            take = 0
+        alloc[c] += take
+        remaining -= take
+
+    # Ensure min shipment: zero out any tiny allocations (best-effort).
+    if enable_min_shipment:
+        for c in list(alloc.keys()):
+            if 0 < int(alloc[c]) < int(min_shipment_units):
+                alloc[c] = 0
+
+    return alloc
+
+
+@router.get("/{dataset_id}/stock-allocation/products")
+def stock_allocation_list_products(
+    dataset_id: str,
+    limit: int = Query(50, ge=1, le=200),
+):
+    """List top products for the allocation demo (from CSV; no DB dependency)."""
+    config = load_datasets_config()
+    dataset_config = next((d for d in config.get("datasets", []) if d.get("id") == dataset_id), None)
+    if not dataset_config:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+
+    csv_path = _get_dataset_csv_path(dataset_id, dataset_config)
+    if not csv_path.exists():
+        raise HTTPException(status_code=404, detail=f"CSV file not found: {csv_path}")
+
+    encoding, header_cols = _read_csv_header(csv_path)
+    date_col = _resolve_csv_column(header_cols, str(dataset_config.get("time_column") or "Order Date"))
+    city_col = _resolve_csv_column(header_cols, "City")
+    prod_col = _resolve_csv_column(header_cols, "Product Name")
+    cat_col = _resolve_csv_column(header_cols, "Category")
+    subcat_col = _resolve_csv_column(header_cols, "Sub-Category")
+    sales_col = _resolve_csv_column(header_cols, "Sales")
+
+    df = pd.read_csv(csv_path, encoding=encoding, usecols=[date_col, city_col, prod_col, cat_col, subcat_col, sales_col], low_memory=False)
+    df[date_col] = _stock_alloc_parse_store_date(df[date_col])
+    df = df.dropna(subset=[date_col, prod_col, city_col])
+    df[sales_col] = pd.to_numeric(df[sales_col], errors="coerce").fillna(0.0).astype(float)
+
+    # Aggregate by product name (top by revenue).
+    grp = (
+        df.groupby([prod_col, cat_col, subcat_col], dropna=False)
+        .agg(total_orders=(prod_col, "size"), total_revenue=(sales_col, "sum"))
+        .reset_index()
+        .sort_values("total_revenue", ascending=False)
+    )
+
+    items: List[Dict[str, Any]] = []
+    for _, r in grp.head(int(limit)).iterrows():
+        items.append(
+            {
+                "product_name": str(r[prod_col]),
+                "category": str(r.get(cat_col) or ""),
+                "sub_category": str(r.get(subcat_col) or ""),
+                "total_orders": int(r.get("total_orders") or 0),
+                "total_revenue": float(r.get("total_revenue") or 0.0),
+            }
+        )
+
+    # Ensure the demo product exists in the list when present in the dataset.
+    demo_prod = "Staple envelope"
+    if demo_prod not in [it["product_name"] for it in items]:
+        hit = grp[grp[prod_col].astype(str) == demo_prod]
+        if not hit.empty:
+            rr = hit.iloc[0]
+            items.insert(
+                0,
+                {
+                    "product_name": demo_prod,
+                    "category": str(rr.get(cat_col) or ""),
+                    "sub_category": str(rr.get(subcat_col) or ""),
+                    "total_orders": int(rr.get("total_orders") or 0),
+                    "total_revenue": float(rr.get("total_revenue") or 0.0),
+                },
+            )
+
+    return {"success": True, "data": items, "total": len(items)}
+
+
+@router.post("/{dataset_id}/stock-allocation/run")
+def stock_allocation_run(dataset_id: str, req: StockAllocationRunRequest):
+    """Run the stock allocation simulation (CSV + LightGBM + heuristic optimization)."""
+    config = load_datasets_config()
+    dataset_config = next((d for d in config.get("datasets", []) if d.get("id") == dataset_id), None)
+    if not dataset_config:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+
+    csv_path = _get_dataset_csv_path(dataset_id, dataset_config)
+    if not csv_path.exists():
+        raise HTTPException(status_code=404, detail=f"CSV file not found: {csv_path}")
+
+    # Load model (repo-level asset in models/).
+    model, model_version = _sales_forecast_resolve_model(req.model_id)
+    if model is None:
+        raise HTTPException(status_code=400, detail="Stock allocation requires a LightGBM model_id (baseline is not supported here).")
+
+    encoding, header_cols = _read_csv_header(csv_path)
+    date_col = _resolve_csv_column(header_cols, str(dataset_config.get("time_column") or "Order Date"))
+    city_col = _resolve_csv_column(header_cols, "City")
+    region_col = _resolve_csv_column(header_cols, "Region")
+    prod_col = _resolve_csv_column(header_cols, "Product Name")
+    cat_col = _resolve_csv_column(header_cols, "Category")
+    subcat_col = _resolve_csv_column(header_cols, "Sub-Category")
+    sales_col = _resolve_csv_column(header_cols, "Sales")
+
+    df = pd.read_csv(
+        csv_path,
+        encoding=encoding,
+        usecols=[date_col, city_col, region_col, prod_col, cat_col, subcat_col, sales_col],
+        low_memory=False,
+    )
+    df[date_col] = _stock_alloc_parse_store_date(df[date_col])
+    df = df.dropna(subset=[date_col, city_col, prod_col])
+    df[sales_col] = pd.to_numeric(df[sales_col], errors="coerce").fillna(0.0).astype(float)
+    df[city_col] = df[city_col].astype(str).map(_stock_alloc_city_alias)
+
+    product_name = (req.product_name or "").strip()
+    if not product_name:
+        raise HTTPException(status_code=400, detail="product_name is required")
+
+    df_prod = df[df[prod_col].astype(str) == product_name].copy()
+    if df_prod.empty:
+        raise HTTPException(status_code=404, detail=f"Product not found in dataset: {product_name}")
+
+    category = str(df_prod[cat_col].iloc[0] if cat_col in df_prod.columns else "")
+    sub_category = str(df_prod[subcat_col].iloc[0] if subcat_col in df_prod.columns else "")
+
+    # Forecast at sub-category level (more stable), then downscale to product via recent share.
+    df_sub = df[df[subcat_col].astype(str) == sub_category].copy() if sub_category else df_prod.copy()
+    if df_sub.empty:
+        df_sub = df_prod.copy()
+
+    reference_date = pd.Timestamp(df_sub[date_col].max()).floor("D")
+    ctx_days = int(req.context_window_days)
+    ctx_start = reference_date - pd.Timedelta(days=ctx_days - 1)
+
+    df_sub_ctx = df_sub[df_sub[date_col] >= ctx_start]
+    df_prod_ctx = df_prod[df_prod[date_col] >= ctx_start]
+    sub_units = int(df_sub_ctx.shape[0])
+    prod_units = int(df_prod_ctx.shape[0])
+    product_share = float(prod_units) / float(sub_units) if sub_units > 0 else 1.0
+    product_share = float(max(0.01, min(0.50, product_share)))
+
+    # Build dense daily history for the sub-category.
+    daily_sub = (
+        df_sub_ctx.groupby(date_col, as_index=False)
+        .size()
+        .rename(columns={"size": "y"})
+        .sort_values(date_col)
+    )
+    if daily_sub.empty:
+        raise HTTPException(status_code=400, detail="No usable history in the context window for this sub-category")
+
+    full_idx = pd.date_range(start=pd.Timestamp(daily_sub[date_col].min()), end=reference_date, freq="D")
+    s_sub = daily_sub.set_index(date_col)["y"].reindex(full_idx, fill_value=0.0).astype(float)
+    history_sub = [float(v) for v in s_sub.values.tolist()]
+
+    horizon = int(req.horizon_days)
+    forecast_sub = _stock_alloc_forecast_daily_units(
+        model=model,
+        history=history_sub,
+        reference_date=reference_date,
+        horizon_days=horizon,
+        holiday_country=req.holiday_country,
+    )
+
+    # Product-level forecast derived from sub-category.
+    forecast_prod_daily = [float(v) * float(product_share) for v in forecast_sub]
+    shock = 1.0 + float(req.demand_shock_pct) / 100.0
+    forecast_prod_daily = [float(max(0.0, v * shock)) for v in forecast_prod_daily]
+    raw_total_demand = float(sum(forecast_prod_daily))
+    if raw_total_demand <= 1e-9:
+        # Keep demo usable even for ultra-sparse products.
+        raw_total_demand = 1.0
+        forecast_prod_daily = [1.0 / float(horizon)] * horizon
+
+    # Scale to a demo-friendly total demand (units).
+    target_total = int(req.target_total_demand_units)
+    scale = float(target_total) / float(raw_total_demand)
+    daily_total_demand = [int(max(0, round(v * scale))) for v in forecast_prod_daily]
+    total_demand = int(sum(daily_total_demand))
+    if total_demand <= 0:
+        daily_total_demand = [0] * horizon
+        total_demand = 0
+
+    # City demand shares: prefer product-specific if enough signal, else use sub-category.
+    df_city_base = df_prod_ctx if int(df_prod_ctx.shape[0]) >= 50 else df_sub_ctx
+    city_units = (
+        df_city_base.groupby([city_col, region_col], dropna=False)
+        .size()
+        .rename("units")
+        .reset_index()
+        .sort_values("units", ascending=False)
+    )
+    if city_units.empty:
+        raise HTTPException(status_code=400, detail="No city data available for allocation")
+
+    # Pick top cities (plus mandatory demo cities when present).
+    mandatory = {"San Francisco", "New York City", "Chicago"}
+    picked: List[Dict[str, Any]] = []
+    seen = set()
+
+    for _, r in city_units.iterrows():
+        c = str(r[city_col])
+        if c in seen:
+            continue
+        picked.append({"city": c, "region": str(r.get(region_col) or ""), "units": int(r.get("units") or 0)})
+        seen.add(c)
+        if len(picked) >= int(req.max_cities):
+            break
+
+    for m in sorted(mandatory):
+        if m in seen:
+            continue
+        hit = city_units[city_units[city_col].astype(str) == m]
+        if not hit.empty:
+            rr = hit.iloc[0]
+            picked.append({"city": m, "region": str(rr.get(region_col) or ""), "units": int(rr.get("units") or 0)})
+            seen.add(m)
+
+    picked = picked[: int(req.max_cities)]
+    total_units_for_share = float(sum(int(p.get("units") or 0) for p in picked) or 1.0)
+    shares = {p["city"]: float(p.get("units") or 0) / total_units_for_share for p in picked}
+
+    # City-level demand (scaled).
+    demand_by_city: Dict[str, int] = {c: int(max(0, round(float(total_demand) * float(shares.get(c, 0.0))))) for c in shares.keys()}
+    # Fix rounding drift by adjusting the top city.
+    drift = int(total_demand - sum(demand_by_city.values()))
+    if drift != 0:
+        top_city = max(demand_by_city.keys(), key=lambda c: demand_by_city[c])
+        demand_by_city[top_city] = int(max(0, demand_by_city[top_city] + drift))
+
+    # Supply assumptions (scaled units).
+    base_inventory = int(req.base_inventory_units) if req.base_inventory_units is not None else int(round(float(total_demand) * 0.5))
+    base_inventory = int(max(0, round(float(base_inventory) * (1.0 + float(req.inventory_shrink_pct) / 100.0))))
+    inbound_units = int(req.inbound_units)
+    inbound_days = int(req.inbound_days)
+    supply_total = int(base_inventory + (inbound_units if 0 < inbound_days <= horizon else 0))
+
+    # Margin by region (profit per unit); keeps KPI magnitudes readable.
+    margin_rate: Dict[str, float] = {}
+    margin_tier: Dict[str, str] = {}
+    region_by_city: Dict[str, str] = {}
+    for p in picked:
+        c = p["city"]
+        reg = p.get("region") or ""
+        tier, rate = _stock_alloc_margin_for_region(str(reg))
+        margin_rate[c] = float(rate)
+        margin_tier[c] = str(tier)
+        region_by_city[c] = str(reg)
+
+    # Allocate.
+    alloc_by_city = _stock_alloc_allocate(
+        demands=demand_by_city,
+        margin_rate=margin_rate,
+        objective=req.objective,
+        supply_units=supply_total,
+        enable_min_shipment=bool(req.enable_min_shipment),
+        min_shipment_units=int(req.min_shipment_units),
+        enable_vip_new_york=bool(req.enable_vip_new_york),
+        vip_new_york_min_fill=float(req.vip_new_york_min_fill),
+        min_fill_rate=float(req.min_fill_rate),
+        strategic_cities=["San Francisco"],
+    )
+
+    # Baseline profit-max for delta (same hard constraints, no fairness mins).
+    alloc_profit_max = _stock_alloc_allocate(
+        demands=demand_by_city,
+        margin_rate=margin_rate,
+        objective="profit",
+        supply_units=supply_total,
+        enable_min_shipment=bool(req.enable_min_shipment),
+        min_shipment_units=int(req.min_shipment_units),
+        enable_vip_new_york=bool(req.enable_vip_new_york),
+        vip_new_york_min_fill=float(req.vip_new_york_min_fill),
+        min_fill_rate=0.0,
+        strategic_cities=["San Francisco"],
+    )
+
+    total_alloc = int(sum(int(v) for v in alloc_by_city.values()))
+    fill_rate_global = float(total_alloc) / float(total_demand) if total_demand > 0 else 0.0
+    lost_units = int(max(0, total_demand - total_alloc))
+
+    profit = float(sum(float(alloc_by_city.get(c, 0)) * float(margin_rate.get(c, 0.0)) for c in demand_by_city.keys()))
+    profit_max = float(sum(float(alloc_profit_max.get(c, 0)) * float(margin_rate.get(c, 0.0)) for c in demand_by_city.keys()))
+    profit_delta = float(profit - profit_max)
+
+    risk_store_count = 0
+    for c, d in demand_by_city.items():
+        if d <= 0:
+            continue
+        fr = float(alloc_by_city.get(c, 0)) / float(d)
+        if fr < 0.2:
+            risk_store_count += 1
+
+    # Trend: inventory level vs forecast daily demand.
+    inv = int(base_inventory)
+    trend_points: List[Dict[str, Any]] = []
+    out_of_stock_date: Optional[str] = None
+    for i in range(horizon):
+        day = reference_date + pd.Timedelta(days=i + 1)
+        if inbound_days > 0 and (i + 1) == inbound_days:
+            inv += inbound_units
+        demand_i = int(daily_total_demand[i])
+        inv = int(max(0, inv - demand_i))
+        if out_of_stock_date is None and inv == 0 and demand_i > 0:
+            out_of_stock_date = day.strftime("%Y-%m-%d")
+        trend_points.append(
+            {
+                "date": day.strftime("%Y-%m-%d"),
+                "forecast_demand": int(demand_i),
+                "planned_inventory": int(inv),
+            }
+        )
+
+    # City response.
+    city_rows: List[Dict[str, Any]] = []
+    for c in sorted(demand_by_city.keys(), key=lambda x: demand_by_city[x], reverse=True):
+        d = int(demand_by_city.get(c, 0))
+        a = int(alloc_by_city.get(c, 0))
+        fr = float(a) / float(d) if d > 0 else 0.0
+        status = "Sufficient" if fr >= 0.8 else ("Adjusted" if fr > 0 else "Dropped")
+        lat, lon = _stock_alloc_city_latlon(c)
+        city_rows.append(
+            {
+                "city": c,
+                "region": region_by_city.get(c, ""),
+                "lat": float(lat),
+                "lon": float(lon),
+                "margin_tier": margin_tier.get(c, "Med"),
+                "margin_rate": float(margin_rate.get(c, 0.0)),
+                "forecast_demand": d,
+                "allocated": a,
+                "fill_rate": float(fr),
+                "status": status,
+            }
+        )
+
+    gap_pct = (1.0 - (float(base_inventory) / float(total_demand))) * 100.0 if total_demand > 0 else 0.0
+
+    # AI explanation (best-effort; never fail the simulation because of LLM issues).
+    constraints_ctx = {
+        "enable_vip_new_york": bool(req.enable_vip_new_york),
+        "vip_new_york_min_fill": float(req.vip_new_york_min_fill),
+        "enable_min_shipment": bool(req.enable_min_shipment),
+        "min_shipment_units": int(req.min_shipment_units),
+        "min_fill_rate": float(req.min_fill_rate),
+    }
+    simulation_ctx = {
+        "demand_shock_pct": float(req.demand_shock_pct),
+        "inventory_shrink_pct": float(req.inventory_shrink_pct),
+    }
+    totals_ctx = {
+        "horizon_days": int(horizon),
+        "total_demand_units": int(total_demand),
+        "supply_total_units": int(supply_total),
+        "available_inventory_units": int(base_inventory),
+        "inbound_units": int(inbound_units),
+        "inbound_days": int(inbound_days),
+        "gap_pct": float(gap_pct),
+        "out_of_stock_date": out_of_stock_date,
+    }
+    kpis_ctx = {
+        "profit": float(profit),
+        "profit_delta_vs_profit_max": float(profit_delta),
+        "fill_rate": float(fill_rate_global),
+        "lost_sales": float(lost_units),  # $1 per unit for demo readability
+        "risk_store_count": int(risk_store_count),
+    }
+    top_cities_ctx = [
+        {
+            "city": r.get("city"),
+            "region": r.get("region"),
+            "margin_tier": r.get("margin_tier"),
+            "margin_rate": r.get("margin_rate"),
+            "forecast_demand": r.get("forecast_demand"),
+            "allocated": r.get("allocated"),
+            "fill_rate": r.get("fill_rate"),
+            "status": r.get("status"),
+        }
+        for r in (city_rows[:10] if city_rows else [])
+    ]
+
+    ai_explanation_markdown: str
+    ai_explanation_source: str
+    ai_explanation_error: Optional[str] = None
+
+    if bool(req.include_ai_explanation):
+        try:
+            ai_context = {
+                "dataset_id": dataset_id,
+                "reference_date": reference_date.strftime("%Y-%m-%d"),
+                "product": {
+                    "name": product_name,
+                    "category": category,
+                    "sub_category": sub_category,
+                    "forecast_scope": "sub_category",
+                    "product_share_within_sub_category": float(product_share),
+                },
+                "objective": str(req.objective),
+                "constraints": constraints_ctx,
+                "simulation": simulation_ctx,
+                "totals": totals_ctx,
+                "kpis": kpis_ctx,
+                "top_cities": top_cities_ctx,
+                "notes": {
+                    "margin_tier_proxy": "Margin tier is a demo proxy derived from Region (West=High, East=Low, Central/South=Med).",
+                    "profit_definition": "profit = sum(allocated_units * margin_rate), where margin_rate is a proxy per region.",
+                    "lost_sales_definition": "lost_sales is reported as $1 per unfilled unit for readability in the demo.",
+                },
+            }
+            ai_explanation_markdown = _stock_alloc_generate_explanation_markdown_ai(context=ai_context)
+            ai_explanation_source = "ai"
+        except Exception as e:
+            ai_explanation_error = str(e)
+            ai_explanation_markdown = _stock_alloc_generate_explanation_markdown_fallback(
+                objective=str(req.objective),
+                constraints=constraints_ctx,
+                simulation=simulation_ctx,
+                totals=totals_ctx,
+                kpis=kpis_ctx,
+                top_cities=top_cities_ctx,
+            )
+            ai_explanation_source = "fallback"
+    else:
+        ai_explanation_markdown = _stock_alloc_generate_explanation_markdown_fallback(
+            objective=str(req.objective),
+            constraints=constraints_ctx,
+            simulation=simulation_ctx,
+            totals=totals_ctx,
+            kpis=kpis_ctx,
+            top_cities=top_cities_ctx,
+        )
+        ai_explanation_source = "fallback"
+
+    return {
+        "success": True,
+        "data": {
+            "dataset_id": dataset_id,
+            "model_version": model_version,
+            "product": {
+                "name": product_name,
+                "category": category,
+                "sub_category": sub_category,
+                "forecast_scope": "sub_category",
+                "product_share_within_sub_category": float(product_share),
+            },
+            "params": req.model_dump(),
+            "reference_date": reference_date.strftime("%Y-%m-%d"),
+            "supply": {
+                "available_inventory": int(base_inventory),
+                "inbound": {"days": int(inbound_days), "quantity": int(inbound_units)},
+                "gap_pct": float(gap_pct),
+                "supply_total": int(supply_total),
+            },
+            "kpis": {
+                "profit": float(profit),
+                "profit_delta_vs_profit_max": float(profit_delta),
+                "fill_rate": float(fill_rate_global),
+                "lost_sales": float(lost_units),  # $1 per unit for demo readability
+                "risk_store_count": int(risk_store_count),
+            },
+            "ai_explanation_markdown": ai_explanation_markdown,
+            "ai_explanation_source": ai_explanation_source,
+            "ai_explanation_error": ai_explanation_error,
+            "visuals": {
+                "daily_forecast_total": [{"date": p["date"], "demand": p["forecast_demand"]} for p in trend_points],
+                "trend": {"points": trend_points, "out_of_stock_date": out_of_stock_date},
+            },
+            "cities": city_rows,
+        },
+    }

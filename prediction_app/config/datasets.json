@@ -26,6 +26,18 @@
           { "column": "UnitPrice", "op": ">", "value": 0 }
         ]
       }
+    },
+    {
+      "id": "store_sales_data",
+      "name": "Store Sales Dataset",
+      "description": "Store order-line dataset (city-level) for stock allocation simulation and forecasting",
+      "table_name": "store_sales_data",
+      "type": "store_sales",
+      "created_at": "2026-01-18T00:00:00Z",
+      "updated_at": "2026-01-18T00:00:00Z",
+      "tags": ["store", "sales", "allocation", "demo"],
+      "time_column": "Order Date",
+      "csv_path": "raw_data/store_sales_data.csv"
     }
   ]
 }
