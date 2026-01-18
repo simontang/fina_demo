@@ -2,8 +2,8 @@
   "datasets": [
     {
       "id": "sales_data",
-      "name": "销售数据集",
-      "description": "包含历史销售记录的完整数据集，用于销售预测和库存分析",
+      "name": "Sales Dataset",
+      "description": "Full historical sales dataset for forecasting and inventory analysis",
       "table_name": "sales_data",
       "type": "sales",
       "created_at": "2026-01-18T00:00:00Z",

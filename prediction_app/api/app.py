@@ -1,6 +1,7 @@
 """
-API Gateway + 推理服务
-提供模型推理接口和模型部署管理
+API Gateway + Inference Service
+
+Provides model inference endpoints and model deployment management.
 """
 import os
 import sys
@@ -14,17 +15,17 @@ from dotenv import load_dotenv
 # Silence noisy joblib physical-core detection warnings in restricted environments.
 os.environ.setdefault("LOKY_MAX_CPU_COUNT", str(os.cpu_count() or 1))
 
-# 添加项目根目录到路径
+# Add project root to sys.path so we can import `api.xxx`.
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-# 加载环境变量
+# Load environment variables (optional)
 env_path = project_root / ".env"
 if env_path.exists():
     load_dotenv(env_path)
-    print(f"✅ 已加载环境变量: {env_path}")
+    print(f"Loaded env file: {env_path}")
 else:
-    print(f"⚠️  环境变量文件不存在: {env_path}")
+    print(f"Env file not found (optional): {env_path}")
 
 from api.inference import InferenceService
 from api.deployment import ModelDeploymentManager
@@ -34,24 +35,24 @@ from api.model_assets import scan_model_assets
 
 app = FastAPI(
     title="Prediction API",
-    description="模型推理和部署管理 API",
+    description="Model inference and deployment management API",
     version="1.0.0"
 )
 
-# 配置 CORS
+# Configure CORS (restrict origins in production)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 生产环境应限制具体域名
+    allow_origins=["*"],  # Restrict to specific origins in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 初始化服务
+# Initialize services
 inference_service = InferenceService()
 deployment_manager = ModelDeploymentManager()
 
-# 注册数据集管理路由
+# Register routers
 app.include_router(datasets_router)
 app.include_router(model_assets_router)
 
@@ -70,7 +71,7 @@ class DeployModelRequest(BaseModel):
 
 @app.get("/")
 async def root():
-    """API 根路径"""
+    """API root"""
     return {
         "name": "Prediction API",
         "version": "1.0.0",
@@ -90,7 +91,7 @@ async def root():
 
 @app.get("/health")
 async def health():
-    """健康检查"""
+    """Health check"""
     return {
         "status": "healthy",
         "service": "prediction-api"
@@ -100,13 +101,13 @@ async def health():
 @app.post("/api/v1/predict")
 async def predict(request: PredictionRequest):
     """
-    模型推理接口
+    Model inference endpoint.
     
     Args:
-        request: 包含预测数据和可选的模型名称
+        request: input feature dict + optional model name
         
     Returns:
-        预测结果
+        prediction result
     """
     try:
         result = await inference_service.predict(
@@ -123,7 +124,7 @@ async def predict(request: PredictionRequest):
 
 @app.get("/api/v1/models")
 async def list_models():
-    """获取已部署的模型列表"""
+    """List deployed models"""
     try:
         models = deployment_manager.list_models()
         return {
@@ -136,7 +137,7 @@ async def list_models():
 
 @app.get("/api/v1/models/available")
 async def list_available_models():
-    """获取可用于推理的模型列表（内置 + 训练目录 + 已部署）"""
+    """List models available for inference (builtin + training folder + deployed + assets)."""
     try:
         models = [
             {
@@ -205,13 +206,13 @@ async def list_available_models():
 @app.post("/api/v1/models/deploy")
 async def deploy_model(request: DeployModelRequest):
     """
-    部署模型
+    Deploy a model.
     
     Args:
-        request: 包含模型路径、名称和版本
+        request: model path, name, and version
         
     Returns:
-        部署结果
+        deployment result
     """
     try:
         result = await deployment_manager.deploy(
@@ -221,7 +222,7 @@ async def deploy_model(request: DeployModelRequest):
         )
         return {
             "success": True,
-            "message": f"模型 {request.model_name} 部署成功",
+            "message": f"Model '{request.model_name}' deployed successfully",
             "details": result
         }
     except Exception as e:
@@ -230,12 +231,12 @@ async def deploy_model(request: DeployModelRequest):
 
 @app.delete("/api/v1/models/{model_name}")
 async def remove_model(model_name: str):
-    """移除已部署的模型"""
+    """Remove a deployed model"""
     try:
         result = deployment_manager.remove_model(model_name)
         return {
             "success": True,
-            "message": f"模型 {model_name} 已移除"
+            "message": f"Model '{model_name}' removed"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -244,7 +245,7 @@ async def remove_model(model_name: str):
 if __name__ == "__main__":
     import uvicorn
     
-    # 从环境变量读取端口，默认 8000
+    # Read port from env (default: 8000)
     port = int(os.getenv("PORT", 8000))
-    print(f"🚀 启动 API 服务，端口: {port}")
+    print(f"Starting API server on port {port}...")
     uvicorn.run(app, host="0.0.0.0", port=port)

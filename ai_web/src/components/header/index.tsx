@@ -48,7 +48,7 @@ export const Header: React.FC<RefineThemedLayoutHeaderProps> = ({
       <Space>
         <Switch
           checked={mode === "dark"}
-          onChange={() => setMode()}
+          onChange={() => setMode(mode === "dark" ? "light" : "dark")}
           checkedChildren="🌛"
           unCheckedChildren="☀️"
         />

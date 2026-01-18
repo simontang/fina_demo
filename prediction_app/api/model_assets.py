@@ -77,7 +77,7 @@ def _find_model_asset(name: str, version: str) -> tuple[Path, Path, Dict[str, An
     name_dir = models_root / name
     version_dir = name_dir / version
     if not version_dir.exists():
-        raise HTTPException(status_code=404, detail="模型不存在")
+        raise HTTPException(status_code=404, detail="Model not found")
 
     meta_path = version_dir / "metadata.json"
     model_path = version_dir / "model.pkl"
@@ -121,4 +121,3 @@ def get_model_asset_detail(model_name: str, version: str):
             },
         },
     }
-

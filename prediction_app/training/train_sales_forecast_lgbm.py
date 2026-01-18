@@ -207,12 +207,12 @@ def main():
         random_state=int(args.random_state),
     )
 
-    print("📥 Loading data...")
+    print("Loading data...")
     encoding = _detect_encoding(csv_path)
     daily = _make_daily_revenue_frame(csv_path, encoding=encoding, top_k_skus=cfg.top_k_skus)
     dense = _to_dense_daily_grid(daily)
 
-    print("🧱 Building features...")
+    print("Building features...")
     X, y = _build_features(dense, cfg)
     dates = pd.to_datetime(dense["date"]).reset_index(drop=True)
 
@@ -222,7 +222,7 @@ def main():
     X_train, y_train = X[~is_val], y[~is_val]
     X_val, y_val = X[is_val], y[is_val]
 
-    print(f"✅ Train rows: {len(X_train):,} | Val rows: {len(X_val):,} | val_start: {val_start.date()} | max: {max_date.date()}")
+    print(f"Train rows: {len(X_train):,} | Val rows: {len(X_val):,} | val_start: {val_start.date()} | max: {max_date.date()}")
 
     model = lgb.LGBMRegressor(
         n_estimators=2000,
@@ -236,7 +236,7 @@ def main():
         n_jobs=-1,
     )
 
-    print("🏋️  Training...")
+    print("Training...")
     model.fit(
         X_train,
         y_train,
@@ -245,7 +245,7 @@ def main():
         callbacks=[lgb.early_stopping(stopping_rounds=100, verbose=False)],
     )
 
-    print("📈 Evaluating...")
+    print("Evaluating...")
     pred_val = model.predict(X_val)
     pred_val = np.maximum(0.0, pred_val)
 
@@ -259,7 +259,7 @@ def main():
     model_path = out_dir / "model.pkl"
     meta_path = out_dir / "metadata.json"
 
-    print(f"💾 Saving model: {model_path}")
+    print(f"Saving model: {model_path}")
     joblib.dump(model, model_path)
 
     meta: Dict[str, object] = {
@@ -288,13 +288,12 @@ def main():
         },
     }
 
-    print(f"🧾 Saving metadata: {meta_path}")
+    print(f"Saving metadata: {meta_path}")
     with open(meta_path, "w", encoding="utf-8") as f:
-        json.dump(meta, f, ensure_ascii=False, indent=2)
+        json.dump(meta, f, ensure_ascii=True, indent=2)
 
-    print("✅ Done.")
+    print("Done.")
 
 
 if __name__ == "__main__":
     main()
-

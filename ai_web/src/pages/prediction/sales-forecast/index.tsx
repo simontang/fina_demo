@@ -74,7 +74,7 @@ function getAuthHeaders(): HeadersInit {
 function formatNumber(n: unknown): string {
   const num = typeof n === "number" ? n : Number(n);
   if (!Number.isFinite(num)) return "-";
-  return num.toLocaleString("zh-CN");
+  return num.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
 
 export const SalesForecast = () => {
@@ -101,10 +101,10 @@ export const SalesForecast = () => {
       try {
         const res = await fetch("/api/v1/datasets", { headers });
         const data = await res.json();
-        if (!data?.success) throw new Error(data?.detail || data?.error || "获取数据集失败");
+        if (!data?.success) throw new Error(data?.detail || data?.error || "Failed to fetch datasets");
         setDatasets(data.data || []);
       } catch (e: any) {
-        setDatasetsError(e?.message || "获取数据集失败");
+        setDatasetsError(e?.message || "Failed to fetch datasets");
       } finally {
         setLoadingDatasets(false);
       }
@@ -116,10 +116,10 @@ export const SalesForecast = () => {
       try {
         const res = await fetch("/api/v1/models/available", { headers });
         const data = await res.json();
-        if (!data?.success) throw new Error(data?.detail || data?.error || "获取模型列表失败");
+        if (!data?.success) throw new Error(data?.detail || data?.error || "Failed to fetch models");
         setModels(data.models || []);
       } catch (e: any) {
-        setModelsError(e?.message || "获取模型列表失败");
+        setModelsError(e?.message || "Failed to fetch models");
       } finally {
         setLoadingModels(false);
       }
@@ -139,19 +139,19 @@ export const SalesForecast = () => {
 
   const historyColumns: ColumnsType<SalesForecastHistoryPoint> = useMemo(
     () => [
-      { title: "日期", dataIndex: "date", key: "date", width: 120 },
+      { title: "Date", dataIndex: "date", key: "date", width: 120 },
       {
-        title: "销量",
+        title: "Sales",
         dataIndex: "sales",
         key: "sales",
         render: (v) => formatNumber(v),
       },
       {
-        title: "节假日",
+        title: "Holiday",
         dataIndex: "is_holiday",
         key: "is_holiday",
         width: 90,
-        render: (v) => (Number(v) ? "是" : "否"),
+        render: (v) => (Number(v) ? "Yes" : "No"),
       },
     ],
     []
@@ -159,20 +159,20 @@ export const SalesForecast = () => {
 
   const forecastColumns: ColumnsType<SalesForecastRow> = useMemo(
     () => [
-      { title: "日期", dataIndex: "date", key: "date", width: 120 },
+      { title: "Date", dataIndex: "date", key: "date", width: 120 },
       {
-        title: "预测销量",
+        title: "Predicted",
         dataIndex: "predicted_sales",
         key: "predicted_sales",
         render: (v) => formatNumber(v),
       },
       {
-        title: "区间下限",
+        title: "CI Lower",
         key: "ci_lower",
         render: (_, r) => formatNumber(r.confidence_interval?.lower),
       },
       {
-        title: "区间上限",
+        title: "CI Upper",
         key: "ci_upper",
         render: (_, r) => formatNumber(r.confidence_interval?.upper),
       },
@@ -207,12 +207,12 @@ export const SalesForecast = () => {
 
       const data = (await res.json()) as SalesForecastResponse;
       if (!res.ok) throw new Error((data as any)?.detail || `HTTP ${res.status}`);
-      if (data.status !== "success") throw new Error((data as any)?.detail || "预测失败");
+      if (data.status !== "success") throw new Error((data as any)?.detail || "Forecast failed");
 
       setForecast(data);
-      message.success("预测完成");
+      message.success("Forecast completed");
     } catch (e: any) {
-      const msg = e?.message || "预测失败";
+      const msg = e?.message || "Forecast failed";
       setForecastError(msg);
       message.error(msg);
     } finally {
@@ -222,8 +222,8 @@ export const SalesForecast = () => {
 
   const meta = forecast?.meta;
   const metaText = useMemo(() => {
-    const mv = meta?.model_version ? `模型: ${meta.model_version}` : "";
-    const gt = meta?.generated_at ? `生成时间: ${meta.generated_at}` : "";
+    const mv = meta?.model_version ? `Model: ${meta.model_version}` : "";
+    const gt = meta?.generated_at ? `Generated at: ${meta.generated_at}` : "";
     return [mv, gt].filter(Boolean).join(" · ");
   }, [meta]);
 
@@ -232,13 +232,13 @@ export const SalesForecast = () => {
       <Row gutter={[16, 16]}>
         <Col span={24}>
           <Title level={3} style={{ margin: 0 }}>
-            销量预测
+            Sales Forecast
           </Title>
-          <Text type="secondary">选择模型与数据集，按未来天数生成预测结果。</Text>
+          <Text type="secondary">Select a model and dataset, then forecast future days.</Text>
         </Col>
 
         <Col span={24}>
-          <Card title="配置">
+          <Card title="Configuration">
             <Form<FormValues>
               form={form}
               layout="vertical"
@@ -258,13 +258,13 @@ export const SalesForecast = () => {
               <Row gutter={16}>
                 <Col xs={24} md={8}>
                   <Form.Item
-                    label="数据集"
+                    label="Dataset"
                     name="datasetId"
-                    rules={[{ required: true, message: "请选择数据集" }]}
+                    rules={[{ required: true, message: "Please select a dataset" }]}
                   >
                     <Select
                       loading={loadingDatasets}
-                      placeholder="请选择数据集"
+                      placeholder="Select a dataset"
                       options={datasets.map((d) => ({ label: `${d.name} (${d.id})`, value: d.id }))}
                       disabled={datasets.length === 0}
                     />
@@ -274,13 +274,13 @@ export const SalesForecast = () => {
 
                 <Col xs={24} md={8}>
                   <Form.Item
-                    label="模型"
+                    label="Model"
                     name="modelId"
-                    rules={[{ required: true, message: "请选择模型" }]}
+                    rules={[{ required: true, message: "Please select a model" }]}
                   >
                     <Select
                       loading={loadingModels}
-                      placeholder="请选择模型"
+                      placeholder="Select a model"
                       options={models.map((m) => ({
                         label: `${m.name} (${m.id})${m.source ? ` · ${m.source}` : ""}`,
                         value: m.id,
@@ -293,26 +293,26 @@ export const SalesForecast = () => {
 
                 <Col xs={24} md={8}>
                   <Form.Item
-                    label="预测对象 ID（例如 StockCode）"
+                    label="Target Entity ID (e.g. StockCode)"
                     name="targetEntityId"
-                    rules={[{ required: true, message: "请输入目标 ID" }]}
+                    rules={[{ required: true, message: "Please enter a target entity id" }]}
                   >
-                    <Input placeholder="例如: 85123A" />
+                    <Input placeholder="e.g. 85123A" />
                   </Form.Item>
                 </Col>
 
                 <Col xs={24} md={6}>
-                  <Form.Item label="预测天数" name="horizon" rules={[{ required: true }]}>
+                  <Form.Item label="Horizon (days)" name="horizon" rules={[{ required: true }]}>
                     <InputNumber min={1} max={365} style={{ width: "100%" }} />
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={6}>
-                  <Form.Item label="历史窗口（天）" name="contextWindowDays" rules={[{ required: true }]}>
+                  <Form.Item label="History Window (days)" name="contextWindowDays" rules={[{ required: true }]}>
                     <InputNumber min={7} max={3650} style={{ width: "100%" }} />
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={6}>
-                  <Form.Item label="销量口径" name="salesMetric" rules={[{ required: true }]}>
+                  <Form.Item label="Metric" name="salesMetric" rules={[{ required: true }]}>
                     <Select
                       options={[
                         { label: "Quantity", value: "quantity" },
@@ -322,23 +322,23 @@ export const SalesForecast = () => {
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={6}>
-                  <Form.Item label="促销系数" name="promotionFactor" rules={[{ required: true }]}>
+                  <Form.Item label="Promotion Factor" name="promotionFactor" rules={[{ required: true }]}>
                     <InputNumber min={0.01} step={0.05} style={{ width: "100%" }} />
                   </Form.Item>
                 </Col>
 
                 <Col xs={24} md={6}>
-                  <Form.Item label="节假日国家码" name="holidayCountry" rules={[{ required: true }]}>
-                    <Input placeholder="例如: CN / US" />
+                  <Form.Item label="Holiday Country Code" name="holidayCountry" rules={[{ required: true }]}>
+                    <Input placeholder="e.g. GB / US" />
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={6}>
-                  <Form.Item label="取整方式" name="rounding" rules={[{ required: true }]}>
+                  <Form.Item label="Rounding" name="rounding" rules={[{ required: true }]}>
                     <Select
                       options={[
-                        { label: "四舍五入", value: "round" },
-                        { label: "向下取整", value: "floor" },
-                        { label: "不取整", value: "none" },
+                        { label: "Round", value: "round" },
+                        { label: "Floor", value: "floor" },
+                        { label: "None", value: "none" },
                       ]}
                     />
                   </Form.Item>
@@ -347,7 +347,7 @@ export const SalesForecast = () => {
                   <Form.Item style={{ marginBottom: 0 }}>
                     <Space>
                       <Button type="primary" htmlType="submit" loading={forecastLoading}>
-                        运行预测
+                        Run Forecast
                       </Button>
                       <Button
                         onClick={() => {
@@ -366,7 +366,7 @@ export const SalesForecast = () => {
                           setForecastError(null);
                         }}
                       >
-                        重置
+                        Reset
                       </Button>
                     </Space>
                   </Form.Item>
@@ -377,7 +377,7 @@ export const SalesForecast = () => {
         </Col>
 
         <Col span={24}>
-          <Card title="结果" extra={metaText ? <Text type="secondary">{metaText}</Text> : null}>
+          <Card title="Results" extra={metaText ? <Text type="secondary">{metaText}</Text> : null}>
             {forecastError && <Alert type="error" showIcon message={forecastError} style={{ marginBottom: 12 }} />}
 
             {forecastLoading ? (
@@ -385,11 +385,11 @@ export const SalesForecast = () => {
             ) : forecast?.status === "success" ? (
               <Row gutter={[16, 16]}>
                 <Col xs={24} md={6}>
-                  <Statistic title="趋势" value={forecast.trend_summary || "-"} />
+                  <Statistic title="Trend" value={forecast.trend_summary || "-"} />
                 </Col>
                 <Col xs={24} md={18}>
                   <Space direction="vertical" style={{ width: "100%" }} size={16}>
-                    <Card size="small" title="历史（最近 30 天）">
+                    <Card size="small" title="History (Last 30 days)">
                       <Table
                         rowKey={(r) => r.date}
                         size="small"
@@ -400,7 +400,7 @@ export const SalesForecast = () => {
                       />
                     </Card>
 
-                    <Card size="small" title="预测结果">
+                    <Card size="small" title="Forecast">
                       <Table
                         rowKey={(r) => r.date}
                         size="small"
@@ -414,7 +414,7 @@ export const SalesForecast = () => {
                 </Col>
               </Row>
             ) : (
-              <Text type="secondary">请先配置参数并运行预测。</Text>
+              <Text type="secondary">Configure parameters and run a forecast.</Text>
             )}
           </Card>
         </Col>

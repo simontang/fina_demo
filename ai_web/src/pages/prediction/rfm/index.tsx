@@ -185,36 +185,36 @@ function computeTreemap(items: TreemapItem[], width: number, height: number, pad
 
 function formatCompactNumber(n: number): string {
   if (!Number.isFinite(n)) return "-";
-  return n.toLocaleString("zh-CN");
+  return n.toLocaleString("en-US");
 }
 
 function formatMoney(n: number): string {
   if (!Number.isFinite(n)) return "-";
-  return n.toLocaleString("zh-CN", { maximumFractionDigits: 2 });
+  return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
 
 function segmentStrategy(segment: string): string {
   switch (segment) {
     case "Champions":
-      return "推新品/高客单组合包，叠加会员权益防止流失。";
+      return "Launch new arrivals and premium bundles; protect with VIP/loyalty benefits.";
     case "Loyal Customers":
-      return "上新提醒 + 复购激励，提升客单并培育为 Champions。";
+      return "Replenishment reminders + cross-sell; nurture into Champions.";
     case "Potential Loyalist":
-      return "用满减/加价购引导二购，叠加会员/积分体系提升频次。";
+      return "Drive repeat purchases with bundles, thresholds, and points/loyalty.";
     case "Need Attention":
-      return "中等活跃：用内容/新品/个性化推荐做唤醒，避免滑向流失。";
+      return "Use content/new arrivals + personalization to prevent drifting into churn segments.";
     case "Promising":
-      return "新近但低频：首购后 7-21 天重点二次触达，培养复购习惯。";
+      return "Post-first-purchase journey (7-21 days) to trigger repeat purchase.";
     case "Can't Lose Them":
-      return "高频但久未购买：优先人工/高触达召回（专属券/关怀），避免高价值流失。";
+      return "High-touch win-back (exclusive voucher + outreach); diagnose churn reasons.";
     case "At Risk":
-      return "优先召回：限时券/关怀触达，结合偏好做个性化唤醒。";
+      return "Limited-time incentives + personalized recommendations to prevent churn.";
     case "New Customers":
-      return "首购后 7-14 天内二次触达，推动二购形成习惯。";
+      return "Onboarding + early follow-up to build a repeat habit.";
     case "Hibernating":
-      return "低成本触达 + 低门槛优惠，测试可唤醒比例。";
+      return "Low-cost outreach + low-barrier offers; measure reactivation rate.";
     default:
-      return "分层再营销（推荐/满减），推动向 Loyal/Champions 迁移。";
+      return "Segmented remarketing to move users toward Loyal Customers and Champions.";
   }
 }
 
@@ -269,11 +269,11 @@ export const RFMEngine: React.FC = () => {
         }
         const json = await res.json();
         if (!json?.success) {
-          throw new Error(json?.error || json?.message || "加载数据集失败");
+          throw new Error(json?.error || json?.message || "Failed to load datasets");
         }
         if (!cancelled) setDatasets(json.data || []);
       } catch (e) {
-        if (!cancelled) setDatasetsError(e instanceof Error ? e.message : "加载数据集失败");
+        if (!cancelled) setDatasetsError(e instanceof Error ? e.message : "Failed to load datasets");
       } finally {
         if (!cancelled) setDatasetsLoading(false);
       }
@@ -329,7 +329,7 @@ export const RFMEngine: React.FC = () => {
 
   const runAnalysis = async () => {
     if (!datasetId) {
-      message.warning("请先选择一个数据集");
+      message.warning("Please select a dataset first");
       return;
     }
     setAnalysisLoading(true);
@@ -358,11 +358,11 @@ export const RFMEngine: React.FC = () => {
 
       const json = await res.json();
       if (!json?.success || !json?.data) {
-        throw new Error(json?.error || json?.message || "运行分析失败");
+        throw new Error(json?.error || json?.message || "Failed to run analysis");
       }
       setAnalysis(json.data as RFMAnalysisData);
     } catch (e) {
-      setAnalysisError(e instanceof Error ? e.message : "运行分析失败");
+      setAnalysisError(e instanceof Error ? e.message : "Failed to run analysis");
     } finally {
       setAnalysisLoading(false);
     }
@@ -390,11 +390,11 @@ export const RFMEngine: React.FC = () => {
       }
       const json = await res.json();
       if (!json?.success || !json?.data) {
-        throw new Error(json?.error || json?.message || "加载人群详情失败");
+        throw new Error(json?.error || json?.message || "Failed to load segment details");
       }
       setSegmentData(json.data as RFMSegmentDetailResponse);
     } catch (e) {
-      setSegmentError(e instanceof Error ? e.message : "加载人群详情失败");
+      setSegmentError(e instanceof Error ? e.message : "Failed to load segment details");
       setSegmentData(null);
     } finally {
       setSegmentLoading(false);
@@ -428,7 +428,7 @@ export const RFMEngine: React.FC = () => {
 
   const segmentColumns: ColumnsType<RFMSegmentSummary> = [
     {
-      title: "人群",
+      title: "Segment",
       dataIndex: "segment",
       key: "segment",
       render: (v: string, r) => (
@@ -438,12 +438,17 @@ export const RFMEngine: React.FC = () => {
         </Space>
       ),
     },
-    { title: "人数", dataIndex: "count", key: "count", render: (v: number) => formatCompactNumber(v) },
-    { title: "占比", dataIndex: "share_pct", key: "share_pct", render: (v: number) => `${v.toFixed(1)}%` },
-    { title: "营收", dataIndex: "revenue", key: "revenue", render: (v: number) => formatMoney(v) },
-    { title: "营收占比", dataIndex: "revenue_share_pct", key: "revenue_share_pct", render: (v: number) => `${v.toFixed(1)}%` },
+    { title: "Users", dataIndex: "count", key: "count", render: (v: number) => formatCompactNumber(v) },
+    { title: "Share", dataIndex: "share_pct", key: "share_pct", render: (v: number) => `${v.toFixed(1)}%` },
+    { title: "Revenue", dataIndex: "revenue", key: "revenue", render: (v: number) => formatMoney(v) },
     {
-      title: "Avg R(天)",
+      title: "Revenue Share",
+      dataIndex: "revenue_share_pct",
+      key: "revenue_share_pct",
+      render: (v: number) => `${v.toFixed(1)}%`,
+    },
+    {
+      title: "Avg R (days)",
       dataIndex: "avg_recency_days",
       key: "avg_recency_days",
       render: (v: number) => v.toFixed(1),
@@ -465,13 +470,20 @@ export const RFMEngine: React.FC = () => {
 
   const customerColumns: ColumnsType<RFMSegmentCustomer> = [
     { title: "user_id", dataIndex: "user_id", key: "user_id", width: 120 },
-    { title: "R(天)", dataIndex: "recency_days", key: "recency_days", width: 90, sorter: true },
-    { title: "F", dataIndex: "frequency", key: "frequency", width: 80, sorter: true },
-    { title: "M", dataIndex: "monetary", key: "monetary", width: 120, render: (v: number) => formatMoney(v), sorter: true },
-    { title: "R", dataIndex: "r_score", key: "r_score", width: 70 },
-    { title: "F", dataIndex: "f_score", key: "f_score", width: 70 },
-    { title: "M", dataIndex: "m_score", key: "m_score", width: 70 },
-    { title: "RFM", dataIndex: "rfm_score", key: "rfm_score", width: 90, render: (v: number) => v.toFixed(2) },
+    { title: "Recency (days)", dataIndex: "recency_days", key: "recency_days", width: 120, sorter: true },
+    { title: "Frequency", dataIndex: "frequency", key: "frequency", width: 100, sorter: true },
+    {
+      title: "Monetary",
+      dataIndex: "monetary",
+      key: "monetary",
+      width: 120,
+      render: (v: number) => formatMoney(v),
+      sorter: true,
+    },
+    { title: "R Score", dataIndex: "r_score", key: "r_score", width: 90 },
+    { title: "F Score", dataIndex: "f_score", key: "f_score", width: 90 },
+    { title: "M Score", dataIndex: "m_score", key: "m_score", width: 90 },
+    { title: "RFM Score", dataIndex: "rfm_score", key: "rfm_score", width: 110, render: (v: number) => v.toFixed(2) },
   ];
 
   const scoreChart = (title: string, counts: Record<string, number>, scale: number) => {
@@ -506,7 +518,7 @@ export const RFMEngine: React.FC = () => {
 
   const configSummary = useMemo(() => {
     const w = config.weights;
-    return `窗口 ${config.time_window_days} 天 · 评分 ${config.scoring_scale} · ${config.segmentation_method} · 权重 ${w.r}:${w.f}:${w.m}`;
+    return `Window ${config.time_window_days}d · Scale ${config.scoring_scale} · ${config.segmentation_method} · Weights ${w.r}:${w.f}:${w.m}`;
   }, [config]);
 
   const matrixCellMap = useMemo(() => {
@@ -531,13 +543,13 @@ export const RFMEngine: React.FC = () => {
             <Space align="center" style={{ justifyContent: "space-between", width: "100%" }}>
               <div>
                 <Title level={3} style={{ margin: 0, color: "#0F3460" }}>
-                  RFM 精准引擎
+                  RFM Engine
                 </Title>
                 <Text type="secondary">{configSummary}</Text>
               </div>
               <Space>
                 <Button icon={<SettingOutlined />} onClick={() => setConfigOpen(true)}>
-                  配置参数
+                  Configure
                 </Button>
                 <Button
                   type="primary"
@@ -546,16 +558,16 @@ export const RFMEngine: React.FC = () => {
                   disabled={!datasetId || datasetsLoading}
                   loading={analysisLoading}
                 >
-                  运行分析
+                  Run Analysis
                 </Button>
               </Space>
             </Space>
 
             <Space wrap>
-              <Text strong>选择数据集：</Text>
+              <Text strong>Dataset:</Text>
               <Select
                 style={{ minWidth: 320 }}
-                placeholder="请选择一个数据集"
+                placeholder="Select a dataset"
                 loading={datasetsLoading}
                 value={datasetId}
                 onChange={(v) => {
@@ -573,13 +585,13 @@ export const RFMEngine: React.FC = () => {
           </Space>
         </Card>
 
-        {analysisError && <Alert type="error" showIcon message="运行失败" description={analysisError} />}
+        {analysisError && <Alert type="error" showIcon message="Analysis Failed" description={analysisError} />}
 
         {analysisLoading && (
           <Card style={{ borderRadius: 8 }}>
             <div style={{ textAlign: "center", padding: 24 }}>
               <Spin />
-              <div style={{ marginTop: 12, color: "#64748B" }}>正在计算 RFM...</div>
+              <div style={{ marginTop: 12, color: "#64748B" }}>Running RFM analysis...</div>
             </div>
           </Card>
         )}
@@ -589,23 +601,23 @@ export const RFMEngine: React.FC = () => {
             <Row gutter={[16, 16]}>
               <Col xs={24} sm={12} md={6}>
                 <Card style={{ borderRadius: 8 }}>
-                  <Statistic title="用户数" value={analysis.overview.total_users} />
+                  <Statistic title="Users" value={analysis.overview.total_users} />
                 </Card>
               </Col>
               <Col xs={24} sm={12} md={6}>
                 <Card style={{ borderRadius: 8 }}>
-                  <Statistic title="订单数" value={analysis.overview.total_orders} />
+                  <Statistic title="Orders" value={analysis.overview.total_orders} />
                 </Card>
               </Col>
               <Col xs={24} sm={12} md={6}>
                 <Card style={{ borderRadius: 8 }}>
-                  <Statistic title="总营收" value={analysis.overview.total_revenue} precision={2} />
+                  <Statistic title="Total Revenue" value={analysis.overview.total_revenue} precision={2} />
                 </Card>
               </Col>
               <Col xs={24} sm={12} md={6}>
                 <Card style={{ borderRadius: 8 }}>
                   <Statistic
-                    title="环比营收"
+                    title="MoM Revenue"
                     value={analysis.mom?.total_revenue_change_pct ?? 0}
                     precision={1}
                     suffix="%"
@@ -621,7 +633,7 @@ export const RFMEngine: React.FC = () => {
             <Row gutter={[16, 16]}>
               <Col xs={24} lg={14}>
                 <Card
-                  title={visualMode === "matrix" ? "经典 RFM 矩阵（9 宫格）" : "人群分布（Treemap）"}
+                  title={visualMode === "matrix" ? "Classic RFM Matrix (3×3)" : "Segment Distribution (Treemap)"}
                   style={{ borderRadius: 8 }}
                   extra={
                     <Radio.Group
@@ -630,7 +642,7 @@ export const RFMEngine: React.FC = () => {
                       optionType="button"
                       buttonStyle="solid"
                     >
-                      <Radio.Button value="matrix">矩阵</Radio.Button>
+                      <Radio.Button value="matrix">Matrix</Radio.Button>
                       <Radio.Button value="treemap">Treemap</Radio.Button>
                     </Radio.Group>
                   }
@@ -694,9 +706,9 @@ export const RFMEngine: React.FC = () => {
                                     if (!clickable) return;
                                     if (e.key === "Enter") openSegment(cell.segment);
                                   }}
-                                  title={`${cell.segment}\n人数: ${formatCompactNumber(cell.count)} (${cell.share_pct.toFixed(
+                                  title={`${cell.segment}\nUsers: ${formatCompactNumber(cell.count)} (${cell.share_pct.toFixed(
                                     1
-                                  )}%)\n营收占比: ${cell.revenue_share_pct.toFixed(1)}%\nAvg M: ${formatMoney(
+                                  )}%)\nRevenue Share: ${cell.revenue_share_pct.toFixed(1)}%\nAvg M: ${formatMoney(
                                     cell.avg_monetary
                                   )}\nAvg RFM: ${cell.avg_rfm_score.toFixed(2)}`}
                                   style={{
@@ -726,7 +738,7 @@ export const RFMEngine: React.FC = () => {
                                     </Text>
                                   </div>
                                   <div style={{ marginTop: 6, fontSize: 12, color: "#334155" }}>
-                                    {formatCompactNumber(cell.count)} 人 · {cell.share_pct.toFixed(1)}%
+                                    {formatCompactNumber(cell.count)} users · {cell.share_pct.toFixed(1)}%
                                   </div>
                                   <div style={{ marginTop: 2, fontSize: 12, color: "#334155" }}>
                                     Avg M {formatMoney(cell.avg_monetary)}
@@ -742,9 +754,9 @@ export const RFMEngine: React.FC = () => {
                       </div>
 
                       <div style={{ marginTop: 12, color: "#64748B", fontSize: 12 }}>
-                        规则：score ≤ {analysis.matrix.thresholds.low_end} 为 Low；score ≥ {analysis.matrix.thresholds.high_start} 为 High；
-                        其余为 Mid（基于 1-{analysis.matrix.thresholds.scale} 分制）。
-                        <span style={{ marginLeft: 8 }}>点击格子可查看该人群明细；M 维度体现在 Avg M / 营收贡献。</span>
+                        Rule: score ≤ {analysis.matrix.thresholds.low_end} maps to Low; score ≥ {analysis.matrix.thresholds.high_start} maps to High; otherwise Mid
+                        (scale 1-{analysis.matrix.thresholds.scale}).
+                        <span style={{ marginLeft: 8 }}>Click a cell to view segment details; M is reflected via Avg M / revenue contribution.</span>
                       </div>
                     </>
                   ) : (
@@ -771,7 +783,7 @@ export const RFMEngine: React.FC = () => {
                               color: "#64748B",
                             }}
                           >
-                            正在渲染 Treemap...
+                            Rendering treemap...
                           </div>
                         )}
                         {treemapRects.map((r) => {
@@ -800,7 +812,7 @@ export const RFMEngine: React.FC = () => {
                                 outline:
                                   activeSegment === r.raw.segment ? "2px solid rgba(15, 52, 96, 0.5)" : "none",
                               }}
-                              title={`${r.raw.segment}\n人数: ${formatCompactNumber(r.raw.count)}\nAvg M: ${formatMoney(
+                              title={`${r.raw.segment}\nUsers: ${formatCompactNumber(r.raw.count)}\nAvg M: ${formatMoney(
                                 r.raw.avg_monetary
                               )}`}
                             >
@@ -808,7 +820,7 @@ export const RFMEngine: React.FC = () => {
                                 <div style={{ color: "#0B1220" }}>
                                   <div style={{ fontWeight: 700, fontSize: 14 }}>{r.raw.segment}</div>
                                   <div style={{ marginTop: 4, fontSize: 12 }}>
-                                    {formatCompactNumber(r.raw.count)} 人 · Avg M {formatMoney(r.raw.avg_monetary)}
+                                    {formatCompactNumber(r.raw.count)} users · Avg M {formatMoney(r.raw.avg_monetary)}
                                   </div>
                                 </div>
                               )}
@@ -817,23 +829,23 @@ export const RFMEngine: React.FC = () => {
                         })}
                       </div>
                       <div style={{ marginTop: 12, color: "#64748B", fontSize: 12 }}>
-                        Hover 查看指标，Click 选中人群。
+                        Hover to view metrics, click to drill down.
                       </div>
                     </>
                   )}
                 </Card>
               </Col>
               <Col xs={24} lg={10}>
-                <Card title="评分分布（1-N）" style={{ borderRadius: 8 }}>
+                <Card title="Score Distributions (1-N)" style={{ borderRadius: 8 }}>
                   <Row gutter={[12, 12]}>
                     <Col span={24}>
-                      {scoreChart("R Score 分布", analysis.score_distributions.r, analysis.scoring_scale)}
+                      {scoreChart("R Score Distribution", analysis.score_distributions.r, analysis.scoring_scale)}
                     </Col>
                     <Col span={24}>
-                      {scoreChart("F Score 分布", analysis.score_distributions.f, analysis.scoring_scale)}
+                      {scoreChart("F Score Distribution", analysis.score_distributions.f, analysis.scoring_scale)}
                     </Col>
                     <Col span={24}>
-                      {scoreChart("M Score 分布", analysis.score_distributions.m, analysis.scoring_scale)}
+                      {scoreChart("M Score Distribution", analysis.score_distributions.m, analysis.scoring_scale)}
                     </Col>
                   </Row>
                 </Card>
@@ -841,7 +853,7 @@ export const RFMEngine: React.FC = () => {
             </Row>
 
             <Card
-              title="AI 洞察（Markdown）"
+              title="AI Insights (Markdown)"
               style={{ borderRadius: 8 }}
               extra={
                 <Tag icon={<ThunderboltOutlined />} color="blue">
@@ -852,7 +864,7 @@ export const RFMEngine: React.FC = () => {
               <MDEditor.Markdown source={analysis.insight_markdown} />
             </Card>
 
-            <Card title="人群明细" style={{ borderRadius: 8 }}>
+            <Card title="Segments" style={{ borderRadius: 8 }}>
               <Table<RFMSegmentSummary>
                 rowKey={(r) => r.segment}
                 size="small"
@@ -869,7 +881,7 @@ export const RFMEngine: React.FC = () => {
       </Space>
 
       <Drawer
-        title="参数配置"
+        title="Configuration"
         open={configOpen}
         onClose={() => setConfigOpen(false)}
         width={420}
@@ -892,34 +904,34 @@ export const RFMEngine: React.FC = () => {
             setConfig(next);
           }}
         >
-          <Form.Item label="Time Window（天）" name="time_window_days">
+          <Form.Item label="Time Window (days)" name="time_window_days">
             <InputNumber min={1} max={3650} style={{ width: "100%" }} />
           </Form.Item>
 
-          <Form.Item label="Scoring Scale（3-10）" name="scoring_scale">
+          <Form.Item label="Scoring Scale (3-10)" name="scoring_scale">
             <InputNumber min={3} max={10} style={{ width: "100%" }} />
           </Form.Item>
 
           <Form.Item label="Segmentation Method" name="segmentation_method">
             <Radio.Group>
-              <Radio value="quantiles">Quantiles（等频分箱）</Radio>
-              <Radio value="kmeans">K-Means（自然聚类）</Radio>
+              <Radio value="quantiles">Quantiles (Equal-Frequency Binning)</Radio>
+              <Radio value="kmeans">K-Means (Natural Clustering)</Radio>
             </Radio.Group>
           </Form.Item>
 
           <Divider />
 
           <Title level={5} style={{ marginTop: 0 }}>
-            Weights（权重）
+            Weights
           </Title>
 
-          <Form.Item label={`R 权重：${config.weights.r.toFixed(1)}`} name="w_r">
+          <Form.Item label={`R Weight: ${config.weights.r.toFixed(1)}`} name="w_r">
             <Slider min={0.5} max={3} step={0.1} />
           </Form.Item>
-          <Form.Item label={`F 权重：${config.weights.f.toFixed(1)}`} name="w_f">
+          <Form.Item label={`F Weight: ${config.weights.f.toFixed(1)}`} name="w_f">
             <Slider min={0.5} max={3} step={0.1} />
           </Form.Item>
-          <Form.Item label={`M 权重：${config.weights.m.toFixed(1)}`} name="w_m">
+          <Form.Item label={`M Weight: ${config.weights.m.toFixed(1)}`} name="w_m">
             <Slider min={0.5} max={3} step={0.1} />
           </Form.Item>
 
@@ -935,21 +947,21 @@ export const RFMEngine: React.FC = () => {
                   w_f: defaultConfig.weights.f,
                   w_m: defaultConfig.weights.m,
                 });
-                message.success("已恢复默认配置");
+                message.success("Reset to defaults");
               }}
             >
-              恢复默认
+              Reset
             </Button>
             <Button
               type="primary"
               onClick={() => {
                 saveConfig(config);
-                message.success("配置已保存");
+                message.success("Configuration saved");
                 setConfigOpen(false);
               }}
               disabled={!datasetId}
             >
-              保存配置
+              Save
             </Button>
           </Space>
           {!datasetId && (
@@ -957,15 +969,15 @@ export const RFMEngine: React.FC = () => {
               style={{ marginTop: 16 }}
               type="info"
               showIcon
-              message="提示"
-              description="选择数据集后，将按数据集维度保存配置。"
+              message="Tip"
+              description="Configuration is saved per dataset after selecting one."
             />
           )}
         </Form>
       </Drawer>
 
       <Drawer
-        title={activeSegment ? `人群详情：${activeSegment}` : "人群详情"}
+        title={activeSegment ? `Segment Details: ${activeSegment}` : "Segment Details"}
         open={segmentOpen}
         onClose={() => setSegmentOpen(false)}
         width={780}
@@ -975,7 +987,7 @@ export const RFMEngine: React.FC = () => {
             <Alert
               type="info"
               showIcon
-              message="推荐策略"
+              message="Recommended Strategy"
               description={segmentStrategy(activeSegment)}
               style={{ marginBottom: 16 }}
             />
@@ -983,15 +995,15 @@ export const RFMEngine: React.FC = () => {
               <Button
                 type="primary"
                 icon={<ThunderboltOutlined />}
-                onClick={() => message.info("“激活策略”已触发（当前为 Demo，未接入 CRM/MA）")}
+                onClick={() => message.info("Strategy activation triggered (demo only; CRM/MA integration not connected).")}
               >
-                激活策略
+                Activate Strategy
               </Button>
             </Space>
           </>
         )}
 
-        {segmentError && <Alert type="error" showIcon message="加载失败" description={segmentError} />}
+        {segmentError && <Alert type="error" showIcon message="Load Failed" description={segmentError} />}
         {segmentLoading && (
           <div style={{ textAlign: "center", padding: 24 }}>
             <Spin />

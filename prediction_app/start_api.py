@@ -1,25 +1,52 @@
 #!/usr/bin/env python3
 """
-启动 API 服务的便捷脚本
+Convenience script to start the FastAPI service.
+
+Note: This repo may contain multiple venvs. On Apple Silicon, we keep an arm64 venv
+(`.venv_py312`) to ensure LightGBM works reliably. If it exists, we prefer it.
 """
+
+from __future__ import annotations
+
 import os
 import sys
 from pathlib import Path
-from dotenv import load_dotenv
 
-# 加载环境变量
+
+def _prefer_arm64_venv() -> None:
+    """Re-exec using prediction_app/.venv_py312 when present (avoids missing LightGBM)."""
+    project_root = Path(__file__).parent
+    preferred = project_root / ".venv_py312" / "bin" / "python"
+    try:
+        if preferred.exists():
+            cur = Path(sys.executable).resolve()
+            pref = preferred.resolve()
+            if cur != pref:
+                os.execv(str(pref), [str(pref), str(__file__), *sys.argv[1:]])
+    except Exception:
+        # Best-effort only; fall back to current interpreter.
+        return
+
+
+_prefer_arm64_venv()
+
+from dotenv import load_dotenv  # noqa: E402
+
+# Load environment variables
 project_root = Path(__file__).parent
 env_path = project_root / ".env"
 if env_path.exists():
     load_dotenv(env_path)
-    print(f"✅ 已加载环境变量: {env_path}")
+    print(f"Loaded env file: {env_path}")
+else:
+    print(f"Env file not found (optional): {env_path}")
 
-# 确保项目根目录在 Python 路径中，以便 import api.xxx
+# Ensure project root is in sys.path so we can import api.xxx
 sys.path.insert(0, str(project_root))
 
-# 启动服务（必须用 api.app:app，因为 app.py 里有 from api.inference 等）
 if __name__ == "__main__":
-    import uvicorn
+    import uvicorn  # noqa: E402
+
     port = int(os.getenv("PORT", 8000))
-    print(f"🚀 启动 API 服务，端口: {port}")
+    print(f"Starting API server on port {port}...")
     uvicorn.run("api.app:app", host="0.0.0.0", port=port, reload=True)

@@ -1,6 +1,6 @@
 """
 Dataset Management API
-提供数据集列表、详情、预览和统计信息接口
+Provides dataset list/detail/preview/stats endpoints.
 """
 import os
 import sys
@@ -23,23 +23,25 @@ from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 
-# 添加项目根目录到路径
+# Add project root to sys.path so we can import shared modules.
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-# 加载环境变量
+# Load environment variables (optional)
 env_path = project_root / ".env"
 if env_path.exists():
     load_dotenv(env_path)
-    print(f"✅ 已加载环境变量: {env_path}")
+    print(f"Loaded env file: {env_path}")
 else:
-    print(f"⚠️  环境变量文件不存在: {env_path}")
+    print(f"Env file not found (optional): {env_path}")
 
 router = APIRouter(prefix="/api/v1/datasets", tags=["datasets"])
 
 RFM_CACHE_MAX_ITEMS = 8
 # analysis_id -> {"created_at": datetime, "dataset_id": str, "params": dict, "df": pd.DataFrame}
 RFM_ANALYSIS_CACHE: Dict[str, Dict[str, Any]] = {}
+RFM_DISK_CACHE_MAX_ITEMS = int(os.getenv("RFM_DISK_CACHE_MAX_ITEMS", "32"))
+RFM_DISK_CACHE_DIR = Path(os.getenv("RFM_DISK_CACHE_DIR", "/tmp/fina_demo_rfm_cache")).resolve()
 
 SALES_FORECAST_MODEL_CACHE_MAX_ITEMS = 8
 # model_path -> {"created_at": datetime, "model": Any}
@@ -53,7 +55,7 @@ SALES_FORECAST_HOLIDAY_LOCK = threading.Lock()
 
 
 def get_db_connection():
-    """获取新的数据库连接（每次查询使用新连接，避免事务冲突）"""
+    """Create a new DB connection per request (avoids transaction conflicts)."""
     try:
         # Fail fast when DB is unreachable; otherwise frontend requests can hang indefinitely.
         connect_timeout = int(os.getenv("DB_CONNECT_TIMEOUT", "5"))
@@ -75,15 +77,15 @@ def get_db_connection():
         conn = psycopg2.connect(**kwargs)
         return conn
     except Exception as e:
-        print(f"❌ 数据库连接失败: {e}")
+        print(f"Database connection failed: {e}")
         raise
 
 
 def load_datasets_config() -> Dict[str, Any]:
-    """读取数据集配置文件"""
+    """Load datasets config from prediction_app/config/datasets.json."""
     config_path = project_root / "config" / "datasets.json"
     
-    # 尝试多个可能的路径
+    # Try a few possible paths (keep compatible with older layouts).
     possible_paths = [
         config_path,
         Path(project_root) / "config" / "datasets.json",
@@ -95,12 +97,12 @@ def load_datasets_config() -> Dict[str, Any]:
             try:
                 with open(path, "r", encoding="utf-8") as f:
                     config = json.load(f)
-                    print(f"✅ 已加载数据集配置: {path}")
+                    print(f"Loaded datasets config: {path}")
                     return config
             except Exception as e:
-                print(f"⚠️  加载配置文件失败 {path}: {e}")
+                print(f"Failed to load config {path}: {e}")
     
-    print("⚠️  未找到数据集配置文件，返回空配置")
+    print("Datasets config not found; returning empty config.")
     return {"datasets": []}
 
 
@@ -280,6 +282,104 @@ def _rfm_cache_put(analysis_id: str, item: Dict[str, Any]) -> None:
 
     RFM_ANALYSIS_CACHE[analysis_id] = item
 
+    # Best-effort disk persistence so segment drill-down still works after reload/restart.
+    _rfm_disk_cache_write(analysis_id, item)
+
+
+def _rfm_disk_cache_paths(analysis_id: str) -> tuple[Path, Path]:
+    base = RFM_DISK_CACHE_DIR / analysis_id
+    return base.with_suffix(".json"), base.with_suffix(".pkl")
+
+
+def _rfm_disk_cache_prune(max_items: int) -> None:
+    try:
+        if max_items <= 0 or not RFM_DISK_CACHE_DIR.exists():
+            return
+
+        metas = sorted(RFM_DISK_CACHE_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+        if len(metas) <= max_items:
+            return
+
+        for meta_path in metas[max_items:]:
+            df_path = meta_path.with_suffix(".pkl")
+            meta_path.unlink(missing_ok=True)
+            df_path.unlink(missing_ok=True)
+    except Exception:
+        # Ignore cleanup failures.
+        return
+
+
+def _rfm_disk_cache_write(analysis_id: str, item: Dict[str, Any]) -> None:
+    try:
+        RFM_DISK_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+        meta_path, df_path = _rfm_disk_cache_paths(analysis_id)
+        df = item.get("df")
+        if isinstance(df, pd.DataFrame):
+            df.to_pickle(df_path)
+
+        created_at = item.get("created_at")
+        if isinstance(created_at, datetime):
+            created_at_str = created_at.isoformat()
+        else:
+            created_at_str = datetime.utcnow().isoformat()
+
+        meta = {
+            "analysis_id": analysis_id,
+            "created_at": created_at_str,
+            "dataset_id": item.get("dataset_id"),
+            "params": item.get("params"),
+        }
+        meta_path.write_text(json.dumps(meta, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+
+        _rfm_disk_cache_prune(RFM_DISK_CACHE_MAX_ITEMS)
+    except Exception as e:
+        print(f"⚠️  Failed to write RFM disk cache: {e}")
+
+
+def _rfm_disk_cache_read(analysis_id: str) -> Optional[Dict[str, Any]]:
+    meta_path, df_path = _rfm_disk_cache_paths(analysis_id)
+    if not meta_path.exists() or not df_path.exists():
+        return None
+
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8", errors="ignore") or "{}")
+        df = pd.read_pickle(df_path)
+
+        created_at: datetime
+        raw_created = meta.get("created_at")
+        if isinstance(raw_created, str):
+            try:
+                created_at = datetime.fromisoformat(raw_created)
+            except Exception:
+                created_at = datetime.utcfromtimestamp(meta_path.stat().st_mtime)
+        else:
+            created_at = datetime.utcfromtimestamp(meta_path.stat().st_mtime)
+
+        return {
+            "created_at": created_at,
+            "dataset_id": meta.get("dataset_id"),
+            "params": meta.get("params") or {},
+            "df": df,
+        }
+    except Exception as e:
+        print(f"⚠️  Failed to read RFM disk cache: {e}")
+        return None
+
+
+def _rfm_cache_get(analysis_id: str, dataset_id: str) -> Optional[Dict[str, Any]]:
+    cached = RFM_ANALYSIS_CACHE.get(analysis_id)
+    if cached and cached.get("dataset_id") == dataset_id:
+        return cached
+
+    disk = _rfm_disk_cache_read(analysis_id)
+    if disk and disk.get("dataset_id") == dataset_id:
+        # Rehydrate memory cache for faster subsequent reads.
+        _rfm_cache_put(analysis_id, disk)
+        return disk
+
+    return None
+
 
 def _resolve_csv_column(header_cols: List[str], requested: str) -> str:
     if requested in header_cols:
@@ -296,7 +396,7 @@ def _resolve_csv_column(header_cols: List[str], requested: str) -> str:
     hit = norm_map.get(_norm(requested))
     if hit:
         return hit
-    raise HTTPException(status_code=400, detail=f"CSV 缺少列: {requested}")
+    raise HTTPException(status_code=400, detail=f"CSV missing column: {requested}")
 
 
 def _read_csv_header(csv_path: Path) -> tuple[str, List[str]]:
@@ -309,7 +409,7 @@ def _read_csv_header(csv_path: Path) -> tuple[str, List[str]]:
             # Use a larger sample to catch non-utf8 bytes that may appear later in the file.
             sample = f.read(4_000_000)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"读取 CSV 失败: {e}")
+        raise HTTPException(status_code=400, detail=f"Failed to read CSV: {e}")
 
     last_err: Optional[Exception] = None
     for enc in encodings:
@@ -320,7 +420,7 @@ def _read_csv_header(csv_path: Path) -> tuple[str, List[str]]:
         except Exception as e:
             last_err = e
             continue
-    raise HTTPException(status_code=400, detail=f"读取 CSV 头失败: {last_err}")
+    raise HTTPException(status_code=400, detail=f"Failed to read CSV header: {last_err}")
 
 
 def _apply_filters_df(df: pd.DataFrame, filters: List[Dict[str, Any]]) -> pd.DataFrame:
@@ -336,7 +436,7 @@ def _apply_filters_df(df: pd.DataFrame, filters: List[Dict[str, Any]]) -> pd.Dat
         if op not in allowed_ops:
             raise HTTPException(status_code=400, detail=f"RFM filters: invalid op '{op}'")
         if col not in df.columns:
-            raise HTTPException(status_code=400, detail=f"CSV filters 引用不存在的列: {col}")
+            raise HTTPException(status_code=400, detail=f"CSV filters refer to missing column: {col}")
 
         s = df[col]
         if isinstance(val, (int, float)):
@@ -591,32 +691,44 @@ def _rfm_generate_insight_markdown(
     exec_bits: List[str] = []
     if champions:
         exec_bits.append(
-            f'Champions 占用户 {champions.get("share_pct", 0):.1f}% ，贡献营收 {champions.get("revenue_share_pct", 0):.1f}%。'
+            "Champions represent "
+            f'{champions.get("share_pct", 0):.1f}% of users and contribute '
+            f'{champions.get("revenue_share_pct", 0):.1f}% of revenue.'
         )
     if cant_lose:
         exec_bits.append(
-            f"Can't Lose Them 占用户 {cant_lose.get('share_pct', 0):.1f}% ，营收占比 {cant_lose.get('revenue_share_pct', 0):.1f}%。"
+            "Can't Lose Them represent "
+            f"{cant_lose.get('share_pct', 0):.1f}% of users and contribute "
+            f"{cant_lose.get('revenue_share_pct', 0):.1f}% of revenue."
         )
     if at_risk:
-        exec_bits.append(f'At Risk 占用户 {at_risk.get("share_pct", 0):.1f}%。')
+        exec_bits.append(f'At Risk represent {at_risk.get("share_pct", 0):.1f}% of users.')
     if not exec_bits:
-        exec_bits.append("本期 RFM 分层已生成，可用于识别高价值与流失风险人群。")
+        exec_bits.append("RFM segmentation is ready to identify high-value and churn-risk cohorts.")
 
     # Opportunity & Risk
     opp_lines: List[str] = []
     if at_risk and at_risk.get("revenue_share_pct", 0) >= 10:
-        opp_lines.append("高价值流失风险显著：At Risk 人群贡献营收占比较高，需要优先召回。")
+        opp_lines.append(
+            "High-value churn risk: At Risk contributes a meaningful share of revenue; prioritize win-back."
+        )
     if cant_lose and cant_lose.get("revenue_share_pct", 0) >= 10:
-        opp_lines.append("关键客户沉睡：Can't Lose Them 营收占比较高，建议优先做高触达召回。")
+        opp_lines.append(
+            "Key customers are slipping: Can't Lose Them has high frequency but low recency; use high-touch reactivation."
+        )
     if champions and champions.get("revenue_share_pct", 0) < 20 and total_users > 0:
-        opp_lines.append("高价值集中度偏低：Champions 营收占比不高，建议提升复购/客单策略。")
+        opp_lines.append(
+            "Low high-value concentration: Champions revenue share is low; focus on upgrading users into Champions."
+        )
 
     if mom and isinstance(mom.get("total_revenue_change_pct"), (int, float)):
         tr = mom["total_revenue_change_pct"]
-        opp_lines.append(f"环比营收变化：{tr:+.1f}% 。")
+        opp_lines.append(f"MoM revenue change: {tr:+.1f}%.")
 
     if not opp_lines:
-        opp_lines.append("未发现显著异常，建议关注 Potential/Need Attention 向 Loyal/Champions 的迁移提升空间。")
+        opp_lines.append(
+            "No major anomalies detected; focus on moving Potential Loyalist / Need Attention toward Loyal Customers and Champions."
+        )
 
     # Action Plan (top 2 segments by revenue)
     top2 = sorted(segments, key=lambda s: float(s.get("revenue", 0) or 0), reverse=True)[:2]
@@ -624,25 +736,25 @@ def _rfm_generate_insight_markdown(
     for s in top2:
         name = s["segment"]
         if name == "Champions":
-            action_lines.append("Champions：推新品/高客单组合包，设置会员权益防止流失。")
+            action_lines.append("Champions: launch new arrivals and premium bundles; protect with VIP/loyalty benefits.")
         elif name == "Can't Lose Them":
-            action_lines.append("Can't Lose Them：专属券/客服关怀高触达召回，找回高价值客户。")
+            action_lines.append("Can't Lose Them: high-touch win-back (exclusive voucher + outreach); diagnose churn reasons.")
         elif name == "At Risk":
-            action_lines.append("At Risk：优先发放限时券/唤醒关怀，结合近期偏好做个性化召回。")
+            action_lines.append("At Risk: limited-time incentives + personalized recommendations to prevent churn.")
         elif name == "Loyal Customers":
-            action_lines.append("Loyal Customers：上新提醒 + 复购激励，提升客单并培育为 Champions。")
+            action_lines.append("Loyal Customers: replenishment reminders + cross-sell; nurture into Champions.")
         elif name == "Potential Loyalist":
-            action_lines.append("Potential Loyalist：用加购/满减/会员积分引导二购，提升频次。")
+            action_lines.append("Potential Loyalist: drive 2nd/3rd purchase with bundles, thresholds, and points.")
         elif name == "New Customers":
-            action_lines.append("New Customers：首购后 7-14 天内二次触达，推动二购形成习惯。")
+            action_lines.append("New Customers: onboarding + early follow-up to build a repeat habit.")
         elif name == "Need Attention":
-            action_lines.append("Need Attention：新品/内容触达 + 个性化推荐，避免转入流失区。")
+            action_lines.append("Need Attention: content/new arrivals + personalization to avoid drifting into churn segments.")
         elif name == "Promising":
-            action_lines.append("Promising：新近低频，设置二购激励与路径引导，培育复购。")
+            action_lines.append("Promising: post-first-purchase journey (7-21 days) to trigger repeat purchase.")
         elif name == "Hibernating":
-            action_lines.append("Hibernating：低成本触达（短信/邮件）+ 低门槛优惠，测试可唤醒比例。")
+            action_lines.append("Hibernating: low-cost outreach + low-barrier offers; measure reactivation rate.")
         else:
-            action_lines.append("Standard：做分层再营销（推荐/满减），推动向 Loyal/Champions 迁移。")
+            action_lines.append("Standard: segmented remarketing to move users toward Loyal Customers and Champions.")
 
     return (
         "### Executive Summary\n"
@@ -805,7 +917,7 @@ def _rfm_generate_insight_markdown_ai(
         "2) ### Opportunity & Risk\n"
         "3) ### Action Plan\n"
         "Rules:\n"
-        "- Write in Chinese (headings stay English as specified).\n"
+        "- Write in English.\n"
         "- Keep it concise and actionable.\n"
         "- In Opportunity & Risk use bullet list.\n"
         "- In Action Plan provide concrete strategies for Top 2 key segments (by revenue contribution).\n"
@@ -1032,11 +1144,11 @@ def run_rfm_analysis(dataset_id: str, req: RFMRunRequest):
     config = load_datasets_config()
     dataset_config = next((d for d in config.get("datasets", []) if d["id"] == dataset_id), None)
     if not dataset_config:
-        raise HTTPException(status_code=404, detail="数据集不存在")
+        raise HTTPException(status_code=404, detail="Dataset not found")
 
     rfm_cfg = dataset_config.get("rfm")
     if not isinstance(rfm_cfg, dict):
-        raise HTTPException(status_code=400, detail="该数据集未配置 RFM 字段映射（datasets.json -> rfm）")
+        raise HTTPException(status_code=400, detail="RFM mapping not configured for this dataset (datasets.json -> rfm)")
 
     user_col = rfm_cfg.get("user_id_column")
     order_col = rfm_cfg.get("order_id_column")
@@ -1044,17 +1156,17 @@ def run_rfm_analysis(dataset_id: str, req: RFMRunRequest):
     amount_cfg = rfm_cfg.get("monetary")
 
     if not all(isinstance(x, str) and x for x in [user_col, order_col, date_col]):
-        raise HTTPException(status_code=400, detail="RFM 字段映射不完整（user_id_column/order_id_column/order_date_column）")
+        raise HTTPException(status_code=400, detail="RFM mapping incomplete (user_id_column/order_id_column/order_date_column)")
     if not isinstance(amount_cfg, dict):
-        raise HTTPException(status_code=400, detail="RFM monetary 配置缺失（datasets.json -> rfm.monetary）")
+        raise HTTPException(status_code=400, detail="RFM monetary config missing (datasets.json -> rfm.monetary)")
 
     base_filters = rfm_cfg.get("filters") or []
     if not isinstance(base_filters, list):
-        raise HTTPException(status_code=400, detail="RFM filters 配置必须为数组")
+        raise HTTPException(status_code=400, detail="RFM filters config must be an array")
 
     csv_path = _get_dataset_csv_path(dataset_id, dataset_config)
     if not csv_path.exists():
-        raise HTTPException(status_code=404, detail=f"CSV 文件不存在: {csv_path}")
+        raise HTTPException(status_code=404, detail=f"CSV not found: {csv_path}")
 
     encoding, header_cols = _read_csv_header(csv_path)
 
@@ -1073,7 +1185,7 @@ def run_rfm_analysis(dataset_id: str, req: RFMRunRequest):
     resolved_filters: List[Dict[str, Any]] = []
     for f in base_filters:
         if not isinstance(f, dict):
-            raise HTTPException(status_code=400, detail="RFM filters 配置必须为对象数组")
+            raise HTTPException(status_code=400, detail="RFM filters config must be an array of objects")
         col = f.get("column")
         if not isinstance(col, str) or not col:
             raise HTTPException(status_code=400, detail="RFM filters: invalid column")
@@ -1097,7 +1209,7 @@ def run_rfm_analysis(dataset_id: str, req: RFMRunRequest):
         df_raw = _apply_filters_df(df_raw, resolved_filters)
 
     if df_raw.empty:
-        raise HTTPException(status_code=400, detail="CSV 在过滤条件后无可用数据")
+        raise HTTPException(status_code=400, detail="No usable data after applying CSV filters")
 
     # Normalize ids to strings to avoid pandas float representation like "17850.0".
     def _normalize_id_series(s: pd.Series) -> pd.Series:
@@ -1112,7 +1224,7 @@ def run_rfm_analysis(dataset_id: str, req: RFMRunRequest):
 
     reference_date = pd.to_datetime(df_raw[date_col_resolved].max())
     if pd.isna(reference_date):
-        raise HTTPException(status_code=400, detail="数据集缺少可用的订单时间，无法计算 RFM")
+        raise HTTPException(status_code=400, detail="Dataset has no valid order_date; cannot compute RFM")
 
     window_days = int(req.time_window_days)
     current_start = reference_date - pd.Timedelta(days=window_days)
@@ -1120,7 +1232,7 @@ def run_rfm_analysis(dataset_id: str, req: RFMRunRequest):
         (df_raw[date_col_resolved] >= current_start) & (df_raw[date_col_resolved] <= reference_date)
     ]
     if df_current.empty:
-        raise HTTPException(status_code=400, detail="在当前分析窗口内未找到可用于 RFM 的数据")
+        raise HTTPException(status_code=400, detail="No data found within the analysis time window")
 
     df = _rfm_aggregate_users(
         df_current,
@@ -1131,7 +1243,7 @@ def run_rfm_analysis(dataset_id: str, req: RFMRunRequest):
         reference_date=reference_date,
     )
     if df.empty:
-        raise HTTPException(status_code=400, detail="RFM 聚合后无有效用户数据")
+        raise HTTPException(status_code=400, detail="No valid user-level data after aggregation")
 
     scale = int(req.scoring_scale)
     if method == "quantiles":
@@ -1219,14 +1331,14 @@ def run_rfm_analysis(dataset_id: str, req: RFMRunRequest):
     high_start = min(scale, int(math.ceil(scale * 0.8)))
     matrix = {
         "rows": [
-            {"id": 3, "label": "R 高（最近）"},
-            {"id": 2, "label": "R 中"},
-            {"id": 1, "label": "R 低（久未）"},
+            {"id": 3, "label": "R High (Recent)"},
+            {"id": 2, "label": "R Medium"},
+            {"id": 1, "label": "R Low (Stale)"},
         ],
         "cols": [
-            {"id": 3, "label": "F 高"},
-            {"id": 2, "label": "F 中"},
-            {"id": 1, "label": "F 低"},
+            {"id": 3, "label": "F High"},
+            {"id": 2, "label": "F Medium"},
+            {"id": 1, "label": "F Low"},
         ],
         "thresholds": {
             "scale": scale,
@@ -1353,9 +1465,9 @@ def get_rfm_segment_detail(
     pageSize: int = Query(20, ge=1, le=200),
 ):
     """Drill-down: list users in a segment for a previously computed analysis."""
-    cached = RFM_ANALYSIS_CACHE.get(analysis_id)
-    if not cached or cached.get("dataset_id") != dataset_id:
-        raise HTTPException(status_code=404, detail="分析结果已过期，请重新运行分析")
+    cached = _rfm_cache_get(analysis_id, dataset_id=dataset_id)
+    if not cached:
+        raise HTTPException(status_code=404, detail="Analysis result expired; please run analysis again")
 
     df: pd.DataFrame = cached["df"]
     seg_df = df[df["segment"] == segment_name]
@@ -1545,7 +1657,7 @@ class SalesHistoryPoint(BaseModel):
 
 class SalesForecastRequest(BaseModel):
     model_id: str = Field(..., min_length=1)
-    target_entity_id: str = Field(..., min_length=1, description="预测对象 ID（如 SKU）")
+    target_entity_id: str = Field(..., min_length=1, description="Target entity id (e.g. SKU / StockCode)")
     forecast_horizon: int = Field(7, ge=1, le=365)
 
     # When historical_context is not provided, the service loads it from the dataset CSV.
@@ -1559,7 +1671,7 @@ class SalesForecastRequest(BaseModel):
     unit_price_column: Optional[str] = None
 
     # Business knobs
-    sales_metric: str = Field("quantity", description="quantity | revenue")
+    sales_metric: str = Field("revenue", description="quantity | revenue")
     promotion_factor: float = Field(1.0, gt=0)
     holiday_country: Optional[str] = Field("GB", description="holidays package country code, e.g. GB/US/CN")
     rounding: str = Field("none", description="round | floor | none")
@@ -1577,7 +1689,7 @@ def _sales_forecast_is_holiday(ts: pd.Timestamp, country_code: Optional[str]) ->
     try:
         import holidays  # type: ignore
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"缺少 holidays 依赖，无法计算节假日特征: {e}")
+        raise HTTPException(status_code=500, detail=f"Missing dependency 'holidays' - cannot compute holiday feature: {e}")
 
     cache_key = f"{code}:{int(ts.year)}"
     with SALES_FORECAST_HOLIDAY_LOCK:
@@ -1602,7 +1714,23 @@ def _sales_forecast_load_joblib_model(model_path: str) -> Any:
         if cached:
             return cached["model"]
 
-    model = joblib.load(model_path)
+    try:
+        model = joblib.load(model_path)
+    except ModuleNotFoundError as e:
+        # Common demo pitfall: the API is started from a venv without LightGBM installed,
+        # so the pickled estimator can't be unpickled.
+        if getattr(e, "name", None) == "lightgbm":
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    "Missing dependency 'lightgbm'. This model was trained with LightGBM, "
+                    "so the API must run in an environment that has LightGBM installed. "
+                    "Tip: start the API via 'prediction_app/start_api.sh' (it prefers '.venv_py312')."
+                ),
+            )
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load model: {e}")
 
     with SALES_FORECAST_MODEL_CACHE_LOCK:
         SALES_FORECAST_MODEL_CACHE[model_path] = {"created_at": datetime.now(), "model": model}
@@ -1621,7 +1749,7 @@ def _sales_forecast_resolve_model(model_id: str) -> tuple[Optional[Any], str]:
     """Resolve model_id to a loadable joblib model (or builtin baseline)."""
     mid = (model_id or "").strip()
     if not mid:
-        raise HTTPException(status_code=400, detail="model_id 不能为空")
+        raise HTTPException(status_code=400, detail="model_id is required")
 
     builtin_ids = {"baseline_moving_average", "baseline"}
     if mid in builtin_ids:
@@ -1640,7 +1768,7 @@ def _sales_forecast_resolve_model(model_id: str) -> tuple[Optional[Any], str]:
     try:
         from api.deployment import ModelDeploymentManager
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"无法加载部署管理器: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to load deployment manager: {e}")
 
     mgr = ModelDeploymentManager()
     info = mgr.get_model_info(name)
@@ -1672,7 +1800,7 @@ def _sales_forecast_resolve_model(model_id: str) -> tuple[Optional[Any], str]:
     if training_path.exists():
         return _sales_forecast_load_joblib_model(str(training_path)), mid
 
-    raise HTTPException(status_code=404, detail=f"未找到模型: {model_id}")
+    raise HTTPException(status_code=404, detail=f"Model not found: {model_id}")
 
 
 def _sales_forecast_unwrap_estimator(model_obj: Any) -> Any:
@@ -1685,7 +1813,7 @@ def _sales_forecast_unwrap_estimator(model_obj: Any) -> Any:
 def _sales_forecast_predict_one(model_obj: Any, features: Dict[str, Any]) -> float:
     estimator = _sales_forecast_unwrap_estimator(model_obj)
     if not hasattr(estimator, "predict"):
-        raise HTTPException(status_code=400, detail="模型对象不支持 predict()")
+        raise HTTPException(status_code=400, detail="Model object does not support predict()")
 
     X = pd.DataFrame([features])
     # Align feature order when the estimator was trained with pandas DataFrame.
@@ -1699,7 +1827,7 @@ def _sales_forecast_predict_one(model_obj: Any, features: Dict[str, Any]) -> flo
     try:
         y = estimator.predict(X)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"模型推理失败: {e}")
+        raise HTTPException(status_code=500, detail=f"Model inference failed: {e}")
 
     if isinstance(y, (list, tuple)) and len(y) > 0:
         return float(y[0])
@@ -1726,7 +1854,7 @@ def _sales_forecast_daily_series_from_csv(
     usecols = {date_col, entity_col, qty_col}
     if metric == "revenue":
         if not price_col:
-            raise HTTPException(status_code=400, detail="sales_metric=revenue 需要 unit_price_column")
+            raise HTTPException(status_code=400, detail="sales_metric=revenue requires unit_price_column")
         usecols.add(price_col)
 
     try:
@@ -1738,7 +1866,7 @@ def _sales_forecast_daily_series_from_csv(
             chunksize=chunksize,
         )
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"读取 CSV 失败: {e}")
+        raise HTTPException(status_code=400, detail=f"Failed to read CSV: {e}")
 
     for chunk in reader:
         if chunk.empty:
@@ -1798,7 +1926,7 @@ def _sales_forecast_global_daily_mean_from_csv(
     usecols = {date_col, qty_col}
     if metric == "revenue":
         if not price_col:
-            raise HTTPException(status_code=400, detail="sales_metric=revenue 需要 unit_price_column")
+            raise HTTPException(status_code=400, detail="sales_metric=revenue requires unit_price_column")
         usecols.add(price_col)
 
     try:
@@ -1810,7 +1938,7 @@ def _sales_forecast_global_daily_mean_from_csv(
             chunksize=chunksize,
         )
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"读取 CSV 失败: {e}")
+        raise HTTPException(status_code=400, detail=f"Failed to read CSV: {e}")
 
     for chunk in reader:
         if chunk.empty:
@@ -1908,191 +2036,197 @@ def run_sales_forecast(dataset_id: str, req: SalesForecastRequest):
     - Select model via request.model_id
     - Loads recent history from dataset CSV when historical_context is not provided
     """
-    metric = (req.sales_metric or "quantity").lower()
-    if metric not in {"quantity", "revenue"}:
-        raise HTTPException(status_code=400, detail="sales_metric 必须为 quantity 或 revenue")
+    try:
+        metric = (req.sales_metric or "quantity").lower()
+        if metric not in {"quantity", "revenue"}:
+            raise HTTPException(status_code=400, detail="sales_metric must be 'quantity' or 'revenue'")
 
-    # 1) Resolve model (or baseline).
-    model_obj, model_version = _sales_forecast_resolve_model(req.model_id)
+        # 1) Resolve model (or baseline).
+        model_obj, model_version = _sales_forecast_resolve_model(req.model_id)
 
-    # 2) Load dataset config + history context.
-    config = load_datasets_config()
-    dataset_config = next((d for d in config.get("datasets", []) if d["id"] == dataset_id), None)
-    if not dataset_config:
-        raise HTTPException(status_code=404, detail="数据集不存在")
+        # 2) Load dataset config + history context.
+        config = load_datasets_config()
+        dataset_config = next((d for d in config.get("datasets", []) if d["id"] == dataset_id), None)
+        if not dataset_config:
+            raise HTTPException(status_code=404, detail="Dataset not found")
 
-    history_points: List[Dict[str, Any]] = []
-    reference_date: Optional[pd.Timestamp] = None
+        history_points: List[Dict[str, Any]] = []
+        reference_date: Optional[pd.Timestamp] = None
 
-    if req.historical_context:
-        df_hist = pd.DataFrame([p.model_dump() for p in req.historical_context])
-        if df_hist.empty:
-            raise HTTPException(status_code=400, detail="historical_context 不能为空")
-        df_hist["date"] = pd.to_datetime(df_hist["date"], errors="coerce").dt.floor("D")
-        df_hist = df_hist.dropna(subset=["date"])
-        if df_hist.empty:
-            raise HTTPException(status_code=400, detail="historical_context 缺少可解析的 date")
-        df_hist["sales"] = pd.to_numeric(df_hist["sales"], errors="coerce").fillna(0.0).astype(float)
-        df_hist["is_holiday"] = pd.to_numeric(df_hist.get("is_holiday"), errors="coerce").fillna(0).astype(int)
-        df_hist = (
-            df_hist.groupby("date", as_index=False)
-            .agg(sales=("sales", "sum"), is_holiday=("is_holiday", "max"))
-            .sort_values("date")
-        )
-        full_idx = pd.date_range(start=df_hist["date"].min(), end=df_hist["date"].max(), freq="D")
-        df_hist = (
-            df_hist.set_index("date")
-            .reindex(full_idx)
-            .fillna({"sales": 0.0, "is_holiday": 0})
-            .reset_index()
-            .rename(columns={"index": "date"})
-        )
-        reference_date = pd.Timestamp(df_hist["date"].max())
-        start = reference_date - pd.Timedelta(days=int(req.context_window_days) - 1)
-        df_hist = df_hist[df_hist["date"] >= start]
-        for _, r in df_hist.iterrows():
-            history_points.append(
-                {
-                    "date": r["date"].strftime("%Y-%m-%d"),
-                    "sales": float(max(0.0, float(r["sales"]))),
-                    "is_holiday": int(r.get("is_holiday", 0)),
-                }
+        if req.historical_context:
+            df_hist = pd.DataFrame([p.model_dump() for p in req.historical_context])
+            if df_hist.empty:
+                raise HTTPException(status_code=400, detail="historical_context must not be empty")
+            df_hist["date"] = pd.to_datetime(df_hist["date"], errors="coerce").dt.floor("D")
+            df_hist = df_hist.dropna(subset=["date"])
+            if df_hist.empty:
+                raise HTTPException(status_code=400, detail="historical_context has no parseable 'date' values")
+            df_hist["sales"] = pd.to_numeric(df_hist["sales"], errors="coerce").fillna(0.0).astype(float)
+            df_hist["is_holiday"] = pd.to_numeric(df_hist.get("is_holiday"), errors="coerce").fillna(0).astype(int)
+            df_hist = (
+                df_hist.groupby("date", as_index=False)
+                .agg(sales=("sales", "sum"), is_holiday=("is_holiday", "max"))
+                .sort_values("date")
             )
-    else:
-        csv_path = _get_dataset_csv_path(dataset_id, dataset_config)
-        if not csv_path.exists():
-            raise HTTPException(status_code=404, detail=f"CSV 文件不存在: {csv_path}")
+            full_idx = pd.date_range(start=df_hist["date"].min(), end=df_hist["date"].max(), freq="D")
+            df_hist = (
+                df_hist.set_index("date")
+                .reindex(full_idx)
+                .fillna({"sales": 0.0, "is_holiday": 0})
+                .reset_index()
+                .rename(columns={"index": "date"})
+            )
+            reference_date = pd.Timestamp(df_hist["date"].max())
+            start = reference_date - pd.Timedelta(days=int(req.context_window_days) - 1)
+            df_hist = df_hist[df_hist["date"] >= start]
+            for _, r in df_hist.iterrows():
+                history_points.append(
+                    {
+                        "date": r["date"].strftime("%Y-%m-%d"),
+                        "sales": float(max(0.0, float(r["sales"]))),
+                        "is_holiday": int(r.get("is_holiday", 0)),
+                    }
+                )
+        else:
+            csv_path = _get_dataset_csv_path(dataset_id, dataset_config)
+            if not csv_path.exists():
+                raise HTTPException(status_code=404, detail=f"CSV file not found: {csv_path}")
 
-        encoding, header_cols = _read_csv_header(csv_path)
-        date_col_req = req.date_column or dataset_config.get("time_column") or "InvoiceDate"
-        entity_col_req = req.target_entity_column or "StockCode"
-        qty_col_req = req.quantity_column or "Quantity"
-        price_col_req = req.unit_price_column or "UnitPrice"
+            encoding, header_cols = _read_csv_header(csv_path)
+            date_col_req = req.date_column or dataset_config.get("time_column") or "InvoiceDate"
+            entity_col_req = req.target_entity_column or "StockCode"
+            qty_col_req = req.quantity_column or "Quantity"
+            price_col_req = req.unit_price_column or "UnitPrice"
 
-        date_col = _resolve_csv_column(header_cols, str(date_col_req))
-        entity_col = _resolve_csv_column(header_cols, str(entity_col_req))
-        qty_col = _resolve_csv_column(header_cols, str(qty_col_req))
-        price_col = _resolve_csv_column(header_cols, str(price_col_req)) if metric == "revenue" else None
+            date_col = _resolve_csv_column(header_cols, str(date_col_req))
+            entity_col = _resolve_csv_column(header_cols, str(entity_col_req))
+            qty_col = _resolve_csv_column(header_cols, str(qty_col_req))
+            price_col = _resolve_csv_column(header_cols, str(price_col_req)) if metric == "revenue" else None
 
-        s = _sales_forecast_daily_series_from_csv(
-            csv_path=csv_path,
-            encoding=encoding,
-            date_col=date_col,
-            entity_col=entity_col,
-            target_entity_id=req.target_entity_id,
-            metric=metric,
-            qty_col=qty_col,
-            price_col=price_col,
-        )
-
-        if s.empty:
-            # cold start: use dataset-level mean daily sales
-            mean_cache_key = _sales_forecast_cache_key(dataset_id, metric)
-            fallback_mean = _sales_forecast_global_daily_mean_from_csv(
-                cache_key=mean_cache_key,
+            s = _sales_forecast_daily_series_from_csv(
                 csv_path=csv_path,
                 encoding=encoding,
                 date_col=date_col,
+                entity_col=entity_col,
+                target_entity_id=req.target_entity_id,
                 metric=metric,
                 qty_col=qty_col,
                 price_col=price_col,
             )
-            reference_date = None
-            history_points = []
-            history_sales = [float(fallback_mean)] * max(7, int(req.context_window_days))
-        else:
-            # Use last available day as "today" for forecasting.
-            reference_date = pd.Timestamp(s.index.max())
 
-            # Clip negative daily totals (returns etc.) because "sales" can't be negative.
-            s = s.clip(lower=0.0)
-
-            start = reference_date - pd.Timedelta(days=int(req.context_window_days) - 1)
-            s_ctx = s.loc[s.index >= start]
-            for d, v in s_ctx.items():
-                history_points.append(
-                    {
-                        "date": pd.Timestamp(d).strftime("%Y-%m-%d"),
-                        "sales": float(v),
-                        "is_holiday": _sales_forecast_is_holiday(pd.Timestamp(d), req.holiday_country),
-                    }
+            if s.empty:
+                # cold start: use dataset-level mean daily sales
+                mean_cache_key = _sales_forecast_cache_key(dataset_id, metric)
+                fallback_mean = _sales_forecast_global_daily_mean_from_csv(
+                    cache_key=mean_cache_key,
+                    csv_path=csv_path,
+                    encoding=encoding,
+                    date_col=date_col,
+                    metric=metric,
+                    qty_col=qty_col,
+                    price_col=price_col,
                 )
-            history_sales = [float(v) for v in s_ctx.values.tolist()]
+                reference_date = None
+                history_points = []
+                history_sales = [float(fallback_mean)] * max(7, int(req.context_window_days))
+            else:
+                # Use last available day as "today" for forecasting.
+                reference_date = pd.Timestamp(s.index.max())
 
-    if "history_sales" not in locals():
-        history_sales = [float(p["sales"]) for p in history_points]
+                # Clip negative daily totals (returns etc.) because "sales" can't be negative.
+                s = s.clip(lower=0.0)
 
-    # 3) Forecast with recursive feature generation.
-    horizon = int(req.forecast_horizon)
-    sales_series = list(history_sales)
-    forecast_rows: List[Dict[str, Any]] = []
+                start = reference_date - pd.Timedelta(days=int(req.context_window_days) - 1)
+                s_ctx = s.loc[s.index >= start]
+                for d, v in s_ctx.items():
+                    history_points.append(
+                        {
+                            "date": pd.Timestamp(d).strftime("%Y-%m-%d"),
+                            "sales": float(v),
+                            "is_holiday": _sales_forecast_is_holiday(pd.Timestamp(d), req.holiday_country),
+                        }
+                    )
+                history_sales = [float(v) for v in s_ctx.values.tolist()]
 
-    # Confidence interval width from recent volatility (simple heuristic).
-    hist_tail = np.asarray(sales_series[-30:], dtype=float) if sales_series else np.asarray([], dtype=float)
-    sigma = float(hist_tail.std(ddof=0)) if hist_tail.size else 0.0
-    z = 1.96
+        if "history_sales" not in locals():
+            history_sales = [float(p["sales"]) for p in history_points]
 
-    if reference_date is None:
-        # If we have no reference_date (cold start), start "tomorrow" from today().
-        reference_date = pd.Timestamp(datetime.now().date())
+        # 3) Forecast with recursive feature generation.
+        horizon = int(req.forecast_horizon)
+        sales_series = list(history_sales)
+        forecast_rows: List[Dict[str, Any]] = []
 
-    for step in range(1, horizon + 1):
-        ts = reference_date + pd.Timedelta(days=step)
-        feats = _sales_forecast_compute_features(ts=ts, sales_history=sales_series, holiday_country=req.holiday_country)
+        # Confidence interval width from recent volatility (simple heuristic).
+        hist_tail = np.asarray(sales_series[-30:], dtype=float) if sales_series else np.asarray([], dtype=float)
+        sigma = float(hist_tail.std(ddof=0)) if hist_tail.size else 0.0
+        z = 1.96
 
-        if model_obj is None:
-            # Baseline: 7-day moving average.
-            raw_pred = float(feats.get("rolling_mean_7", 0.0))
+        if reference_date is None:
+            # If we have no reference_date (cold start), start "tomorrow" from today().
+            reference_date = pd.Timestamp(datetime.now().date())
+
+        for step in range(1, horizon + 1):
+            ts = reference_date + pd.Timedelta(days=step)
+            feats = _sales_forecast_compute_features(ts=ts, sales_history=sales_series, holiday_country=req.holiday_country)
+
+            if model_obj is None:
+                # Baseline: 7-day moving average.
+                raw_pred = float(feats.get("rolling_mean_7", 0.0))
+            else:
+                raw_pred = _sales_forecast_predict_one(model_obj, feats)
+
+            pred = _sales_forecast_post_process(
+                value=raw_pred,
+                promotion_factor=req.promotion_factor,
+                clip_negative=req.clip_negative,
+                rounding=req.rounding,
+            )
+
+            sales_series.append(float(pred))
+
+            ci_lower = max(0.0, pred - z * sigma)
+            ci_upper = max(0.0, pred + z * sigma)
+
+            forecast_rows.append(
+                {
+                    "date": ts.strftime("%Y-%m-%d"),
+                    "predicted_sales": pred,
+                    "confidence_interval": {
+                        "lower": _sales_forecast_post_process(value=ci_lower, promotion_factor=1.0, clip_negative=True, rounding=req.rounding),
+                        "upper": _sales_forecast_post_process(value=ci_upper, promotion_factor=1.0, clip_negative=True, rounding=req.rounding),
+                    },
+                }
+            )
+
+        # 4) Trend summary (simple).
+        last7 = np.asarray(history_sales[-7:], dtype=float) if history_sales else np.asarray([], dtype=float)
+        last7_avg = float(last7.mean()) if last7.size else 0.0
+        fut = np.asarray([r["predicted_sales"] for r in forecast_rows], dtype=float)
+        fut_avg = float(fut.mean()) if fut.size else 0.0
+
+        trend_summary = "stable"
+        if last7_avg <= 1e-6:
+            trend_summary = "expected_growth" if fut_avg > 0 else "stable"
         else:
-            raw_pred = _sales_forecast_predict_one(model_obj, feats)
+            ratio = fut_avg / last7_avg
+            if ratio >= 1.05:
+                trend_summary = "expected_growth"
+            elif ratio <= 0.95:
+                trend_summary = "expected_decline"
 
-        pred = _sales_forecast_post_process(
-            value=raw_pred,
-            promotion_factor=req.promotion_factor,
-            clip_negative=req.clip_negative,
-            rounding=req.rounding,
-        )
-
-        sales_series.append(float(pred))
-
-        ci_lower = max(0.0, pred - z * sigma)
-        ci_upper = max(0.0, pred + z * sigma)
-
-        forecast_rows.append(
-            {
-                "date": ts.strftime("%Y-%m-%d"),
-                "predicted_sales": pred,
-                "confidence_interval": {
-                    "lower": _sales_forecast_post_process(value=ci_lower, promotion_factor=1.0, clip_negative=True, rounding=req.rounding),
-                    "upper": _sales_forecast_post_process(value=ci_upper, promotion_factor=1.0, clip_negative=True, rounding=req.rounding),
-                },
-            }
-        )
-
-    # 4) Trend summary (simple).
-    last7 = np.asarray(history_sales[-7:], dtype=float) if history_sales else np.asarray([], dtype=float)
-    last7_avg = float(last7.mean()) if last7.size else 0.0
-    fut = np.asarray([r["predicted_sales"] for r in forecast_rows], dtype=float)
-    fut_avg = float(fut.mean()) if fut.size else 0.0
-
-    trend_summary = "stable"
-    if last7_avg <= 1e-6:
-        trend_summary = "expected_growth" if fut_avg > 0 else "stable"
-    else:
-        ratio = fut_avg / last7_avg
-        if ratio >= 1.05:
-            trend_summary = "expected_growth"
-        elif ratio <= 0.95:
-            trend_summary = "expected_decline"
-
-    return {
-        "status": "success",
-        "meta": {
-            "model_version": model_version,
-            "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        },
-        "forecast": forecast_rows,
-        "trend_summary": trend_summary,
-        # Helpful for UI visualization / debugging (optional fields).
-        "history": history_points[-30:],
-    }
+        return {
+            "status": "success",
+            "meta": {
+                "model_version": model_version,
+                "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            },
+            "forecast": forecast_rows,
+            "trend_summary": trend_summary,
+            # Helpful for UI visualization / debugging (optional fields).
+            "history": history_points[-30:],
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Surface the root cause to the client for easier debugging in demo environments.
+        raise HTTPException(status_code=500, detail=f"Sales forecast failed: {e}")

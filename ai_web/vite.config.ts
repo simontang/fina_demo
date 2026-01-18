@@ -8,16 +8,10 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     proxy: {
-      "/api/v1/datasets": {
-        target: "http://localhost:8000",
-        changeOrigin: true,
-      },
-      "/api/v1/models": {
-        target: "http://localhost:8000",
-        changeOrigin: true,
-      },
-      "/api/v1/model-assets": {
-        target: "http://localhost:8000",
+      // Single backend for the frontend: the agent service.
+      // The agent reverse-proxies `/api/v1/*` to the Python prediction service.
+      "/api/v1": {
+        target: "http://localhost:6203",
         changeOrigin: true,
       },
       "/api": {

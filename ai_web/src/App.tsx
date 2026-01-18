@@ -67,34 +67,34 @@ function App() {
               },
               {
                 name: "deep-research-agent",
-                parentName: "agent-center",
                 list: "/agents/deep-research",
                 meta: {
                   label: "Deep Research Agent",
+                  parent: "agent-center",
                 },
               },
               {
                 name: "data-agent",
-                parentName: "agent-center",
                 list: "/agents/data",
                 meta: {
                   label: "Data Agent",
+                  parent: "agent-center",
                 },
               },
               {
                 name: "voice-agent",
-                parentName: "agent-center",
                 list: "/agents/voice",
                 meta: {
                   label: "Voice Agent",
+                  parent: "agent-center",
                 },
               },
               {
                 name: "exception-handler-agent",
-                parentName: "agent-center",
                 list: "/agents/exception-handler",
                 meta: {
                   label: "Exception Handler Agent",
+                  parent: "agent-center",
                 },
               },
               // Prediction Center
@@ -107,36 +107,36 @@ function App() {
               },
               {
                 name: "segmentation",
-                parentName: "prediction-center",
                 list: "/prediction/segmentation",
                 meta: {
                   label: "Segmentation",
+                  parent: "prediction-center",
                 },
               },
               {
                 name: "sales-forecast",
-                parentName: "prediction-center",
                 list: "/prediction/sales-forecast",
                 meta: {
                   label: "Sales Forecast",
+                  parent: "prediction-center",
                 },
               },
               {
                 name: "inventory-allocation",
-                parentName: "prediction-center",
                 list: "/prediction/inventory",
                 meta: {
                   label: "Inventory Allocation",
+                  parent: "prediction-center",
                 },
               },
-              {
-                name: "rfm-engine",
-                parentName: "prediction-center",
-                list: "/prediction/rfm",
-                meta: {
-                  label: "RFM 引擎",
-                },
-              },
+		              {
+		                name: "rfm-engine",
+		                list: "/prediction/rfm",
+		                meta: {
+		                  label: "RFM Engine",
+                      parent: "prediction-center",
+		                },
+		              },
               // Asset Center
               {
                 name: "asset-center",
@@ -147,27 +147,27 @@ function App() {
               },
               {
                 name: "datasets",
-                parentName: "asset-center",
                 list: "/assets/datasets",
                 show: "/assets/datasets/:id",
                 meta: {
                   label: "Datasets",
+                  parent: "asset-center",
                 },
               },
               {
                 name: "models",
-                parentName: "asset-center",
                 list: "/assets/models",
                 meta: {
                   label: "Models",
+                  parent: "asset-center",
                 },
               },
               {
                 name: "skills",
-                parentName: "asset-center",
                 list: "/assets/skills",
                 meta: {
                   label: "Skills",
+                  parent: "asset-center",
                 },
               },
             ]}

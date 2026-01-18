@@ -42,10 +42,10 @@ export const CustomSiderWrapper: React.FC<RefineThemedLayoutSiderProps> = (
 ) => {
   const navigate = useNavigate();
   const location = useLocation();
-  // 不再使用 useMenu，因为我们完全自定义菜单
+  // We don't use useMenu here because we fully customize the menu.
   // const { menuItems } = useMenu();
 
-  // 构建自定义菜单项
+  // Build custom menu items
   const customMenuItems: MenuItem[] = [
     getItem("Agent Center", "agent-center", <RobotOutlined />, [
       getItem("Deep Research Agent", "deep-research-agent", <SearchOutlined />),
@@ -57,7 +57,7 @@ export const CustomSiderWrapper: React.FC<RefineThemedLayoutSiderProps> = (
       getItem("Segmentation", "segmentation", <UserOutlined />),
       getItem("Sales Forecast", "sales-forecast", <ShoppingOutlined />),
       getItem("Inventory Allocation", "inventory-allocation", <InboxOutlined />),
-      getItem("RFM 引擎", "rfm-engine", <PieChartOutlined />),
+      getItem("RFM Engine", "rfm-engine", <PieChartOutlined />),
     ]),
     getItem("Asset Center", "asset-center", <FolderOutlined />, [
       getItem("Datasets", "datasets", <FolderOpenOutlined />),
@@ -107,7 +107,7 @@ export const CustomSiderWrapper: React.FC<RefineThemedLayoutSiderProps> = (
   return (
     <ThemedSider
       {...props}
-      render={({ items, dashboard, logout, collapsed }) => {
+      render={({ items, logout, collapsed }) => {
         const onClick: MenuProps["onClick"] = (e) => {
           const path = pathMap[e.key as string];
           if (path) {
@@ -117,7 +117,6 @@ export const CustomSiderWrapper: React.FC<RefineThemedLayoutSiderProps> = (
 
         return (
           <>
-            {dashboard}
             <Menu
               mode="inline"
               selectedKeys={getSelectedKeys()}

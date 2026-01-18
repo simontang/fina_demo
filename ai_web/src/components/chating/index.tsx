@@ -14,8 +14,10 @@ import { type GetProp } from "antd";
 import { useChat } from "@axiom-lattice/react-sdk";
 import { SideAppViewBrowser } from "@axiom-lattice/react-sdk";
 import { AxiomLatticeProvider } from "@axiom-lattice/react-sdk";
+import { TOKEN_KEY } from "../../authProvider";
 
-const apiUrl = "http://localhost:6203";
+// Keep chat API base configurable (backend in this repo is mounted under `/bff`).
+const apiUrl = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:6203/bff";
 
 // Utility function to concatenate class names
 const cn = (...classNames: Array<string | undefined | false>) =>
@@ -307,15 +309,15 @@ export const ChatBotCompnent = forwardRef<
     name: string;
   }
 >(({ id, threadId, name }, ref) => {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
   return (
     <LatticeChatShell
       initialConfig={{
         baseURL: apiUrl,
-        agentId: id,
-        threadId: threadId === "new" ? undefined : threadId,
+        headers,
       }}
     />
   );
 });
-
-

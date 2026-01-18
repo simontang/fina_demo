@@ -7,14 +7,19 @@ import { Button } from "antd";
 import { SyncOutlined } from "@ant-design/icons";
 import { FC, useState, useEffect, useRef } from "react";
 
-export const RefreshStateUI: FC<ElementProps> = ({ eventHandler }) => {
+type EventHandler = (action: string, data: any, message: string) => void;
+type ElementPropsWithHandler<T = any> = ElementProps<T> & { eventHandler?: EventHandler };
+
+export const RefreshStateUI: FC<ElementPropsWithHandler> = ({ eventHandler }) => {
   const [isMonitoring, setIsMonitoring] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const eventHandlerRef = useRef(eventHandler);
+  const eventHandlerRef = useRef<EventHandler>(() => undefined);
 
   // Keep eventHandler ref updated
   useEffect(() => {
-    eventHandlerRef.current = eventHandler;
+    if (typeof eventHandler === "function") {
+      eventHandlerRef.current = eventHandler;
+    }
   }, [eventHandler]);
 
   useEffect(() => {

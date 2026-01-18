@@ -3,11 +3,12 @@ import {
   ElementMeta,
   ElementProps,
 } from "@axiom-lattice/react-sdk";
-import { Button } from "antd";
 import { FC } from "react";
 import { RefreshStateUI } from "./refresh_state";
 
-const WaitingForOutboundCallUI: FC<ElementProps> = ({ eventHandler }) => {
+type ElementPropsWithHandler<T = any> = ElementProps<T> & { eventHandler?: any };
+
+const WaitingForOutboundCallUI: FC<ElementPropsWithHandler> = ({ eventHandler }) => {
   return (
     <div>
       <RefreshStateUI

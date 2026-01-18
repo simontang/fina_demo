@@ -10,11 +10,15 @@ import {
   deleteFile,
 } from "./controllers/fileController";
 import { registerDatasetRoutes } from "./routes/datasets";
+import { registerPythonProxyRoutes } from "./routes/pythonProxy";
 
 const { app, startAsHttpEndpoint, configureSwagger } = LatticeGateway;
 
 // 注册路由
 export const registerRoutes = (app: FastifyInstance): void => {
+  // Python prediction service reverse-proxy (frontend calls /api/v1/* via this agent).
+  registerPythonProxyRoutes(app);
+
   // 注册所有路由到 bff 前缀下
   app.register(async (agentApp) => {
     agentApp.get("/", async (request, reply) => {

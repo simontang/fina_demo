@@ -166,7 +166,10 @@ export const DatasetDetail: React.FC = () => {
 
   // 即使 dataset 还没有完全加载，只要有 id 就可以先显示基本信息
   // 使用 id 作为后备，这样即使 dataset 还在加载，也能先显示预览数据
-  const displayDataset = dataset || { id: id, name: id };
+  const displayDataset: Partial<DatasetDetailType> = dataset || {
+    id: id ?? "",
+    name: id ?? "",
+  };
 
   // 格式化值根据列类型
   const formatValue = (value: any, columnType: string): ReactNode => {
@@ -428,7 +431,7 @@ export const DatasetDetail: React.FC = () => {
             )}
             {displayDataset.tags && displayDataset.tags.length > 0 && (
               <Space size={[0, 8]} wrap>
-                {displayDataset.tags.map((tag) => (
+                {displayDataset.tags.map((tag: string) => (
                   <Tag key={tag} style={{ borderRadius: 4 }}>
                     {tag}
                   </Tag>

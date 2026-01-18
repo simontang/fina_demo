@@ -40,8 +40,9 @@ function getItem(
 }
 
 export const CustomSider: React.FC<RefineThemedLayoutSiderProps> = ({
-  collapsed,
+  siderItemsAreCollapsed,
 }) => {
+  const collapsed = Boolean(siderItemsAreCollapsed);
   const navigate = useNavigate();
   const location = useLocation();
   const [openKeys, setOpenKeys] = useState<string[]>([

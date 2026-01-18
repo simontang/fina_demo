@@ -1,55 +1,47 @@
-# Python API 启动问题说明
+# Python API Startup Notes
 
-## 问题一：`[Errno 48] Address already in use`（端口被占用）
+## 1) `[Errno 48] Address already in use` (port is busy)
 
-**原因**：8000 端口已被其他 Python/uvicorn 进程占用（包括已退出的僵尸进程仍可能占着端口）。
+Cause: Port `8000` is already used by another process.
 
-**解决**：
+Fix:
 ```bash
-# 查看占用 8000 的进程
+# Find the process using port 8000
 lsof -i :8000
 
-# 结束进程（把 PID 换成上面看到的数字）
+# Kill it (replace <PID>)
 kill -9 <PID>
 
-# 或换端口启动
-PORT=8001 python start_api.py
+# Or start on a different port
+PORT=8001 ./start_api.sh
 ```
 
----
+## 2) Missing dependencies (e.g. `email-validator>=2.0`)
 
-## 问题二：`ImportError: email-validator version >= 2.0 required`
+Cause: The active Python environment does not have required packages installed.
 
-**原因**：FastAPI/Pydantic 依赖 `email-validator>=2.0`，当前环境未安装或版本不够。
-
-**解决**：用**虚拟环境**安装依赖（推荐，避免污染系统 Python）：
-
+Fix (recommended): use a venv under `prediction_app/` and install requirements:
 ```bash
 cd prediction_app
-
-# 1. 创建虚拟环境
-python3 -m venv .venv
-
-# 2. 激活（Windows 用 .venv\Scripts\activate）
-source .venv/bin/activate
-
-# 3. 安装依赖
+python3 -m venv .venv_py312
+source .venv_py312/bin/activate
 pip install -r api/requirements.txt
 
-# 4. 启动（先确保 8000 没被占用）
-python start_api.py
+./start_api.sh
 ```
 
-如果必须用系统 Python 且不想建 venv，可尝试：
-```bash
-pip3 install --user email-validator
-```
-（在 Homebrew Python 下可能仍会受 `externally-managed-environment` 限制，建议用 venv。）
+## 3) LightGBM issues on Apple Silicon (arm64)
 
----
+Symptoms:
+- `Sales forecast failed: No module named 'lightgbm'`
+- or LightGBM import errors related to OpenMP (`libomp`)
 
-## 问题三：`Could not import module "app"`（已修复）
+Fix:
+- Prefer the arm64 venv `prediction_app/.venv_py312`
+- Start the API via `prediction_app/start_api.sh` (it prefers `.venv_py312` when present)
 
-**原因**：`start_api.py` 之前 `chdir` 到 `api/` 并用 `app:app` 启动，导致 `from api.inference` 等找不到 `api` 包。
+## 4) `Could not import module "app"`
 
-**修复**：已改为在项目根目录用 `api.app:app` 启动，并保证 `project_root` 在 `sys.path` 中。
+Cause: Starting uvicorn from inside `api/` with `app:app` can break imports (`api.*`).
+
+Fix: Start from the `prediction_app/` root using `api.app:app` (handled by `start_api.py` / `start_api.sh`).

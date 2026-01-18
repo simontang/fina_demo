@@ -37,7 +37,7 @@ function getAuthHeaders(): HeadersInit {
 function formatMetric(v: unknown): string {
   const n = typeof v === "number" ? v : Number(v);
   if (!Number.isFinite(n)) return "-";
-  return n.toLocaleString("zh-CN", { maximumFractionDigits: 4 });
+  return n.toLocaleString("en-US", { maximumFractionDigits: 4 });
 }
 
 export const Models = () => {
@@ -55,11 +55,11 @@ export const Models = () => {
       });
       const data = (await res.json()) as ListResponse;
       if (!res.ok) throw new Error((data as any)?.detail || `HTTP ${res.status}`);
-      if (!data.success) throw new Error(data.detail || data.error || "获取模型列表失败");
+      if (!data.success) throw new Error(data.detail || data.error || "Failed to fetch model list");
       setItems(data.data || []);
       setTotal(data.total || 0);
     } catch (e: any) {
-      setError(e?.message || "获取模型列表失败");
+      setError(e?.message || "Failed to fetch model list");
     } finally {
       setLoading(false);
     }
@@ -72,12 +72,12 @@ export const Models = () => {
 
   const columns: ColumnsType<ModelAsset> = useMemo(
     () => [
-      { title: "模型名", dataIndex: "name", key: "name", width: 220 },
-      { title: "版本", dataIndex: "version", key: "version", width: 140 },
-      { title: "框架", dataIndex: "framework", key: "framework", width: 140 },
-      { title: "任务", dataIndex: "task", key: "task", width: 160 },
-      { title: "目标", dataIndex: "target_metric", key: "target_metric", width: 140 },
-      { title: "训练时间", dataIndex: "trained_at", key: "trained_at", width: 200 },
+      { title: "Name", dataIndex: "name", key: "name", width: 220 },
+      { title: "Version", dataIndex: "version", key: "version", width: 140 },
+      { title: "Framework", dataIndex: "framework", key: "framework", width: 140 },
+      { title: "Task", dataIndex: "task", key: "task", width: 160 },
+      { title: "Target", dataIndex: "target_metric", key: "target_metric", width: 140 },
+      { title: "Trained At", dataIndex: "trained_at", key: "trained_at", width: 200 },
       {
         title: "MAE",
         key: "mae",
@@ -101,14 +101,14 @@ export const Models = () => {
           <Title level={3} style={{ margin: 0 }}>
             Models
           </Title>
-          <Text type="secondary">从仓库根目录的 models/ 扫描模型与版本（metadata.json）。</Text>
+          <Text type="secondary">Scans the repo-root `models/` folder (via `metadata.json`).</Text>
         </div>
 
         <Card
-          title={`模型列表（${total.toLocaleString("zh-CN")}）`}
+          title={`Models (${total.toLocaleString("en-US")})`}
           extra={
             <Button icon={<ReloadOutlined />} onClick={load} loading={loading}>
-              刷新
+              Refresh
             </Button>
           }
         >
@@ -127,4 +127,3 @@ export const Models = () => {
     </div>
   );
 };
-
