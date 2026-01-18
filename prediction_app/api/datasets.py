@@ -10,9 +10,10 @@ import hashlib
 from datetime import datetime, timedelta
 import threading
 from pathlib import Path
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, Any, List, Tuple, Set
 from urllib import request as urlrequest
 from urllib import error as urlerror
+import re
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 import numpy as np
@@ -246,13 +247,25 @@ class RFMRunRequest(BaseModel):
 
 
 class CustomerSegmentationRequest(BaseModel):
-    """Dataset-scoped customer clustering based on RFM user features."""
+    """
+    Customer Segmentation (K-Means).
+
+    Default mode clusters customers by product-category mix:
+    - Clean product descriptions into a keyword-based `category`
+    - Build per-customer category revenue-share features
+    - Run K-Means with automatic K selection
+    """
 
     time_window_days: int = Field(365, ge=1, le=3650)
+    # Backward compatible. When feature_mode="rfm", these are the allowed inputs.
     selected_features: List[str] = Field(default_factory=lambda: ["recency_days", "frequency", "monetary"])
+    # "category_mix" (default) | "rfm"
+    feature_mode: str = Field("category_mix")
     k_range: Tuple[int, int] = Field((3, 6))
     random_seed: int = Field(42)
     outlier_threshold: Optional[float] = Field(3.0)
+    # When None: enable by default if an API key is available.
+    enable_ai_insight: Optional[bool] = Field(None)
 
 
 def _rfm_make_analysis_id(dataset_id: str, req: RFMRunRequest) -> str:
@@ -938,6 +951,129 @@ def _rfm_generate_insight_markdown_ai(
     )
 
 
+def _segmentation_generate_insight_markdown(
+    *,
+    feature_definitions: List[Dict[str, Any]],
+    clusters_summary: List[Dict[str, Any]],
+) -> str:
+    """Deterministic fallback insight generator (English)."""
+    clusters = [c for c in (clusters_summary or []) if isinstance(c, dict)]
+    clusters.sort(key=lambda x: int(x.get("cluster_id", 0)))
+
+    def top_features(chars: Dict[str, Any], *, prefix: str, n: int = 3) -> List[Tuple[str, float]]:
+        out: List[Tuple[str, float]] = []
+        for k, v in (chars or {}).items():
+            if not isinstance(k, str) or not k.startswith(prefix):
+                continue
+            try:
+                mean_v = float((v or {}).get("mean"))
+            except Exception:
+                continue
+            if not np.isfinite(mean_v):
+                continue
+            out.append((k, mean_v))
+        out.sort(key=lambda x: x[1], reverse=True)
+        return out[:n]
+
+    lines: List[str] = []
+    lines.append("### Executive Summary")
+    lines.append(f"- Generated {len(clusters)} customer clusters using K-Means.")
+    lines.append("")
+    for c in clusters:
+        cid = int(c.get("cluster_id", 0))
+        size = c.get("size")
+        pct = c.get("percentage")
+        label = c.get("label_suggestion") or f"Cluster {cid}"
+        lines.append(f"### Cluster {cid}: {label}")
+        lines.append(f"- Size: {size} ({pct})")
+        chars = c.get("characteristics") or {}
+
+        top_cats = top_features(chars, prefix="cat_share_", n=3)
+        if top_cats:
+            tops_s = ", ".join([f"`{k}`={v*100:.1f}%" for k, v in top_cats])
+            lines.append(f"- Dominant categories: {tops_s}")
+
+        top_seasons = top_features(chars, prefix="season_share_", n=1)
+        if top_seasons:
+            lines.append(f"- Seasonality: `{top_seasons[0][0]}`={top_seasons[0][1]*100:.1f}%")
+
+        try:
+            f_mean = float((chars.get("frequency") or {}).get("mean"))
+        except Exception:
+            f_mean = float("nan")
+        try:
+            m_mean = float((chars.get("monetary") or {}).get("mean"))
+        except Exception:
+            m_mean = float("nan")
+        if np.isfinite(f_mean):
+            lines.append(f"- Avg frequency: {f_mean:.2f}")
+        if np.isfinite(m_mean):
+            lines.append(f"- Avg monetary: {m_mean:.2f}")
+
+        lines.append("- Recommended actions: tailor messaging, product bundles, and timing around the dominant mix.")
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _segmentation_generate_insight_markdown_ai(
+    *,
+    dataset_id: str,
+    feature_mode: str,
+    feature_definitions: List[Dict[str, Any]],
+    clusters_summary: List[Dict[str, Any]],
+) -> str:
+    """AI insight generator for segmentation clusters (English, Markdown)."""
+    model = os.getenv("VOLCENGINE_MODEL") or os.getenv("SEGMENTATION_INSIGHT_MODEL") or "kimi-k2-250905"
+    timeout_seconds = int(os.getenv("SEGMENTATION_AI_TIMEOUT_SECONDS") or "30")
+    max_tokens = int(os.getenv("SEGMENTATION_AI_MAX_TOKENS") or "1200")
+
+    clusters = [c for c in (clusters_summary or []) if isinstance(c, dict)]
+    clusters.sort(key=lambda x: int(x.get("cluster_id", 0)))
+
+    context = {
+        "dataset_id": dataset_id,
+        "feature_mode": feature_mode,
+        "features": [
+            {"name": d.get("name"), "description": d.get("description")}
+            for d in (feature_definitions or [])
+            if isinstance(d, dict)
+        ],
+        "clusters": [
+            {
+                "cluster_id": c.get("cluster_id"),
+                "size": c.get("size"),
+                "percentage": c.get("percentage"),
+                "label_suggestion": c.get("label_suggestion"),
+                "characteristics": c.get("characteristics"),
+            }
+            for c in clusters
+        ],
+    }
+
+    system = (
+        "You are a senior retail analyst. Interpret customer clusters produced by K-Means segmentation.\n"
+        "Output MUST be Markdown.\n"
+        "For each cluster, use this exact structure:\n"
+        "### Cluster <id>: <short name>\n"
+        "- Profile: <2-4 bullet points>\n"
+        "- Key signals: <2-4 bullet points referencing provided feature names>\n"
+        "- Recommended actions: <3 bullet points>\n"
+        "Rules:\n"
+        "- Write in English.\n"
+        "- Do NOT invent data; only use the provided metrics.\n"
+        "- Keep it concise but actionable.\n"
+    )
+    user = "Segmentation context (JSON):\n" + json.dumps(context, ensure_ascii=False, separators=(",", ":"))
+
+    return _call_volcengine_chat_completion(
+        model=model,
+        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+        temperature=0.2,
+        max_tokens=max_tokens,
+        timeout_seconds=timeout_seconds,
+    )
+
+
 @router.get("")
 def get_datasets_list():
     """获取数据集列表"""
@@ -1514,15 +1650,21 @@ def get_rfm_segment_detail(
 
 @router.post("/{dataset_id}/segmentation")
 def run_customer_segmentation(dataset_id: str, req: CustomerSegmentationRequest):
-    """Customer Segmentation (K-Means clustering) based on dataset RFM user features."""
+    """
+    Customer Segmentation (K-Means).
+
+    feature_mode:
+    - "category_mix" (default): clean product descriptions -> category, build category revenue-share features, then cluster.
+    - "rfm": legacy clustering on RFM (recency_days/frequency/monetary).
+    """
     config = load_datasets_config()
     dataset_config = next((d for d in config.get("datasets", []) if d["id"] == dataset_id), None)
     if not dataset_config:
-        raise HTTPException(status_code=404, detail="数据集不存在")
+        raise HTTPException(status_code=404, detail="Dataset not found")
 
     rfm_cfg = dataset_config.get("rfm")
     if not isinstance(rfm_cfg, dict):
-        raise HTTPException(status_code=400, detail="该数据集未配置 RFM 字段映射（datasets.json -> rfm）")
+        raise HTTPException(status_code=400, detail="Missing dataset RFM mapping (datasets.json -> rfm)")
 
     user_col = rfm_cfg.get("user_id_column")
     order_col = rfm_cfg.get("order_id_column")
@@ -1530,17 +1672,20 @@ def run_customer_segmentation(dataset_id: str, req: CustomerSegmentationRequest)
     amount_cfg = rfm_cfg.get("monetary")
 
     if not all(isinstance(x, str) and x for x in [user_col, order_col, date_col]):
-        raise HTTPException(status_code=400, detail="RFM 字段映射不完整（user_id_column/order_id_column/order_date_column）")
+        raise HTTPException(
+            status_code=400,
+            detail="Incomplete RFM mapping (user_id_column/order_id_column/order_date_column)",
+        )
     if not isinstance(amount_cfg, dict):
-        raise HTTPException(status_code=400, detail="RFM monetary 配置缺失（datasets.json -> rfm.monetary）")
+        raise HTTPException(status_code=400, detail="Missing RFM monetary mapping (datasets.json -> rfm.monetary)")
 
     base_filters = rfm_cfg.get("filters") or []
     if not isinstance(base_filters, list):
-        raise HTTPException(status_code=400, detail="RFM filters 配置必须为数组")
+        raise HTTPException(status_code=400, detail="RFM filters must be an array")
 
     csv_path = _get_dataset_csv_path(dataset_id, dataset_config)
     if not csv_path.exists():
-        raise HTTPException(status_code=404, detail=f"CSV 文件不存在: {csv_path}")
+        raise HTTPException(status_code=404, detail=f"CSV file not found: {csv_path}")
 
     encoding, header_cols = _read_csv_header(csv_path)
 
@@ -1558,7 +1703,7 @@ def run_customer_segmentation(dataset_id: str, req: CustomerSegmentationRequest)
     resolved_filters: List[Dict[str, Any]] = []
     for f in base_filters:
         if not isinstance(f, dict):
-            raise HTTPException(status_code=400, detail="RFM filters 配置必须为对象数组")
+            raise HTTPException(status_code=400, detail="RFM filters must be an object array")
         col = f.get("column")
         if not isinstance(col, str) or not col:
             raise HTTPException(status_code=400, detail="RFM filters: invalid column")
@@ -1574,6 +1719,13 @@ def run_customer_segmentation(dataset_id: str, req: CustomerSegmentationRequest)
     for f in resolved_filters:
         usecols_set.add(f["column"])
 
+    # Category-mix segmentation requires a description column for keyword-based category cleaning.
+    feature_mode = (req.feature_mode or "category_mix").strip().lower()
+    desc_col_resolved: Optional[str] = None
+    if feature_mode == "category_mix":
+        desc_col_resolved = _resolve_csv_column(header_cols, "Description")
+        usecols_set.add(desc_col_resolved)
+
     df_raw = pd.read_csv(csv_path, encoding=encoding, usecols=sorted(usecols_set), low_memory=False)
     df_raw[date_col_resolved] = pd.to_datetime(df_raw[date_col_resolved], errors="coerce")
     df_raw = df_raw.dropna(subset=[user_col_resolved, order_col_resolved, date_col_resolved])
@@ -1582,7 +1734,7 @@ def run_customer_segmentation(dataset_id: str, req: CustomerSegmentationRequest)
         df_raw = _apply_filters_df(df_raw, resolved_filters)
 
     if df_raw.empty:
-        raise HTTPException(status_code=400, detail="CSV 在过滤条件后无可用数据")
+        raise HTTPException(status_code=400, detail="No usable data after applying filters")
 
     # Normalize ids to strings to avoid pandas float representation like "17850.0".
     def _normalize_id_series(s: pd.Series) -> pd.Series:
@@ -1597,7 +1749,7 @@ def run_customer_segmentation(dataset_id: str, req: CustomerSegmentationRequest)
 
     reference_date = pd.to_datetime(df_raw[date_col_resolved].max())
     if pd.isna(reference_date):
-        raise HTTPException(status_code=400, detail="数据集缺少可用的订单时间，无法进行聚类分析")
+        raise HTTPException(status_code=400, detail="Dataset has no usable order date; cannot run segmentation")
 
     window_days = int(req.time_window_days)
     current_start = reference_date - pd.Timedelta(days=window_days)
@@ -1605,38 +1757,306 @@ def run_customer_segmentation(dataset_id: str, req: CustomerSegmentationRequest)
         (df_raw[date_col_resolved] >= current_start) & (df_raw[date_col_resolved] <= reference_date)
     ]
     if df_current.empty:
-        raise HTTPException(status_code=400, detail="在当前分析窗口内未找到可用于聚类的数据")
-
-    df_users = _rfm_aggregate_users(
-        df_current,
-        user_col=user_col_resolved,
-        order_col=order_col_resolved,
-        date_col=date_col_resolved,
-        amount_cfg=amount_cfg_resolved,
-        reference_date=reference_date,
-    )
-    if df_users.empty:
-        raise HTTPException(status_code=400, detail="RFM 聚合后无有效用户数据，无法进行聚类")
-
-    selected_features = req.selected_features or ["recency_days", "frequency", "monetary"]
-    allowed = {"recency_days", "frequency", "monetary"}
-    if not isinstance(selected_features, list) or not selected_features:
-        raise HTTPException(status_code=400, detail="selected_features 必须为非空数组")
-    if any((not isinstance(f, str)) or f not in allowed for f in selected_features):
-        raise HTTPException(status_code=400, detail=f"selected_features 仅支持: {sorted(allowed)}")
+        raise HTTPException(status_code=400, detail="No data found within the selected time window")
 
     from shared.utils.customer_segmentation import segment_customers_kmeans
 
-    result = segment_customers_kmeans(
-        df_users,
-        selected_features=selected_features,
-        k_range=tuple(req.k_range),
-        random_seed=int(req.random_seed),
-        outlier_threshold=req.outlier_threshold,
-        user_id_column="user_id",
-    )
+    if feature_mode == "rfm":
+        df_users = _rfm_aggregate_users(
+            df_current,
+            user_col=user_col_resolved,
+            order_col=order_col_resolved,
+            date_col=date_col_resolved,
+            amount_cfg=amount_cfg_resolved,
+            reference_date=reference_date,
+        )
+        if df_users.empty:
+            raise HTTPException(status_code=400, detail="No valid users after RFM aggregation")
+
+        selected_features = req.selected_features or ["recency_days", "frequency", "monetary"]
+        allowed = {"recency_days", "frequency", "monetary"}
+        if not isinstance(selected_features, list) or not selected_features:
+            raise HTTPException(status_code=400, detail="selected_features must be a non-empty list")
+        if any((not isinstance(f, str)) or f not in allowed for f in selected_features):
+            raise HTTPException(status_code=400, detail=f"selected_features must be one of: {sorted(allowed)}")
+
+        feature_definitions = [
+            {"name": "recency_days", "description": "Days since the customer's most recent purchase."},
+            {"name": "frequency", "description": "Number of unique orders in the analysis window."},
+            {"name": "monetary", "description": "Total revenue in the analysis window."},
+        ]
+
+        result = segment_customers_kmeans(
+            df_users,
+            selected_features=selected_features,
+            k_range=tuple(req.k_range),
+            random_seed=int(req.random_seed),
+            outlier_threshold=req.outlier_threshold,
+            user_id_column="user_id",
+        )
+        # Ensure the response stays English.
+        result["feature_mode"] = "rfm"
+        result["feature_definitions"] = [d for d in feature_definitions if d["name"] in (result.get("model_info") or {}).get("features_used", [])]
+    elif feature_mode == "category_mix":
+        if not desc_col_resolved:
+            raise HTTPException(status_code=400, detail="Missing product description column (Description)")
+
+        # Compute per-line revenue and clean product descriptions to a keyword-based category.
+        df_work = df_current.copy()
+        df_work["__amount"] = _rfm_compute_amount(df_work, amount_cfg_resolved).clip(lower=0.0)
+        df_work["__category"] = _sales_hierarchy_assign_category(df_work[desc_col_resolved])
+
+        # Aggregate per-customer revenue by category.
+        cats = [str(r.get("category")) for r in SALES_HIERARCHY_RULES if str(r.get("category") or "").strip()]
+        feature_by_cat = {c: _sales_hierarchy_category_feature_key(c) for c in cats}
+        cat_by_feature = {v: k for k, v in feature_by_cat.items()}
+
+        pivot = (
+            df_work.groupby([user_col_resolved, "__category"], dropna=False)["__amount"]
+            .sum()
+            .unstack(fill_value=0.0)
+        )
+        # Ensure stable column order and presence.
+        for c in cats:
+            if c not in pivot.columns:
+                pivot[c] = 0.0
+        pivot = pivot[cats]
+
+        total_rev = pivot.sum(axis=1).astype(float)
+        pivot = pivot.loc[total_rev > 0.0].copy()
+        total_rev = total_rev.loc[pivot.index]
+        if pivot.empty:
+            raise HTTPException(status_code=400, detail="No customers with positive revenue in the window")
+
+        # Revenue-share feature matrix.
+        share = pivot.div(pivot.sum(axis=1), axis=0).fillna(0.0)
+        share.columns = [feature_by_cat[c] for c in cats]
+
+        # Order-level metrics (frequency, monetary, seasonal shares) to avoid line-item duplication.
+        orders = (
+            df_work.groupby([user_col_resolved, order_col_resolved], dropna=False)
+            .agg(order_date=(date_col_resolved, "max"), order_revenue=("__amount", "sum"))
+            .reset_index()
+        )
+        orders["order_date"] = pd.to_datetime(orders["order_date"], errors="coerce")
+        orders = orders.dropna(subset=["order_date"])
+        if orders.empty:
+            raise HTTPException(status_code=400, detail="No usable orders after preprocessing")
+
+        user_metrics = (
+            orders.groupby(user_col_resolved, dropna=False)
+            .agg(frequency=(order_col_resolved, "count"), monetary=("order_revenue", "sum"))
+        )
+
+        # Seasonality features: revenue share by season (Winter/Spring/Summer/Autumn).
+        m = orders["order_date"].dt.month.fillna(0).astype(int)
+        orders["__season"] = np.select(
+            [
+                m.isin([12, 1, 2]),
+                m.isin([3, 4, 5]),
+                m.isin([6, 7, 8]),
+                m.isin([9, 10, 11]),
+            ],
+            ["Winter", "Spring", "Summer", "Autumn"],
+            default="Unknown",
+        )
+        season_rev = (
+            orders.groupby([user_col_resolved, "__season"], dropna=False)["order_revenue"]
+            .sum()
+            .unstack(fill_value=0.0)
+        )
+        seasons = ["Winter", "Spring", "Summer", "Autumn"]
+        for s in seasons:
+            if s not in season_rev.columns:
+                season_rev[s] = 0.0
+        season_rev = season_rev[seasons]
+
+        # Align all user-level features to the same set of customers (those with positive revenue).
+        active_users = pivot.index
+        user_metrics = user_metrics.reindex(active_users).fillna(0.0)
+        season_rev = season_rev.reindex(active_users).fillna(0.0)
+
+        season_share = season_rev.div(user_metrics["monetary"].replace(0.0, np.nan), axis=0).fillna(0.0)
+        season_feature_by_name = {s: f"season_share_{s.lower()}" for s in seasons}
+        season_share.columns = [season_feature_by_name[s] for s in seasons]
+
+        df_users = share.copy()
+        df_users["frequency"] = user_metrics["frequency"].astype(float)
+        df_users["monetary"] = user_metrics["monetary"].astype(float)
+        for col in season_share.columns:
+            df_users[col] = season_share[col].astype(float)
+        df_users.insert(0, "user_id", df_users.index.astype(str))
+
+        # Build feature definitions for UI.
+        feature_definitions: List[Dict[str, Any]] = [
+            {
+                "name": feature_by_cat[c],
+                "description": f"Share of the customer's revenue in category '{c}' (0-1) within the analysis window.",
+            }
+            for c in cats
+        ]
+        feature_definitions.extend(
+            [
+                {"name": "frequency", "description": "Number of unique orders in the analysis window."},
+                {"name": "monetary", "description": "Total revenue in the analysis window."},
+            ]
+        )
+        feature_definitions.extend(
+            [
+                {
+                    "name": season_feature_by_name["Winter"],
+                    "description": "Share of the customer's revenue that occurs in Winter (Dec-Feb).",
+                },
+                {
+                    "name": season_feature_by_name["Spring"],
+                    "description": "Share of the customer's revenue that occurs in Spring (Mar-May).",
+                },
+                {
+                    "name": season_feature_by_name["Summer"],
+                    "description": "Share of the customer's revenue that occurs in Summer (Jun-Aug).",
+                },
+                {
+                    "name": season_feature_by_name["Autumn"],
+                    "description": "Share of the customer's revenue that occurs in Autumn (Sep-Nov).",
+                },
+            ]
+        )
+
+        # Optional: attach overall category distribution for transparency (cleaning step).
+        cat_overview: List[Dict[str, Any]] = []
+        overall_by_cat = df_work.groupby("__category")["__amount"].agg(["sum", "count"]).reset_index()
+        total_amt = float(overall_by_cat["sum"].sum()) if not overall_by_cat.empty else 0.0
+        for _, row in overall_by_cat.iterrows():
+            c = str(row["__category"])
+            rev = float(row["sum"])
+            cnt = int(row["count"])
+            cat_overview.append(
+                {
+                    "category": c,
+                    "revenue": rev,
+                    "revenue_share_pct": (rev / total_amt * 100.0) if total_amt else 0.0,
+                    "line_items": cnt,
+                }
+            )
+        cat_overview.sort(key=lambda x: float(x.get("revenue") or 0.0), reverse=True)
+
+        season_overview: List[Dict[str, Any]] = []
+        overall_by_season = orders.groupby("__season")["order_revenue"].agg(["sum", "count"]).reset_index()
+        total_season_amt = float(overall_by_season["sum"].sum()) if not overall_by_season.empty else 0.0
+        for _, row in overall_by_season.iterrows():
+            s = str(row["__season"])
+            if s == "Unknown":
+                continue
+            rev = float(row["sum"])
+            cnt = int(row["count"])
+            season_overview.append(
+                {
+                    "season": s,
+                    "revenue": rev,
+                    "revenue_share_pct": (rev / total_season_amt * 100.0) if total_season_amt else 0.0,
+                    "orders": cnt,
+                }
+            )
+        season_overview.sort(key=lambda x: float(x.get("revenue") or 0.0), reverse=True)
+
+        result = segment_customers_kmeans(
+            df_users,
+            selected_features=[d["name"] for d in feature_definitions],
+            k_range=tuple(req.k_range),
+            random_seed=int(req.random_seed),
+            outlier_threshold=req.outlier_threshold,
+            user_id_column="user_id",
+        )
+
+        # Replace generic label suggestion with category-driven labels (English).
+        if isinstance(result.get("clusters_summary"), list):
+            for item in result["clusters_summary"]:
+                chars = (item or {}).get("characteristics") or {}
+                share_means: List[Tuple[str, float]] = []
+                for fname, cat in cat_by_feature.items():
+                    m = chars.get(fname, {}).get("mean")
+                    if m is None:
+                        continue
+                    try:
+                        share_means.append((cat, float(m)))
+                    except Exception:
+                        continue
+                share_means.sort(key=lambda x: x[1], reverse=True)
+                label = "Mixed Basket"
+                if share_means:
+                    top_cat, top_share = share_means[0]
+                    if top_share >= 0.55:
+                        label = f"{top_cat} Focused"
+                    elif len(share_means) >= 2:
+                        label = f"Mixed ({top_cat} + {share_means[1][0]})"
+                    else:
+                        label = f"{top_cat} Leaning"
+
+                season_keys = [season_feature_by_name[s] for s in seasons]
+                season_means: List[Tuple[str, float]] = []
+                for sk in season_keys:
+                    sm = chars.get(sk, {}).get("mean")
+                    if sm is None:
+                        continue
+                    try:
+                        season_means.append((sk, float(sm)))
+                    except Exception:
+                        continue
+                season_means.sort(key=lambda x: x[1], reverse=True)
+                if season_means:
+                    top_key, top_share = season_means[0]
+                    if top_share >= 0.6:
+                        season_name = top_key.replace("season_share_", "").replace("_", " ").title()
+                        label = f"{label} · {season_name} Heavy"
+                item["label_suggestion"] = label
+
+        feature_defs_used = [
+            d
+            for d in feature_definitions
+            if d.get("name") in (result.get("model_info") or {}).get("features_used", [])
+        ]
+
+        # AI Insight (optional).
+        insight_md: Optional[str] = None
+        enable_ai_env = os.getenv("SEGMENTATION_ENABLE_AI_INSIGHT")
+        if req.enable_ai_insight is None:
+            if enable_ai_env is None:
+                enable_ai = bool(_get_volcengine_api_key())
+            else:
+                enable_ai = str(enable_ai_env).lower() in {"1", "true", "yes", "on"}
+        else:
+            enable_ai = bool(req.enable_ai_insight)
+
+        try:
+            if enable_ai:
+                insight_md = _segmentation_generate_insight_markdown_ai(
+                    dataset_id=dataset_id,
+                    feature_mode="category_mix",
+                    feature_definitions=feature_defs_used,
+                    clusters_summary=result.get("clusters_summary") or [],
+                )
+            else:
+                insight_md = _segmentation_generate_insight_markdown(
+                    feature_definitions=feature_defs_used,
+                    clusters_summary=result.get("clusters_summary") or [],
+                )
+        except Exception as e:
+            print(f"⚠️  Segmentation AI insight generation failed; fallback to template: {e}")
+            insight_md = _segmentation_generate_insight_markdown(
+                feature_definitions=feature_defs_used,
+                clusters_summary=result.get("clusters_summary") or [],
+            )
+
+        result["feature_mode"] = "category_mix"
+        result["feature_definitions"] = feature_defs_used
+        result["category_overview"] = cat_overview
+        result["season_overview"] = season_overview
+        result["insight_markdown"] = insight_md
+    else:
+        raise HTTPException(status_code=400, detail="feature_mode must be 'category_mix' or 'rfm'")
+
     if result.get("status") != "success":
-        raise HTTPException(status_code=400, detail=str(result.get("message") or "聚类分析失败"))
+        raise HTTPException(status_code=400, detail=str(result.get("message") or "Segmentation failed"))
 
     # Attach dataset-scoped metadata for UI display.
     result["dataset_id"] = dataset_id
@@ -1649,15 +2069,366 @@ def run_customer_segmentation(dataset_id: str, req: CustomerSegmentationRequest)
 # Sales Forecasting (Time Series)
 # -----------------------------
 
+SALES_HIERARCHY_RULES: List[Dict[str, Any]] = [
+    {
+        "category": "Seasonal",
+        "keywords": ["CHRISTMAS", "XMAS", "HALLOWEEN", "EASTER", "VALENTINE"],
+        "sub_categories": [
+            {"name": "Christmas", "keywords": ["CHRISTMAS", "XMAS"]},
+            {"name": "Halloween", "keywords": ["HALLOWEEN"]},
+            {"name": "Easter", "keywords": ["EASTER"]},
+            {"name": "Valentine", "keywords": ["VALENTINE"]},
+            {"name": "Other", "keywords": []},
+        ],
+    },
+    {
+        "category": "Bags",
+        "keywords": ["BAG", "TOTE"],
+        "sub_categories": [
+            {"name": "Lunch Bags", "keywords": ["LUNCH"]},
+            {"name": "Jumbo Bags", "keywords": ["JUMBO"]},
+            {"name": "Gift Bags", "keywords": ["GIFT"]},
+            {"name": "Other", "keywords": []},
+        ],
+    },
+    {
+        "category": "Kitchenware",
+        "keywords": ["MUG", "CUP", "PLATE", "BOWL", "PANTRY", "KITCHEN", "TEA", "COFFEE", "CAKE", "LUNCH"],
+        "sub_categories": [
+            {"name": "Mugs & Cups", "keywords": ["MUG", "CUP"]},
+            {"name": "Lunchware", "keywords": ["LUNCH"]},
+            {"name": "Pantry", "keywords": ["PANTRY"]},
+            {"name": "Cakeware", "keywords": ["CAKE"]},
+            {"name": "Other", "keywords": []},
+        ],
+    },
+    {
+        "category": "Stationery",
+        "keywords": ["CARD", "PAPER", "NOTE", "TAG", "WRAP", "STICKER"],
+        "sub_categories": [
+            {"name": "Cards", "keywords": ["CARD"]},
+            {"name": "Wrapping", "keywords": ["WRAP"]},
+            {"name": "Tags", "keywords": ["TAG"]},
+            {"name": "Paper & Notes", "keywords": ["PAPER", "NOTE"]},
+            {"name": "Other", "keywords": []},
+        ],
+    },
+    {
+        "category": "Storage",
+        "keywords": ["BOX", "TIN", "BASKET", "JAR", "BOTTLE", "CASE", "CASES"],
+        "sub_categories": [
+            {"name": "Boxes", "keywords": ["BOX"]},
+            {"name": "Tins", "keywords": ["TIN"]},
+            {"name": "Cases", "keywords": ["CASE", "CASES"]},
+            {"name": "Bottles & Jars", "keywords": ["BOTTLE", "JAR"]},
+            {"name": "Other", "keywords": []},
+        ],
+    },
+    {
+        "category": "Home Decor",
+        "keywords": ["HEART", "HANGING", "T-LIGHT", "CANDLE", "HOLDER", "SIGN", "DECORATION", "LIGHT", "METAL", "WOODEN", "GLASS", "DOORMAT"],
+        "sub_categories": [
+            {"name": "Lights", "keywords": ["LIGHT"]},
+            {"name": "Candles", "keywords": ["CANDLE", "T-LIGHT"]},
+            {"name": "Hanging Decor", "keywords": ["HANGING"]},
+            {"name": "Signs", "keywords": ["SIGN"]},
+            {"name": "Other", "keywords": []},
+        ],
+    },
+    {
+        "category": "Toys",
+        "keywords": ["DOLLY", "SPACEBOY"],
+        "sub_categories": [
+            {"name": "Dolly", "keywords": ["DOLLY"]},
+            {"name": "Spaceboy", "keywords": ["SPACEBOY"]},
+            {"name": "Other", "keywords": []},
+        ],
+    },
+    {"category": "Other", "keywords": [], "sub_categories": [{"name": "Other", "keywords": []}]},
+]
+
+
+def _sales_hierarchy_norm(s: str) -> str:
+    return (s or "").strip().lower()
+
+
+def _sales_hierarchy_get_category_rule(category: str) -> Optional[Dict[str, Any]]:
+    cat = _sales_hierarchy_norm(category)
+    for r in SALES_HIERARCHY_RULES:
+        if _sales_hierarchy_norm(str(r.get("category", ""))) == cat:
+            return r
+    return None
+
+
+def _sales_hierarchy_build_keyword_regex(keywords: List[str]) -> str:
+    if not keywords:
+        return ""
+
+    parts: List[str] = []
+    for kw in keywords:
+        kwu = str(kw or "").upper().strip()
+        if not kwu:
+            continue
+        # Use word boundaries for short alnum keywords to reduce false positives.
+        if kwu.isalnum() and len(kwu) <= 4:
+            parts.append(rf"\b{re.escape(kwu)}\b")
+        else:
+            parts.append(re.escape(kwu))
+    return "|".join(parts)
+
+
+def _sales_hierarchy_category_feature_key(category: str) -> str:
+    """
+    Convert a human-readable category name into a stable feature key.
+
+    Example: "Home Decor" -> "cat_share_home_decor"
+    """
+    base = re.sub(r"[^a-z0-9]+", "_", _sales_hierarchy_norm(category)).strip("_")
+    if not base:
+        base = "other"
+    return f"cat_share_{base}"
+
+
+_SALES_HIERARCHY_CATEGORY_PATTERNS: Optional[List[Tuple[str, str]]] = None
+
+
+def _sales_hierarchy_category_patterns() -> List[Tuple[str, str]]:
+    """Build (category, regex_pattern) list once for fast classification."""
+    global _SALES_HIERARCHY_CATEGORY_PATTERNS
+    if isinstance(_SALES_HIERARCHY_CATEGORY_PATTERNS, list):
+        return _SALES_HIERARCHY_CATEGORY_PATTERNS
+
+    patterns: List[Tuple[str, str]] = []
+    for r in SALES_HIERARCHY_RULES:
+        cat = str(r.get("category") or "").strip()
+        if not cat:
+            continue
+        if _sales_hierarchy_norm(cat) == "other":
+            continue
+        pat = _sales_hierarchy_build_keyword_regex(list(r.get("keywords") or []))
+        if pat:
+            patterns.append((cat, pat))
+
+    _SALES_HIERARCHY_CATEGORY_PATTERNS = patterns
+    return patterns
+
+
+def _sales_hierarchy_assign_category(desc: pd.Series) -> pd.Series:
+    """Assign a top-level category to each description using keyword rules."""
+    desc_upper = desc.astype(str).str.upper()
+    out = pd.Series("Other", index=desc_upper.index, dtype="object")
+
+    remaining = pd.Series(True, index=desc_upper.index)
+    for cat, pat in _sales_hierarchy_category_patterns():
+        if not bool(remaining.any()):
+            break
+        m = remaining & desc_upper.str.contains(pat, regex=True, na=False)
+        if bool(m.any()):
+            out.loc[m] = cat
+            remaining.loc[m] = False
+
+    return out
+
+
+def _sales_hierarchy_assign_sub_category(desc: pd.Series, *, category_rule: Dict[str, Any]) -> pd.Series:
+    """Assign a sub-category within a category using the same first-match-wins strategy."""
+    desc_upper = desc.astype(str).str.upper()
+    out = pd.Series("Other", index=desc_upper.index, dtype="object")
+
+    sub_rules = list(category_rule.get("sub_categories") or [])
+    remaining = pd.Series(True, index=desc_upper.index)
+    for sr in sub_rules:
+        name = str(sr.get("name") or "").strip()
+        if not name:
+            continue
+        if _sales_hierarchy_norm(name) == "other":
+            continue
+        pat = _sales_hierarchy_build_keyword_regex(list(sr.get("keywords") or []))
+        if not pat:
+            continue
+        if not bool(remaining.any()):
+            break
+        m = remaining & desc_upper.str.contains(pat, regex=True, na=False)
+        if bool(m.any()):
+            out.loc[m] = name
+            remaining.loc[m] = False
+
+    return out
+
+
+def _sales_hierarchy_masks_for_chunk(
+    *,
+    desc_upper: pd.Series,
+    category: str,
+    sub_category: Optional[str],
+) -> pd.Series:
+    """Return a boolean mask for rows that belong to (category, sub_category) based on keyword rules."""
+    rule = _sales_hierarchy_get_category_rule(category)
+    if not rule:
+        # Unknown category -> match nothing.
+        return pd.Series(False, index=desc_upper.index)
+
+    canonical_cat = str(rule.get("category") or "").strip() or str(category).strip()
+    assigned_cat = _sales_hierarchy_assign_category(desc_upper)
+    cat_mask = assigned_cat.astype(str).str.lower() == _sales_hierarchy_norm(canonical_cat)
+
+    if not sub_category:
+        return cat_mask
+
+    sub_rules = list(rule.get("sub_categories") or [])
+    sub_norm = _sales_hierarchy_norm(str(sub_category or ""))
+    sub_canonical = next((str(sr.get("name") or "").strip() for sr in sub_rules if _sales_hierarchy_norm(str(sr.get("name") or "")) == sub_norm), "")
+    if not sub_canonical:
+        return pd.Series(False, index=desc_upper.index)
+
+    assigned_sub = _sales_hierarchy_assign_sub_category(desc_upper, category_rule=rule)
+    sub_mask = assigned_sub.astype(str).str.lower() == _sales_hierarchy_norm(sub_canonical)
+    return cat_mask & sub_mask
+
+
+@router.get("/{dataset_id}/sales-hierarchy")
+def get_sales_hierarchy(dataset_id: str):
+    """Return keyword-based product hierarchy options for Sales Forecast."""
+    config = load_datasets_config()
+    dataset_config = next((d for d in config.get("datasets", []) if d["id"] == dataset_id), None)
+    if not dataset_config:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+
+    categories = []
+    for r in SALES_HIERARCHY_RULES:
+        categories.append(
+            {
+                "category": r.get("category"),
+                "sub_categories": [sr.get("name") for sr in (r.get("sub_categories") or [])],
+            }
+        )
+
+    return {
+        "success": True,
+        "data": {
+            "dataset_id": dataset_id,
+            "levels": ["category", "sub_category", "sku"],
+            "categories": categories,
+        },
+    }
+
+
+@router.get("/{dataset_id}/sales-hierarchy/skus")
+def list_sales_hierarchy_skus(
+    dataset_id: str,
+    category: str = Query(..., min_length=1),
+    sub_category: Optional[str] = Query(None),
+    limit: int = Query(200, ge=1, le=2000),
+):
+    """List top SKUs (StockCode) for a given (category, sub_category) by total revenue."""
+    config = load_datasets_config()
+    dataset_config = next((d for d in config.get("datasets", []) if d["id"] == dataset_id), None)
+    if not dataset_config:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+
+    csv_path = _get_dataset_csv_path(dataset_id, dataset_config)
+    if not csv_path.exists():
+        raise HTTPException(status_code=404, detail=f"CSV file not found: {csv_path}")
+
+    encoding, header_cols = _read_csv_header(csv_path)
+    date_col_req = dataset_config.get("time_column") or "InvoiceDate"
+    entity_col_req = "StockCode"
+    desc_col_req = "Description"
+    qty_col_req = "Quantity"
+    price_col_req = "UnitPrice"
+
+    entity_col = _resolve_csv_column(header_cols, str(entity_col_req))
+    desc_col = _resolve_csv_column(header_cols, str(desc_col_req))
+    qty_col = _resolve_csv_column(header_cols, str(qty_col_req))
+    price_col = _resolve_csv_column(header_cols, str(price_col_req))
+    _ = _resolve_csv_column(header_cols, str(date_col_req))  # validate existence (not used)
+
+    # Accumulate revenue by SKU (StockCode).
+    sums: Dict[str, float] = {}
+    desc_by_sku: Dict[str, str] = {}
+
+    usecols = sorted({entity_col, desc_col, qty_col, price_col})
+    try:
+        reader = pd.read_csv(csv_path, encoding=encoding, usecols=usecols, low_memory=False, chunksize=200_000)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read CSV: {e}")
+
+    for chunk in reader:
+        if chunk.empty:
+            continue
+
+        desc_upper = chunk[desc_col].astype(str).str.upper()
+        mask = _sales_hierarchy_masks_for_chunk(desc_upper=desc_upper, category=category, sub_category=sub_category)
+        if not bool(mask.any()):
+            continue
+
+        sub = chunk.loc[mask].copy()
+        if sub.empty:
+            continue
+
+        sku = sub[entity_col].astype(str).str.strip()
+        qty = pd.to_numeric(sub[qty_col], errors="coerce").fillna(0.0).astype(float)
+        price = pd.to_numeric(sub[price_col], errors="coerce").fillna(0.0).astype(float)
+        revenue = (qty * price).clip(lower=0.0)
+
+        grp = revenue.groupby(sku).sum()
+        for k, v in grp.items():
+            kk = str(k).strip()
+            if not kk:
+                continue
+            sums[kk] = sums.get(kk, 0.0) + float(v)
+
+        # Keep a representative description for display (first non-empty seen).
+        for kk, dd in zip(sku.tolist(), sub[desc_col].astype(str).tolist()):
+            key = str(kk).strip()
+            if key and key not in desc_by_sku and dd:
+                desc_by_sku[key] = str(dd)
+
+    items = [
+        {"sku": k, "description": desc_by_sku.get(k), "total_revenue": float(v)}
+        for k, v in sums.items()
+    ]
+    items.sort(key=lambda x: float(x.get("total_revenue") or 0.0), reverse=True)
+    items = items[: int(limit)]
+
+    return {"success": True, "data": items, "total": len(items)}
+
+
 class SalesHistoryPoint(BaseModel):
     date: str
     sales: float
     is_holiday: int = 0
 
 
+class SalesForecastScenario(BaseModel):
+    """
+    Lightweight scenario simulation knobs.
+
+    This does NOT retrain the ML model. It applies business adjustments on top of the baseline forecast.
+    """
+
+    enabled: bool = True
+
+    # Price change as a percentage (e.g. -0.10 means -10%).
+    price_change_pct: float = Field(0.0, ge=-0.99, le=0.99)
+    # Price elasticity of demand (usually negative). %ΔQ = elasticity * %ΔP.
+    price_elasticity: float = Field(-1.2)
+
+    # Total marketing budget for the horizon (currency units). Added as incremental revenue using ROI.
+    marketing_budget: float = Field(0.0, ge=0.0)
+    marketing_roi: float = Field(3.0, ge=0.0)
+
+    # Promotion factor applied to the scenario line (baseline uses request.promotion_factor).
+    promotion_factor: float = Field(1.0, gt=0.0)
+
+    # Overall market growth assumption over the horizon (e.g. 0.02 means +2%).
+    market_growth_pct: float = Field(0.0, ge=-0.99, le=10.0)
+
+
 class SalesForecastRequest(BaseModel):
     model_id: str = Field(..., min_length=1)
-    target_entity_id: str = Field(..., min_length=1, description="Target entity id (e.g. SKU / StockCode)")
+    # Backward-compatible SKU identifier. Prefer the hierarchy fields below.
+    target_entity_id: Optional[str] = Field(None, description="Target entity id (e.g. SKU / StockCode)")
     forecast_horizon: int = Field(7, ge=1, le=365)
 
     # When historical_context is not provided, the service loads it from the dataset CSV.
@@ -1667,8 +2438,15 @@ class SalesForecastRequest(BaseModel):
     # Dataset mapping overrides (defaults are resolved from datasets.json + common names).
     target_entity_column: Optional[str] = None
     date_column: Optional[str] = None
+    description_column: Optional[str] = None
     quantity_column: Optional[str] = None
     unit_price_column: Optional[str] = None
+
+    # Scope selection (keyword-based product hierarchy).
+    scope_level: str = Field("sku", description="category | sub_category | sku")
+    category: Optional[str] = None
+    sub_category: Optional[str] = None
+    sku_id: Optional[str] = None
 
     # Business knobs
     sales_metric: str = Field("revenue", description="quantity | revenue")
@@ -1676,6 +2454,9 @@ class SalesForecastRequest(BaseModel):
     holiday_country: Optional[str] = Field("GB", description="holidays package country code, e.g. GB/US/CN")
     rounding: str = Field("none", description="round | floor | none")
     clip_negative: bool = Field(True)
+
+    # Optional scenario simulation (baseline vs simulated forecast).
+    scenario: Optional[SalesForecastScenario] = None
 
 
 def _sales_forecast_cache_key(dataset_id: str, metric: str) -> str:
@@ -1804,7 +2585,13 @@ def _sales_forecast_resolve_model(model_id: str) -> tuple[Optional[Any], str]:
 
 
 def _sales_forecast_unwrap_estimator(model_obj: Any) -> Any:
-    """If a wrapper model is saved, unwrap to underlying estimator when possible."""
+    """
+    Prefer objects that already implement predict() (e.g. wrappers that apply target transforms).
+
+    Fallback to unwrapping `obj.model` when the outer object does not implement predict().
+    """
+    if hasattr(model_obj, "predict"):
+        return model_obj
     if hasattr(model_obj, "model") and hasattr(getattr(model_obj, "model"), "predict"):
         return getattr(model_obj, "model")
     return model_obj
@@ -1906,6 +2693,80 @@ def _sales_forecast_daily_series_from_csv(
     return s.reindex(full_idx, fill_value=0.0).astype(float)
 
 
+def _sales_forecast_daily_series_from_csv_by_hierarchy(
+    *,
+    csv_path: Path,
+    encoding: str,
+    date_col: str,
+    desc_col: str,
+    category: str,
+    sub_category: Optional[str],
+    metric: str,
+    qty_col: str,
+    price_col: Optional[str],
+    chunksize: int = 200_000,
+) -> pd.Series:
+    """Aggregate daily sales for a keyword-based (category, sub_category) scope."""
+    daily_sum: Dict[pd.Timestamp, float] = {}
+
+    usecols = {date_col, desc_col, qty_col}
+    if metric == "revenue":
+        if not price_col:
+            raise HTTPException(status_code=400, detail="sales_metric=revenue requires unit_price_column")
+        usecols.add(price_col)
+
+    try:
+        reader = pd.read_csv(
+            csv_path,
+            encoding=encoding,
+            usecols=sorted(usecols),
+            low_memory=False,
+            chunksize=chunksize,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read CSV: {e}")
+
+    for chunk in reader:
+        if chunk.empty:
+            continue
+
+        desc_upper = chunk[desc_col].astype(str).str.upper()
+        mask = _sales_hierarchy_masks_for_chunk(desc_upper=desc_upper, category=category, sub_category=sub_category)
+        if not bool(mask.any()):
+            continue
+
+        sub = chunk.loc[mask].copy()
+        if sub.empty:
+            continue
+
+        sub[date_col] = pd.to_datetime(sub[date_col], errors="coerce")
+        sub = sub.dropna(subset=[date_col])
+        if sub.empty:
+            continue
+
+        day = sub[date_col].dt.floor("D")
+        qty = pd.to_numeric(sub[qty_col], errors="coerce").fillna(0.0).astype(float)
+        if metric == "revenue":
+            price = pd.to_numeric(sub[price_col], errors="coerce").fillna(0.0).astype(float)  # type: ignore[index]
+            val = qty * price
+        else:
+            val = qty
+
+        # Sales can't be negative; clip returns to 0 (consistent with post-processing).
+        val = val.clip(lower=0.0)
+
+        grp = val.groupby(day).sum()
+        for d, v in grp.items():
+            daily_sum[pd.Timestamp(d)] = daily_sum.get(pd.Timestamp(d), 0.0) + float(v)
+
+    if not daily_sum:
+        return pd.Series(dtype="float64")
+
+    s = pd.Series(daily_sum).sort_index()
+    full_idx = pd.date_range(start=s.index.min(), end=s.index.max(), freq="D")
+    return s.reindex(full_idx, fill_value=0.0).astype(float)
+
+
 def _sales_forecast_global_daily_mean_from_csv(
     *,
     cache_key: str,
@@ -2002,10 +2863,10 @@ def _sales_forecast_compute_features(
         feats[f"rolling_mean_{w}"] = float(window.mean()) if window.size else 0.0
         feats[f"rolling_std_{w}"] = float(window.std(ddof=0)) if window.size else 0.0
 
-    # Simple momentum feature (avoid divide-by-zero).
-    lag7 = feats["lag_7"]
-    lag1 = feats["lag_1"]
-    feats["mom_7"] = float((lag1 - lag7) / (abs(lag7) + 1e-6))
+    # Bounded momentum feature to avoid extreme values when lag_7 is ~0 (common in sparse series).
+    lag7 = float(feats["lag_7"])
+    lag1 = float(feats["lag_1"])
+    feats["mom_7"] = float((lag1 - lag7) / (abs(lag1) + abs(lag7) + 1e-6))
     return feats
 
 
@@ -2037,7 +2898,7 @@ def run_sales_forecast(dataset_id: str, req: SalesForecastRequest):
     - Loads recent history from dataset CSV when historical_context is not provided
     """
     try:
-        metric = (req.sales_metric or "quantity").lower()
+        metric = (req.sales_metric or "revenue").lower()
         if metric not in {"quantity", "revenue"}:
             raise HTTPException(status_code=400, detail="sales_metric must be 'quantity' or 'revenue'")
 
@@ -2050,8 +2911,17 @@ def run_sales_forecast(dataset_id: str, req: SalesForecastRequest):
         if not dataset_config:
             raise HTTPException(status_code=404, detail="Dataset not found")
 
+        scenario = req.scenario if (req.scenario and bool(req.scenario.enabled)) else None
+        scope_level = (req.scope_level or "sku").strip().lower()
+
         history_points: List[Dict[str, Any]] = []
         reference_date: Optional[pd.Timestamp] = None
+        scope_meta: Dict[str, Any] = {"level": scope_level}
+
+        # For top-down allocation (sub_category), the model forecast is built on category history.
+        model_history_sales: List[float] = []
+        target_history_sales: List[float] = []
+        allocation_share: float = 1.0
 
         if req.historical_context:
             df_hist = pd.DataFrame([p.model_dump() for p in req.historical_context])
@@ -2087,6 +2957,9 @@ def run_sales_forecast(dataset_id: str, req: SalesForecastRequest):
                         "is_holiday": int(r.get("is_holiday", 0)),
                     }
                 )
+            target_history_sales = [float(p["sales"]) for p in history_points]
+            model_history_sales = list(target_history_sales)
+            scope_meta.update({"level": "custom", "note": "historical_context provided"})
         else:
             csv_path = _get_dataset_csv_path(dataset_id, dataset_config)
             if not csv_path.exists():
@@ -2095,27 +2968,99 @@ def run_sales_forecast(dataset_id: str, req: SalesForecastRequest):
             encoding, header_cols = _read_csv_header(csv_path)
             date_col_req = req.date_column or dataset_config.get("time_column") or "InvoiceDate"
             entity_col_req = req.target_entity_column or "StockCode"
+            desc_col_req = req.description_column or "Description"
             qty_col_req = req.quantity_column or "Quantity"
             price_col_req = req.unit_price_column or "UnitPrice"
 
             date_col = _resolve_csv_column(header_cols, str(date_col_req))
             entity_col = _resolve_csv_column(header_cols, str(entity_col_req))
+            desc_col = _resolve_csv_column(header_cols, str(desc_col_req))
             qty_col = _resolve_csv_column(header_cols, str(qty_col_req))
             price_col = _resolve_csv_column(header_cols, str(price_col_req)) if metric == "revenue" else None
 
-            s = _sales_forecast_daily_series_from_csv(
-                csv_path=csv_path,
-                encoding=encoding,
-                date_col=date_col,
-                entity_col=entity_col,
-                target_entity_id=req.target_entity_id,
-                metric=metric,
-                qty_col=qty_col,
-                price_col=price_col,
-            )
+            if scope_level == "category":
+                category = (req.category or "").strip()
+                if not category:
+                    raise HTTPException(status_code=400, detail="category is required when scope_level='category'")
 
-            if s.empty:
-                # cold start: use dataset-level mean daily sales
+                s_target = _sales_forecast_daily_series_from_csv_by_hierarchy(
+                    csv_path=csv_path,
+                    encoding=encoding,
+                    date_col=date_col,
+                    desc_col=desc_col,
+                    category=category,
+                    sub_category=None,
+                    metric=metric,
+                    qty_col=qty_col,
+                    price_col=price_col,
+                )
+                s_model = s_target
+                scope_meta.update({"level": "category", "category": category})
+
+            elif scope_level in {"sub_category", "subcategory", "sub-category"}:
+                category = (req.category or "").strip()
+                sub_category = (req.sub_category or "").strip()
+                if not category:
+                    raise HTTPException(status_code=400, detail="category is required when scope_level='sub_category'")
+                if not sub_category:
+                    raise HTTPException(status_code=400, detail="sub_category is required when scope_level='sub_category'")
+
+                s_cat = _sales_forecast_daily_series_from_csv_by_hierarchy(
+                    csv_path=csv_path,
+                    encoding=encoding,
+                    date_col=date_col,
+                    desc_col=desc_col,
+                    category=category,
+                    sub_category=None,
+                    metric=metric,
+                    qty_col=qty_col,
+                    price_col=price_col,
+                )
+
+                s_sub_raw = _sales_forecast_daily_series_from_csv_by_hierarchy(
+                    csv_path=csv_path,
+                    encoding=encoding,
+                    date_col=date_col,
+                    desc_col=desc_col,
+                    category=category,
+                    sub_category=sub_category,
+                    metric=metric,
+                    qty_col=qty_col,
+                    price_col=price_col,
+                )
+
+                if s_cat.empty:
+                    s_model = s_cat
+                    s_target = s_sub_raw
+                else:
+                    # Align target to category index so reference_date is consistent.
+                    s_target = s_sub_raw.reindex(s_cat.index, fill_value=0.0).astype(float) if not s_sub_raw.empty else pd.Series(0.0, index=s_cat.index)
+                    s_model = s_cat.astype(float)
+
+                scope_meta.update({"level": "sub_category", "category": category, "sub_category": sub_category, "allocation": "top_down"})
+
+            elif scope_level == "sku":
+                sku_id = (req.sku_id or req.target_entity_id or "").strip()
+                if not sku_id:
+                    raise HTTPException(status_code=400, detail="sku_id (or target_entity_id) is required when scope_level='sku'")
+
+                s_target = _sales_forecast_daily_series_from_csv(
+                    csv_path=csv_path,
+                    encoding=encoding,
+                    date_col=date_col,
+                    entity_col=entity_col,
+                    target_entity_id=sku_id,
+                    metric=metric,
+                    qty_col=qty_col,
+                    price_col=price_col,
+                )
+                s_model = s_target
+                scope_meta.update({"level": "sku", "sku_id": sku_id})
+            else:
+                raise HTTPException(status_code=400, detail="scope_level must be one of: category | sub_category | sku")
+
+            if s_model.empty:
+                # Cold start: use dataset-level mean daily sales for the requested metric.
                 mean_cache_key = _sales_forecast_cache_key(dataset_id, metric)
                 fallback_mean = _sales_forecast_global_daily_mean_from_csv(
                     cache_key=mean_cache_key,
@@ -2128,17 +3073,38 @@ def run_sales_forecast(dataset_id: str, req: SalesForecastRequest):
                 )
                 reference_date = None
                 history_points = []
-                history_sales = [float(fallback_mean)] * max(7, int(req.context_window_days))
+                model_history_sales = [float(fallback_mean)] * max(7, int(req.context_window_days))
+                target_history_sales = list(model_history_sales)
             else:
                 # Use last available day as "today" for forecasting.
-                reference_date = pd.Timestamp(s.index.max())
+                reference_date = pd.Timestamp(s_model.index.max())
 
                 # Clip negative daily totals (returns etc.) because "sales" can't be negative.
-                s = s.clip(lower=0.0)
+                s_model = s_model.clip(lower=0.0)
+                s_target = (s_target if "s_target" in locals() else s_model).clip(lower=0.0)  # type: ignore[has-type]
 
                 start = reference_date - pd.Timedelta(days=int(req.context_window_days) - 1)
-                s_ctx = s.loc[s.index >= start]
-                for d, v in s_ctx.items():
+                s_model_ctx = s_model.loc[s_model.index >= start]
+                s_target_ctx = s_target.loc[s_target.index >= start]
+
+                model_history_sales = [float(v) for v in s_model_ctx.values.tolist()]
+                target_history_sales = [float(v) for v in s_target_ctx.values.tolist()]
+
+                # Allocation share for top-down (constant share computed from the same window).
+                if scope_level in {"sub_category", "subcategory", "sub-category"}:
+                    cat_total = float(np.asarray(s_model_ctx.values, dtype=float).sum()) if len(s_model_ctx) else 0.0
+                    tgt_total = float(np.asarray(s_target_ctx.values, dtype=float).sum()) if len(s_target_ctx) else 0.0
+                    if cat_total <= 1e-6:
+                        rule = _sales_hierarchy_get_category_rule(str(scope_meta.get("category") or "")) or {}
+                        subs = [sr.get("name") for sr in (rule.get("sub_categories") or [])]
+                        n_children = int(len([x for x in subs if x])) or 1
+                        allocation_share = 1.0 / float(n_children)
+                    else:
+                        allocation_share = max(0.0, min(1.0, tgt_total / cat_total))
+                    scope_meta["share"] = allocation_share
+
+                # Build history_points for UI using the selected scope (target).
+                for d, v in s_target_ctx.items():
                     history_points.append(
                         {
                             "date": pd.Timestamp(d).strftime("%Y-%m-%d"),
@@ -2146,62 +3112,105 @@ def run_sales_forecast(dataset_id: str, req: SalesForecastRequest):
                             "is_holiday": _sales_forecast_is_holiday(pd.Timestamp(d), req.holiday_country),
                         }
                     )
-                history_sales = [float(v) for v in s_ctx.values.tolist()]
-
-        if "history_sales" not in locals():
-            history_sales = [float(p["sales"]) for p in history_points]
 
         # 3) Forecast with recursive feature generation.
         horizon = int(req.forecast_horizon)
-        sales_series = list(history_sales)
-        forecast_rows: List[Dict[str, Any]] = []
+        model_series = list(model_history_sales)
 
-        # Confidence interval width from recent volatility (simple heuristic).
-        hist_tail = np.asarray(sales_series[-30:], dtype=float) if sales_series else np.asarray([], dtype=float)
-        sigma = float(hist_tail.std(ddof=0)) if hist_tail.size else 0.0
+        # Confidence interval width from recent volatility of the target series (simple heuristic).
+        hist_tail = np.asarray(target_history_sales[-30:], dtype=float) if target_history_sales else np.asarray([], dtype=float)
+        sigma_raw = float(hist_tail.std(ddof=0)) if hist_tail.size else 0.0
         z = 1.96
 
         if reference_date is None:
             # If we have no reference_date (cold start), start "tomorrow" from today().
             reference_date = pd.Timestamp(datetime.now().date())
 
+        baseline_rows: List[Dict[str, Any]] = []
+        baseline_pre: List[float] = []
+
+        scenario_pre: List[float] = []
+        scenario_scales: List[float] = []
+        scenario_dates: List[str] = []
+
+        # Scenario multipliers (kept simple & transparent).
+        price_factor = 1.0
+        growth_pct = 0.0
+        scenario_promo = 1.0
+        marketing_add_total = 0.0
+        if scenario:
+            dp = float(scenario.price_change_pct)
+            e = float(scenario.price_elasticity)
+            q_change = e * dp
+            price_factor = max(0.0, (1.0 + dp) * (1.0 + q_change))
+            growth_pct = float(scenario.market_growth_pct)
+            scenario_promo = float(scenario.promotion_factor)
+            marketing_add_total = float(scenario.marketing_budget) * float(scenario.marketing_roi)
+
         for step in range(1, horizon + 1):
             ts = reference_date + pd.Timedelta(days=step)
-            feats = _sales_forecast_compute_features(ts=ts, sales_history=sales_series, holiday_country=req.holiday_country)
+            feats = _sales_forecast_compute_features(ts=ts, sales_history=model_series, holiday_country=req.holiday_country)
 
             if model_obj is None:
                 # Baseline: 7-day moving average.
-                raw_pred = float(feats.get("rolling_mean_7", 0.0))
+                raw_pred_model = float(feats.get("rolling_mean_7", 0.0))
             else:
-                raw_pred = _sales_forecast_predict_one(model_obj, feats)
+                raw_pred_model = _sales_forecast_predict_one(model_obj, feats)
 
-            pred = _sales_forecast_post_process(
-                value=raw_pred,
-                promotion_factor=req.promotion_factor,
+            # Never allow negative sales into the recursive history.
+            raw_pred_model = float(raw_pred_model)
+            raw_pred_model_hist = max(0.0, raw_pred_model) if req.clip_negative else raw_pred_model
+            model_series.append(float(raw_pred_model_hist))
+
+            # Top-down allocation: selected scope may be a sub-category allocated from the category total.
+            raw_pred_target = float(raw_pred_model)
+            if scope_level in {"sub_category", "subcategory", "sub-category"}:
+                raw_pred_target = raw_pred_target * float(allocation_share)
+
+            # Baseline applies request.promotion_factor (legacy knob).
+            baseline_scale = float(req.promotion_factor)
+            baseline_value_pre = float(raw_pred_target) * baseline_scale
+            baseline_pre.append(baseline_value_pre)
+
+            baseline_value = _sales_forecast_post_process(
+                value=raw_pred_target,
+                promotion_factor=baseline_scale,
                 clip_negative=req.clip_negative,
                 rounding=req.rounding,
             )
 
-            sales_series.append(float(pred))
+            # CI scales with the same baseline multiplier.
+            sigma_baseline = sigma_raw * baseline_scale
+            ci_lower_pre = baseline_value_pre - z * sigma_baseline
+            ci_upper_pre = baseline_value_pre + z * sigma_baseline
+            if req.clip_negative:
+                ci_lower_pre = max(0.0, ci_lower_pre)
+                ci_upper_pre = max(0.0, ci_upper_pre)
 
-            ci_lower = max(0.0, pred - z * sigma)
-            ci_upper = max(0.0, pred + z * sigma)
+            ci_lower = _sales_forecast_post_process(value=ci_lower_pre, promotion_factor=1.0, clip_negative=True, rounding=req.rounding)
+            ci_upper = _sales_forecast_post_process(value=ci_upper_pre, promotion_factor=1.0, clip_negative=True, rounding=req.rounding)
 
-            forecast_rows.append(
+            date_str = ts.strftime("%Y-%m-%d")
+            baseline_rows.append(
                 {
-                    "date": ts.strftime("%Y-%m-%d"),
-                    "predicted_sales": pred,
-                    "confidence_interval": {
-                        "lower": _sales_forecast_post_process(value=ci_lower, promotion_factor=1.0, clip_negative=True, rounding=req.rounding),
-                        "upper": _sales_forecast_post_process(value=ci_upper, promotion_factor=1.0, clip_negative=True, rounding=req.rounding),
-                    },
+                    "date": date_str,
+                    "predicted_sales": baseline_value,
+                    "confidence_interval": {"lower": ci_lower, "upper": ci_upper},
                 }
             )
 
+            if scenario:
+                # Apply growth linearly over the horizon (simple & explainable).
+                growth_factor = 1.0 + (growth_pct * (float(step) / float(horizon))) if horizon > 0 else 1.0
+                scenario_scale = scenario_promo * price_factor * growth_factor
+                scenario_scales.append(float(scenario_scale))
+                scenario_pre.append(float(raw_pred_target) * float(scenario_scale))
+                scenario_dates.append(date_str)
+
         # 4) Trend summary (simple).
-        last7 = np.asarray(history_sales[-7:], dtype=float) if history_sales else np.asarray([], dtype=float)
+        last7 = np.asarray(target_history_sales[-7:], dtype=float) if target_history_sales else np.asarray([], dtype=float)
         last7_avg = float(last7.mean()) if last7.size else 0.0
-        fut = np.asarray([r["predicted_sales"] for r in forecast_rows], dtype=float)
+        fut = np.asarray([r["predicted_sales"] for r in baseline_rows], dtype=float)
         fut_avg = float(fut.mean()) if fut.size else 0.0
 
         trend_summary = "stable"
@@ -2214,17 +3223,64 @@ def run_sales_forecast(dataset_id: str, req: SalesForecastRequest):
             elif ratio <= 0.95:
                 trend_summary = "expected_decline"
 
-        return {
+        out: Dict[str, Any] = {
             "status": "success",
             "meta": {
                 "model_version": model_version,
                 "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             },
-            "forecast": forecast_rows,
+            "scope": scope_meta,
+            "forecast": baseline_rows,
             "trend_summary": trend_summary,
             # Helpful for UI visualization / debugging (optional fields).
             "history": history_points[-30:],
         }
+
+        if scenario:
+            # Allocate marketing budget as incremental revenue over the horizon using baseline weights.
+            extras = [0.0] * horizon
+            if marketing_add_total > 0 and horizon > 0:
+                weights = [max(0.0, float(v)) for v in baseline_pre]
+                wsum = float(sum(weights))
+                if wsum <= 1e-6:
+                    extras = [float(marketing_add_total) / float(horizon)] * horizon
+                else:
+                    extras = [float(marketing_add_total) * (w / wsum) for w in weights]
+
+            sim_rows: List[Dict[str, Any]] = []
+            for i in range(horizon):
+                base_pre = float(scenario_pre[i])
+                add = float(extras[i])
+                value_pre = base_pre + add
+                value_final = _sales_forecast_post_process(
+                    value=value_pre,
+                    promotion_factor=1.0,
+                    clip_negative=req.clip_negative,
+                    rounding=req.rounding,
+                )
+
+                sigma_s = sigma_raw * float(scenario_scales[i])
+                ci_lower_pre = (base_pre - z * sigma_s) + add
+                ci_upper_pre = (base_pre + z * sigma_s) + add
+                if req.clip_negative:
+                    ci_lower_pre = max(0.0, ci_lower_pre)
+                    ci_upper_pre = max(0.0, ci_upper_pre)
+
+                sim_rows.append(
+                    {
+                        "date": scenario_dates[i],
+                        "predicted_sales": value_final,
+                        "confidence_interval": {
+                            "lower": _sales_forecast_post_process(value=ci_lower_pre, promotion_factor=1.0, clip_negative=True, rounding=req.rounding),
+                            "upper": _sales_forecast_post_process(value=ci_upper_pre, promotion_factor=1.0, clip_negative=True, rounding=req.rounding),
+                        },
+                    }
+                )
+
+            out["scenario"] = scenario.model_dump()
+            out["simulation_forecast"] = sim_rows
+
+        return out
     except HTTPException:
         raise
     except Exception as e:
