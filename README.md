@@ -39,5 +39,5 @@ pnpm dev
 
 Notes:
 - Vite proxies:
-  - `/api/v1/*` -> `http://localhost:8000` (Python API)
+  - `/api/v1/*` -> `http://localhost:6203` (gateway, reverse-proxies to Python)
   - `/api/*` -> `http://localhost:6203` (gateway)
