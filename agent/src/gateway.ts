@@ -9,6 +9,7 @@ import {
   getUploadedFiles,
   deleteFile,
 } from "./controllers/fileController";
+import { registerDatasetRoutes } from "./routes/datasets";
 
 const { app, startAsHttpEndpoint, configureSwagger } = LatticeGateway;
 
@@ -27,6 +28,7 @@ export const registerRoutes = (app: FastifyInstance): void => {
           files: "/bff/files",
           upload: "/bff/files/upload",
           uploadMultiple: "/bff/files/upload-multiple",
+          datasets: "/bff/datasets",
         },
       };
     });
@@ -41,7 +43,10 @@ export const registerRoutes = (app: FastifyInstance): void => {
     agentApp.post("/files/upload-multiple", uploadMultipleFiles);
     agentApp.get("/files", getUploadedFiles);
     agentApp.delete("/files/:filename", deleteFile);
-  });
+
+    // Dataset management endpoints
+    registerDatasetRoutes(agentApp);
+  }, { prefix: "/bff" });
 };
 
 // 配置并启动服务器

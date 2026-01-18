@@ -1,0 +1,24 @@
+:root {
+  /* Brand */
+  --primary-color: #3a71ff;
+  --primary-hover: #66b1ff;
+  --primary-bg-light: #ecf5ff;
+
+  /* Functional */
+  --danger-color: #f56c6c;
+  --success-color: #67c23a;
+
+  /* Text / Border / Background */
+  --text-main: #303133;
+  --text-regular: #606266;
+  --text-secondary: #909399;
+  --border-color: #dcdfe6;
+  --bg-color-base: #f5f7fa;
+  --white: #ffffff;
+
+  /* Sizing */
+  --border-radius-base: 4px;
+  --font-size-base: 14px;
+  --control-height: 32px;
+}
+

@@ -1,0 +1,31 @@
+{
+  "datasets": [
+    {
+      "id": "sales_data",
+      "name": "销售数据集",
+      "description": "包含历史销售记录的完整数据集，用于销售预测和库存分析",
+      "table_name": "sales_data",
+      "type": "sales",
+      "created_at": "2026-01-18T00:00:00Z",
+      "updated_at": "2026-01-18T00:00:00Z",
+      "tags": ["sales", "historical", "core"],
+      "time_column": "invoice_date",
+      "csv_path": "raw_data/sales_data.csv",
+      "rfm": {
+        "user_id_column": "CustomerID",
+        "order_id_column": "InvoiceNo",
+        "order_date_column": "InvoiceDate",
+        "monetary": {
+          "type": "mul",
+          "left": "Quantity",
+          "right": "UnitPrice"
+        },
+        "filters": [
+          { "column": "CustomerID", "op": ">", "value": 0 },
+          { "column": "Quantity", "op": ">", "value": 0 },
+          { "column": "UnitPrice", "op": ">", "value": 0 }
+        ]
+      }
+    }
+  ]
+}

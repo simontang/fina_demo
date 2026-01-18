@@ -34,22 +34,23 @@ export const Header: React.FC<RefineThemedLayoutHeaderProps> = ({
     alignItems: "center",
     padding: "0px 24px",
     height: "64px",
+    borderBottom: `1px solid ${token.colorBorder}`,
   };
 
   if (sticky) {
     headerStyles.position = "sticky";
     headerStyles.top = 0;
-    headerStyles.zIndex = 1;
+    headerStyles.zIndex = 100;
   }
 
   return (
     <AntdLayout.Header style={headerStyles}>
       <Space>
         <Switch
+          checked={mode === "dark"}
+          onChange={() => setMode()}
           checkedChildren="🌛"
-          unCheckedChildren="🔆"
-          onChange={() => setMode(mode === "light" ? "dark" : "light")}
-          defaultChecked={mode === "dark"}
+          unCheckedChildren="☀️"
         />
         <Space style={{ marginLeft: "8px" }} size="middle">
           {user?.name && <Text strong>{user.name}</Text>}

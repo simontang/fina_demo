@@ -4,6 +4,22 @@ import { notification } from "antd";
 export const TOKEN_KEY = "refine-auth";
 export const USER_KEY = "refine-user";
 const apiUrl = import.meta.env.VITE_API_URL;
+
+/** Python 预测/数据集 API 地址，默认同主机 8000 端口，可用 VITE_PYTHON_API_URL 覆盖 */
+export function getPythonApiUrl(): string {
+  const v = import.meta.env.VITE_PYTHON_API_URL;
+  if (v && typeof v === "string") return v.replace(/\/$/, "");
+  try {
+    const u = new URL(apiUrl || "http://localhost:6203");
+    u.port = "8000";
+    u.pathname = "";
+    u.search = "";
+    u.hash = "";
+    return u.origin;
+  } catch {
+    return "http://localhost:8000";
+  }
+}
 export const authProvider: AuthProvider = {
   login: async ({ email, password }) => {
     try {
@@ -113,6 +129,30 @@ export const authProvider: AuthProvider = {
  */
 export const createAuthenticatedDataProvider = (): DataProvider => {
   const baseUrl = apiUrl;
+  const pythonApiUrl = getPythonApiUrl();
+  const requestTimeoutMs = Number(import.meta.env.VITE_REQUEST_TIMEOUT_MS ?? 30000);
+
+  const fetchWithTimeout = async (
+    url: string,
+    init: RequestInit,
+  ): Promise<Response> => {
+    if (!requestTimeoutMs || requestTimeoutMs <= 0 || init.signal) {
+      return fetch(url, init);
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
+    try {
+      return await fetch(url, { ...init, signal: controller.signal });
+    } catch (err: unknown) {
+      if ((err as any)?.name === "AbortError") {
+        throw new Error(`Request timeout after ${requestTimeoutMs}ms`);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  };
 
   const getHeaders = (): Record<string, string> => {
     const token = localStorage.getItem(TOKEN_KEY);
@@ -133,13 +173,16 @@ export const createAuthenticatedDataProvider = (): DataProvider => {
         // Token 过期或无效，清除本地存储并重定向到登录页
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
-        window.location.href = "/login";
+        window.location.href = "/admin/login";
         throw new Error("Authentication failed");
       }
 
       const errorData = await response.json().catch(() => ({}));
+      const message =
+        (typeof (errorData as any)?.message === "string" && (errorData as any).message) ||
+        (typeof (errorData as any)?.detail === "string" && (errorData as any).detail);
       throw new Error(
-        errorData.message || `HTTP error! status: ${response.status}`
+        message || `HTTP error! status: ${response.status}`
       );
     }
 
@@ -173,15 +216,28 @@ export const createAuthenticatedDataProvider = (): DataProvider => {
         params.append("sortOrder", sortOrder);
       }
 
-      const url = `${baseUrl}/${resource}?${params.toString()}`;
+      // 特殊处理 datasets 资源，使用 Python API 代理路径
+      const resourceUrl =
+        resource === "datasets"
+          ? `/api/v1/datasets`
+          : `${baseUrl}/${resource}`;
+      const url = `${resourceUrl}?${params.toString()}`;
 
       try {
-        const response = await fetch(url, {
+        const response = await fetchWithTimeout(url, {
           method: "GET",
           headers: getHeaders(),
         });
 
         const data = await handleResponse(response);
+
+        // 处理 datasets API 的响应格式
+        if (resource === "datasets" && data.success) {
+          return {
+            data: data.data || [],
+            total: data.total || data.data?.length || 0,
+          };
+        }
 
         return {
           data: data.data?.records || data.data || data.records || [],
@@ -194,15 +250,26 @@ export const createAuthenticatedDataProvider = (): DataProvider => {
     },
 
     getOne: async ({ resource, id }) => {
-      const url = `${baseUrl}/${resource}/${id}`;
+      // 特殊处理 datasets 资源，使用 Python API 代理路径
+      const resourceUrl =
+        resource === "datasets"
+          ? `/api/v1/datasets/${id}`
+          : `${baseUrl}/${resource}/${id}`;
 
       try {
-        const response = await fetch(url, {
+        const response = await fetchWithTimeout(resourceUrl, {
           method: "GET",
           headers: getHeaders(),
         });
 
         const data = await handleResponse(response);
+
+        // 处理 datasets API 的响应格式
+        if (resource === "datasets" && data.success) {
+          return {
+            data: data.data,
+          };
+        }
 
         return {
           data: data.data,
@@ -217,7 +284,7 @@ export const createAuthenticatedDataProvider = (): DataProvider => {
       const url = `${baseUrl}/${resource}`;
 
       try {
-        const response = await fetch(url, {
+        const response = await fetchWithTimeout(url, {
           method: "POST",
           headers: getHeaders(),
           body: JSON.stringify(variables),
@@ -238,7 +305,7 @@ export const createAuthenticatedDataProvider = (): DataProvider => {
       const url = `${baseUrl}/${resource}/${id}`;
 
       try {
-        const response = await fetch(url, {
+        const response = await fetchWithTimeout(url, {
           method: "PUT",
           headers: getHeaders(),
           body: JSON.stringify(variables),
@@ -259,7 +326,7 @@ export const createAuthenticatedDataProvider = (): DataProvider => {
       const url = `${baseUrl}/${resource}/${id}`;
 
       try {
-        const response = await fetch(url, {
+        const response = await fetchWithTimeout(url, {
           method: "DELETE",
           headers: getHeaders(),
         });
@@ -282,7 +349,7 @@ export const createAuthenticatedDataProvider = (): DataProvider => {
       const fullUrl = url.startsWith("http") ? url : `${baseUrl}${url}`;
 
       try {
-        const response = await fetch(fullUrl, {
+        const response = await fetchWithTimeout(fullUrl, {
           method: method || "GET",
           headers: {
             ...getHeaders(),

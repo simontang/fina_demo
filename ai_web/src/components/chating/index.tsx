@@ -307,7 +307,15 @@ export const ChatBotCompnent = forwardRef<
     name: string;
   }
 >(({ id, threadId, name }, ref) => {
-  return <LatticeChatShell initialConfig={{ baseURL: apiUrl}} />
+  return (
+    <LatticeChatShell
+      initialConfig={{
+        baseURL: apiUrl,
+        agentId: id,
+        threadId: threadId === "new" ? undefined : threadId,
+      }}
+    />
+  );
 });
 
 
