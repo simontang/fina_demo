@@ -284,9 +284,10 @@ def _cluster_label_suggestion(
 
     best = max(ids, key=lambda i: score[i])
     worst = min(ids, key=lambda i: score[i])
-    labels = {cid: "潜力发展户" for cid in ids}
-    labels[best] = "VIP 客户"
-    labels[worst] = "流失风险客户"
+    # Keep suggestions lightweight and language-neutral (English).
+    labels = {cid: "Growth Potential" for cid in ids}
+    labels[best] = "High Value"
+    labels[worst] = "At Risk"
     return labels
 
 
@@ -298,6 +299,7 @@ def segment_customers_kmeans(
     random_seed: int = 42,
     outlier_threshold: Optional[float] = 3.0,
     user_id_column: str = "user_id",
+    plot_max_points: int = 1500,
 ) -> Dict[str, Any]:
     """Run K-Means customer segmentation with automatic K selection.
 
@@ -320,7 +322,7 @@ def segment_customers_kmeans(
             from sklearn.preprocessing import StandardScaler
         except Exception as e:
             raise CustomerSegmentationError(
-                "scikit-learn 未安装或不可用；请先安装 scikit-learn 后再运行聚类"
+                "scikit-learn is not installed or unavailable; please install scikit-learn to run clustering"
             ) from e
 
         df = _as_dataframe(source_data)
@@ -352,7 +354,7 @@ def segment_customers_kmeans(
             raise CustomerSegmentationError("k_range must be a tuple(min_k, max_k) with min_k>=2 and min_k<=max_k")
         n_samples = int(df_feat.shape[0])
         if n_samples < max_k:
-            raise CustomerSegmentationError("数据量不足以进行聚类：样本数小于 k_range 最大值")
+            raise CustomerSegmentationError("Not enough samples for clustering: n_samples < k_range max_k")
 
         # Log-transform highly right-skewed features (Kaggle-style).
         df_transformed, log_info = _log_transform_right_skewed(df_feat)
@@ -366,6 +368,7 @@ def segment_customers_kmeans(
         elbow_curve_data: List[Dict[str, float]] = []
         silhouette_by_k: Dict[int, float] = {}
         labels_by_k: Dict[int, np.ndarray] = {}
+        centers_by_k: Dict[int, np.ndarray] = {}
 
         warnings: List[str] = []
 
@@ -398,6 +401,7 @@ def segment_customers_kmeans(
 
             inertia = float(getattr(model, "inertia_", float("nan")))
             labels_by_k[k] = labels
+            centers_by_k[k] = np.asarray(model.cluster_centers_, dtype=float)
             elbow_curve_data.append({"k": int(k), "sse": inertia})
 
             sil = -1.0
@@ -422,6 +426,7 @@ def segment_customers_kmeans(
         best_k = max(k_values, key=lambda kk: (silhouette_by_k.get(kk, -1.0), -kk))
         best_silhouette = float(silhouette_by_k.get(best_k, -1.0))
         best_labels_full = labels_by_k[best_k]
+        best_centers = centers_by_k.get(best_k)
 
         # Attach labels to cleaned (original-scale) data for reporting.
         final_features = df_feat.columns.tolist()
@@ -488,6 +493,93 @@ def segment_customers_kmeans(
             "data_preview": data_preview,
             "elbow_curve_data": elbow_curve_data,
         }
+
+        # Optional: provide a lightweight 2D projection for plotting clusters in the UI.
+        try:
+            n = int(X_scaled.shape[0])
+            p = int(X_scaled.shape[1])
+            if n >= 2 and p >= 1 and int(plot_max_points) != 0:
+                max_points = int(plot_max_points)
+                if max_points < 0:
+                    max_points = 1500
+                max_points = max(1, min(n, max_points))
+
+                rng_plot = np.random.default_rng(int(random_seed))
+                idx = np.arange(n, dtype=int)
+                if n > max_points:
+                    idx = rng_plot.choice(n, size=max_points, replace=False)
+                    idx = np.sort(idx)
+
+                mean_vec = np.mean(X_scaled, axis=0, keepdims=True)
+                Xc = X_scaled - mean_vec
+
+                if p == 1:
+                    coords = np.column_stack([Xc[:, 0], np.zeros(n, dtype=float)])
+                    evr = [1.0, 0.0]
+                    centroids_coords = None
+                    if isinstance(best_centers, np.ndarray) and best_centers.ndim == 2 and best_centers.shape[1] == 1:
+                        centroids_coords = np.column_stack(
+                            [(best_centers - mean_vec)[:, 0], np.zeros(best_centers.shape[0], dtype=float)]
+                        )
+                else:
+                    # PCA via SVD on the standardized matrix.
+                    # Xc = U S Vt, PCs are columns of V; projection is Xc @ V[:, :2].
+                    _, S, Vt = np.linalg.svd(Xc, full_matrices=False)
+                    if Vt.shape[0] < 2:
+                        coords = np.column_stack([Xc[:, 0], np.zeros(n, dtype=float)])
+                        evr = [1.0, 0.0]
+                        centroids_coords = None
+                        if isinstance(best_centers, np.ndarray) and best_centers.ndim == 2:
+                            centroids_coords = np.column_stack(
+                                [(best_centers - mean_vec)[:, 0], np.zeros(best_centers.shape[0], dtype=float)]
+                            )
+                    else:
+                        coords = Xc @ Vt[:2].T
+                        var = (S**2).astype(float)
+                        denom = float(np.sum(var)) if var.size else 0.0
+                        evr = [float(var[0] / denom), float(var[1] / denom)] if denom > 0 and var.size >= 2 else [None, None]
+                        centroids_coords = None
+                        if isinstance(best_centers, np.ndarray) and best_centers.ndim == 2:
+                            centroids_coords = (best_centers - mean_vec) @ Vt[:2].T
+
+                user_ids = None
+                if user_id_column and user_id_column in df_out.columns:
+                    user_ids = df_out[user_id_column].astype(str).to_numpy()
+
+                points: List[Dict[str, Any]] = []
+                for i in idx.tolist():
+                    pt: Dict[str, Any] = {
+                        "x": float(coords[i, 0]),
+                        "y": float(coords[i, 1]),
+                        "cluster_id": int(best_labels_full[i]),
+                    }
+                    if user_ids is not None:
+                        pt["user_id"] = str(user_ids[i])
+                    points.append(pt)
+
+                centroids: List[Dict[str, Any]] = []
+                if isinstance(centroids_coords, np.ndarray) and centroids_coords.ndim == 2 and centroids_coords.shape[1] == 2:
+                    for cid in range(int(best_k)):
+                        centroids.append(
+                            {
+                                "cluster_id": int(cid),
+                                "x": float(centroids_coords[cid, 0]),
+                                "y": float(centroids_coords[cid, 1]),
+                            }
+                        )
+
+                resp["cluster_plot"] = {
+                    "method": "pca",
+                    "x_label": "PC1",
+                    "y_label": "PC2",
+                    "explained_variance_ratio": evr,
+                    "n_points_total": n,
+                    "n_points": len(points),
+                    "points": points,
+                    "centroids": centroids,
+                }
+        except Exception as e:
+            warnings.append(f"failed to compute cluster_plot: {e}")
 
         if dropped_const:
             warnings.append(f"dropped zero-variance features: {dropped_const}")

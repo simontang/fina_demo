@@ -50,9 +50,8 @@ class TestCustomerSegmentation(unittest.TestCase):
         df = pd.DataFrame({"user_id": [1, 2, 3, 4, 5], "Recency": [1, 2, 3, 4, 5]})
         res = segment_customers_kmeans(df, selected_features=["Recency"], k_range=(3, 6))
         self.assertEqual(res["status"], "error")
-        self.assertIn("数据量不足", res["message"])
+        self.assertIn("Not enough samples", res["message"])
 
 
 if __name__ == "__main__":
     unittest.main()
-
