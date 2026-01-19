@@ -3,9 +3,15 @@ services:
     image: finai-cn-shanghai.cr.volces.com/default/fina-demo-prediction-app:latest
     environment:
       PORT: "8000"
+      # Database configuration (Aliyun RDS PostgreSQL)
+      DB_HOST: ${DB_HOST:-pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-postgres}
+      DB_USER: ${DB_USER:-postgres_fuli}
+      DB_PASSWORD: ${DB_PASSWORD:-jfd4whz@GPF2nqx7zhm}
       # Optional (only required if you want AI explanations/insights).
-      VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2:-}
-      VOLCENGINE_BASE_URL: ${VOLCENGINE_BASE_URL:-https://ark.cn-beijing.volces.com/api/v3}
+      VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2:-a0533576-d6ed-4ca4-a308-473cbf7ebd10}
+      VOLCENGINE_API_URL: ${VOLCENGINE_API_URL:-https://ark.cn-beijing.volces.com/api/v3}
       VOLCENGINE_MODEL: ${VOLCENGINE_MODEL:-kimi-k2-250905}
     volumes:
       - ./uploads:/app/uploads
@@ -20,10 +26,21 @@ services:
       PORT: "6203"
       PYTHON_API_URL: http://prediction_app:8000
       UPLOAD_DIR: /app/uploads
+      # Database configuration (for dataset queries - Aliyun RDS PostgreSQL)
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres_fuli:jfd4whz@GPF2nqx7zhm@pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com:5432/postgres}
+      DB_HOST: ${DB_HOST:-pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-postgres}
+      DB_USER: ${DB_USER:-postgres_fuli}
+      DB_PASSWORD: ${DB_PASSWORD:-jfd4whz@GPF2nqx7zhm}
       # Optional (LLM provider for the agent + some Python insight endpoints).
-      VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2:-}
+      VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2:-a0533576-d6ed-4ca4-a308-473cbf7ebd10}
+      VOLCENGINE_API_URL: ${VOLCENGINE_API_URL:-https://ark.cn-beijing.volces.com/api/v3}
+      VOLCENGINE_MODEL: ${VOLCENGINE_MODEL:-kimi-k2-250905}
     volumes:
       - ./uploads:/app/uploads
+      # Mount datasets config so agent can access it
+      - ./prediction_app/config:/app/prediction_app/config:ro
     depends_on:
       - prediction_app
     ports:

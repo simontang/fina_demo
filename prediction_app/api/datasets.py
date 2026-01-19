@@ -817,7 +817,7 @@ def _call_volcengine_chat_completion(
     if not api_key:
         raise RuntimeError("VOLCENGINE_API_KEY2/VOLCENGINE_API_KEY 未配置")
 
-    base_url = (os.getenv("VOLCENGINE_BASE_URL") or "https://ark.cn-beijing.volces.com/api/v3").rstrip("/")
+    base_url = (os.getenv("VOLCENGINE_API_URL") or os.getenv("VOLCENGINE_BASE_URL") or "https://ark.cn-beijing.volces.com/api/v3").rstrip("/")
     url = f"{base_url}/chat/completions"
 
     payload = {
