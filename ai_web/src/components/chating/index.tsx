@@ -17,7 +17,10 @@ import { AxiomLatticeProvider } from "@axiom-lattice/react-sdk";
 import { TOKEN_KEY } from "../../authProvider";
 
 // Keep chat API base configurable (backend in this repo is mounted under `/bff`).
-const apiUrl = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:6203/bff";
+// In production, VITE_API_URL should be set to /api, so this becomes /api/bff
+const apiUrl = (import.meta.env.VITE_API_URL as string | undefined) 
+  ? `${import.meta.env.VITE_API_URL}/bff`
+  : "http://localhost:6203/bff";
 
 // Utility function to concatenate class names
 const cn = (...classNames: Array<string | undefined | false>) =>
