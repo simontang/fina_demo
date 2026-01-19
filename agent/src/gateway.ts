@@ -22,6 +22,11 @@ export const registerRoutes = (app: FastifyInstance): void => {
   // Register LatticeGateway routes at root path (required for sub-agent calls to /api/runs)
   LatticeGateway.registerLatticeRoutes(app);
 
+  // Also register LatticeGateway routes under /bff prefix (required for frontend calls via /api/bff/api/*)
+  app.register(async (bffApp) => {
+    LatticeGateway.registerLatticeRoutes(bffApp);
+  }, { prefix: "/bff" });
+
   // 注册所有路由到 bff 前缀下
   app.register(async (agentApp) => {
     agentApp.get("/", async (request, reply) => {
