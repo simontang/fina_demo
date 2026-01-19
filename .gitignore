@@ -5,6 +5,7 @@ node_modules
 uploads
 .pnp
 .pnp.js
+.pnpm-store/
 .yarn/install-state.gz
 dist
 # testing

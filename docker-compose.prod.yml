@@ -1,0 +1,39 @@
+services:
+  prediction_app:
+    image: finai-cn-shanghai.cr.volces.com/default/fina-demo-prediction-app:latest
+    environment:
+      PORT: "8000"
+      # Optional (only required if you want AI explanations/insights).
+      VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2:-}
+      VOLCENGINE_BASE_URL: ${VOLCENGINE_BASE_URL:-https://ark.cn-beijing.volces.com/api/v3}
+      VOLCENGINE_MODEL: ${VOLCENGINE_MODEL:-kimi-k2-250905}
+    volumes:
+      - ./uploads:/app/uploads
+    ports:
+      # Exposed for debugging; the UI talks to the agent which reverse-proxies to this service.
+      - "8000:8000"
+    restart: unless-stopped
+
+  agent:
+    image: finai-cn-shanghai.cr.volces.com/default/fina-demo-agent:latest
+    environment:
+      PORT: "6203"
+      PYTHON_API_URL: http://prediction_app:8000
+      UPLOAD_DIR: /app/uploads
+      # Optional (LLM provider for the agent + some Python insight endpoints).
+      VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2:-}
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      - prediction_app
+    ports:
+      - "6203:6203"
+    restart: unless-stopped
+
+  ai_web:
+    image: finai-cn-shanghai.cr.volces.com/default/fina-demo-ai-web:latest
+    depends_on:
+      - agent
+    ports:
+      - "3201:3201"
+    restart: unless-stopped

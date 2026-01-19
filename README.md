@@ -41,3 +41,28 @@ Notes:
 - Vite proxies:
   - `/api/v1/*` -> `http://localhost:6203` (gateway, reverse-proxies to Python)
   - `/api/*` -> `http://localhost:6203` (gateway)
+
+## Docker (Compose)
+
+Bring up the full demo stack (CSV + model assets are loaded from disk; no DB required):
+
+```bash
+docker compose up --build
+```
+
+Notes:
+- `raw_data/` and `models/` are baked into the `prediction_app` image during build (no host bind mounts needed).
+- If you update CSVs or model files locally, re-run `docker compose up --build`.
+
+Services:
+- Admin UI: http://localhost:3201/admin/
+- Agent gateway: http://localhost:6203
+- Python API (debug): http://localhost:8000
+
+Optional (AI insights / explanations):
+- Export `VOLCENGINE_API_KEY2` before running compose, or create a local `.env` file (not committed) at repo root:
+
+```bash
+export VOLCENGINE_API_KEY2=...
+docker compose up --build
+```

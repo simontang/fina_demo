@@ -1,0 +1,17 @@
+.venv
+.venv_py312
+__pycache__
+**/__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# Do not bake local secrets into images.
+.env
+.env.*
+
+.DS_Store
+

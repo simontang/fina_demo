@@ -1,0 +1,117 @@
+# Fina Demo 项目的 CI/CD 流水线配置
+# 该配置文件定义了自动化构建、测试和部署流程
+name: CI/CD Pipeline
+
+# 定义触发 CI/CD 流水线的条件
+on:
+  # 当向 main 分支推送代码时触发
+  push:
+    branches: [main]
+  # 当向 main 分支提交 Pull Request 时触发
+  pull_request:
+    branches: [main]
+
+# 定义所有的作业（jobs）
+jobs:
+  # 检测哪些服务的代码发生了变更
+  detect-changes:
+    runs-on: ubuntu-latest
+    # 条件执行：仅在推送到 main 分支时执行（不在 PR 时执行）
+    if: github.ref == 'refs/heads/main'
+    # 输出检测结果，供后续 job 使用
+    outputs:
+      agent: ${{ steps.filter.outputs.agent }}
+      prediction-app: ${{ steps.filter.outputs.prediction-app }}
+      ai-web: ${{ steps.filter.outputs.ai-web }}
+
+    steps:
+      # 步骤1: 检出代码仓库
+      - uses: actions/checkout@v3
+
+      # 步骤2: 检测路径变更
+      # 使用 paths-filter action 检测特定路径的文件变更
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            agent:
+              - 'agent/**'
+            prediction-app:
+              - 'prediction_app/**'
+              - 'raw_data/**'
+              - 'models/**'
+            ai-web:
+              - 'ai_web/**'
+
+  # 构建和推送 Agent 服务的 Docker 镜像
+  build-and-push-agent:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    # 仅当 Agent 代码发生变更时执行
+    if: github.ref == 'refs/heads/main' && needs.detect-changes.outputs.agent == 'true'
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: 409zhangshu
+          password: ${{ secrets.TOKEN }}
+
+      - name: Build and push fina-demo-agent
+        uses: docker/build-push-action@v5
+        with:
+          context: agent
+          push: true
+          tags: ghcr.io/409zhangshu/fina-demo-agent:latest
+
+  # 构建和推送 Prediction App 服务的 Docker 镜像
+  build-and-push-prediction-app:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    # 仅当 Prediction App 代码发生变更时执行
+    if: github.ref == 'refs/heads/main' && needs.detect-changes.outputs.prediction-app == 'true'
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: 409zhangshu
+          password: ${{ secrets.TOKEN }}
+
+      - name: Build and push fina-demo-prediction-app
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./prediction_app/Dockerfile
+          push: true
+          tags: ghcr.io/409zhangshu/fina-demo-prediction-app:latest
+
+  # 构建和推送 AI Web 前端应用的 Docker 镜像
+  build-and-push-ai-web:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    # 仅当 AI Web 代码发生变更时执行
+    if: github.ref == 'refs/heads/main' && needs.detect-changes.outputs.ai-web == 'true'
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: 409zhangshu
+          password: ${{ secrets.TOKEN }}
+
+      - name: Build and push fina-demo-ai-web
+        uses: docker/build-push-action@v5
+        with:
+          context: ai_web
+          push: true
+          tags: ghcr.io/409zhangshu/fina-demo-ai-web:latest

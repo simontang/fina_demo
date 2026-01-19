@@ -1,0 +1,25 @@
+.git
+.gitignore
+.DS_Store
+
+# Node
+**/node_modules
+**/dist
+**/.tsbuildinfo
+.pnpm-store
+
+# Python local env/venv/cache
+**/.venv
+**/.venv_py312
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+
+# Local env files / secrets
+**/.env
+**/.env.*
+
+# Large / generated runtime dirs
+uploads
+
