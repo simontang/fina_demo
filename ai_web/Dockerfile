@@ -15,6 +15,10 @@ RUN \
 FROM base as builder
 
 ENV NODE_ENV production
+# Set API URL for production build (can be overridden via build arg)
+# Use relative path /api so it works with nginx reverse proxy
+ARG VITE_API_URL=/api
+ENV VITE_API_URL=${VITE_API_URL}
 
 COPY --from=deps /app/refine/node_modules ./node_modules
 

@@ -10,8 +10,8 @@ services:
     volumes:
       - ./uploads:/app/uploads
     ports:
-      # Exposed for debugging; the UI talks to the agent which reverse-proxies to this service.
-      - "8000:8000"
+      # Only bind to localhost, access via nginx reverse proxy
+      - "127.0.0.1:8000:8000"
     restart: unless-stopped
 
   agent:
@@ -27,7 +27,8 @@ services:
     depends_on:
       - prediction_app
     ports:
-      - "6203:6203"
+      # Only bind to localhost, access via nginx reverse proxy
+      - "127.0.0.1:6203:6203"
     restart: unless-stopped
 
   ai_web:
@@ -35,5 +36,6 @@ services:
     depends_on:
       - agent
     ports:
-      - "3201:3201"
+      # Only bind to localhost, access via nginx reverse proxy
+      - "127.0.0.1:3201:3201"
     restart: unless-stopped

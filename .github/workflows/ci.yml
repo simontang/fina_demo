@@ -113,5 +113,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ai_web
+          build-args: |
+            VITE_API_URL=/api
           push: true
           tags: ghcr.io/409zhangshu/fina-demo-ai-web:latest

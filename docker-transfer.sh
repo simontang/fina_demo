@@ -22,7 +22,7 @@ VOLCANO_PASSWORD="${VOLCANO_PASSWORD:-}"
 
 # 服务器部署配置
 DEPLOY_USER="deploy"
-DEPLOY_HOST="14.103.161.174"
+DEPLOY_HOST="14.103.152.204"
 DEPLOY_PATH="/app/fina_demo"
 
 # 环境变量文件配置
