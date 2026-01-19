@@ -19,6 +19,9 @@ export const registerRoutes = (app: FastifyInstance): void => {
   // Python prediction service reverse-proxy (frontend calls /api/v1/* via this agent).
   registerPythonProxyRoutes(app);
 
+  // Register LatticeGateway routes at root path (required for sub-agent calls to /api/runs)
+  LatticeGateway.registerLatticeRoutes(app);
+
   // 注册所有路由到 bff 前缀下
   app.register(async (agentApp) => {
     agentApp.get("/", async (request, reply) => {
@@ -38,7 +41,6 @@ export const registerRoutes = (app: FastifyInstance): void => {
     });
 
     // Agent management endpoints
-    LatticeGateway.registerLatticeRoutes(agentApp);
     agentApp.get("/agents", getAgentList);
     agentApp.get("/agents/:id", getAgent);
 
