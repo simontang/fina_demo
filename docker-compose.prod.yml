@@ -13,6 +13,10 @@ services:
       VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2:-a0533576-d6ed-4ca4-a308-473cbf7ebd10}
       VOLCENGINE_API_URL: ${VOLCENGINE_API_URL:-https://ark.cn-beijing.volces.com/api/v3}
       VOLCENGINE_MODEL: ${VOLCENGINE_MODEL:-kimi-k2-250905}
+      # AI API timeout configuration (in seconds)
+      RFM_AI_TIMEOUT_SECONDS: ${RFM_AI_TIMEOUT_SECONDS:-300}
+      SEGMENTATION_AI_TIMEOUT_SECONDS: ${SEGMENTATION_AI_TIMEOUT_SECONDS:-300}
+      STOCK_ALLOC_AI_TIMEOUT_SECONDS: ${STOCK_ALLOC_AI_TIMEOUT_SECONDS:-300}
     volumes:
       - ./uploads:/app/uploads
     ports:
