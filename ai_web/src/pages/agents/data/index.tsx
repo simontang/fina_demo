@@ -5,7 +5,7 @@ export const DataAgentList = () => {
     <div style={{ height: "calc(-112px + 100vh)", width: "100%" }}>
       <ChatBotCompnent
         id="data_agent"
-        threadId="1"
+        threadId="data_agent_thread_1"
         name="Data Agent"
       />
     </div>

@@ -27,6 +27,8 @@ services:
   agent:
     image: finai-cn-shanghai.cr.volces.com/default/fina-demo-agent:latest
     environment:
+      TZ: Asia/Shanghai
+      NODE_ENV: production
       PORT: "6203"
       PYTHON_API_URL: http://prediction_app:8000
       UPLOAD_DIR: /app/uploads
@@ -58,6 +60,8 @@ services:
       COZEBOT_APIKEY: ${COZEBOT_APIKEY}
     volumes:
       - ./uploads:/app/uploads
+      - ./lattice_store:/app/lattice_store
+
       # Mount datasets config so agent can access it
       - ./prediction_app/config:/app/prediction_app/config:ro
     depends_on:

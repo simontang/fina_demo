@@ -6,7 +6,7 @@
   "dependencies": {
     "@ant-design/icons": "^5.5.1",
     "@ant-design/x": "^1.6.1",
-    "@axiom-lattice/react-sdk": "^2.1.23",
+    "@axiom-lattice/react-sdk": "^2.1.25",
     "@refinedev/antd": "^6.0.1",
     "@refinedev/cli": "^2.16.48",
     "@refinedev/core": "^5.0.0",
@@ -16,8 +16,8 @@
     "@refinedev/simple-rest": "^6.0.0",
     "@types/clientjs": "^0.2.2",
     "@uiw/react-md-editor": "^4.0.8",
-    "@xyflow/react": "^12.10.0",
     "@volcengine/rtc": "^4.67.10",
+    "@xyflow/react": "^12.10.0",
     "antd": "^5.23.0",
     "antd-style": "^3.7.1",
     "react": "^19.1.0",

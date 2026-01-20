@@ -29,6 +29,7 @@ COPY package.json ./
 
 # Default upload location used by the agent is repo-root `uploads/` (resolved from dist).
 RUN mkdir -p /app/uploads
+RUN mkdir -p /app/lattice_store
 
 EXPOSE 6203
 

@@ -32,7 +32,8 @@ import { DeepResearchResearch } from "./pages/agents/deep-research/research";
 import { DataAgentList } from "./pages/agents/data";
 import { VoiceAgentList } from "./pages/agents/voice";
 import { VoiceAgentRtc } from "./pages/agents/voice/rtc";
-import { ExceptionHandlerAgentList } from "./pages/agents/exception-handler";
+import { InventoryDoctorAgentList } from "./pages/agents/inventory_doctor_agent";
+import { AgentOverview } from "./pages/agents/overview";
 // Prediction Center pages
 import { Segmentation } from "./pages/prediction/segmentation";
 import { SalesForecast } from "./pages/prediction/sales-forecast";
@@ -67,6 +68,14 @@ function App() {
                 },
               },
               {
+                name: "agent-overview",
+                list: "/agents/overview",
+                meta: {
+                  label: "Overview",
+                  parent: "agent-center",
+                },
+              },
+              {
                 name: "deep-research-agent",
                 list: "/agents/deep-research",
                 meta: {
@@ -91,10 +100,10 @@ function App() {
                 },
               },
               {
-                name: "exception-handler-agent",
-                list: "/agents/exception-handler",
+                name: "inventory-doctor-agent",
+                list: "/agents/inventory_doctor_agent",
                 meta: {
-                  label: "Exception Handler Agent",
+                  label: "Inventory Doctor Agent",
                   parent: "agent-center",
                 },
               },
@@ -206,6 +215,7 @@ function App() {
                 {/* Agent Center Routes */}
                 <Route path="/agents">
                   <Route index element={<AgentList />} />
+                  <Route path="overview" element={<AgentOverview />} />
                   <Route path="deep-research">
                     <Route index element={<DeepResearchAgentList />} />
                     <Route path="new" element={<DeepResearchNewChat />} />
@@ -217,7 +227,7 @@ function App() {
                     <Route index element={<VoiceAgentList />} />
                     <Route path="rtc" element={<VoiceAgentRtc />} />
                   </Route>
-                  <Route path="exception-handler" element={<ExceptionHandlerAgentList />} />
+                  <Route path="inventory_doctor_agent" element={<InventoryDoctorAgentList />} />
                 </Route>
                 {/* Prediction Center Routes */}
                 <Route path="/prediction">

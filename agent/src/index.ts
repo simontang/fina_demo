@@ -8,7 +8,12 @@ import {
   registerCheckpointSaver,
   registerModelLattice,
   MemoryLatticeManager,
+  skillLatticeManager,
+  registerStoreLattice,
+  storeLatticeManager,
+  FileSystemSkillStore,
 } from "@axiom-lattice/core";
+const fs = require("fs");
 
 import "./agents";
 
@@ -37,6 +42,50 @@ registerModelLattice("default", {
   maxTokens: 32768,
 });
 
+
+
+
+
+// Check which path exists, default to first path
+let skillsRootDir: string = process.env.NODE_ENV === "production" ? "/app/lattice_store/skills" : path.resolve(__dirname, "../skills")
+
+
+
+
+const skillStore = new FileSystemSkillStore({
+  rootDir: skillsRootDir,
+});
+
+// Remove the default skill store and register our custom one
+// This ensures tools like load_skills and load_skill_content can access our skills
+storeLatticeManager.removeLattice("default", "skill");
+registerStoreLattice("default", "skill", skillStore);
+
+// Configure SkillLatticeManager to use the store
+skillLatticeManager.configureStore("default");
+
+// Test loading skills on startup to verify configuration
+(async () => {
+  try {
+    const skills = await skillStore.getAllSkills();
+    console.log(`Loaded ${skills.length} skills from file system:`);
+    if (skills.length === 0) {
+      console.warn(
+        `Warning: No skills found. Please check if the directory exists: ${skillsRootDir}`
+      );
+    } else {
+      skills.forEach((skill) => {
+        console.log(`  - ${skill.name}: ${skill.description.substring(0, 50)}...`);
+      });
+    }
+  } catch (error) {
+    console.error("Failed to load skills on startup:", error);
+    if (error instanceof Error) {
+      console.error("Error details:", error.message);
+      console.error("Stack:", error.stack);
+    }
+  }
+})();
 // registerModelLattice("default", {
 //   model: "qwen-plus",
 //   provider: "openai",

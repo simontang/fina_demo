@@ -28,6 +28,7 @@ services:
       VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2:-}
     volumes:
       - ./uploads:/app/uploads
+      - ./lattice_store:/app/lattice_store
     depends_on:
       - prediction_app
     ports:

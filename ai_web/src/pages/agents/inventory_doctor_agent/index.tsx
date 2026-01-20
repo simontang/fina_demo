@@ -1,12 +1,12 @@
 import { ChatBotCompnent } from "../../../components/chating";
 
-export const ExceptionHandlerAgentList = () => {
+export const InventoryDoctorAgentList = () => {
   return (
     <div style={{ height: "calc(-112px + 100vh)", width: "100%" }}>
       <ChatBotCompnent
-        id="exception_handler_agent"
-        threadId="1"
-        name="异常 Handler Agent"
+        id="inventory_doctor_agent"
+        threadId="inventory_doctor_agent_thread_1"
+        name="Inventory Doctor Agent"
       />
     </div>
   );
