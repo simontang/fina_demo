@@ -11,6 +11,8 @@ import {
   DatabaseOutlined,
   SoundOutlined,
   WarningOutlined,
+  MessageOutlined,
+  PhoneOutlined,
   UserOutlined,
   ShoppingOutlined,
   InboxOutlined,
@@ -50,7 +52,10 @@ export const CustomSiderWrapper: React.FC<RefineThemedLayoutSiderProps> = (
     getItem("Agent Center", "agent-center", <RobotOutlined />, [
       getItem("Deep Research Agent", "deep-research-agent", <SearchOutlined />),
       getItem("Data Agent", "data-agent", <DatabaseOutlined />),
-      getItem("Voice Agent", "voice-agent", <SoundOutlined />),
+      getItem("Voice Agent", "voice-agent", <SoundOutlined />, [
+        getItem("Chat", "voice-agent-chat", <MessageOutlined />),
+        getItem("RTC Voice Chat", "voice-agent-rtc", <PhoneOutlined />),
+      ]),
       getItem("Exception Handler Agent", "exception-handler-agent", <WarningOutlined />),
     ]),
     getItem("Prediction Center", "prediction-center", <BarChartOutlined />, [
@@ -70,6 +75,8 @@ export const CustomSiderWrapper: React.FC<RefineThemedLayoutSiderProps> = (
     "deep-research-agent": "/agents/deep-research",
     "data-agent": "/agents/data",
     "voice-agent": "/agents/voice",
+    "voice-agent-chat": "/agents/voice",
+    "voice-agent-rtc": "/agents/voice/rtc",
     "exception-handler-agent": "/agents/exception-handler",
     segmentation: "/prediction/segmentation",
     "sales-forecast": "/prediction/sales-forecast",
@@ -85,7 +92,8 @@ export const CustomSiderWrapper: React.FC<RefineThemedLayoutSiderProps> = (
     const pathToKey: Record<string, string> = {
       "/admin/agents/deep-research": "deep-research-agent",
       "/admin/agents/data": "data-agent",
-      "/admin/agents/voice": "voice-agent",
+      "/admin/agents/voice/rtc": "voice-agent-rtc",
+      "/admin/agents/voice": "voice-agent-chat",
       "/admin/agents/exception-handler": "exception-handler-agent",
       "/admin/prediction/segmentation": "segmentation",
       "/admin/prediction/sales-forecast": "sales-forecast",

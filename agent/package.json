@@ -33,6 +33,7 @@
     "@langchain/langgraph-checkpoint-postgres": "^0.1.2",
     "@types/bcrypt": "^6.0.0",
     "@types/pg": "^8.16.0",
+    "@volcengine/openapi": "^1.33.0",
     "axios": "^1.7.0",
     "bcrypt": "^6.0.0",
     "crypto": "^1.0.1",

@@ -31,6 +31,7 @@ import { DeepResearchCritique } from "./pages/agents/deep-research/critique";
 import { DeepResearchResearch } from "./pages/agents/deep-research/research";
 import { DataAgentList } from "./pages/agents/data";
 import { VoiceAgentList } from "./pages/agents/voice";
+import { VoiceAgentRtc } from "./pages/agents/voice/rtc";
 import { ExceptionHandlerAgentList } from "./pages/agents/exception-handler";
 // Prediction Center pages
 import { Segmentation } from "./pages/prediction/segmentation";
@@ -212,7 +213,10 @@ function App() {
                     <Route path="research" element={<DeepResearchResearch />} />
                   </Route>
                   <Route path="data" element={<DataAgentList />} />
-                  <Route path="voice" element={<VoiceAgentList />} />
+                  <Route path="voice">
+                    <Route index element={<VoiceAgentList />} />
+                    <Route path="rtc" element={<VoiceAgentRtc />} />
+                  </Route>
                   <Route path="exception-handler" element={<ExceptionHandlerAgentList />} />
                 </Route>
                 {/* Prediction Center Routes */}

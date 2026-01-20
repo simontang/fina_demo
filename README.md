@@ -5,6 +5,9 @@ Demo repository that combines:
 - `prediction_app/`: Python (FastAPI) dataset + prediction APIs (including sales forecasting)
 - `ai_web/`: React (Refine) admin UI
 
+Extras:
+- Voice Agent supports Volcengine RTC VoiceChat via `agent` (`/api/rtc/*`) and UI at `/admin/agents/voice/rtc`
+
 ## Quickstart (Dev)
 
 ### 1) Start the Python API (`prediction_app/`, port 8000)
@@ -27,6 +30,10 @@ Environment (`agent/.env`):
 PORT=6203
 VOLCENGINE_API_KEY2=...
 UPLOAD_DIR=./uploads
+VOLCENGINE_APP_ID=...
+VOLCENGINE_APP_KEY=...
+VOLC_ACCESSKEY=...
+VOLC_SECRETKEY=...
 ```
 
 ### 3) Start the admin UI (`ai_web/`, port 5173)

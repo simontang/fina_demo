@@ -11,6 +11,7 @@ import {
 } from "./controllers/fileController";
 import { registerDatasetRoutes } from "./routes/datasets";
 import { registerPythonProxyRoutes } from "./routes/pythonProxy";
+import { registerRtcRoutes } from "./routes/rtc";
 
 const { app, startAsHttpEndpoint, configureSwagger } = LatticeGateway;
 
@@ -18,6 +19,9 @@ const { app, startAsHttpEndpoint, configureSwagger } = LatticeGateway;
 export const registerRoutes = (app: FastifyInstance): void => {
   // Python prediction service reverse-proxy (frontend calls /api/v1/* via this agent).
   registerPythonProxyRoutes(app);
+
+  // RTC / Voice Chat APIs (frontend calls /api/rtc/* via this agent).
+  registerRtcRoutes(app);
 
   // Register LatticeGateway routes at root path (required for sub-agent calls to /api/runs)
   LatticeGateway.registerLatticeRoutes(app);
