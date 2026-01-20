@@ -15,22 +15,21 @@ export const RTC_PRIVILEGES = {
 } as const;
 
 export const VOICE_CHAT_DEFAULT_WELCOME_MESSAGE =
-  "Hello! I'm your voice assistant. How can I help you today?";
+  "您好，我是太保的服务商—抚理健康。负责本次出院用车服务的。您现在方便接电话吗？";
 
 // RunStage label mapping (for logging only)
 export const RUN_STAGE_LABELS: Record<string, string> = {
-  taskStart: "Task started",
-  taskStop: "Task stopped",
-  beginAsking: "User started speaking",
-  asrFinish: "User stopped speaking",
-  llmOutput: "LLM produced first token",
-  answerStart: "Agent started speaking",
-  answerFinish: "Agent finished speaking",
-  interrupted: "Agent speech interrupted",
-  reasoningStart: "LLM reasoning started",
-  asr: "ASR stage",
-  llm: "LLM stage",
-  tts: "TTS stage",
-  preParamCheck: "Parameter validation error",
+  taskStart: "任务开始",
+  taskStop: "任务结束",
+  beginAsking: "用户开始说话",
+  asrFinish: "用户结束说话",
+  llmOutput: "大模型输出首个token",
+  answerStart: "智能体开始说话",
+  answerFinish: "智能体说话完成",
+  interrupted: "智能体说话被打断",
+  reasoningStart: "大模型开始深度思考",
+  asr: "ASR处理阶段",
+  llm: "LLM处理阶段",
+  tts: "TTS处理阶段",
+  preParamCheck: "参数校验错误",
 };
-

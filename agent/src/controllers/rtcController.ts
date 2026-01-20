@@ -51,13 +51,50 @@ export async function rtcProxyFetch(request: RtcProxyRequest, reply: FastifyRepl
 }
 
 async function handleStartVoiceChat(params: any, reply: FastifyReply) {
-  const { roomId, userId, taskId, welcomeSpeech, customVariables, botId } = params || {};
+  const {
+    roomId,
+    userId,
+    taskId,
+    welcomeSpeech,
+    customVariables,
+    botId,
+    config: configOverride,
+    agentConfig: agentConfigOverride,
+  } = params || {};
   if (!roomId || !userId || !taskId) {
     return reply.status(400).send({ success: false, message: "roomId, userId, taskId are required" });
   }
 
-  const config = getVoiceChatConfig(String(userId), welcomeSpeech, customVariables, botId);
-  const agentConfig = getAgentConfig(String(userId));
+  if (!process.env.VOLCENGINE_APP_ID) {
+    return reply.status(400).send({ success: false, message: "Missing env: VOLCENGINE_APP_ID" });
+  }
+  if (!process.env.VOLC_ACCESSKEY || !process.env.VOLC_SECRETKEY) {
+    return reply.status(400).send({ success: false, message: "Missing env: VOLC_ACCESSKEY / VOLC_SECRETKEY" });
+  }
+
+  const config = configOverride || getVoiceChatConfig(String(userId), welcomeSpeech, customVariables, botId);
+  const agentConfig = agentConfigOverride || getAgentConfig(String(userId));
+
+  // Fail fast with clear messages when required env/config is missing.
+  const asrAppId = config?.ASRConfig?.ProviderParams?.AppId;
+  const ttsAppId = config?.TTSConfig?.ProviderParams?.app?.appid;
+  const llmMode = config?.LLMConfig?.Mode;
+  const cozeBotId = config?.LLMConfig?.CozeBotConfig?.BotId;
+  const cozeApiKey = config?.LLMConfig?.CozeBotConfig?.APIKey;
+  if (!asrAppId) {
+    return reply.status(400).send({ success: false, message: "Missing speech app id (set VOLC_SPEECH_APP_ID)" });
+  }
+  if (!ttsAppId) {
+    return reply.status(400).send({ success: false, message: "Missing TTS app id (set VOLC_SPEECH_APP_ID)" });
+  }
+  if (llmMode === "CozeBot") {
+    if (!cozeBotId) {
+      return reply.status(400).send({ success: false, message: "Missing Coze BotId (set COZEBOT_BOT_ID or pass botId)" });
+    }
+    if (!cozeApiKey) {
+      return reply.status(400).send({ success: false, message: "Missing Coze API key (set COZEBOT_APIKEY)" });
+    }
+  }
 
   const res = await startVoiceChat({
     taskId: String(taskId),
@@ -116,11 +153,15 @@ async function handleGenerateRtcToken(params: any, reply: FastifyReply) {
 export async function updateTrigger(request: UpdateTriggerRequest, reply: FastifyReply) {
   try {
     const { roomId, userId, message } = request.body || ({} as any);
-    if (!roomId || !userId || !message) {
-      return reply.status(400).send({ success: false, message: "roomId, userId, message are required" });
+    if (!roomId || !userId) {
+      return reply.status(400).send({ success: false, message: "roomId and userId are required" });
     }
 
-    const res = await sendRoomUnicast({ roomId: String(roomId), userId: String(userId), message: String(message) });
+    const res = await sendRoomUnicast({
+      roomId: String(roomId),
+      userId: String(userId),
+      message: String(message || "update"),
+    });
     if (!res.success) return reply.status(500).send({ success: false, message: res.message || "SendRoomUnicast failed" });
     return reply.send({ success: true, message: "Message sent", data: res.data });
   } catch (e: any) {
@@ -128,4 +169,3 @@ export async function updateTrigger(request: UpdateTriggerRequest, reply: Fastif
     return reply.status(500).send({ success: false, message: e?.message || "Internal server error" });
   }
 }
-

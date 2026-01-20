@@ -25,11 +25,17 @@ export interface LocalTokenParams {
 export interface RtcProxyBody {
   action: "StartVoiceChat" | "StopVoiceChat" | "GenerateRtcToken" | "UpdateVoiceChat";
   params: {
+    // Kept for compatibility with the `fuli_survey` proxy schema.
+    appId?: string;
     roomId?: string;
     userId?: string;
     taskId?: string;
+    // Optional overrides: if not provided, the server will build defaults from env.
+    config?: VoiceChatConfig;
+    agentConfig?: AgentConfig;
     expireTime?: number;
     welcomeSpeech?: string;
+    userName?: string;
     customVariables?: any;
     botId?: string;
     updateFields?: any;
@@ -89,7 +95,6 @@ export type UpdateTriggerRequest = FastifyRequest<{
   Body: {
     roomId: string;
     userId: string;
-    message: string;
+    message?: string;
   };
 }>;
-

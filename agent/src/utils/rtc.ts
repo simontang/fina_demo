@@ -197,37 +197,66 @@ export function getVoiceChatConfig(
 ): VoiceChatConfig {
   const defaultWelcomeSpeech = welcomeSpeech || VOICE_CHAT_DEFAULT_WELCOME_MESSAGE;
 
-  const cozeApiKey = process.env.COZEBOT_APIKEY || process.env.COZE_API_KEY || "";
-  const cozeBotId = botId || process.env.COZEBOT_BOT_ID || "";
-  const cozeUrl = process.env.COZEBOT_URL || "https://api.coze.cn";
+  const envFirst = (...names: string[]): string => {
+    for (const n of names) {
+      const v = (process.env[n] || "").trim();
+      if (v) return v;
+    }
+    return "";
+  };
+  const envNumber = (name: string, fallback: number): number => {
+    const raw = (process.env[name] || "").trim();
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : fallback;
+  };
 
-  // NOTE: These defaults mirror Volcengine examples; override via env or UpdateVoiceChat.
-  const asrAppId = process.env.VOLC_ASR_APP_ID || "";
-  const asrCluster = process.env.VOLC_ASR_CLUSTER || "volcengine_streaming_common";
+  // Coze (Bot) config (APIKey is secret -> env).
+  const cozeApiKey = envFirst("COZEBOT_APIKEY", "COZE_API_KEY");
+  const cozeBotId = (botId || "").trim() || envFirst("COZEBOT_BOT_ID");
+  const cozeUrl = envFirst("COZEBOT_URL") || "https://api.coze.cn";
 
-  const ttsAppId = process.env.VOLC_TTS_APP_ID || "";
-  const ttsCluster = process.env.VOLC_TTS_CLUSTER || "volcano_icl";
-  const ttsVoiceType = process.env.VOLC_TTS_VOICE_TYPE || "S_ZHNIkyHJ1";
+  // Speech (ASR/TTS) app id (not secret, but project-specific -> env).
+  // For compatibility with fuli_survey naming, prefer VOLC_SPEECH_APP_ID.
+  const speechAppId = envFirst("VOLC_SPEECH_APP_ID", "VOLC_ASR_APP_ID", "VOLC_TTS_APP_ID");
+
+  // ASR config (smallmodel by default, matches fuli_survey).
+  const asrMode = envFirst("VOLC_ASR_MODE") || "smallmodel";
+  const asrCluster = envFirst("VOLC_ASR_CLUSTER") || "volcengine_streaming_common";
+
+  // Optional bigmodel params (set via env).
+  const asrAccessToken = envFirst("VOLC_SPEECH_ACCESS_TOKEN", "VOLC_ASR_ACCESS_TOKEN");
+  const asrApiResourceId = envFirst("VOLC_ASR_API_RESOURCE_ID");
+
+  // TTS config (matches fuli_survey default structure).
+  const ttsCluster = envFirst("VOLC_TTS_CLUSTER") || "volcano_icl";
+  const ttsVoiceType = envFirst("VOLC_TTS_VOICE_TYPE") || "S_ZHNIkyHJ1";
+  const ttsSpeedRatio = envNumber("VOLC_TTS_SPEED_RATIO", 1.0);
 
   return {
     ASRConfig: {
       Provider: "volcano",
       ProviderParams: {
-        Mode: process.env.VOLC_ASR_MODE || "smallmodel",
+        Mode: asrMode,
         Cluster: asrCluster,
-        AppId: asrAppId,
+        AppId: speechAppId,
+        ...(asrMode === "bigmodel" && asrAccessToken
+          ? {
+              AccessToken: asrAccessToken,
+              ...(asrApiResourceId ? { ApiResourceId: asrApiResourceId } : {}),
+            }
+          : {}),
       },
     },
     TTSConfig: {
       Provider: "volcano",
       ProviderParams: {
         app: {
-          appid: ttsAppId,
+          appid: speechAppId,
           cluster: ttsCluster,
         },
         audio: {
           voice_type: ttsVoiceType,
-          speed_ratio: Number(process.env.VOLC_TTS_SPEED_RATIO || "1.0"),
+          speed_ratio: ttsSpeedRatio,
         },
       },
     },
@@ -385,4 +414,3 @@ export async function sendRoomUnicast(params: {
     return { success: false, message: errMsg };
   }
 }
-

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Button, Card, Col, Form, Input, Row, Space, Tag, Typography, message } from "antd";
+import { Alert, Button, Card, Col, Form, Input, InputNumber, Row, Space, Tag, Typography, message } from "antd";
 import VERTC_SDK from "@volcengine/rtc";
 
 import { TOKEN_KEY } from "../../../authProvider";
@@ -27,6 +27,13 @@ type SubtitleMessage = {
   userId: string;
   text: string;
   raw?: any;
+};
+
+type SessionInfo = {
+  roomId: string;
+  userId: string;
+  taskId: string;
+  voiceChatStarted: boolean;
 };
 
 function getAuthHeaders(): HeadersInit {
@@ -77,12 +84,20 @@ function getOrCreateStableId(key: string): string {
   return v;
 }
 
+function newId(): string {
+  const c = globalThis.crypto as any;
+  if (c?.randomUUID) return c.randomUUID();
+  return `${Date.now()}_${Math.random()}`;
+}
+
 export const VoiceAgentRtc = () => {
   const [form] = Form.useForm();
 
   const engineRef = useRef<any>(null);
+  const sessionRef = useRef<SessionInfo>({ roomId: "", userId: "", taskId: "", voiceChatStarted: false });
   const [status, setStatus] = useState<"idle" | "connecting" | "connected">("idle");
   const [audioEnabled, setAudioEnabled] = useState(false);
+  const [autoplayBlockedUserId, setAutoplayBlockedUserId] = useState<string>("");
   const [logs, setLogs] = useState<SubtitleMessage[]>([]);
   const logsRef = useRef<SubtitleMessage[]>([]);
 
@@ -105,8 +120,37 @@ export const VoiceAgentRtc = () => {
     return engineRef.current;
   };
 
-  const cleanupLocal = async () => {
+  const resumePlay = (uid?: string) => {
+    const engine = engineRef.current;
+    if (!engine) return;
     try {
+      if (uid) engine.play(uid);
+      else engine.play();
+      setAutoplayBlockedUserId("");
+      appendLog({ ts: Date.now(), userId: "system", text: `Playback resumed${uid ? ` for ${uid}` : ""}` });
+    } catch (e: any) {
+      appendLog({ ts: Date.now(), userId: "system", text: `Resume playback failed: ${e?.message || String(e)}` });
+    }
+  };
+
+  const stopRemoteVoiceChatBestEffort = async () => {
+    const s = sessionRef.current;
+    if (!s.voiceChatStarted) return;
+    if (!s.roomId || !s.taskId) return;
+    try {
+      await proxyFetch("StopVoiceChat", { roomId: s.roomId, taskId: s.taskId });
+    } catch (e: any) {
+      appendLog({ ts: Date.now(), userId: "system", text: `StopVoiceChat failed: ${e?.message || String(e)}` });
+    } finally {
+      sessionRef.current = { ...s, voiceChatStarted: false };
+    }
+  };
+
+  const cleanupLocal = async (opts?: { stopRemote?: boolean }) => {
+    try {
+      if (opts?.stopRemote) {
+        await stopRemoteVoiceChatBestEffort();
+      }
       if (engineRef.current) {
         try {
           await engineRef.current.stopAudioCapture();
@@ -118,9 +162,18 @@ export const VoiceAgentRtc = () => {
         } catch {
           // ignore
         }
+        try {
+          const VERTC: any = VERTC_SDK as any;
+          VERTC.destroyEngine?.(engineRef.current);
+        } catch {
+          // ignore
+        } finally {
+          engineRef.current = null;
+        }
       }
     } finally {
       setAudioEnabled(false);
+      setAutoplayBlockedUserId("");
       setStatus("idle");
     }
   };
@@ -135,11 +188,31 @@ export const VoiceAgentRtc = () => {
     const taskId = String(vals.taskId || "").trim();
     const botId = String(vals.botId || "").trim();
     const welcomeSpeech = String(vals.welcomeSpeech || "").trim();
+    const expireTime = Number(vals.expireTime || 0);
+    const customVariablesRaw = String(vals.customVariables || "").trim();
 
     try {
       if (!roomId || !userId || !taskId) throw new Error("roomId, userId, taskId are required");
+      const idRegex = /^[0-9a-zA-Z_\-@.]{1,128}$/;
+      if (!idRegex.test(roomId)) throw new Error("roomId must match /^[0-9a-zA-Z_\\-@.]{1,128}$/");
+      if (!idRegex.test(userId)) throw new Error("userId must match /^[0-9a-zA-Z_\\-@.]{1,128}$/");
 
-      const tokenRes = await proxyFetch<GenerateRtcTokenData>("GenerateRtcToken", { roomId, userId });
+      let customVariables: any = undefined;
+      if (customVariablesRaw) {
+        try {
+          customVariables = JSON.parse(customVariablesRaw);
+        } catch {
+          throw new Error("customVariables must be valid JSON");
+        }
+      }
+
+      sessionRef.current = { roomId, userId, taskId, voiceChatStarted: false };
+
+      const tokenRes = await proxyFetch<GenerateRtcTokenData>("GenerateRtcToken", {
+        roomId,
+        userId,
+        ...(Number.isFinite(expireTime) && expireTime > 0 ? { expireTime } : {}),
+      });
       if (!tokenRes.success || !tokenRes.data?.token) throw new Error(tokenRes.message || "GenerateRtcToken failed");
 
       const { token, appId } = tokenRes.data;
@@ -158,11 +231,28 @@ export const VoiceAgentRtc = () => {
       };
 
       add(events.onError, (e: any) => appendLog({ ts: Date.now(), userId: "system", text: `onError: ${JSON.stringify(e)}` }));
-      add(events.onAutoplayFailed, (e: any) =>
-        appendLog({ ts: Date.now(), userId: "system", text: `Autoplay blocked. Click in the page and try again. ${JSON.stringify(e)}` })
-      );
+      add(events.onAutoplayFailed, (e: any) => {
+        const uid = String(e?.userId || "");
+        setAutoplayBlockedUserId(uid);
+        appendLog({
+          ts: Date.now(),
+          userId: "system",
+          text: `Autoplay blocked by browser. Click "Resume Playback" to continue. ${JSON.stringify(e)}`,
+        });
+      });
       add(events.onUserJoined, (e: any) => appendLog({ ts: Date.now(), userId: "system", text: `User joined: ${JSON.stringify(e)}` }));
       add(events.onUserLeave, (e: any) => appendLog({ ts: Date.now(), userId: "system", text: `User left: ${JSON.stringify(e)}` }));
+      add(events.onUserPublishStream, (e: any) => {
+        const uid = String(e?.userId || "");
+        appendLog({ ts: Date.now(), userId: "system", text: `User published: ${JSON.stringify(e)}` });
+        if (!uid) return;
+        try {
+          // Best-effort: ensure the bot welcome audio can be heard even if autoplay is flaky.
+          engine.play(uid);
+        } catch {
+          setAutoplayBlockedUserId(uid);
+        }
+      });
       add(events.onRoomBinaryMessageReceived, (event: any) => {
         try {
           const buf: ArrayBuffer = event?.message || event?.data;
@@ -209,32 +299,21 @@ export const VoiceAgentRtc = () => {
         taskId,
         botId: botId || undefined,
         welcomeSpeech: welcomeSpeech || undefined,
+        customVariables,
       });
       if (!startRes.success) throw new Error(startRes.message || "StartVoiceChat failed");
+      sessionRef.current = { roomId, userId, taskId, voiceChatStarted: true };
 
       setStatus("connected");
       message.success("Voice chat connected");
     } catch (e: any) {
       message.error(e?.message || "Connect failed");
-      await cleanupLocal();
+      await cleanupLocal({ stopRemote: true });
     }
   };
 
   const onDisconnect = async () => {
-    const vals = form.getFieldsValue();
-    const roomId = String(vals.roomId || "").trim();
-    const taskId = String(vals.taskId || "").trim();
-
-    try {
-      if (roomId && taskId) {
-        // Best-effort stop on the server.
-        await proxyFetch("StopVoiceChat", { roomId, taskId });
-      }
-    } catch (e: any) {
-      appendLog({ ts: Date.now(), userId: "system", text: `StopVoiceChat failed: ${e?.message || String(e)}` });
-    } finally {
-      await cleanupLocal();
-    }
+    await cleanupLocal({ stopRemote: true });
   };
 
   const onToggleMic = async () => {
@@ -260,17 +339,19 @@ export const VoiceAgentRtc = () => {
   useEffect(() => {
     // defaults
     const stableUserId = getOrCreateStableId("fina_demo_voice_user_id");
-    const stableRoomId = localStorage.getItem("fina_demo_voice_room_id") || "fina_demo_voice_room";
+    const stableRoomId = localStorage.getItem("fina_demo_voice_room_id") || newId();
     form.setFieldsValue({
       roomId: stableRoomId,
       userId: stableUserId,
       taskId: "voice_agent",
       botId: "",
       welcomeSpeech: "",
+      expireTime: 0,
+      customVariables: "",
     });
 
     return () => {
-      void cleanupLocal();
+      void cleanupLocal({ stopRemote: true });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -300,6 +381,20 @@ export const VoiceAgentRtc = () => {
           }
         />
 
+        {autoplayBlockedUserId !== "" && (
+          <Alert
+            type="warning"
+            showIcon
+            message="Audio playback blocked"
+            description={
+              <Space direction="vertical">
+                <div>Your browser blocked audio autoplay. Click the button to resume playback.</div>
+                <Button onClick={() => resumePlay(autoplayBlockedUserId || undefined)}>Resume Playback</Button>
+              </Space>
+            }
+          />
+        )}
+
         <Row gutter={[16, 16]}>
           <Col xs={24} md={10}>
             <Card
@@ -324,25 +419,59 @@ export const VoiceAgentRtc = () => {
               }
             >
               <Form form={form} layout="vertical">
-                <Form.Item label="Room ID" name="roomId" rules={[{ required: true }]}>
+                <Form.Item
+                  label="Room ID"
+                  name="roomId"
+                  rules={[
+                    { required: true },
+                    { pattern: /^[0-9a-zA-Z_\-@.]{1,128}$/, message: "Use 1-128 chars: 0-9 a-z A-Z _ - @ ." },
+                  ]}
+                >
                   <Input
                     placeholder="room id"
                     onChange={(e) => localStorage.setItem("fina_demo_voice_room_id", e.target.value)}
                     disabled={status !== "idle"}
                   />
                 </Form.Item>
-                <Form.Item label="User ID" name="userId" rules={[{ required: true }]}>
+                <Form.Item
+                  label="User ID"
+                  name="userId"
+                  rules={[
+                    { required: true },
+                    { pattern: /^[0-9a-zA-Z_\-@.]{1,128}$/, message: "Use 1-128 chars: 0-9 a-z A-Z _ - @ ." },
+                  ]}
+                >
                   <Input placeholder="user id" disabled={status !== "idle"} />
                 </Form.Item>
                 <Form.Item label="Task ID" name="taskId" rules={[{ required: true }]}>
                   <Input placeholder="task id (used by StartVoiceChat)" disabled={status !== "idle"} />
                 </Form.Item>
                 <Form.Item label="Bot ID (optional)" name="botId">
-                  <Input placeholder="Coze BotId (optional)" disabled={status !== "idle"} />
+                  <Input placeholder="Coze BotId / agent id (optional)" disabled={status !== "idle"} />
                 </Form.Item>
                 <Form.Item label="Welcome speech (optional)" name="welcomeSpeech">
                   <Input.TextArea rows={3} placeholder="Override default welcome speech" disabled={status !== "idle"} />
                 </Form.Item>
+                <Form.Item label="Token expire seconds (optional)" name="expireTime">
+                  <InputNumber style={{ width: "100%" }} min={0} placeholder="0 = default" disabled={status !== "idle"} />
+                </Form.Item>
+                <Form.Item label="Custom variables (optional, JSON)" name="customVariables">
+                  <Input.TextArea
+                    rows={5}
+                    placeholder='{"example":"value"}'
+                    disabled={status !== "idle"}
+                  />
+                </Form.Item>
+                <Button
+                  onClick={() => {
+                    const rid = newId();
+                    form.setFieldValue("roomId", rid);
+                    localStorage.setItem("fina_demo_voice_room_id", rid);
+                  }}
+                  disabled={status !== "idle"}
+                >
+                  Generate New Room ID
+                </Button>
               </Form>
             </Card>
           </Col>
@@ -368,4 +497,3 @@ export const VoiceAgentRtc = () => {
     </div>
   );
 };
-

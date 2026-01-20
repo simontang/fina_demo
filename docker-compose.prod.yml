@@ -41,6 +41,21 @@ services:
       VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2:-a0533576-d6ed-4ca4-a308-473cbf7ebd10}
       VOLCENGINE_API_URL: ${VOLCENGINE_API_URL:-https://ark.cn-beijing.volces.com/api/v3}
       VOLCENGINE_MODEL: ${VOLCENGINE_MODEL:-kimi-k2-250905}
+      # RTC / Voice Chat configuration (Volcengine RTC)
+      # These should be set via environment variables or .env file
+      VOLCENGINE_APP_ID: ${VOLCENGINE_APP_ID}
+      VOLCENGINE_APP_KEY: ${VOLCENGINE_APP_KEY}
+      VOLC_RTC_API_URL: ${VOLC_RTC_API_URL:-https://rtc.volcengineapi.com}
+      VOLC_REGION: ${VOLC_REGION:-cn-north-1}
+      VOLC_ACCESSKEY: ${VOLC_ACCESSKEY}
+      VOLC_SECRETKEY: ${VOLC_SECRETKEY}
+      # Speech (ASR/TTS) configuration
+      VOLC_SPEECH_APP_ID: ${VOLC_SPEECH_APP_ID}
+      VOLC_SPEECH_ACCESS_TOKEN: ${VOLC_SPEECH_ACCESS_TOKEN}
+      VOLC_SPEECH_SECRET_KEY: ${VOLC_SPEECH_SECRET_KEY}
+      VOLC_TTS_CLUSTER: ${VOLC_TTS_CLUSTER:-volcano_tts}
+      # Coze Bot configuration (for LLM in voice chat)
+      COZEBOT_APIKEY: ${COZEBOT_APIKEY}
     volumes:
       - ./uploads:/app/uploads
       # Mount datasets config so agent can access it
