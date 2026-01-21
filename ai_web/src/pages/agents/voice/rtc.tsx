@@ -1,6 +1,6 @@
 import { Bubble } from "@ant-design/x";
 import VERTC_SDK from "@volcengine/rtc";
-import { Alert, Button, Form, Input, Modal, Space, Tag, Typography, message } from "antd";
+import { Alert, App, Button, Form, Input, Modal, Space, Tag, Typography } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { TOKEN_KEY } from "../../../authProvider";
@@ -97,6 +97,7 @@ function newId(): string {
 }
 
 export const VoiceAgentRtc = () => {
+  const { message } = App.useApp()
   const [form] = Form.useForm();
 
   const engineRef = useRef<any>(null);
