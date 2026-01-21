@@ -27,6 +27,6 @@ COPY models /app/models
 # Create mount points (safe even if compose binds volumes over them).
 RUN mkdir -p /app/raw_data /app/models /app/uploads
 
-EXPOSE 8000
+EXPOSE 5703
 
-CMD ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "5703"]

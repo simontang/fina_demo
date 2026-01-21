@@ -47,7 +47,7 @@ agent/
 
 **目标服务：** 
 - 环境变量：`PYTHON_API_URL` 或 `PREDICTION_API_URL` 或 `PY_API_URL`
-- 默认：`http://localhost:8000`
+- 默认：`http://localhost:5703`
 
 **功能：** 将前端对 `/api/v1/*` 的请求反向代理到 Python 服务，保持 Python 端点的完整性。
 
@@ -401,7 +401,7 @@ agent/
 ## 环境变量
 
 ### Python 服务代理
-- `PYTHON_API_URL` - Python API 服务地址（默认：`http://localhost:8000`）
+- `PYTHON_API_URL` - Python API 服务地址（默认：`http://localhost:5703`）
 - `PREDICTION_API_URL` - 同 PYTHON_API_URL
 - `PY_API_URL` - 同 PYTHON_API_URL
 
@@ -428,7 +428,7 @@ agent/
 
 ## 端口配置
 
-默认端口：**3203**
+默认端口：**5702**
 
 可通过 `startServer(port)` 函数参数或环境变量配置。
 

@@ -5,19 +5,19 @@ export const TOKEN_KEY = "refine-auth";
 export const USER_KEY = "refine-user";
 const apiUrl = import.meta.env.VITE_API_URL;
 
-/** Python 预测/数据集 API 地址，默认同主机 8000 端口，可用 VITE_PYTHON_API_URL 覆盖 */
+/** Python 预测/数据集 API 地址，默认同主机 5703 端口，可用 VITE_PYTHON_API_URL 覆盖 */
 export function getPythonApiUrl(): string {
   const v = import.meta.env.VITE_PYTHON_API_URL;
   if (v && typeof v === "string") return v.replace(/\/$/, "");
   try {
-    const u = new URL(apiUrl || "http://localhost:6203");
-    u.port = "8000";
+    const u = new URL(apiUrl || "http://localhost:5702");
+    u.port = "5703";
     u.pathname = "";
     u.search = "";
     u.hash = "";
     return u.origin;
   } catch {
-    return "http://localhost:8000";
+    return "http://localhost:5703";
   }
 }
 export const authProvider: AuthProvider = {

@@ -88,7 +88,7 @@
 
 **目标服务：** 
 - 环境变量：`PYTHON_API_URL` 或 `PREDICTION_API_URL` 或 `PY_API_URL`
-- 默认：`http://localhost:8000`
+- 默认：`http://localhost:5703`
 
 **示例路径：**
 - `/api/v1/datasets` → Python 服务的数据集端点
@@ -172,7 +172,7 @@
 ## 环境变量
 
 ### Python 服务代理
-- `PYTHON_API_URL` - Python API 服务地址（默认：`http://localhost:8000`）
+- `PYTHON_API_URL` - Python API 服务地址（默认：`http://localhost:5703`）
 
 ### RTC / 语音聊天
 - `VOLCENGINE_APP_ID` - Volcengine 应用 ID（必需）
@@ -197,7 +197,7 @@
 
 ## 端口配置
 
-默认端口：**3203**（开发环境）或 **6203**（生产环境）
+默认端口：**5702**（开发环境）或 **5702**（生产环境）
 
 ---
 

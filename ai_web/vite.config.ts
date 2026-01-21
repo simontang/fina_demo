@@ -11,11 +11,11 @@ export default defineConfig({
       // Single backend for the frontend: the agent service.
       // The agent reverse-proxies `/api/v1/*` to the Python prediction service.
       "/api/v1": {
-        target: "http://localhost:6203",
+        target: "http://localhost:5702",
         changeOrigin: true,
       },
       "/api": {
-        target: "http://localhost:6203",
+        target: "http://localhost:5702",
         changeOrigin: true,
       },
     },

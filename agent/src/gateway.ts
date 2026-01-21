@@ -73,7 +73,7 @@ export const registerRoutes = (app: FastifyInstance): void => {
 };
 
 // 配置并启动服务器
-export async function startServer(port: number = 3203) {
+export async function startServer(port: number = 5702) {
   try {
     // Register multipart plugin for file uploads
     await app.register(multipart, {

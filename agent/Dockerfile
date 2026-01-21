@@ -31,7 +31,7 @@ COPY package.json ./
 RUN mkdir -p /app/uploads
 RUN mkdir -p /app/lattice_store
 
-EXPOSE 6203
+EXPOSE 5702
 
 CMD ["node", "dist/index.js"]
 

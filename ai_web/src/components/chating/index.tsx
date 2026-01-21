@@ -13,7 +13,7 @@ import { TOKEN_KEY } from "../../authProvider";
 
 function normalizeApiBaseUrl(raw?: string): string {
   const v = String(raw || "").trim().replace(/\/$/, "");
-  if (!v) return "http://localhost:6203/api";
+  if (!v) return "http://localhost:5702/api";
   if (v.endsWith("/api")) return v;
   return `${v}/api`;
 }

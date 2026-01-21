@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: prediction_app/Dockerfile
     environment:
-      PORT: "8000"
+      PORT: "5703"
       # Optional (only required if you want AI explanations/insights).
       VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2:-}
       VOLCENGINE_BASE_URL: ${VOLCENGINE_BASE_URL:-https://ark.cn-beijing.volces.com/api/v3}
@@ -13,7 +13,7 @@ services:
       - ./uploads:/app/uploads
     ports:
       # Exposed for debugging; the UI talks to the agent which reverse-proxies to this service.
-      - "8000:8000"
+      - "5703:5703"
     restart: unless-stopped
 
   agent:
@@ -21,18 +21,31 @@ services:
       context: ./agent
       dockerfile: Dockerfile
     environment:
-      PORT: "6203"
-      PYTHON_API_URL: http://prediction_app:8000
+      PORT: "5702"
+      PYTHON_API_URL: http://prediction_app:5703
       UPLOAD_DIR: /app/uploads
       # Optional (LLM provider for the agent + some Python insight endpoints).
       VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2:-}
+      VOLCENGINE_API_URL: ${VOLCENGINE_API_URL:-https://ark.cn-beijing.volces.com/api/v3}
+      VOLCENGINE_MODEL: ${VOLCENGINE_MODEL:-kimi-k2-250905}
+      # Optional (RTC Voice Chat)
+      VOLCENGINE_APP_ID: ${VOLCENGINE_APP_ID:-}
+      VOLCENGINE_APP_KEY: ${VOLCENGINE_APP_KEY:-}
+      VOLC_ACCESSKEY: ${VOLC_ACCESSKEY:-}
+      VOLC_SECRETKEY: ${VOLC_SECRETKEY:-}
+      VOLC_REGION: ${VOLC_REGION:-cn-north-1}
+      VOLC_RTC_API_URL: ${VOLC_RTC_API_URL:-https://rtc.volcengineapi.com}
+      VOLC_SPEECH_APP_ID: ${VOLC_SPEECH_APP_ID:-}
+      COZEBOT_APIKEY: ${COZEBOT_APIKEY:-}
+      COZEBOT_BOT_ID: ${COZEBOT_BOT_ID:-}
+      COZEBOT_URL: ${COZEBOT_URL:-https://api.coze.cn}
     volumes:
       - ./uploads:/app/uploads
       - ./lattice_store:/app/lattice_store
     depends_on:
       - prediction_app
     ports:
-      - "6203:6203"
+      - "5702:5702"
     restart: unless-stopped
 
   ai_web:
@@ -42,5 +55,5 @@ services:
     depends_on:
       - agent
     ports:
-      - "3201:3201"
+      - "5701:5701"
     restart: unless-stopped

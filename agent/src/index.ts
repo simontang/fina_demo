@@ -102,5 +102,5 @@ skillLatticeManager.configureStore("default");
 //migrateVectorStoreToPGVectorStore();
 
 // 启动fastify服务器
-const port = process.env.PORT ? parseInt(process.env.PORT) : 6203;
+const port = process.env.PORT ? parseInt(process.env.PORT) : 5702;
 startServer(port);

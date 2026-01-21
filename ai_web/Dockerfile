@@ -34,6 +34,6 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copy built files to nginx serve directory
 COPY --from=builder /app/refine/dist /usr/share/nginx/html
 
-EXPOSE 3201
+EXPOSE 5701
 
 CMD ["nginx", "-g", "daemon off;"]

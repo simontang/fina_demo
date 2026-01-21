@@ -2,7 +2,7 @@ services:
   prediction_app:
     image: finai-cn-shanghai.cr.volces.com/default/fina-demo-prediction-app:latest
     environment:
-      PORT: "8000"
+      PORT: "5703"
       # Database configuration (Aliyun RDS PostgreSQL)
       DB_HOST: ${DB_HOST:-pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com}
       DB_PORT: ${DB_PORT:-5432}
@@ -21,7 +21,7 @@ services:
       - ./uploads:/app/uploads
     ports:
       # Only bind to localhost, access via nginx reverse proxy
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:5703:5703"
     restart: unless-stopped
 
   agent:
@@ -29,8 +29,8 @@ services:
     environment:
       TZ: Asia/Shanghai
       NODE_ENV: production
-      PORT: "6203"
-      PYTHON_API_URL: http://prediction_app:8000
+      PORT: "5702"
+      PYTHON_API_URL: http://prediction_app:5703
       UPLOAD_DIR: /app/uploads
       # Database configuration (for dataset queries - Aliyun RDS PostgreSQL)
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres_fuli:jfd4whz@GPF2nqx7zhm@pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com:5432/postgres}
@@ -68,7 +68,7 @@ services:
       - prediction_app
     ports:
       # Only bind to localhost, access via nginx reverse proxy
-      - "127.0.0.1:6203:6203"
+      - "127.0.0.1:5702:5702"
     restart: unless-stopped
 
   ai_web:
@@ -77,5 +77,5 @@ services:
       - agent
     ports:
       # Only bind to localhost, access via nginx reverse proxy
-      - "127.0.0.1:3201:3201"
+      - "127.0.0.1:5701:5701"
     restart: unless-stopped
