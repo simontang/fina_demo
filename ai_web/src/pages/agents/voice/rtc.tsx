@@ -1,6 +1,6 @@
 import { Bubble } from "@ant-design/x";
 import VERTC_SDK from "@volcengine/rtc";
-import { Alert, Button, Form, Space, Tag, Typography, message } from "antd";
+import { Alert, Button, Form, Input, Modal, Space, Tag, Typography, message } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { TOKEN_KEY } from "../../../authProvider";
@@ -107,6 +107,8 @@ export const VoiceAgentRtc = () => {
   const [logs, setLogs] = useState<SubtitleMessage[]>([]);
   const logsRef = useRef<SubtitleMessage[]>([]);
   const logsContainerRef = useRef<HTMLDivElement>(null);
+  const [isConnectModalVisible, setIsConnectModalVisible] = useState(false);
+  const [botIdInput, setBotIdInput] = useState("");
 
   const messageListRef = useRef<SubtitleMessage[]>([]);
 
@@ -298,7 +300,7 @@ export const VoiceAgentRtc = () => {
     }
   };
 
-  const onConnect = async () => {
+  const onConnect = async (botId?: string) => {
     if (status !== "idle") return;
     // Clear logs on reconnect
     setLogs([]);
@@ -414,6 +416,7 @@ export const VoiceAgentRtc = () => {
         roomId,
         userId,
         taskId,
+        botId: botId || undefined,
       });
       if (!startRes.success) throw new Error(startRes.message || "StartVoiceChat failed");
       sessionRef.current = { roomId, userId, taskId, voiceChatStarted: true };
@@ -489,7 +492,13 @@ export const VoiceAgentRtc = () => {
               <Button
                 type={status === "connected" ? "default" : "primary"}
                 danger={status === "connected"}
-                onClick={status === "connected" ? onDisconnect : onConnect}
+                onClick={() => {
+                  if (status === "connected") {
+                    onDisconnect();
+                  } else {
+                    setIsConnectModalVisible(true);
+                  }
+                }}
                 disabled={status === "connecting"}
               >
                 {status === "connected" ? "Disconnect" : "Connect"}
@@ -559,6 +568,36 @@ export const VoiceAgentRtc = () => {
           )}
         </div>
       </Space>
+
+      <Modal
+        title="Connect to Voice Agent"
+        open={isConnectModalVisible}
+        onOk={() => {
+          if (botIdInput.trim()) {
+            setIsConnectModalVisible(false);
+            onConnect(botIdInput.trim());
+            setBotIdInput("");
+          } else {
+            message.error("Please enter Bot ID");
+          }
+        }}
+        onCancel={() => {
+          setIsConnectModalVisible(false);
+          setBotIdInput("");
+        }}
+        okText="Connect"
+        cancelText="Cancel"
+      >
+        <Form layout="vertical">
+          <Form.Item label="Bot ID" required>
+            <Input
+              placeholder="Enter Bot ID"
+              value={botIdInput}
+              onChange={(e) => setBotIdInput(e.target.value)}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };
