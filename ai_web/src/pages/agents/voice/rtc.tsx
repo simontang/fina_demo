@@ -1,5 +1,6 @@
+import { Bubble } from "@ant-design/x";
 import VERTC_SDK from "@volcengine/rtc";
-import { Alert, Button, Card, Col, Form, Input, InputNumber, Row, Space, Tag, Typography, message } from "antd";
+import { Alert, Button, Form, Space, Tag, Typography, message } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { TOKEN_KEY } from "../../../authProvider";
@@ -305,36 +306,18 @@ export const VoiceAgentRtc = () => {
     messageListRef.current = [];
     setStatus("connecting");
 
-    const vals = form.getFieldsValue();
-    const roomId = String(vals.roomId || "").trim();
-    const userId = String(vals.userId || "").trim();
-    const taskId = String(vals.taskId || "").trim();
-    const botId = String(vals.botId || "").trim();
-    const welcomeSpeech = String(vals.welcomeSpeech || "").trim();
-    const expireTime = Number(vals.expireTime || 0);
-    const customVariablesRaw = String(vals.customVariables || "").trim();
+    const stableUserId = getOrCreateStableId("fina_demo_voice_user_id");
+    const stableRoomId = localStorage.getItem("fina_demo_voice_room_id") || newId();
+    const roomId = stableRoomId;
+    const userId = stableUserId;
+    const taskId = "voice_agent";
 
     try {
-      if (!roomId || !userId || !taskId) throw new Error("roomId, userId, taskId are required");
-      const idRegex = /^[0-9a-zA-Z_\-@.]{1,128}$/;
-      if (!idRegex.test(roomId)) throw new Error("roomId must match /^[0-9a-zA-Z_\\-@.]{1,128}$/");
-      if (!idRegex.test(userId)) throw new Error("userId must match /^[0-9a-zA-Z_\\-@.]{1,128}$/");
-
-      let customVariables: any = undefined;
-      if (customVariablesRaw) {
-        try {
-          customVariables = JSON.parse(customVariablesRaw);
-        } catch {
-          throw new Error("customVariables must be valid JSON");
-        }
-      }
-
       sessionRef.current = { roomId, userId, taskId, voiceChatStarted: false };
 
       const tokenRes = await proxyFetch<GenerateRtcTokenData>("GenerateRtcToken", {
         roomId,
         userId,
-        ...(Number.isFinite(expireTime) && expireTime > 0 ? { expireTime } : {}),
       });
       if (!tokenRes.success || !tokenRes.data?.token) throw new Error(tokenRes.message || "GenerateRtcToken failed");
 
@@ -431,9 +414,6 @@ export const VoiceAgentRtc = () => {
         roomId,
         userId,
         taskId,
-        botId: botId || undefined,
-        welcomeSpeech: welcomeSpeech || undefined,
-        customVariables,
       });
       if (!startRes.success) throw new Error(startRes.message || "StartVoiceChat failed");
       sessionRef.current = { roomId, userId, taskId, voiceChatStarted: true };
@@ -485,10 +465,6 @@ export const VoiceAgentRtc = () => {
       roomId: stableRoomId,
       userId: stableUserId,
       taskId: "voice_agent",
-      botId: "",
-      welcomeSpeech: "",
-      expireTime: 0,
-      customVariables: "",
     });
 
     return () => {
@@ -501,27 +477,29 @@ export const VoiceAgentRtc = () => {
     <div style={{ padding: 24 }}>
       <Space direction="vertical" style={{ width: "100%" }} size={16}>
         <div>
-          <Title level={3} style={{ margin: 0 }}>
-            Voice Agent · Volcengine RTC
-          </Title>
-          <Text type="secondary">Connect to a Volcengine RTC room and start VoiceChat (ASR/TTS/LLM) via the agent.</Text>
+          <Space style={{ width: "100%", justifyContent: "space-between", alignItems: "center" }}>
+            <Title level={3} style={{ margin: 0 }}>
+              Voice Agent
+            </Title>
+            <Space>
+              <Space>
+                <span>Status</span>
+                {statusTag}
+              </Space>
+              <Button
+                type={status === "connected" ? "default" : "primary"}
+                danger={status === "connected"}
+                onClick={status === "connected" ? onDisconnect : onConnect}
+                disabled={status === "connecting"}
+              >
+                {status === "connected" ? "Disconnect" : "Connect"}
+              </Button>
+              <Button onClick={onToggleMic} disabled={status !== "connected"}>
+                {audioEnabled ? "Mute" : "Unmute"}
+              </Button>
+            </Space>
+          </Space>
         </div>
-
-        <Alert
-          type="info"
-          showIcon
-          message="Backend requirements"
-          description={
-            <div>
-              <div>
-                Agent env vars: <Text code>VOLCENGINE_APP_ID</Text>, <Text code>VOLCENGINE_APP_KEY</Text>,{" "}
-                <Text code>VOLC_ACCESSKEY</Text>, <Text code>VOLC_SECRETKEY</Text> (plus optional Coze/TTS/ASR vars).
-              </div>
-              <div>Microphone permission requires HTTPS or localhost.</div>
-            </div>
-          }
-        />
-
         {autoplayBlockedUserId !== "" && (
           <Alert
             type="warning"
@@ -535,108 +513,51 @@ export const VoiceAgentRtc = () => {
             }
           />
         )}
+        <div
+          ref={logsContainerRef}
+        >
+          {messageListRef.current.length === 0 ? (
+            <Text type="secondary">No messages yet.</Text>
+          ) : (
+            messageListRef.current.map((l) => {
+              const isAssistantMessage = l.userId.startsWith("voice_chat_");
+              const isCurrentUser = !isAssistantMessage && l.userId !== "system";
 
-        <Row gutter={[16, 16]}>
-          <Col xs={24} md={10}>
-            <Card
-              title={
-                <Space>
-                  <span>Session</span>
-                  {statusTag}
-                </Space>
-              }
-              extra={
-                <Space>
-                  <Button type="primary" onClick={onConnect} disabled={status !== "idle"}>
-                    Connect
-                  </Button>
-                  <Button danger onClick={onDisconnect} disabled={status === "idle"}>
-                    Disconnect
-                  </Button>
-                  <Button onClick={onToggleMic} disabled={status !== "connected"}>
-                    {audioEnabled ? "Mute" : "Unmute"}
-                  </Button>
-                </Space>
-              }
-            >
-              <Form form={form} layout="vertical">
-                <Form.Item
-                  label="Room ID"
-                  name="roomId"
-                  rules={[
-                    { required: true },
-                    { pattern: /^[0-9a-zA-Z_\-@.]{1,128}$/, message: "Use 1-128 chars: 0-9 a-z A-Z _ - @ ." },
-                  ]}
-                >
-                  <Input
-                    placeholder="room id"
-                    onChange={(e) => localStorage.setItem("fina_demo_voice_room_id", e.target.value)}
-                    disabled={status !== "idle"}
-                  />
-                </Form.Item>
-                <Form.Item
-                  label="User ID"
-                  name="userId"
-                  rules={[
-                    { required: true },
-                    { pattern: /^[0-9a-zA-Z_\-@.]{1,128}$/, message: "Use 1-128 chars: 0-9 a-z A-Z _ - @ ." },
-                  ]}
-                >
-                  <Input placeholder="user id" disabled={status !== "idle"} />
-                </Form.Item>
-                <Form.Item label="Task ID" name="taskId" rules={[{ required: true }]}>
-                  <Input placeholder="task id (used by StartVoiceChat)" disabled={status !== "idle"} />
-                </Form.Item>
-                <Form.Item label="Bot ID (optional)" name="botId">
-                  <Input placeholder="Coze BotId / agent id (optional)" disabled={status !== "idle"} />
-                </Form.Item>
-                <Form.Item label="Welcome speech (optional)" name="welcomeSpeech">
-                  <Input.TextArea rows={3} placeholder="Override default welcome speech" disabled={status !== "idle"} />
-                </Form.Item>
-                <Form.Item label="Token expire seconds (optional)" name="expireTime">
-                  <InputNumber style={{ width: "100%" }} min={0} placeholder="0 = default" disabled={status !== "idle"} />
-                </Form.Item>
-                <Form.Item label="Custom variables (optional, JSON)" name="customVariables">
-                  <Input.TextArea
-                    rows={5}
-                    placeholder='{"example":"value"}'
-                    disabled={status !== "idle"}
-                  />
-                </Form.Item>
-                <Button
-                  onClick={() => {
-                    const rid = newId();
-                    form.setFieldValue("roomId", rid);
-                    localStorage.setItem("fina_demo_voice_room_id", rid);
-                  }}
-                  disabled={status !== "idle"}
-                >
-                  Generate New Room ID
-                </Button>
-              </Form>
-            </Card>
-          </Col>
-
-          <Col xs={24} md={14}>
-            <Card title="RTC Logs / Subtitles" extra={<Text type="secondary">{logs.length.toLocaleString("en-US")} events</Text>}>
-              <div
-                ref={logsContainerRef}
-                style={{ maxHeight: 520, overflow: "auto", fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas" }}
-              >
-                {logs.length === 0 ? (
-                  <Text type="secondary">No events yet.</Text>
-                ) : (
-                  logs.map((l) => (
-                    <div key={l.id} style={{ padding: "6px 0", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
-                      <Text type="secondary">{new Date(l.ts).toLocaleTimeString()}</Text> <Text strong>{l.userId}:</Text>{" "}
-                      <Text>{l.text}</Text>
+              return (
+                <Bubble
+                  key={l.id}
+                  content={
+                    <div>
+                      {l.userId === "system" && (
+                        <div style={{ fontSize: "12px", color: "#909399", marginBottom: "4px" }}>
+                          {l.userId}
+                        </div>
+                      )}
+                      <div style={{ fontSize: "14px", lineHeight: "1.4" }}>
+                        {l.text}
+                      </div>
                     </div>
-                  ))
-                )}
-              </div>
-            </Card>
-          </Col>
-        </Row>
+                  }
+                  placement={isCurrentUser ? "end" : "start"}
+                  // footer={
+                  //   <div style={{
+                  //     fontSize: "11px",
+                  //     color: "#c0c4cc",
+                  //     textAlign: "right"
+                  //   }}>
+                  //     {new Date(l.ts).toLocaleTimeString()}
+                  //   </div>
+                  // }
+                  styles={{
+                    content: {
+                      background: isCurrentUser ? "linear-gradient(1777deg, rgba(153, 164, 255, 0.38), rgba(231, 243, 248, 0.38) 27%)" : "transparent",
+                    }
+                  }}
+                />
+              );
+            })
+          )}
+        </div>
       </Space>
     </div>
   );

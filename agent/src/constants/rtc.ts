@@ -14,9 +14,6 @@ export const RTC_PRIVILEGES = {
   PrivSubscribeStream: 4,
 } as const;
 
-export const VOICE_CHAT_DEFAULT_WELCOME_MESSAGE =
-  "您好，我是太保的服务商—抚理健康。负责本次出院用车服务的。您现在方便接电话吗？";
-
 // RunStage label mapping (for logging only)
 export const RUN_STAGE_LABELS: Record<string, string> = {
   taskStart: "任务开始",

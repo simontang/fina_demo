@@ -1,24 +1,23 @@
-import React, { useState } from "react";
-import { Menu, MenuProps, Layout } from "antd";
-import { useNavigate, useLocation } from "react-router";
-import type { RefineThemedLayoutSiderProps } from "@refinedev/antd";
 import {
-  RobotOutlined,
   BarChartOutlined,
-  FolderOutlined,
-  SearchOutlined,
   DatabaseOutlined,
-  SoundOutlined,
-  WarningOutlined,
-  MessageOutlined,
-  PhoneOutlined,
   FileTextOutlined,
-  UserOutlined,
-  ShoppingOutlined,
-  InboxOutlined,
   FolderOpenOutlined,
+  FolderOutlined,
+  InboxOutlined,
+  MessageOutlined,
+  RobotOutlined,
+  SearchOutlined,
+  ShoppingOutlined,
+  SoundOutlined,
   ToolOutlined,
+  UserOutlined,
+  WarningOutlined
 } from "@ant-design/icons";
+import type { RefineThemedLayoutSiderProps } from "@refinedev/antd";
+import { Layout, Menu, MenuProps } from "antd";
+import React, { useState } from "react";
+import { useLocation, useNavigate } from "react-router";
 
 const { Sider: AntdSider } = Layout;
 
@@ -109,15 +108,12 @@ export const CustomSider: React.FC<RefineThemedLayoutSiderProps> = ({
   const items: MenuItem[] = [
     getItem("Agent Center", "agent-center", <RobotOutlined />, [
       getItem("Deep Research Agent", "deep-research-agent", <SearchOutlined />, [
-      getItem("New Chat", "deep-research-new-chat", <MessageOutlined />),
-      getItem("Critique Agent", "critique-agent", <FileTextOutlined />),
-      getItem("Research Agent", "research-agent", <SearchOutlined />),
-    ]),
-      getItem("Data Agent", "data-agent", <DatabaseOutlined />),
-      getItem("Voice Agent", "voice-agent", <SoundOutlined />, [
-        getItem("Chat", "voice-agent-chat", <MessageOutlined />),
-        getItem("RTC Voice Chat", "voice-agent-rtc", <PhoneOutlined />),
+        getItem("New Chat", "deep-research-new-chat", <MessageOutlined />),
+        getItem("Critique Agent", "critique-agent", <FileTextOutlined />),
+        getItem("Research Agent", "research-agent", <SearchOutlined />),
       ]),
+      getItem("Data Agent", "data-agent", <DatabaseOutlined />),
+      getItem("Voice Agent", "voice-agent", <SoundOutlined />,),
       getItem("Inventory Doctor Agent", "inventory-doctor-agent", <WarningOutlined />),
     ]),
     getItem("Prediction Center", "prediction-center", <BarChartOutlined />, [

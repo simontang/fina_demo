@@ -7,7 +7,6 @@ import {
   RTC_ACCESS_TOKEN_VERSION,
   RTC_PRIVILEGES,
   RUN_STAGE_LABELS,
-  VOICE_CHAT_DEFAULT_WELCOME_MESSAGE,
 } from "../constants/rtc";
 import type {
   AgentConfig,
@@ -195,7 +194,6 @@ export function getVoiceChatConfig(
   customVariables?: any,
   botId?: string
 ): VoiceChatConfig {
-  const defaultWelcomeSpeech = welcomeSpeech || VOICE_CHAT_DEFAULT_WELCOME_MESSAGE;
 
   const envFirst = (...names: string[]): string => {
     for (const n of names) {
@@ -211,6 +209,7 @@ export function getVoiceChatConfig(
   };
 
   // Coze (Bot) config (APIKey is secret -> env).
+  const defaultWelcomeSpeech = welcomeSpeech || envFirst("VOICE_WELCOME_MESSAGE");
   const cozeApiKey = envFirst("COZEBOT_APIKEY", "COZE_API_KEY");
   const cozeBotId = (botId || "").trim() || envFirst("COZEBOT_BOT_ID");
   const cozeUrl = envFirst("COZEBOT_URL") || "https://api.coze.cn";
@@ -229,7 +228,7 @@ export function getVoiceChatConfig(
 
   // TTS config (matches fuli_survey default structure).
   const ttsCluster = envFirst("VOLC_TTS_CLUSTER") || "volcano_icl";
-  const ttsVoiceType = envFirst("VOLC_TTS_VOICE_TYPE") || "S_ZHNIkyHJ1";
+  const ttsVoiceType = envFirst("VOLC_TTS_VOICE_TYPE");
   const ttsSpeedRatio = envNumber("VOLC_TTS_SPEED_RATIO", 1.0);
 
   return {
@@ -241,23 +240,24 @@ export function getVoiceChatConfig(
         AppId: speechAppId,
         ...(asrMode === "bigmodel" && asrAccessToken
           ? {
-              AccessToken: asrAccessToken,
-              ...(asrApiResourceId ? { ApiResourceId: asrApiResourceId } : {}),
-            }
+            AccessToken: asrAccessToken,
+            ...(asrApiResourceId ? { ApiResourceId: asrApiResourceId } : {}),
+          }
           : {}),
       },
     },
     TTSConfig: {
-      Provider: "volcano",
+      Provider: "volcano_bidirection",
       ProviderParams: {
         app: {
           appid: speechAppId,
-          cluster: ttsCluster,
+          token: "22Se7aE41Tb0nWaDG3ytKwqTjnUnrk5X",
         },
         audio: {
           voice_type: ttsVoiceType,
-          speed_ratio: ttsSpeedRatio,
+          speech_rate: 0,
         },
+        ResourceId: "volc.service_type.10029",
       },
     },
     LLMConfig: {

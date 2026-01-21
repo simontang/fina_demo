@@ -1,28 +1,26 @@
-import React from "react";
-import { ThemedSider } from "@refinedev/antd";
-import type { RefineThemedLayoutSiderProps } from "@refinedev/antd";
-import { Menu } from "antd";
-import { useNavigate, useLocation } from "react-router";
 import {
-  RobotOutlined,
+  AppstoreOutlined,
   BarChartOutlined,
-  FolderOutlined,
-  SearchOutlined,
+  DashboardOutlined,
   DatabaseOutlined,
-  SoundOutlined,
-  WarningOutlined,
-  MessageOutlined,
-  PhoneOutlined,
-  UserOutlined,
-  ShoppingOutlined,
+  FolderOpenOutlined,
+  FolderOutlined,
   InboxOutlined,
   PieChartOutlined,
-  FolderOpenOutlined,
+  RobotOutlined,
+  SearchOutlined,
+  ShoppingOutlined,
+  SoundOutlined,
   ToolOutlined,
-  AppstoreOutlined,
-  DashboardOutlined,
+  UserOutlined,
+  WarningOutlined
 } from "@ant-design/icons";
+import type { RefineThemedLayoutSiderProps } from "@refinedev/antd";
+import { ThemedSider } from "@refinedev/antd";
 import type { MenuProps } from "antd";
+import { Menu } from "antd";
+import React from "react";
+import { useLocation, useNavigate } from "react-router";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -54,10 +52,7 @@ export const CustomSiderWrapper: React.FC<RefineThemedLayoutSiderProps> = (
       getItem("Overview", "agent-overview", <DashboardOutlined />),
       getItem("Deep Research Agent", "deep-research-agent", <SearchOutlined />),
       getItem("Data Agent", "data-agent", <DatabaseOutlined />),
-      getItem("Voice Agent", "voice-agent", <SoundOutlined />, [
-        getItem("Chat", "voice-agent-chat", <MessageOutlined />),
-        getItem("RTC Voice Chat", "voice-agent-rtc", <PhoneOutlined />),
-      ]),
+      getItem("Voice Agent", "voice-agent", <SoundOutlined />),
       getItem("Inventory Doctor Agent", "inventory-doctor-agent", <WarningOutlined />),
     ]),
     getItem("Prediction Center", "prediction-center", <BarChartOutlined />, [
@@ -135,7 +130,7 @@ export const CustomSiderWrapper: React.FC<RefineThemedLayoutSiderProps> = (
               defaultOpenKeys={collapsed ? [] : ["agent-center", "prediction-center", "asset-center"]}
               items={customMenuItems}
               onClick={onClick}
-              style={{ 
+              style={{
                 background: "transparent",
                 borderRight: "none"
               }}

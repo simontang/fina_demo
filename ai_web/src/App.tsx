@@ -3,47 +3,44 @@ import { Authenticated, Refine } from "@refinedev/core";
 import {
   ErrorComponent,
   ThemedLayout,
-  ThemedSider,
-  useNotificationProvider,
+  useNotificationProvider
 } from "@refinedev/antd";
 import "@refinedev/antd/dist/reset.css";
 
+import { BarChartOutlined, FolderOutlined, RobotOutlined } from "@ant-design/icons";
 import routerProvider, {
   CatchAllNavigate,
   DocumentTitleHandler,
   NavigateToResource,
   UnsavedChangesNotifier,
 } from "@refinedev/react-router";
-import dataProvider from "@refinedev/simple-rest";
 import { App as AntdApp } from "antd";
 import { BrowserRouter, Outlet, Route, Routes } from "react-router";
-import { authProvider, createAuthenticatedDataProvider } from "./authProvider";
-import { Header } from "./components/header";
+import { createAuthenticatedDataProvider } from "./authProvider";
 import { CustomSiderWrapper } from "./components/custom-sider-wrapper";
+import { Header } from "./components/header";
 import { ColorModeContextProvider } from "./contexts/color-mode";
 import { AgentList } from "./pages/agents";
 import { Login } from "./pages/login";
-import { RobotOutlined, BarChartOutlined, FolderOutlined } from "@ant-design/icons";
 // Agent Center pages
-import { DeepResearchAgentList } from "./pages/agents/deep-research";
-import { DeepResearchNewChat } from "./pages/agents/deep-research/new";
-import { DeepResearchCritique } from "./pages/agents/deep-research/critique";
-import { DeepResearchResearch } from "./pages/agents/deep-research/research";
 import { DataAgentList } from "./pages/agents/data";
-import { VoiceAgentList } from "./pages/agents/voice";
-import { VoiceAgentRtc } from "./pages/agents/voice/rtc";
+import { DeepResearchAgentList } from "./pages/agents/deep-research";
+import { DeepResearchCritique } from "./pages/agents/deep-research/critique";
+import { DeepResearchNewChat } from "./pages/agents/deep-research/new";
+import { DeepResearchResearch } from "./pages/agents/deep-research/research";
 import { InventoryDoctorAgentList } from "./pages/agents/inventory_doctor_agent";
 import { AgentOverview } from "./pages/agents/overview";
+import { VoiceAgentRtc } from "./pages/agents/voice/rtc";
 // Prediction Center pages
-import { Segmentation } from "./pages/prediction/segmentation";
-import { SalesForecast } from "./pages/prediction/sales-forecast";
 import { InventoryAllocation } from "./pages/prediction/inventory";
 import { RFMEngine } from "./pages/prediction/rfm";
+import { SalesForecast } from "./pages/prediction/sales-forecast";
+import { Segmentation } from "./pages/prediction/segmentation";
 // Asset Center pages
 import { Datasets } from "./pages/assets/datasets";
 import { DatasetDetail } from "./pages/assets/datasets/detail";
-import { Skills } from "./pages/assets/skills";
 import { Models } from "./pages/assets/models";
+import { Skills } from "./pages/assets/skills";
 
 function App() {
   const dataProvider = createAuthenticatedDataProvider();
@@ -222,9 +219,9 @@ function App() {
                     <Route path="research" element={<DeepResearchResearch />} />
                   </Route>
                   <Route path="data" element={<DataAgentList />} />
-                  <Route path="voice">
-                    <Route index element={<VoiceAgentList />} />
-                    <Route path="rtc" element={<VoiceAgentRtc />} />
+                  <Route path="voice" element={<VoiceAgentRtc />}>
+                    {/* <Route index element={<VoiceAgentList />} /> */}
+                    {/* <Route path="rtc" element={<VoiceAgentRtc />} /> */}
                   </Route>
                   <Route path="inventory_doctor_agent" element={<InventoryDoctorAgentList />} />
                 </Route>
