@@ -33,7 +33,7 @@ metadata:
 
 生成完整的 ECharts 配置，必须包含：
 
-\`\`\`json
+\`\`\`chart
 {
   "table": [...],  // 原始数据表格
   "echarts": {
