@@ -483,6 +483,113 @@ def _get_dataset_csv_path(dataset_id: str, dataset_config: Dict[str, Any]) -> Pa
     return (repo_root / "raw_data" / f"{dataset_id}.csv").resolve()
 
 
+def _csv_count_rows(csv_path: Path) -> int:
+    """Count data rows in a CSV (excluding the header row).
+
+    Notes:
+    - We intentionally avoid DB dependencies for the demo.
+    - This counts physical lines; it assumes no multi-line CSV fields (true for our demo datasets).
+    """
+    try:
+        with open(csv_path, "rb") as f:
+            # File iteration counts the last line even if it does not end with a newline.
+            line_count = sum(1 for _ in f)
+        return max(0, line_count - 1)
+    except Exception:
+        return 0
+
+
+def _csv_infer_column_types(sample_df: pd.DataFrame, header_cols: List[str]) -> Dict[str, str]:
+    """Infer a simple, UI-friendly type string per column from a sample dataframe."""
+    types: Dict[str, str] = {}
+    for c in header_cols:
+        if c not in sample_df.columns:
+            types[c] = "text"
+            continue
+        s = sample_df[c]
+        try:
+            if pd.api.types.is_datetime64_any_dtype(s.dtype):
+                types[c] = "timestamp"
+            elif pd.api.types.is_bool_dtype(s.dtype):
+                types[c] = "boolean"
+            elif pd.api.types.is_integer_dtype(s.dtype):
+                types[c] = "int"
+            elif pd.api.types.is_float_dtype(s.dtype) or pd.api.types.is_numeric_dtype(s.dtype):
+                types[c] = "float"
+            else:
+                types[c] = "text"
+        except Exception:
+            types[c] = "text"
+    return types
+
+
+def _csv_time_range(csv_path: Path, *, encoding: str, time_col: str) -> Optional[Dict[str, Optional[str]]]:
+    """Compute min/max timestamp for a CSV column without loading the full CSV into memory."""
+    min_ts: Optional[pd.Timestamp] = None
+    max_ts: Optional[pd.Timestamp] = None
+    try:
+        for chunk in pd.read_csv(
+            csv_path,
+            encoding=encoding,
+            usecols=[time_col],
+            chunksize=200_000,
+            low_memory=False,
+        ):
+            s = pd.to_datetime(chunk[time_col], errors="coerce")
+            if s.notna().any():
+                cmin = s.min()
+                cmax = s.max()
+                if isinstance(cmin, pd.Timestamp) and not pd.isna(cmin):
+                    min_ts = cmin if min_ts is None else min(min_ts, cmin)
+                if isinstance(cmax, pd.Timestamp) and not pd.isna(cmax):
+                    max_ts = cmax if max_ts is None else max(max_ts, cmax)
+        return {
+            "min": min_ts.isoformat() if min_ts is not None else None,
+            "max": max_ts.isoformat() if max_ts is not None else None,
+        }
+    except Exception:
+        return None
+
+
+def _csv_column_stats(df: pd.DataFrame, column_name: str, data_type: str) -> Dict[str, Any]:
+    """Compute basic column stats from an in-memory dataframe (CSV-first demo path)."""
+    stats: Dict[str, Any] = {"columnName": column_name, "dataType": data_type, "nullCount": 0}
+    if column_name not in df.columns:
+        return stats
+
+    s = df[column_name]
+    stats["nullCount"] = int(s.isna().sum())
+
+    # String-like columns: unique count
+    if data_type in {"text", "string"} or pd.api.types.is_object_dtype(s.dtype):
+        try:
+            stats["uniqueCount"] = int(s.dropna().nunique())
+        except Exception:
+            pass
+        return stats
+
+    # Numeric columns: distribution
+    try:
+        num = pd.to_numeric(s, errors="coerce")
+        num = num.dropna()
+        if num.empty:
+            return stats
+        q25 = float(num.quantile(0.25))
+        q50 = float(num.quantile(0.50))
+        q75 = float(num.quantile(0.75))
+        stats["distribution"] = {
+            "min": float(num.min()),
+            "max": float(num.max()),
+            "mean": float(num.mean()),
+            "median": q50,
+            "quartiles": [q25, q50, q75],
+        }
+    except Exception:
+        # Non-numeric columns can skip distribution.
+        pass
+    return stats
+
+
 def _rfm_compute_amount(df: pd.DataFrame, amount_cfg: Dict[str, Any]) -> pd.Series:
     t = amount_cfg.get("type")
     if t == "column":
@@ -1082,32 +1189,22 @@ def get_datasets_list():
         datasets = []
         
         for dataset_config in config.get("datasets", []):
-            try:
-                row_count = get_table_row_count(dataset_config["table_name"])
-                datasets.append({
+            dataset_id = dataset_config.get("id")
+            csv_path = _get_dataset_csv_path(str(dataset_id), dataset_config)
+            row_count = _csv_count_rows(csv_path) if csv_path.exists() else 0
+            datasets.append(
+                {
                     "id": dataset_config["id"],
                     "name": dataset_config["name"],
                     "description": dataset_config["description"],
-                    "table_name": dataset_config["table_name"],
+                    "table_name": dataset_config.get("table_name", dataset_config["id"]),
                     "type": dataset_config["type"],
                     "row_count": row_count,
                     "created_at": dataset_config.get("created_at"),
                     "updated_at": dataset_config.get("updated_at"),
                     "tags": dataset_config.get("tags", []),
-                })
-            except Exception as e:
-                print(f"⚠️  获取数据集 {dataset_config['id']} 统计信息失败: {e}")
-                datasets.append({
-                    "id": dataset_config["id"],
-                    "name": dataset_config["name"],
-                    "description": dataset_config["description"],
-                    "table_name": dataset_config["table_name"],
-                    "type": dataset_config["type"],
-                    "row_count": 0,
-                    "created_at": dataset_config.get("created_at"),
-                    "updated_at": dataset_config.get("updated_at"),
-                    "tags": dataset_config.get("tags", []),
-                })
+                }
+            )
         
         return {
             "success": True,
@@ -1133,23 +1230,39 @@ def preview_dataset(
         
         if not dataset_config:
             raise HTTPException(status_code=404, detail="数据集不存在")
-        
-        # 获取总记录数
-        row_count = get_table_row_count(dataset_config["table_name"])
-        
-        # 获取分页数据
+
+        csv_path = _get_dataset_csv_path(dataset_id, dataset_config)
+        if not csv_path.exists():
+            raise HTTPException(status_code=404, detail=f"CSV not found: {csv_path}")
+
+        encoding, header_cols = _read_csv_header(csv_path)
+        row_count = _csv_count_rows(csv_path)
+
         offset = (page - 1) * pageSize
-        conn = get_db_connection()
-        try:
-            with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute(
-                    f'SELECT * FROM "{dataset_config["table_name"]}" LIMIT %s OFFSET %s',
-                    (pageSize, offset),
-                )
-                rows = [dict(row) for row in cur.fetchall()]
-        finally:
-            conn.close()
-        
+        if offset < 0:
+            offset = 0
+
+        df_page = pd.read_csv(
+            csv_path,
+            encoding=encoding,
+            header=None,
+            names=header_cols,
+            skiprows=1 + offset,
+            nrows=pageSize,
+            low_memory=False,
+        )
+        # Replace NaN, inf, and -inf with None for JSON serialization
+        # Replace inf values first, then NaN values
+        df_page = df_page.replace([np.inf, -np.inf], np.nan)
+        df_page = df_page.where(pd.notna(df_page), None)
+        rows = df_page.to_dict(orient="records")
+        # Clean up any remaining invalid float values in the records
+        for row in rows:
+            for key, value in row.items():
+                if isinstance(value, (float, np.floating)):
+                    if np.isinf(value) or np.isnan(value):
+                        row[key] = None
+
         return {
             "success": True,
             "data": {
@@ -1179,32 +1292,41 @@ def get_dataset_detail(dataset_id: str, include_stats: bool = False):
         
         if not dataset_config:
             raise HTTPException(status_code=404, detail="数据集不存在")
-        
-        # 获取表的基本信息
-        row_count = get_table_row_count(dataset_config["table_name"])
-        columns = get_table_columns(dataset_config["table_name"])
-        
-        # 获取时间范围
+
+        csv_path = _get_dataset_csv_path(dataset_id, dataset_config)
+        if not csv_path.exists():
+            raise HTTPException(status_code=404, detail=f"CSV not found: {csv_path}")
+
+        encoding, header_cols = _read_csv_header(csv_path)
+        row_count = _csv_count_rows(csv_path)
+
+        # Parse time column (if configured) for better typing/time range.
         time_range = None
+        parse_dates: List[str] = []
         if dataset_config.get("time_column"):
-            time_range = get_time_range(
-                dataset_config["table_name"], dataset_config["time_column"]
-            )
-        
-        # 构建列信息
-        column_list = []
-        for col in columns:
-            stats = None
-            if include_stats:
-                stats = get_column_stats(
-                    dataset_config["table_name"], col["column_name"], col["data_type"]
-                )
-            
-            column_list.append({
-                "name": col["column_name"],
-                "type": col["data_type"],
-                "stats": stats,
-            })
+            try:
+                resolved_time_col = _resolve_csv_column(header_cols, str(dataset_config["time_column"]))
+                parse_dates = [resolved_time_col]
+                time_range = _csv_time_range(csv_path, encoding=encoding, time_col=resolved_time_col)
+            except Exception:
+                # Keep it resilient if the config doesn't match the CSV header.
+                time_range = None
+                parse_dates = []
+
+        sample_df = pd.read_csv(
+            csv_path,
+            encoding=encoding,
+            nrows=2000,
+            parse_dates=parse_dates if parse_dates else False,
+            low_memory=False,
+        )
+        inferred_types = _csv_infer_column_types(sample_df, header_cols)
+
+        column_list: List[Dict[str, Any]] = []
+        for name in header_cols:
+            col_type = inferred_types.get(name, "text")
+            stats = _csv_column_stats(sample_df, name, col_type) if include_stats else None
+            column_list.append({"name": name, "type": col_type, "stats": stats})
         
         return {
             "success": True,
@@ -1212,10 +1334,10 @@ def get_dataset_detail(dataset_id: str, include_stats: bool = False):
                 "id": dataset_config["id"],
                 "name": dataset_config["name"],
                 "description": dataset_config["description"],
-                "table_name": dataset_config["table_name"],
+                "table_name": dataset_config.get("table_name", dataset_config["id"]),
                 "type": dataset_config["type"],
                 "row_count": row_count,
-                "column_count": len(columns),
+                "column_count": len(header_cols),
                 "created_at": dataset_config.get("created_at"),
                 "updated_at": dataset_config.get("updated_at"),
                 "tags": dataset_config.get("tags", []),
@@ -1240,20 +1362,35 @@ def get_dataset_stats(dataset_id: str):
         
         if not dataset_config:
             raise HTTPException(status_code=404, detail="数据集不存在")
-            
-        columns = get_table_columns(dataset_config["table_name"])
-        
-        # 获取所有列的统计信息
-        column_stats_list = []
-        for col in columns:
-            stats = get_column_stats(
-                dataset_config["table_name"], col["column_name"], col["data_type"]
-            )
-            column_stats_list.append({
-                "name": col["column_name"],
-                "type": col["data_type"],
-                "stats": stats,
-            })
+
+        csv_path = _get_dataset_csv_path(dataset_id, dataset_config)
+        if not csv_path.exists():
+            raise HTTPException(status_code=404, detail=f"CSV not found: {csv_path}")
+
+        encoding, header_cols = _read_csv_header(csv_path)
+
+        # Load the CSV once for stats. (Demo datasets are moderate in size.)
+        parse_dates: List[str] = []
+        if dataset_config.get("time_column"):
+            try:
+                resolved_time_col = _resolve_csv_column(header_cols, str(dataset_config["time_column"]))
+                parse_dates = [resolved_time_col]
+            except Exception:
+                parse_dates = []
+
+        df = pd.read_csv(
+            csv_path,
+            encoding=encoding,
+            parse_dates=parse_dates if parse_dates else False,
+            low_memory=False,
+        )
+        inferred_types = _csv_infer_column_types(df.head(2000), header_cols)
+
+        column_stats_list: List[Dict[str, Any]] = []
+        for name in header_cols:
+            col_type = inferred_types.get(name, "text")
+            stats = _csv_column_stats(df, name, col_type)
+            column_stats_list.append({"name": name, "type": col_type, "stats": stats})
             
         return {
             "success": True,
