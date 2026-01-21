@@ -10,6 +10,7 @@ import {
 import { forwardRef, useImperativeHandle } from "react";
 
 import { TOKEN_KEY } from "../../authProvider";
+import { getBaseAPIPath } from "../../getBaseAPIPath";
 
 function normalizeApiBaseUrl(raw?: string): string {
   const v = String(raw || "").trim().replace(/\/$/, "");
@@ -18,7 +19,7 @@ function normalizeApiBaseUrl(raw?: string): string {
   return `${v}/api`;
 }
 
-const apiUrl = normalizeApiBaseUrl(import.meta.env.VITE_API_URL as string | undefined);
+const apiUrl = getBaseAPIPath();
 
 export interface ChatBotRef {
   sendMessage: (message: string) => void;

@@ -44,7 +44,6 @@ import { Datasets } from "./pages/assets/datasets";
 import { DatasetDetail } from "./pages/assets/datasets/detail";
 import { Skills } from "./pages/assets/skills";
 import { Models } from "./pages/assets/models";
-const apiUrl = import.meta.env.VITE_API_URL;
 
 function App() {
   const dataProvider = createAuthenticatedDataProvider();
@@ -139,14 +138,14 @@ function App() {
                   parent: "prediction-center",
                 },
               },
-		              {
-		                name: "rfm-engine",
-		                list: "/prediction/rfm",
-		                meta: {
-		                  label: "RFM Engine",
-                      parent: "prediction-center",
-		                },
-		              },
+              {
+                name: "rfm-engine",
+                list: "/prediction/rfm",
+                meta: {
+                  label: "RFM Engine",
+                  parent: "prediction-center",
+                },
+              },
               // Asset Center
               {
                 name: "asset-center",
