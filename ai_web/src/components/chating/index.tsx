@@ -6,8 +6,14 @@ import {
   SideAppViewBrowser,
   useAgentChat,
   AxiomLatticeProvider,
+  LatticeChatShellContextProvider,
+  ConversationContextProvider,
+  AssistantContextProvider,
+  useAssistantContext,
+  useConversationContext,
+  LatticeChat,
 } from "@axiom-lattice/react-sdk";
-import { forwardRef, useImperativeHandle } from "react";
+import { forwardRef, useEffect, useImperativeHandle } from "react";
 
 import { TOKEN_KEY } from "../../authProvider";
 import { getBaseAPIPath } from "../../getBaseAPIPath";
@@ -33,31 +39,40 @@ export const ChatBotCompnent = forwardRef<
     name: string;
   }
 >(({ id, threadId, name }, ref) => {
+
+  
   return (
-    <AxiomLatticeProvider
-      config={{
-        baseURL: apiUrl,
+    <LatticeChatShellContextProvider
+      initialConfig={{
+        baseURL: getBaseAPIPath(),
         apiKey: localStorage.getItem(TOKEN_KEY) || "",
-        assistantId: id,
         transport: "sse",
+        enableThreadCreation: true,
+        enableThreadList: true,
       }}
-    >
-      <AgentThreadProvider
-        assistantId={id}
-        threadId={threadId}
-        options={{
-          streaming: true,
-          enableReturnStateWhenStreamCompleted: true,
-          enableResumeStream: true,
-        }}
-      >
-        <ChatContent name={name} ref={ref} />
-      </AgentThreadProvider>
-    </AxiomLatticeProvider>
+    > <AssistantContextProvider autoLoad={true} initialAssistantId={id}>
+        <ConversationContextProvider>
+          <AxiomLatticeProvider
+            config={{
+              baseURL: apiUrl,
+              apiKey: localStorage.getItem(TOKEN_KEY) || "",
+              assistantId: id || "",
+              transport: "sse",
+
+            }}
+          >
+            <ChatContent name={name} threadId={threadId} ref={ref} />
+          </AxiomLatticeProvider>
+
+        </ConversationContextProvider>
+      </AssistantContextProvider>
+    </LatticeChatShellContextProvider>
   );
 });
 
-const ChatContent = forwardRef<ChatBotRef, { name: string }>(({ name }, ref) => {
+const ChatContent = forwardRef<ChatBotRef, { name: string, threadId: string }>(({ name, threadId }, ref) => {
+  const { assistantId, thread, createThread } = useConversationContext();
+  const { currentAssistant } = useAssistantContext();
   const { sendMessage } = useAgentChat();
   useImperativeHandle(ref, () => ({
     sendMessage: (message: string) => {
@@ -65,10 +80,31 @@ const ChatContent = forwardRef<ChatBotRef, { name: string }>(({ name }, ref) => 
     },
   }));
 
-  return (
-    <ChatUIContextProvider>
-      <ColumnLayout left={<Chating name={name} />} right={<SideAppViewBrowser />} />
-    </ChatUIContextProvider>
-  );
+  useEffect(() => {
+    if (!thread) {
+      createThread(threadId);
+    }
+  }, [thread]);
+
+  return thread ? (
+
+    <AgentThreadProvider
+      assistantId={assistantId || ""}
+      threadId={thread?.id || threadId}
+      options={{
+        streaming: true,
+        enableReturnStateWhenStreamCompleted: true,
+        enableResumeStream: true,
+      }}
+    >
+      <LatticeChat
+        thread_id={thread?.id}
+        assistant_id={assistantId || ""}
+        name={currentAssistant?.name}
+        description={currentAssistant?.description}
+      //header={<LatticeShellHeader />}
+      />
+    </AgentThreadProvider>
+  ) : null;
 });
 

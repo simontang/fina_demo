@@ -1,13 +1,19 @@
-import { ChatBotCompnent } from "../../../components/chating";
+import { LatticeChatShell } from "@axiom-lattice/react-sdk";
+import { TOKEN_KEY } from "../../../authProvider";
+import { getBaseAPIPath } from "../../../getBaseAPIPath";
 
 export const InventoryDoctorAgentList = () => {
   return (
     <div style={{ height: "calc(-112px + 100vh)", width: "100%" }}>
-      <ChatBotCompnent
-        id="inventory_doctor_agent"
-        threadId="inventory_doctor_agent_thread_1"
-        name="Inventory Doctor Agent"
-      />
+      <LatticeChatShell initialConfig={{
+        baseURL: getBaseAPIPath(),
+        apiKey: localStorage.getItem(TOKEN_KEY) || "",
+        transport: "sse",
+        enableThreadCreation: true,
+        enableThreadList: true,
+        assistantId: "inventory_doctor_agent",
+        showSideMenu: false
+      }} />
     </div>
   );
 };
