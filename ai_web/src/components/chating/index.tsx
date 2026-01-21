@@ -11,14 +11,14 @@ import { forwardRef, useImperativeHandle } from "react";
 
 import { TOKEN_KEY } from "../../authProvider";
 
-function normalizeBffBaseUrl(raw?: string): string {
+function normalizeApiBaseUrl(raw?: string): string {
   const v = String(raw || "").trim().replace(/\/$/, "");
-  if (!v) return "http://localhost:6203/bff";
-  if (v.endsWith("/bff")) return v;
-  return `${v}/bff`;
+  if (!v) return "http://localhost:6203/api";
+  if (v.endsWith("/api")) return v;
+  return `${v}/api`;
 }
 
-const apiUrl = normalizeBffBaseUrl(import.meta.env.VITE_API_URL as string | undefined);
+const apiUrl = normalizeApiBaseUrl(import.meta.env.VITE_API_URL as string | undefined);
 
 export interface ChatBotRef {
   sendMessage: (message: string) => void;

@@ -15,6 +15,48 @@ import { registerRtcRoutes } from "./routes/rtc";
 
 const { app, startAsHttpEndpoint, configureSwagger } = LatticeGateway;
 
+function registerApiRoutes(app: FastifyInstance): void {
+  // API root information
+  app.get("/", async () => {
+    return {
+      name: "Research Data Agent API",
+      version: "1.0.0",
+      status: "running",
+      endpoints: {
+        health: "/api/health",
+        agents: "/api/agents",
+        files: "/api/files",
+        upload: "/api/files/upload",
+        uploadMultiple: "/api/files/upload-multiple",
+        datasets: "/api/datasets",
+        rtc: "/api/rtc",
+        runs: "/api/runs",
+      },
+    };
+  });
+
+  // Health check endpoint
+  app.get("/health", async () => {
+    return {
+      status: "ok",
+      timestamp: new Date().toISOString(),
+    };
+  });
+
+  // Agent management endpoints
+  app.get("/agents", getAgentList);
+  app.get("/agents/:id", getAgent);
+
+  // File upload endpoints
+  app.post("/files/upload", uploadFile);
+  app.post("/files/upload-multiple", uploadMultipleFiles);
+  app.get("/files", getUploadedFiles);
+  app.delete("/files/:filename", deleteFile);
+
+  // Dataset management endpoints
+  registerDatasetRoutes(app);
+}
+
 // 注册路由
 export const registerRoutes = (app: FastifyInstance): void => {
   // Python prediction service reverse-proxy (frontend calls /api/v1/* via this agent).
@@ -26,42 +68,8 @@ export const registerRoutes = (app: FastifyInstance): void => {
   // Register LatticeGateway routes at root path (required for sub-agent calls to /api/runs)
   LatticeGateway.registerLatticeRoutes(app);
 
-  // Also register LatticeGateway routes under /bff prefix (required for frontend calls via /api/bff/api/*)
-  app.register(async (bffApp) => {
-    LatticeGateway.registerLatticeRoutes(bffApp);
-  }, { prefix: "/bff" });
-
-  // 注册所有路由到 bff 前缀下
-  app.register(async (agentApp) => {
-    agentApp.get("/", async (request, reply) => {
-      return {
-        name: "Research Data Agent API",
-        version: "1.0.0",
-        status: "running",
-        endpoints: {
-          health: "/bff/health",
-          agents: "/bff/agents",
-          files: "/bff/files",
-          upload: "/bff/files/upload",
-          uploadMultiple: "/bff/files/upload-multiple",
-          datasets: "/bff/datasets",
-        },
-      };
-    });
-
-    // Agent management endpoints
-    agentApp.get("/agents", getAgentList);
-    agentApp.get("/agents/:id", getAgent);
-
-    // File upload endpoints
-    agentApp.post("/files/upload", uploadFile);
-    agentApp.post("/files/upload-multiple", uploadMultipleFiles);
-    agentApp.get("/files", getUploadedFiles);
-    agentApp.delete("/files/:filename", deleteFile);
-
-    // Dataset management endpoints
-    registerDatasetRoutes(agentApp);
-  }, { prefix: "/bff" });
+  // Register custom API routes under /api prefix
+  app.register(async (apiApp) => registerApiRoutes(apiApp), { prefix: "/api" });
 };
 
 // 配置并启动服务器

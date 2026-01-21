@@ -23,8 +23,13 @@ export function getPythonApiUrl(): string {
 export const authProvider: AuthProvider = {
   login: async ({ email, password }) => {
     try {
-      // 调用新的 admin login API
-      const response = await fetch(`${apiUrl}/login`, {
+      // 调用登录 API（使用 /api/login 路径）
+      const loginUrl = apiUrl && !apiUrl.startsWith("http") 
+        ? `${apiUrl}/login` 
+        : apiUrl 
+        ? `${apiUrl}/api/login` 
+        : "/api/login";
+      const response = await fetch(loginUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -217,10 +222,11 @@ export const createAuthenticatedDataProvider = (): DataProvider => {
       }
 
       // 特殊处理 datasets 资源，使用 Python API 代理路径
+      // 其他资源（如 agents, files）使用 /api/* 路径
       const resourceUrl =
         resource === "datasets"
           ? `/api/v1/datasets`
-          : `${baseUrl}/${resource}`;
+          : `/api/${resource}`;
       const url = `${resourceUrl}?${params.toString()}`;
 
       try {
@@ -251,10 +257,11 @@ export const createAuthenticatedDataProvider = (): DataProvider => {
 
     getOne: async ({ resource, id }) => {
       // 特殊处理 datasets 资源，使用 Python API 代理路径
+      // 其他资源（如 agents, files）使用 /api/* 路径
       const resourceUrl =
         resource === "datasets"
           ? `/api/v1/datasets/${id}`
-          : `${baseUrl}/${resource}/${id}`;
+          : `/api/${resource}/${id}`;
 
       try {
         const response = await fetchWithTimeout(resourceUrl, {
@@ -281,7 +288,7 @@ export const createAuthenticatedDataProvider = (): DataProvider => {
     },
 
     create: async ({ resource, variables }) => {
-      const url = `${baseUrl}/${resource}`;
+      const url = `/api/${resource}`;
 
       try {
         const response = await fetchWithTimeout(url, {
@@ -302,7 +309,7 @@ export const createAuthenticatedDataProvider = (): DataProvider => {
     },
 
     update: async ({ resource, id, variables }) => {
-      const url = `${baseUrl}/${resource}/${id}`;
+      const url = `/api/${resource}/${id}`;
 
       try {
         const response = await fetchWithTimeout(url, {
@@ -323,7 +330,7 @@ export const createAuthenticatedDataProvider = (): DataProvider => {
     },
 
     deleteOne: async ({ resource, id }) => {
-      const url = `${baseUrl}/${resource}/${id}`;
+      const url = `/api/${resource}/${id}`;
 
       try {
         const response = await fetchWithTimeout(url, {
@@ -346,7 +353,13 @@ export const createAuthenticatedDataProvider = (): DataProvider => {
 
     // 自定义方法：批量更新状态
     custom: async ({ url, method, headers, meta }) => {
-      const fullUrl = url.startsWith("http") ? url : `${baseUrl}${url}`;
+      // 如果 URL 已经是完整路径（以 http 开头），直接使用
+      // 否则，如果以 /api 开头，直接使用；否则添加 /api 前缀
+      const fullUrl = url.startsWith("http") 
+        ? url 
+        : url.startsWith("/api") 
+        ? url 
+        : `/api${url}`;
 
       try {
         const response = await fetchWithTimeout(fullUrl, {
