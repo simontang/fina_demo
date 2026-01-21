@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Button, Card, Col, Form, Input, InputNumber, Row, Space, Tag, Typography, message } from "antd";
 import VERTC_SDK from "@volcengine/rtc";
+import { Alert, Button, Card, Col, Form, Input, InputNumber, Row, Space, Tag, Typography, message } from "antd";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { TOKEN_KEY } from "../../../authProvider";
 
@@ -27,6 +27,11 @@ type SubtitleMessage = {
   userId: string;
   text: string;
   raw?: any;
+  sentenceId?: number;
+  sequence?: number;
+  definite?: boolean;
+  paragraph?: boolean;
+  timestamp?: number;
 };
 
 type SessionInfo = {
@@ -100,11 +105,125 @@ export const VoiceAgentRtc = () => {
   const [autoplayBlockedUserId, setAutoplayBlockedUserId] = useState<string>("");
   const [logs, setLogs] = useState<SubtitleMessage[]>([]);
   const logsRef = useRef<SubtitleMessage[]>([]);
+  const logsContainerRef = useRef<HTMLDivElement>(null);
+
+  const messageListRef = useRef<SubtitleMessage[]>([]);
 
   const appendLog = (m: Omit<SubtitleMessage, "id">) => {
     const msg: SubtitleMessage = { id: `${m.ts}_${Math.random()}`, ...m };
     logsRef.current = [...logsRef.current, msg].slice(-200);
     setLogs(logsRef.current);
+  };
+
+  const updateSubtitleMessage = (payload: {
+    userId: string;
+    text: string;
+    sentenceId?: number;
+    sequence?: number;
+    definite?: boolean;
+    paragraph?: boolean;
+  }) => {
+    if (
+      !payload.userId ||
+      payload.text === undefined ||
+      payload.sentenceId === undefined
+    ) {
+      return;
+    }
+
+    const now = Date.now();
+    const currentList = [...messageListRef.current];
+
+    const newMessage: SubtitleMessage = {
+      id: `${now}_${Math.random()}`,
+      ts: now,
+      userId: payload.userId,
+      text: payload.text,
+      sentenceId: payload.sentenceId,
+      sequence: payload.sequence,
+      definite: payload.definite ?? false,
+      paragraph: payload.paragraph ?? false,
+      timestamp: now,
+    };
+
+    // Determine if the last message is completed (either definite or paragraph)
+    const lastMsg = currentList.length
+      ? currentList[currentList.length - 1]
+      : null;
+    const lastMsgCompleted = !!(
+      lastMsg &&
+      (lastMsg.definite || lastMsg.paragraph)
+    );
+
+    if (currentList.length) {
+      // If the last message is completed OR the last message is from a different user,
+      // push a new message. Otherwise update the last message in-place (continuation).
+      if (lastMsgCompleted || !lastMsg || lastMsg.userId !== payload.userId) {
+        currentList.push(newMessage);
+      } else {
+        // Update last message in-place. Keep sequence comparison if provided to avoid
+        // regressions from out-of-order packets.
+        const existingMsg = lastMsg;
+        if (
+          payload.sequence !== undefined &&
+          existingMsg.sequence !== undefined
+        ) {
+          if (payload.sequence >= existingMsg.sequence) {
+            existingMsg.text = payload.text;
+            existingMsg.sequence = payload.sequence;
+            existingMsg.paragraph = payload.paragraph ?? false;
+            existingMsg.definite = payload.definite ?? false;
+            existingMsg.sentenceId = payload.sentenceId;
+            existingMsg.timestamp = now;
+          }
+        } else {
+          existingMsg.text = payload.text;
+          existingMsg.sequence = payload.sequence;
+          existingMsg.paragraph = payload.paragraph ?? false;
+          existingMsg.definite = payload.definite ?? false;
+          existingMsg.sentenceId = payload.sentenceId;
+          existingMsg.timestamp = now;
+        }
+
+        currentList[currentList.length - 1] = existingMsg;
+      }
+    } else {
+      // First message — always push
+      currentList.push(newMessage);
+    }
+
+    messageListRef.current = currentList;
+
+    // Also update logs so subtitle messages appear in UI
+    if (currentList.length) {
+      const latestMessage = currentList[currentList.length - 1];
+
+      // Check if we need to add a new log entry or update existing one
+      const existingLogIndex = logsRef.current.findIndex(
+        log => log.sentenceId === latestMessage.sentenceId && log.userId === latestMessage.userId
+      );
+
+      if (existingLogIndex >= 0) {
+        // Update existing log entry
+        const updatedLogs = [...logsRef.current];
+        updatedLogs[existingLogIndex] = { ...latestMessage, id: updatedLogs[existingLogIndex].id };
+        logsRef.current = updatedLogs;
+        setLogs(updatedLogs);
+      } else {
+        // Add new log entry
+        appendLog({
+          ts: latestMessage.ts,
+          userId: latestMessage.userId,
+          text: latestMessage.text,
+          raw: latestMessage.raw,
+          sentenceId: latestMessage.sentenceId,
+          sequence: latestMessage.sequence,
+          definite: latestMessage.definite,
+          paragraph: latestMessage.paragraph,
+          timestamp: latestMessage.timestamp,
+        });
+      }
+    }
   };
 
   const statusTag = useMemo(() => {
@@ -180,6 +299,10 @@ export const VoiceAgentRtc = () => {
 
   const onConnect = async () => {
     if (status !== "idle") return;
+    // Clear logs on reconnect
+    setLogs([]);
+    logsRef.current = [];
+    messageListRef.current = [];
     setStatus("connecting");
 
     const vals = form.getFieldsValue();
@@ -262,9 +385,20 @@ export const VoiceAgentRtc = () => {
           if (type !== "subv") return;
           const parsed = JSON.parse(value);
           const data = parsed?.data?.[0] ?? parsed;
-          const text =
-            String(data?.text || data?.content || data?.utterance || "").trim() || JSON.stringify(data);
-          appendLog({ ts: Date.now(), userId: String(data?.userId || from), text, raw: data });
+          const text = data.text ?? data.msg ?? "";
+          const sentenceId = data.roundId;
+          const sequence = data.sequence;
+          if (!text || !from || sentenceId === undefined) {
+            return;
+          }
+          updateSubtitleMessage({
+            userId: String(data?.userId || from),
+            text,
+            sentenceId,
+            sequence,
+            definite: data.definite,
+            paragraph: data.paragraph,
+          });
         } catch (err) {
           appendLog({ ts: Date.now(), userId: "system", text: `subtitle parse failed: ${String(err)}` });
         }
@@ -335,6 +469,13 @@ export const VoiceAgentRtc = () => {
       message.error(e?.message || "Failed to toggle microphone");
     }
   };
+
+  // Auto-scroll to bottom when logs change
+  useEffect(() => {
+    if (logsContainerRef.current) {
+      logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
+    }
+  }, [logs]);
 
   useEffect(() => {
     // defaults
@@ -478,7 +619,10 @@ export const VoiceAgentRtc = () => {
 
           <Col xs={24} md={14}>
             <Card title="RTC Logs / Subtitles" extra={<Text type="secondary">{logs.length.toLocaleString("en-US")} events</Text>}>
-              <div style={{ maxHeight: 520, overflow: "auto", fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas" }}>
+              <div
+                ref={logsContainerRef}
+                style={{ maxHeight: 520, overflow: "auto", fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas" }}
+              >
                 {logs.length === 0 ? (
                   <Text type="secondary">No events yet.</Text>
                 ) : (
