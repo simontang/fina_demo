@@ -31,6 +31,11 @@ COPY package.json ./
 RUN mkdir -p /app/uploads
 RUN mkdir -p /app/lattice_store
 
+# Copy skills directory to lattice_store
+COPY --from=builder /app/agent/skills /app/lattice_store/skills
+
+
+
 EXPOSE 5702
 
 CMD ["node", "dist/index.js"]
