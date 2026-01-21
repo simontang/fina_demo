@@ -38,6 +38,18 @@
       "tags": ["store", "sales", "allocation", "demo"],
       "time_column": "Order Date",
       "csv_path": "raw_data/store_sales_data.csv"
+    },
+    {
+      "id": "deckers_order_data",
+      "name": "Deckers Pre-season Bulk Order Dataset",
+      "description": "Deckers pre-season bulk order report data for order analysis and forecasting",
+      "table_name": "deckers_order_data",
+      "type": "order",
+      "created_at": "2026-01-21T00:00:00Z",
+      "updated_at": "2026-01-21T00:00:00Z",
+      "tags": ["order", "bulk", "pre-season", "deckers"],
+      "time_column": "ordered_date",
+      "csv_path": "raw_data/deckers_order_data.csv"
     }
   ]
 }
