@@ -7,6 +7,7 @@ export default defineConfig({
   base: "/admin/",
   server: {
     host: "0.0.0.0",
+    port: 5701,
     proxy: {
       // Single backend for the frontend: the agent service.
       // The agent reverse-proxies `/api/v1/*` to the Python prediction service.

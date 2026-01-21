@@ -25,20 +25,24 @@ services:
       PYTHON_API_URL: http://prediction_app:5703
       UPLOAD_DIR: /app/uploads
       # Optional (LLM provider for the agent + some Python insight endpoints).
-      VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2:-}
+      VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2:-a0533576-d6ed-4ca4-a308-473cbf7ebd10}
       VOLCENGINE_API_URL: ${VOLCENGINE_API_URL:-https://ark.cn-beijing.volces.com/api/v3}
       VOLCENGINE_MODEL: ${VOLCENGINE_MODEL:-kimi-k2-250905}
       # Optional (RTC Voice Chat)
-      VOLCENGINE_APP_ID: ${VOLCENGINE_APP_ID:-}
-      VOLCENGINE_APP_KEY: ${VOLCENGINE_APP_KEY:-}
-      VOLC_ACCESSKEY: ${VOLC_ACCESSKEY:-}
-      VOLC_SECRETKEY: ${VOLC_SECRETKEY:-}
+      VOLCENGINE_APP_ID: ${VOLCENGINE_APP_ID:-691afa7690b35401752447aa}
+      VOLCENGINE_APP_KEY: ${VOLCENGINE_APP_KEY:-183a248afa964e3e97487bae14e506d2}
+      VOLC_ACCESSKEY: ${VOLC_ACCESSKEY:-AKLTOTY3ZmIyNzJlY2ExNGM0NzllNTc5NmEyMmVjMzNiYzM}
+      VOLC_SECRETKEY: ${VOLC_SECRETKEY:-TlRsaU5EVTNZV1U1WkRSbE5HSXhOamcyT1RnM1lqWTNZVEEzTmpBME5XTQ==}
       VOLC_REGION: ${VOLC_REGION:-cn-north-1}
       VOLC_RTC_API_URL: ${VOLC_RTC_API_URL:-https://rtc.volcengineapi.com}
-      VOLC_SPEECH_APP_ID: ${VOLC_SPEECH_APP_ID:-}
-      COZEBOT_APIKEY: ${COZEBOT_APIKEY:-}
-      COZEBOT_BOT_ID: ${COZEBOT_BOT_ID:-}
+      VOLC_SPEECH_APP_ID: ${VOLC_SPEECH_APP_ID:-4989755477}
+      VOLC_SPEECH_ACCESS_TOKEN: ${VOLC_SPEECH_ACCESS_TOKEN:-xBwUO8jqYz4rnhiHqK7H70dM6UbOHef5}
+      VOLC_SPEECH_SECRET_KEY: ${VOLC_SPEECH_SECRET_KEY:-pKwgSeDlNCJ63EGHAbbay9XJny8OoQtp}
+      VOLC_TTS_VOICE_TYPE: ${VOLC_TTS_VOICE_TYPE:-zh_male_xudong_conversation_wvae_bigtts}
+      COZEBOT_APIKEY: ${COZEBOT_APIKEY:-sat_0FzxnRegEwyTUTt4rd7DzLioyys5NKYTNNsy1tptNblbfE9kZxSY4VPDrucMhNEK}
+      COZEBOT_BOT_ID: ${COZEBOT_BOT_ID:-7597420991484379170}
       COZEBOT_URL: ${COZEBOT_URL:-https://api.coze.cn}
+      VOICE_WELCOME_MESSAGE: ${VOICE_WELCOME_MESSAGE:-Hello! I'm here to help with B2B order status, credit limits, and stock transfers—let's optimize your operations!}
     volumes:
       - ./uploads:/app/uploads
       - ./lattice_store:/app/lattice_store
