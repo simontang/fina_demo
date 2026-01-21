@@ -981,8 +981,8 @@ def _rfm_generate_insight_markdown_ai(
     mom: Optional[Dict[str, Any]],
 ) -> str:
     model = os.getenv("VOLCENGINE_MODEL") or os.getenv("RFM_INSIGHT_MODEL") or "kimi-k2-250905"
-    timeout_seconds = int(os.getenv("RFM_AI_TIMEOUT_SECONDS") or "30")
-    max_tokens = int(os.getenv("RFM_AI_MAX_TOKENS") or "1200")
+    timeout_seconds = int(os.getenv("RFM_AI_TIMEOUT_SECONDS") or "300")
+    max_tokens = int(os.getenv("RFM_AI_MAX_TOKENS") or "3000")
 
     # Keep the prompt compact but explicit; pass structured context as JSON.
     context = {
@@ -1031,16 +1031,18 @@ def _rfm_generate_insight_markdown_ai(
     }
 
     system = (
-        "You are a senior growth analyst. Generate business insights and recommendations from RFM segmentation.\n"
+        "You are a senior growth analyst. Generate comprehensive business insights and recommendations from RFM segmentation.\n"
         "Output MUST be Markdown and MUST contain exactly these three sections (use '### ' headings):\n"
         "1) ### Executive Summary\n"
         "2) ### Opportunity & Risk\n"
         "3) ### Action Plan\n"
         "Rules:\n"
         "- Write in English.\n"
-        "- Keep it concise and actionable.\n"
-        "- In Opportunity & Risk use bullet list.\n"
-        "- In Action Plan provide concrete strategies for Top 2 key segments (by revenue contribution).\n"
+        "- Provide detailed, actionable insights with specific numbers and percentages from the data.\n"
+        "- In Executive Summary, provide a comprehensive overview (3-5 sentences) highlighting key findings.\n"
+        "- In Opportunity & Risk, use bullet points to list 3-5 key opportunities and risks with specific data references.\n"
+        "- In Action Plan, provide concrete, detailed strategies for Top 2-3 key segments (by revenue contribution), including specific tactics and expected outcomes.\n"
+        "- Be thorough and insightful, not just concise.\n"
         "- Do not include any other sections or preamble.\n"
     )
 
@@ -1683,8 +1685,15 @@ def run_rfm_analysis(dataset_id: str, req: RFMRunRequest):
     insight_md: str
     enable_ai = os.getenv("RFM_ENABLE_AI_INSIGHT")
     # Default: enable when a Volcengine API key is available.
+    api_key = _get_volcengine_api_key()
     if enable_ai is None:
-        enable_ai = "1" if _get_volcengine_api_key() else "0"
+        enable_ai = "1" if api_key else "0"
+    # Log whether AI is enabled for debugging
+    if str(enable_ai).lower() in {"1", "true", "yes", "on"}:
+        if not api_key:
+            print(f"⚠️  RFM AI insight requested but VOLCENGINE_API_KEY2/VOLCENGINE_API_KEY not configured, falling back to template")
+        else:
+            print(f"✅ RFM AI insight enabled, using model: {os.getenv('VOLCENGINE_MODEL') or 'kimi-k2-250905'}")
 
     if str(enable_ai).lower() in {"1", "true", "yes", "on"}:
         try:

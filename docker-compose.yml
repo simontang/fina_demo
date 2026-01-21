@@ -6,7 +6,7 @@ services:
     environment:
       PORT: "5703"
       # Optional (only required if you want AI explanations/insights).
-      VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2:-}
+      VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2:-a0533576-d6ed-4ca4-a308-473cbf7ebd10}
       VOLCENGINE_BASE_URL: ${VOLCENGINE_BASE_URL:-https://ark.cn-beijing.volces.com/api/v3}
       VOLCENGINE_MODEL: ${VOLCENGINE_MODEL:-kimi-k2-250905}
     volumes:
