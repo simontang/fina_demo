@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import path from "path";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
+import { PostgreSQLThreadStore } from "@axiom-lattice/pg-stores";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 import { startServer } from "./gateway";
@@ -94,10 +95,25 @@ skillLatticeManager.configureStore("default");
 //   baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
 // });
 
-// const globalMemory = PostgresSaver.fromConnString(process.env.DATABASE_URL!);
-// globalMemory.setup();
-// MemoryLatticeManager.getInstance().removeCheckpointSaver("default");
-// registerCheckpointSaver("default", globalMemory);
+if (process.env.NODE_ENV === "production") {
+  const globalMemory = PostgresSaver.fromConnString(process.env.DATABASE_URL!);
+  globalMemory.setup();
+  MemoryLatticeManager.getInstance().removeCheckpointSaver("default");
+  registerCheckpointSaver("default", globalMemory);
+
+
+  // Create and initialize PostgreSQL ThreadStore
+  const threadStore = new PostgreSQLThreadStore({
+    poolConfig: process.env.DATABASE_URL || "",
+  });
+
+  // Initialize (runs migrations automatically)
+  //threadStore.initialize();
+  storeLatticeManager.removeLattice("default", "thread");
+  registerStoreLattice("default", "thread", threadStore);
+
+}
+
 
 //migrateVectorStoreToPGVectorStore();
 
