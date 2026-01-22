@@ -60,7 +60,6 @@ services:
       COZEBOT_APIKEY: ${COZEBOT_APIKEY}
     volumes:
       - ./uploads:/app/uploads
-      - ./lattice_store:/app/lattice_store
 
       # Mount datasets config so agent can access it
       - ./prediction_app/config:/app/prediction_app/config:ro

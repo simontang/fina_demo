@@ -45,7 +45,6 @@ services:
       VOICE_WELCOME_MESSAGE: ${VOICE_WELCOME_MESSAGE:-Hello! I'm here to help with B2B order status, credit limits, and stock transfers—let's optimize your operations!}
     volumes:
       - ./uploads:/app/uploads
-      - ./lattice_store:/app/lattice_store
     depends_on:
       - prediction_app
     ports:
