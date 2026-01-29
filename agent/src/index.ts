@@ -13,6 +13,7 @@ import {
   registerStoreLattice,
   storeLatticeManager,
   FileSystemSkillStore,
+  sandboxLatticeManager,
 } from "@axiom-lattice/core";
 const fs = require("fs");
 
@@ -113,6 +114,10 @@ if (process.env.NODE_ENV === "production") {
   registerStoreLattice("default", "thread", threadStore);
 
 }
+
+//Register Sandbox Manager Lattice
+sandboxLatticeManager.registerLattice("default", { baseURL: "https://demo.alphafina.cn" })
+
 
 
 //migrateVectorStoreToPGVectorStore();

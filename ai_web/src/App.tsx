@@ -28,7 +28,7 @@ import { DeepResearchAgentList } from "./pages/agents/deep-research";
 import { DeepResearchCritique } from "./pages/agents/deep-research/critique";
 import { DeepResearchNewChat } from "./pages/agents/deep-research/new";
 import { DeepResearchResearch } from "./pages/agents/deep-research/research";
-import { InventoryDoctorAgentList } from "./pages/agents/inventory_doctor_agent";
+import { ComputerUseAgentList } from "./pages/agents/computer_use_agent";
 import { AgentOverview } from "./pages/agents/overview";
 import { VoiceAgentRtc } from "./pages/agents/voice/rtc";
 // Prediction Center pages
@@ -96,10 +96,10 @@ function App() {
                 },
               },
               {
-                name: "inventory-doctor-agent",
-                list: "/agents/inventory_doctor_agent",
+                name: "computer-use-agent",
+                list: "/agents/computer_use_agent",
                 meta: {
-                  label: "Inventory Doctor Agent",
+                  label: "Computer Use Agent",
                   parent: "agent-center",
                 },
               },
@@ -223,7 +223,7 @@ function App() {
                     {/* <Route index element={<VoiceAgentList />} /> */}
                     {/* <Route path="rtc" element={<VoiceAgentRtc />} /> */}
                   </Route>
-                  <Route path="inventory_doctor_agent" element={<InventoryDoctorAgentList />} />
+                  <Route path="computer_use_agent" element={<ComputerUseAgentList />} />
                 </Route>
                 {/* Prediction Center Routes */}
                 <Route path="/prediction">

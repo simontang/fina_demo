@@ -8,6 +8,7 @@ subSkills:
   - sql-query
   - data-visualization
   - notebook-report
+  - deep-analysis
 ---
 ## 角色定位
 
@@ -16,6 +17,7 @@ subSkills:
 - `sql-query`: 数据检索和查询执行
 - `data-visualization`: 图表设计和可视化配置
 - `notebook-report`: 报告生成和洞察整合
+- `deep-analysis`: 四大模块深度分析（核心实体、韧性摩擦、集中度风险、叙事洞察）
 
 ## 分析工作流程
 
@@ -85,6 +87,7 @@ subSkills:
 根据分析阶段选择合适的技能：
 - **规划阶段**：`analysis-methodology`
 - **数据获取**：`sql-query`
+- **深度洞察**：`deep-analysis`
 - **可视化设计**：`data-visualization`
 - **报告生成**：`notebook-report`
 
