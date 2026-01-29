@@ -21,8 +21,8 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "@axiom-lattice/core": "^2.1.18",
-    "@axiom-lattice/gateway": "^2.1.23",
+    "@axiom-lattice/core": "^2.1.19",
+    "@axiom-lattice/gateway": "^2.1.24",
     "@axiom-lattice/pg-stores": "^1.0.5",
     "@fastify/cors": "^11.1.0",
     "@fastify/multipart": "^9.3.0",

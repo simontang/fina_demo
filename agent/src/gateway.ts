@@ -1,5 +1,5 @@
 import Fastify, { FastifyInstance } from "fastify";
-import multipart from "@fastify/multipart";
+
 
 import { LatticeGateway } from "@axiom-lattice/gateway";
 import { getAgentList, getAgent } from "./controllers/agentController";
@@ -75,13 +75,6 @@ export const registerRoutes = (app: FastifyInstance): void => {
 // 配置并启动服务器
 export async function startServer(port: number = 5702) {
   try {
-    // Register multipart plugin for file uploads
-    await app.register(multipart, {
-      limits: {
-        fileSize: 50 * 1024 * 1024, // 50MB max file size
-        files: 10, // Max 10 files per request
-      },
-    });
 
     // 注册路由
     registerRoutes(app);

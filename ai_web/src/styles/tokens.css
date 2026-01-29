@@ -22,3 +22,12 @@
   --control-height: 32px;
 }
 
+/* BubbleList scroll area: make scroll-content follow parent width (from @ant-design/x / LatticeChat) */
+.fina_chat .ant-bubble-list,
+.fina_chat .ant-bubble-list-scroll-box,
+.fina_chat .ant-bubble-list-scroll-content {
+  width: 100%;
+  min-width: 100%;
+  box-sizing: border-box;
+}
+
