@@ -18,13 +18,7 @@ import { forwardRef, useEffect, useImperativeHandle } from "react";
 import { TOKEN_KEY } from "../../authProvider";
 import { getBaseAPIPath } from "../../getBaseAPIPath";
 
-function normalizeApiBaseUrl(raw?: string): string {
-  const v = String(raw || "").trim().replace(/\/$/, "");
-  if (!v) return "http://localhost:5702/api";
-  if (v.endsWith("/api")) return v;
-  return `${v}/api`;
-}
-
+/** baseURL 使用根路径（不含 /api），由 Lattice SDK 自动添加 /api 前缀 */
 const apiUrl = getBaseAPIPath();
 
 export interface ChatBotRef {
