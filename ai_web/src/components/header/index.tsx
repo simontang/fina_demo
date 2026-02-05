@@ -3,12 +3,15 @@ import { useGetIdentity } from "@refinedev/core";
 import {
   Layout as AntdLayout,
   Avatar,
+  Button,
   Space,
   Switch,
   theme,
   Typography,
 } from "antd";
 import React, { useContext } from "react";
+import { useNavigate } from "react-router";
+import { ExperimentOutlined } from "@ant-design/icons";
 import { ColorModeContext } from "../../contexts/color-mode";
 
 const { Text } = Typography;
@@ -26,6 +29,7 @@ export const Header: React.FC<RefineThemedLayoutHeaderProps> = ({
   const { token } = useToken();
   const { data: user } = useGetIdentity<IUser>();
   const { mode, setMode } = useContext(ColorModeContext);
+  const navigate = useNavigate();
 
   const headerStyles: React.CSSProperties = {
     backgroundColor: token.colorBgElevated,
@@ -46,6 +50,13 @@ export const Header: React.FC<RefineThemedLayoutHeaderProps> = ({
   return (
     <AntdLayout.Header style={headerStyles}>
       <Space>
+        <Button
+          type="primary"
+          icon={<ExperimentOutlined />}
+          onClick={() => navigate("/workbench")}
+        >
+          Agent Studio
+        </Button>
         <Switch
           checked={mode === "dark"}
           onChange={() => setMode(mode === "dark" ? "light" : "dark")}

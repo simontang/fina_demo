@@ -11,6 +11,8 @@ export const AgentOverview = () => {
           baseURL: getBaseAPIPath(),
           apiKey: localStorage.getItem(TOKEN_KEY) || "",
           transport: "sse",
+          enableAssistantCreation: false,
+          enableThreadCreation: false,
         }}
       >
         <AssistantFlow />

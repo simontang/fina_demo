@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import path from "path";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
-import { PostgreSQLThreadStore } from "@axiom-lattice/pg-stores";
+import { PostgreSQLAssistantStore, PostgreSQLThreadStore } from "@axiom-lattice/pg-stores";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 import { startServer } from "./gateway";
@@ -114,6 +114,21 @@ if (process.env.NODE_ENV === "production") {
   registerStoreLattice("default", "thread", threadStore);
 
 }
+
+
+// Create and initialize AssistantStore with connection string
+const assistantStore = new PostgreSQLAssistantStore({
+  poolConfig: process.env.DATABASE_URL || "",
+});
+
+// Ensure initialization (migrations run automatically)
+// assistantStore.initialize();
+
+// Register to StoreLatticeManager
+storeLatticeManager.removeLattice("default", "assistant");
+
+registerStoreLattice("default", "assistant", assistantStore);
+
 
 //Register Sandbox Manager Lattice
 sandboxLatticeManager.registerLattice("default", { baseURL: "https://demo.alphafina.cn" })

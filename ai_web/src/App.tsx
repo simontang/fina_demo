@@ -41,6 +41,8 @@ import { Datasets } from "./pages/assets/datasets";
 import { DatasetDetail } from "./pages/assets/datasets/detail";
 import { Models } from "./pages/assets/models";
 import { Skills } from "./pages/assets/skills";
+// Workbench page
+import { AgentWorkbench } from "./pages/workbench";
 
 function App() {
   const dataProvider = createAuthenticatedDataProvider();
@@ -244,6 +246,19 @@ function App() {
 
                 <Route path="*" element={<ErrorComponent />} />
               </Route>
+
+              {/* Workbench Route - 独立布局，无侧边栏，需要认证 */}
+              <Route
+                path="/workbench"
+                element={
+                  <Authenticated
+                    key="authenticated-workbench"
+                    fallback={<CatchAllNavigate to="/login" />}
+                  >
+                    <AgentWorkbench />
+                  </Authenticated>
+                }
+              />
 
               <Route
                 element={

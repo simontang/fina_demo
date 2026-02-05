@@ -360,7 +360,7 @@ const data_agents: AgentConfig[] = [
     description:
       "业务数据分析智能体：1) 简单查询 - 直接查询数据（销售额、用户数等）；2) 深度分析 - 分析原因、趋势、洞察、预测并生成报告。智能识别用户需求深度，自动匹配工作模式。",
     type: AgentType.DEEP_AGENT,
-    tools: ["list_tables_sql", "info_sql"],
+    // tools: ["list_tables_sql", "info_sql"],
     prompt: dataAgentPrompt,
     subAgents: ["sql-builder-agent", "data-analysis-agent"],
     skillCategories: ["analysis", "sql"],
@@ -381,7 +381,7 @@ const data_agents: AgentConfig[] = [
     description:
       "A specialized sub-agent for database exploration, SQL query generation, validation, and execution. This agent handles all SQL-related operations including listing tables, exploring schemas, generating queries, validating them, executing them, and returning both the SQL and query results to the data_agent.",
     prompt: sqlBuilderPrompt,
-    tools: ["list_tables_sql", "info_sql", "query_checker_sql", "query_sql"],
+    // tools: ["list_tables_sql", "info_sql", "query_checker_sql", "query_sql"],
     // Sub-agents inherit runConfig from parent agent via the execution context
   },
   {
