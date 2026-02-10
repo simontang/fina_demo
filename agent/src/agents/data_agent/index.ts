@@ -353,7 +353,11 @@ const data_agents: AgentConfig[] = [
         "enabled": true,
         "config": {
           "skills": [
-            "bjy-metrics-definition"
+            "bjy-metrics-definition",
+            "data-visualization",
+            "notebook-report",
+            "analyst",
+            "analysis-methodology"
           ]
         }
       }
