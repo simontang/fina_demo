@@ -31,6 +31,13 @@ export const AgentWorkbench = () => {
       <div style={{ flex: 1, overflow: "hidden" }}>
         <LatticeChatShell
           initialConfig={{
+            resourceFolders: [
+              { name: "/", displayName: "Root", allowUpload: true },
+              { name: "assets", displayName: "Assets", allowUpload: true },
+              { name: "metrics", displayName: "Metrics", allowUpload: true },
+              { name: "outputs", displayName: "Outputs", allowUpload: false },
+            ],
+            enableWorkspace: true,
             enableThreadCreation: true,
             enableThreadList: true,
             baseURL: getBaseAPIPath(),

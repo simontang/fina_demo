@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import path from "path";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
-import { PostgreSQLAssistantStore, PostgreSQLThreadStore } from "@axiom-lattice/pg-stores";
+import { PostgreSQLAssistantStore, PostgreSQLThreadStore, PostgreSQLDatabaseConfigStore, PostgreSQLWorkspaceStore, PostgreSQLProjectStore } from "@axiom-lattice/pg-stores";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 import { startServer } from "./gateway";
@@ -14,6 +14,7 @@ import {
   storeLatticeManager,
   FileSystemSkillStore,
   sandboxLatticeManager,
+  sqlDatabaseManager,
 } from "@axiom-lattice/core";
 const fs = require("fs");
 
@@ -128,6 +129,44 @@ const assistantStore = new PostgreSQLAssistantStore({
 storeLatticeManager.removeLattice("default", "assistant");
 
 registerStoreLattice("default", "assistant", assistantStore);
+
+
+
+// Initialize and register PostgreSQL DatabaseConfigStore
+// This stores database connection configurations with encryption
+const databaseConfigStore = new PostgreSQLDatabaseConfigStore({
+  poolConfig: process.env.DATABASE_URL || "",
+  autoMigrate: true,
+});
+
+// Register databaseConfigStore to replace the default in-memory store
+storeLatticeManager.removeLattice("default", "database");
+registerStoreLattice("default", "database", databaseConfigStore);
+sqlDatabaseManager.loadAllConfigsFromStore(databaseConfigStore)
+console.log("PostgreSQL DatabaseConfigStore initialized with auto-migration");
+
+// Initialize and register PostgreSQL WorkspaceStore
+const workspaceStore = new PostgreSQLWorkspaceStore({
+  poolConfig: process.env.DATABASE_URL || "",
+  autoMigrate: true,
+});
+
+// Register workspaceStore to replace the default in-memory store
+storeLatticeManager.removeLattice("default", "workspace");
+registerStoreLattice("default", "workspace", workspaceStore);
+console.log("PostgreSQL WorkspaceStore initialized with auto-migration");
+
+// Initialize and register PostgreSQL ProjectStore
+const projectStore = new PostgreSQLProjectStore({
+  poolConfig: process.env.DATABASE_URL || "",
+  autoMigrate: true,
+});
+
+// Register projectStore to replace the default in-memory store
+storeLatticeManager.removeLattice("default", "project");
+registerStoreLattice("default", "project", projectStore);
+console.log("PostgreSQL ProjectStore initialized with auto-migration");
+
 
 
 //Register Sandbox Manager Lattice
