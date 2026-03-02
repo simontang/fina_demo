@@ -1,0 +1,59 @@
+server:
+  port: ${SERVER_PORT:5704}
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: metrics-server
+  datasource:
+    # Master datasource (PostgreSQL Aliyun RDS) — stores t_datasource_config and t_metrics_meta
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com:5432/postgres}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres_fuli}
+    password: ${SPRING_DATASOURCE_PASSWORD:jfd4whz@GPF2nqx7zhm}
+    hikari:
+      pool-name: master-pg-pool
+      maximum-pool-size: ${MASTER_POOL_MAX:10}
+      minimum-idle: ${MASTER_POOL_MIN:2}
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  jackson:
+    default-property-inclusion: always
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+
+mybatis-plus:
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+
+# AES key used to encrypt SAP B1 HANA passwords stored in t_datasource_config
+metrics:
+  encryption:
+    key: ${ENCRYPT_KEY:fina-metrics-2024!}
+  # Set true to skip loading dynamic HANA datasources on startup (dev mode without HANA)
+  skip-init: ${SKIP_INIT:false}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  file:
+    path: ${LOG_DIR:./logs}
+  level:
+    com.fina.metrics: ${LOG_LEVEL:INFO}
+    com.baomidou.mybatisplus: WARN

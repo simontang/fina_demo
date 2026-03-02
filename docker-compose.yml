@@ -51,6 +51,27 @@ services:
       - "5702:5702"
     restart: unless-stopped
 
+  metrics_server:
+    build:
+      context: ./metrics-server
+      dockerfile: Dockerfile
+    environment:
+      SERVER_PORT: "5704"
+      # Master PostgreSQL (Aliyun RDS) — stores datasource configs & metric definitions
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com:5432/postgres}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-postgres_fuli}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:?SPRING_DATASOURCE_PASSWORD is required}
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      # AES key for encrypting SAP B1 HANA passwords at rest
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-fina-metrics-2024!}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SKIP_INIT: ${SKIP_INIT:-false}
+    volumes:
+      - ./logs/metrics-server:/app/logs
+    ports:
+      - "5704:5704"
+    restart: unless-stopped
+
   ai_web:
     build:
       context: ./ai_web
@@ -60,3 +81,4 @@ services:
     ports:
       - "5701:5701"
     restart: unless-stopped
+

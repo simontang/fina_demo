@@ -1,12 +1,19 @@
 # Fina Demo
 
 Demo repository that combines:
-- `agent/`: Node.js (Fastify) gateway + agent orchestration
-- `prediction_app/`: Python (FastAPI) dataset + prediction APIs (including sales forecasting)
-- `ai_web/`: React (Refine) admin UI
+- **agent/**：Node.js (Fastify) 网关与 Agent 编排（含 Data Agent、Research Agent、Voice Agent 等）
+- **prediction_app/**：Python (FastAPI) 数据集与预测 API（销售预测、RFM、库存等）
+- **ai_web/**：React (Refine) 管理端 UI
 
-Extras:
-- Voice Agent supports Volcengine RTC VoiceChat via `agent` (`/api/rtc/*`) and UI at `/admin/agents/voice/rtc`
+功能亮点：
+- **Data Agent**：业务数据分析智能体，支持自然语言查数、多步分析与报告生成；详见 [开发 Data Agent 指南](docs/DEVELOPING_A_DATA_AGENT.md)。
+- **Voice Agent**：通过 `agent` 的 `/api/rtc/*` 与 Volcengine RTC 语音对话，UI 在 `/admin/agents/voice/rtc`。
+
+## 文档
+
+- **[文档索引](docs/README.md)**：项目文档列表与分类。
+- **[开发 Data Agent](docs/DEVELOPING_A_DATA_AGENT.md)**：如何开发/扩展 Data Agent（后端注册、技能、子代理、前端对接）。
+- [微服务与路由](MICROSERVICES_PORTS_AND_ROUTES.md)、[环境变量与部署](ENV_FILE_GUIDE.md)、[数据集管理规格](DATASET_MANAGEMENT_SPEC.md) 等见文档索引。
 
 ## Quickstart (Dev)
 

@@ -8,6 +8,7 @@
 SERVICE_1="fina-demo-agent"
 SERVICE_2="fina-demo-prediction-app"
 SERVICE_3="fina-demo-ai-web"
+SERVICE_4="fina-demo-metrics-server"
 
 # GitHub Container Registry 配置
 # NOTE: Do NOT hardcode credentials in git history. Provide them via environment variables.
@@ -113,6 +114,7 @@ usage() {
     echo "    1 - $SERVICE_1"
     echo "    2 - $SERVICE_2"
     echo "    3 - $SERVICE_3"
+    echo "    4 - $SERVICE_4"
     echo ""
     echo "选项:"
     echo "    --help, -h          显示此帮助信息"
@@ -187,6 +189,9 @@ get_compose_service_name() {
         "$SERVICE_3")
             echo "ai_web"
             ;;
+        "$SERVICE_4")
+            echo "metrics_server"
+            ;;
         *)
             echo ""
             ;;
@@ -237,10 +242,15 @@ deploy_to_server() {
             env_file_to_upload=".env"
             log_warning "找到本地开发环境文件: .env"
             log_warning "建议使用 .env.prod 或 .env.fina_demo 用于生产部署"
-            read -p "是否继续使用本地 .env 文件？(y/N): " -n 1 -r
-            echo
-            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-                log_info "跳过 .env 文件上传，使用服务器上现有的配置"
+            if [[ -t 0 ]]; then
+                read -p "是否继续使用本地 .env 文件？(y/N): " -n 1 -r
+                echo
+                if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                    log_info "跳过 .env 文件上传，使用服务器上现有的配置"
+                    env_file_to_upload=""
+                fi
+            else
+                log_info "非交互模式，跳过 .env 上传，使用服务器上现有配置"
                 env_file_to_upload=""
             fi
         fi
@@ -348,6 +358,10 @@ main() {
                 services_to_transfer+=("$SERVICE_3")
                 shift
                 ;;
+            4)
+                services_to_transfer+=("$SERVICE_4")
+                shift
+                ;;
             *)
                 log_error "无效的服务编号: $1"
                 usage
@@ -358,7 +372,7 @@ main() {
     # 如果没有指定服务，则传输所有服务
     if [[ ${#services_to_transfer[@]} -eq 0 ]] && [[ "$transfer_images" == true ]]; then
         log_info "未指定具体服务，将传输所有服务..."
-        services_to_transfer=("$SERVICE_1" "$SERVICE_2" "$SERVICE_3")
+        services_to_transfer=("$SERVICE_1" "$SERVICE_2" "$SERVICE_3" "$SERVICE_4")
     fi
     
     # 检查 Docker

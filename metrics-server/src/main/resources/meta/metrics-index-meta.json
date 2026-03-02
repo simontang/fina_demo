@@ -1,0 +1,55 @@
+{
+    "metric_catalog_version": "1.0",
+    "domain_categories": ["revenue_and_growth", "sales_performance", "fulfillment_and_logistics", "quality_and_risk", "customer_value", "pricing_and_margin"],
+    "metrics_index": [
+      {
+        "metric_name": "order_amt_tax_inc",
+        "display_name": "订单金额（含税）",
+        "domain": "sales_performance",
+        "short_desc": "销售接单阶段的含税总金额。用于衡量前端销售团队的开拓能力、打单情况及未来预期收入。",
+        "search_keywords": ["接单金额", "订单额", "签约金额", "含税接单额", "卖了多少钱"]
+      },
+      {
+        "metric_name": "delivery_qty",
+        "display_name": "交货数量",
+        "domain": "fulfillment_and_logistics",
+        "short_desc": "实际发出（出库）的物料总件数。反映仓库作业吞吐量与供应链履约情况。",
+        "search_keywords": ["发货件数", "发货量", "出库数量", "交货量", "物流发出"]
+      },
+      {
+        "metric_name": "return_amt",
+        "display_name": "退货金额",
+        "domain": "quality_and_risk",
+        "short_desc": "客户退货产生的含税金额。核心风控指标，反映产品质量、过度承诺或物流破损问题。",
+        "search_keywords": ["退货额", "退款", "退回", "客诉退钱", "质量退货"]
+      },
+      {
+        "metric_name": "avg_ticket_size_per_customer",
+        "display_name": "客单价",
+        "domain": "customer_value",
+        "short_desc": "平均每个客户贡献的含税订单总额。衡量客户的整体购买力、预算份额和交叉销售效果。",
+        "search_keywords": ["单客产出", "平均消费", "客单价", "大客户产出"]
+      },
+      {
+        "metric_name": "avg_selling_price",
+        "display_name": "平均成交单价 (ASP)",
+        "domain": "pricing_and_margin",
+        "short_desc": "每售出一件单品的平均价格。用于监控产品线价格体系的稳健程度和市场溢价能力。",
+        "search_keywords": ["件单价", "ASP", "单品均价", "平均售价", "单价降了"]
+      },
+      {
+        "metric_name": "net_sales_amt",
+        "display_name": "净销售额（含税）",
+        "domain": "revenue_and_growth",
+        "short_desc": "已开具应收发票的含税金额总和，代表账面已确认营收。与订单金额对比可判断 Backlog 是否健康。",
+        "search_keywords": ["开票金额", "发票金额", "净营收", "确认收入", "Billing"]
+      },
+      {
+        "metric_name": "avg_discount_rate",
+        "display_name": "折扣率",
+        "domain": "pricing_and_margin",
+        "short_desc": "订单成交时给予客户的平均让利幅度。用于监控业务员放价行为，防止利润流失。",
+        "search_keywords": ["让利", "打折", "降价幅度", "折扣比例", "便宜了多少"]
+      }
+    ]
+  }

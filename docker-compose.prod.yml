@@ -52,16 +52,20 @@ services:
       VOLC_ACCESSKEY: ${VOLC_ACCESSKEY:-AKLTOTY3ZmIyNzJlY2ExNGM0NzllNTc5NmEyMmVjMzNiYzM}
       VOLC_SECRETKEY: ${VOLC_SECRETKEY:-TlRsaU5EVTNZV1U1WkRSbE5HSXhOamcyT1RnM1lqWTNZVEEzTmpBME5XTQ==}
       # Speech (ASR/TTS) configuration
-      VOLC_SPEECH_APP_ID: ${VOLC_SPEECH_APP_ID}
-      VOLC_SPEECH_ACCESS_TOKEN: ${VOLC_SPEECH_ACCESS_TOKEN}
-      VOLC_SPEECH_SECRET_KEY: ${VOLC_SPEECH_SECRET_KEY}
+      VOLC_SPEECH_APP_ID: ${VOLC_SPEECH_APP_ID:-4989755477}
+      VOLC_SPEECH_ACCESS_TOKEN: ${VOLC_SPEECH_ACCESS_TOKEN:-xBwUO8jqYz4rnhiHqK7H70dM6UbOHef5}
+      VOLC_SPEECH_SECRET_KEY: ${VOLC_SPEECH_SECRET_KEY:-pKwgSeDlNCJ63EGHAbbay9XJny8OoQtp}
       VOLC_TTS_CLUSTER: ${VOLC_TTS_CLUSTER:-volcano_tts}
+      VOLC_TTS_VOICE_TYPE: ${VOLC_TTS_VOICE_TYPE:-zh_male_xudong_conversation_wvae_bigtts}
       # Coze Bot configuration (for LLM in voice chat)
-      COZEBOT_APIKEY: ${COZEBOT_APIKEY}
+      COZEBOT_APIKEY: ${COZEBOT_APIKEY:-sat_0FzxnRegEwyTUTt4rd7DzLioyys5NKYTNNsy1tptNblbfE9kZxSY4VPDrucMhNEK}
+      COZEBOT_BOT_ID: ${COZEBOT_BOT_ID:-7597420991484379170}
+      VOICE_WELCOME_MESSAGE: ${VOICE_WELCOME_MESSAGE:-Hello! I'm here to help with B2B order status, credit limits, and stock transfers—let's optimize your operations!}
+      # Tavily Search API (for internet_search tool in Deep Research Agent)
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-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}
     volumes:
       - ./uploads:/app/uploads
       - ./lattice_store:/app/lattice_store
-
       # Mount datasets config so agent can access it
       - ./prediction_app/config:/app/prediction_app/config:ro
     depends_on:
@@ -69,6 +73,24 @@ services:
     ports:
       # Only bind to localhost, access via nginx reverse proxy
       - "127.0.0.1:5702:5702"
+    restart: unless-stopped
+
+  metrics_server:
+    image: finai-cn-shanghai.cr.volces.com/default/fina-demo-metrics-server:latest
+    environment:
+      SERVER_PORT: "5704"
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com:5432/postgres}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-postgres_fuli}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:?SPRING_DATASOURCE_PASSWORD is required}
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-fina-metrics-2024!}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SKIP_INIT: ${SKIP_INIT:-false}
+    volumes:
+      - ./logs/metrics-server:/app/logs
+    ports:
+      # Only bind to localhost, access via nginx reverse proxy
+      - "127.0.0.1:5704:5704"
     restart: unless-stopped
 
   ai_web:

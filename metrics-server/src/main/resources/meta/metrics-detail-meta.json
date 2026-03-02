@@ -1,0 +1,456 @@
+[
+  {
+    "metric_name": "order_amt_tax_inc",
+    "display_name": "订单金额（含税）",
+    "domain": "sales_performance",
+    "description": "销售接单阶段的含税总金额。作为反映销售团队开拓能力与市场需求的先导指标，用于预测未来的营收转化。",
+    "data_type": "currency",
+    "format": "¥0,0.00",
+
+    "default_time_context": {
+      "time_dimension": "DocDate",
+      "label": "单据日期",
+      "granularity": "month",
+      "window": "current_month",
+      "supported_grains": ["day", "week", "month", "year"]
+    },
+
+    "calculation": {
+      "type": "base",
+      "sql_expression": "SUM(\"GTotal\")",
+      "dependencies": []
+    },
+
+    "source": {
+      "table_view": "MTC_VW_AI_ORDR",
+      "base_filters": []
+    },
+
+    "supported_dimensions": [
+      { "dim_id": "org_region",       "field_name": "Region",     "type": "categorical" },
+      { "dim_id": "product_category", "field_name": "ItmsGrpNam", "type": "categorical" },
+      { "dim_id": "sales_person",     "field_name": "SlpName",    "type": "categorical" }
+    ],
+
+    "behavior_profile": {
+      "role": "leading_indicator",
+      "analysis_priority": 1
+    },
+
+    "ai_agent_context": {
+      "synonyms": ["接单金额", "订单额", "签约金额", "含税接单额", "Booking Amount"],
+      "polarity": "positive",
+
+      "thresholds": [
+        { "metric": "mom_growth", "operator": "<", "value": 0,    "level": "warning"  },
+        { "metric": "yoy_growth", "operator": "<", "value": -0.1, "level": "critical" }
+      ],
+
+      "diagnostic_workflow": {
+        "trigger": {
+          "any_of": [
+            { "metric": "mom_growth", "operator": "<", "value": 0    },
+            { "metric": "yoy_growth", "operator": "<", "value": -0.1 }
+          ]
+        },
+        "actions": [
+          { "type": "compare_metric", "metric": "net_sales_amt",                        "intent": "check_revenue_conversion"           },
+          { "type": "drill_down",     "dimensions": ["org_region", "sales_person"],     "intent": "identify_underperforming_segments"  }
+        ],
+        "analysis_logic": "backlog_vs_real_decline"
+      },
+
+      "human_readable_explanation": "当接单金额出现下滑时，系统已自动引入『净销售额』进行交叉比对。如果开票收入持平但接单下降，说明业务正在消耗历史积压订单（Backlog）；如果两者双降，系统将自动向下钻取大区与销售员业绩，为您定位具体的业绩流失点。"
+    }
+  },
+
+  {
+    "metric_name": "net_sales_amt",
+    "display_name": "净销售额（含税）",
+    "domain": "revenue_and_growth",
+    "description": "已开具应收发票的含税金额总和，代表已实际确认的账面营收。与订单金额对比可反映 Backlog 消耗情况。",
+    "data_type": "currency",
+    "format": "¥0,0.00",
+
+    "default_time_context": {
+      "time_dimension": "DocDate",
+      "label": "单据日期",
+      "granularity": "month",
+      "window": "current_month",
+      "supported_grains": ["day", "week", "month", "year"]
+    },
+
+    "calculation": {
+      "type": "base",
+      "sql_expression": "SUM(\"GTotal\")",
+      "dependencies": []
+    },
+
+    "source": {
+      "table_view": "MTC_VW_AI_OINV",
+      "base_filters": []
+    },
+
+    "supported_dimensions": [
+      { "dim_id": "org_region",       "field_name": "Region",     "type": "categorical" },
+      { "dim_id": "sales_person",     "field_name": "SlpName",    "type": "categorical" },
+      { "dim_id": "product_category", "field_name": "ItmsGrpNam", "type": "categorical" }
+    ],
+
+    "behavior_profile": {
+      "role": "lagging_indicator",
+      "analysis_priority": 1
+    },
+
+    "ai_agent_context": {
+      "synonyms": ["开票金额", "发票金额", "净营收", "Billing Amount", "Revenue"],
+      "polarity": "positive",
+
+      "thresholds": [
+        { "metric": "mom_growth", "operator": "<", "value": -0.1, "level": "critical" }
+      ],
+
+      "diagnostic_workflow": {
+        "trigger": {
+          "any_of": [
+            { "metric": "mom_growth", "operator": "<", "value": -0.1 }
+          ]
+        },
+        "actions": [
+          { "type": "compare_metric", "metric": "order_amt_tax_inc", "intent": "check_backlog_vs_real_decline" }
+        ],
+        "analysis_logic": "billing_vs_booking_gap"
+      },
+
+      "human_readable_explanation": "净销售额下降时，系统会对比订单金额：若接单正常而开票下降，说明交货/开票环节有延迟；若两者同步下滑，则属于真实需求萎缩。"
+    }
+  },
+
+  {
+    "metric_name": "delivery_qty",
+    "display_name": "交货数量",
+    "domain": "fulfillment_and_logistics",
+    "description": "实际通过交货单发出（发货出库）的物料总件数。用于衡量供应链的履约吞吐量和仓库的作业负荷。",
+    "data_type": "number",
+    "format": "0,0",
+
+    "default_time_context": {
+      "time_dimension": "DocDate",
+      "label": "交货日期",
+      "granularity": "day",
+      "window": "last_7_days",
+      "supported_grains": ["day", "week", "month", "year"]
+    },
+
+    "calculation": {
+      "type": "base",
+      "sql_expression": "SUM(\"Quantity\")",
+      "dependencies": []
+    },
+
+    "source": {
+      "table_view": "MTC_VW_AI_ODLN",
+      "base_filters": []
+    },
+
+    "supported_dimensions": [
+      { "dim_id": "ship_date",        "field_name": "ShipDate",   "type": "datetime"    },
+      { "dim_id": "warehouse",        "field_name": "WhsName",    "type": "categorical" },
+      { "dim_id": "product_category", "field_name": "ItmsGrpNam", "type": "categorical" }
+    ],
+
+    "behavior_profile": {
+      "role": "operational_throughput",
+      "analysis_priority": 3
+    },
+
+    "ai_agent_context": {
+      "synonyms": ["发货件数", "发货量", "出库数量", "交货量", "Shipped Units"],
+      "polarity": "positive",
+
+      "thresholds": [
+        { "metric": "mom_growth", "operator": "<", "value": -0.1, "level": "warning" }
+      ],
+
+      "diagnostic_workflow": {
+        "trigger": {
+          "any_of": [
+            { "metric": "mom_growth", "operator": "<", "value": -0.1 }
+          ]
+        },
+        "actions": [
+          { "type": "drill_down", "dimensions": ["warehouse", "product_category"], "intent": "identify_bottleneck_warehouse_or_category" }
+        ],
+        "analysis_logic": "fulfillment_bottleneck_check"
+      },
+
+      "human_readable_explanation": "当交货数量出现异常下跌时，系统将自动下钻至具体仓库和品类，排查是单仓爆仓/停摆，还是某类核心物料出现断货导致无法发货。"
+    }
+  },
+
+  {
+    "metric_name": "return_amt",
+    "display_name": "退货金额",
+    "domain": "quality_and_risk",
+    "description": "客户退货产生的含税单据金额。此指标过高直接反映产品质量缺陷、过度承诺或物流破损等问题。",
+    "data_type": "currency",
+    "format": "¥0,0.00",
+
+    "default_time_context": {
+      "time_dimension": "DocDate",
+      "label": "退货日期",
+      "granularity": "month",
+      "window": "current_month",
+      "supported_grains": ["day", "week", "month", "year"]
+    },
+
+    "calculation": {
+      "type": "base",
+      "sql_expression": "-SUM(\"GTotal\")",
+      "dependencies": []
+    },
+
+    "source": {
+      "table_view": "MTC_VW_AI_ORDN",
+      "base_filters": []
+    },
+
+    "supported_dimensions": [
+      { "dim_id": "return_reason",    "field_name": "Reason",     "type": "categorical" },
+      { "dim_id": "customer_name",    "field_name": "CardName",   "type": "categorical" },
+      { "dim_id": "product_category", "field_name": "ItmsGrpNam", "type": "categorical" }
+    ],
+
+    "behavior_profile": {
+      "role": "risk_indicator",
+      "analysis_priority": 1
+    },
+
+    "ai_agent_context": {
+      "synonyms": ["退货额", "退款金额", "退回金额", "Return Value"],
+      "polarity": "negative",
+
+      "thresholds": [
+        { "metric": "mom_growth", "operator": ">", "value": 0.2, "level": "critical" }
+      ],
+
+      "diagnostic_workflow": {
+        "trigger": {
+          "any_of": [
+            { "metric": "mom_growth", "operator": ">", "value": 0.2 }
+          ]
+        },
+        "actions": [
+          { "type": "drill_down", "dimensions": ["return_reason"], "intent": "find_root_cause_of_returns"   },
+          { "type": "drill_down", "dimensions": ["customer_name"], "intent": "check_customer_churn_risk"    }
+        ],
+        "analysis_logic": "quality_vs_expectation_gap"
+      },
+
+      "human_readable_explanation": "退货金额飙升属于严重风控事件。系统会强制优先分析退货原因（如质量指标超标），并交叉对比客户维度，以防大客户因体验不佳而流失。"
+    }
+  },
+
+  {
+    "metric_name": "avg_ticket_size_per_customer",
+    "display_name": "客单价",
+    "domain": "customer_value",
+    "description": "平均每个独立客户在特定周期内贡献的含税订单总额。衡量客户的总体购买力和企业的交叉销售能力。",
+    "data_type": "currency",
+    "format": "¥0,0.00",
+
+    "default_time_context": {
+      "time_dimension": "DocDate",
+      "label": "单据日期",
+      "granularity": "month",
+      "window": "current_quarter",
+      "supported_grains": ["day", "week", "month", "year"]
+    },
+
+    "calculation": {
+      "type": "derived",
+      "sql_expression": "SUM(\"GTotal\") / COUNT(DISTINCT \"CardCode\")",
+      "dependencies": []
+    },
+
+    "source": {
+      "table_view": "MTC_VW_AI_ORDR",
+      "base_filters": []
+    },
+
+    "supported_dimensions": [
+      { "dim_id": "customer_group", "field_name": "GroupName", "type": "categorical" },
+      { "dim_id": "sales_person",   "field_name": "SlpName",   "type": "categorical" },
+      { "dim_id": "org_region",     "field_name": "Region",    "type": "categorical" }
+    ],
+
+    "behavior_profile": {
+      "role": "efficiency_indicator",
+      "analysis_priority": 2
+    },
+
+    "ai_agent_context": {
+      "synonyms": ["单客产出", "平均单客消费", "ARPU", "Ticket Size"],
+      "polarity": "positive",
+
+      "thresholds": [
+        { "metric": "yoy_growth", "operator": "<", "value": -0.05, "level": "warning" }
+      ],
+
+      "diagnostic_workflow": {
+        "trigger": {
+          "any_of": [
+            { "metric": "yoy_growth", "operator": "<", "value": -0.05 }
+          ]
+        },
+        "actions": [
+          { "type": "drill_down", "dimensions": ["customer_group"], "intent": "analyze_purchasing_power_shift" }
+        ],
+        "analysis_logic": "customer_wallet_share_analysis"
+      },
+
+      "human_readable_explanation": "客单价下滑可能意味着客户消费降级或预算被竞品分流。系统会自动下钻客户群组（如大客户vs普通客户），排查是低净值新客涌入拉低了均值，还是核心老客的采购量在缩水。"
+    }
+  },
+
+  {
+    "metric_name": "avg_selling_price",
+    "display_name": "平均成交单价 (ASP)",
+    "domain": "pricing_and_margin",
+    "description": "每售出一件单品的平均含税价格。用于监控价格体系稳健程度及产品的市场溢价能力。",
+    "data_type": "currency",
+    "format": "¥0,0.00",
+
+    "default_time_context": {
+      "time_dimension": "DocDate",
+      "label": "单据日期",
+      "granularity": "month",
+      "window": "current_month",
+      "supported_grains": ["day", "week", "month", "year"]
+    },
+
+    "calculation": {
+      "type": "derived",
+      "sql_expression": "SUM(\"GTotal\") / NULLIF(SUM(\"Quantity\"), 0)",
+      "dependencies": []
+    },
+
+    "source": {
+      "table_view": "MTC_VW_AI_ORDR",
+      "base_filters": []
+    },
+
+    "supported_dimensions": [
+      { "dim_id": "product_category", "field_name": "ItmsGrpNam", "type": "categorical" },
+      { "dim_id": "product_item",     "field_name": "Dscription", "type": "categorical" }
+    ],
+
+    "behavior_profile": {
+      "role": "profitability_driver",
+      "analysis_priority": 2
+    },
+
+    "ai_agent_context": {
+      "synonyms": ["件单价", "ASP", "单品均价", "平均售价"],
+      "polarity": "positive",
+
+      "thresholds": [
+        { "metric": "mom_growth", "operator": "<", "value": -0.08, "level": "warning" }
+      ],
+
+      "diagnostic_workflow": {
+        "trigger": {
+          "any_of": [
+            { "metric": "mom_growth", "operator": "<", "value": -0.08 }
+          ]
+        },
+        "actions": [
+          { "type": "drill_down", "dimensions": ["product_category"], "intent": "check_sales_mix_variance" }
+        ],
+        "analysis_logic": "price_drop_vs_mix_shift"
+      },
+
+      "human_readable_explanation": "当 ASP 下降时，系统会优先按品类下钻，以厘清这是因为我们在主动降价促销，还是因为低价产品线卖得太好导致整体盘子的结构性均价被拉低（Sales Mix 变化）。"
+    }
+  },
+
+  {
+    "metric_name": "avg_discount_rate",
+    "display_name": "折扣率",
+    "domain": "pricing_and_margin",
+    "description": "订单成交时给予客户的平均让利幅度。严格监控此指标可防止业务员过度放价导致毛利受损。",
+    "data_type": "percentage",
+    "format": "0.00%",
+
+    "default_time_context": {
+      "time_dimension": "DocDate",
+      "label": "单据日期",
+      "granularity": "month",
+      "window": "current_month",
+      "supported_grains": ["day", "week", "month", "year"]
+    },
+
+    "calculation": {
+      "type": "base",
+      "sql_expression": "AVG(\"DiscPrcnt\") / 100",
+      "dependencies": []
+    },
+
+    "source": {
+      "table_view": "MTC_VW_AI_ORDR",
+      "base_filters": [
+        { "field": "DiscPrcnt", "operator": "not_null" }
+      ]
+    },
+
+    "supported_dimensions": [
+      {
+        "dim_id": "sales_person", "field_name": "SlpName", "type": "categorical",
+        "filter_operators": ["IN", "EQ", "NEQ"],
+        "filter_example": { "dimension": "sales_person", "operator": "EQ", "values": ["张三"] },
+        "group_by_example": "sales_person"
+      },
+      {
+        "dim_id": "customer_group", "field_name": "GroupName", "type": "categorical",
+        "filter_operators": ["IN", "EQ", "NEQ"],
+        "filter_example": { "dimension": "customer_group", "operator": "IN", "values": ["VIP客户"] },
+        "group_by_example": "customer_group"
+      },
+      {
+        "dim_id": "org_region", "field_name": "Region", "type": "categorical",
+        "filter_operators": ["IN", "EQ", "NEQ"],
+        "filter_example": { "dimension": "org_region", "operator": "IN", "values": ["华东", "华南"] },
+        "group_by_example": "org_region"
+      }
+    ],
+
+    "behavior_profile": {
+      "role": "margin_leakage_detector",
+      "analysis_priority": 1
+    },
+
+    "ai_agent_context": {
+      "synonyms": ["让利比例", "降价幅度", "折扣比例", "Discount %"],
+      "polarity": "negative",
+
+      "thresholds": [
+        { "metric": "absolute_value", "operator": ">", "value": 0.15, "level": "warning"  },
+        { "metric": "absolute_value", "operator": ">", "value": 0.25, "level": "critical" }
+      ],
+
+      "diagnostic_workflow": {
+        "trigger": {
+          "any_of": [
+            { "metric": "absolute_value", "operator": ">", "value": 0.15 }
+          ]
+        },
+        "actions": [
+          { "type": "drill_down", "dimensions": ["sales_person", "org_region"], "intent": "identify_rogue_discounting" }
+        ],
+        "analysis_logic": "discount_ROI_evaluation"
+      },
+
+      "human_readable_explanation": "折扣率异常上升是利润流失的红灯警告。系统将立即按大区和销售员层层剥离，找出放价最严重的组织节点，供管理层评估这种以价换量的策略是否合理。"
+    }
+  }
+]
