@@ -29,7 +29,8 @@
     "supported_dimensions": [
       { "dim_id": "org_region",       "field_name": "Region",     "type": "categorical" },
       { "dim_id": "product_category", "field_name": "ItmsGrpNam", "type": "categorical" },
-      { "dim_id": "sales_person",     "field_name": "SlpName",    "type": "categorical" }
+      { "dim_id": "sales_person",     "field_name": "SlpName",    "type": "categorical" },
+      { "dim_id": "customer_group",   "field_name": "GroupName",  "type": "categorical" }
     ],
 
     "behavior_profile": {
@@ -94,7 +95,8 @@
     "supported_dimensions": [
       { "dim_id": "org_region",       "field_name": "Region",     "type": "categorical" },
       { "dim_id": "sales_person",     "field_name": "SlpName",    "type": "categorical" },
-      { "dim_id": "product_category", "field_name": "ItmsGrpNam", "type": "categorical" }
+      { "dim_id": "product_category", "field_name": "ItmsGrpNam", "type": "categorical" },
+      { "dim_id": "customer_group",   "field_name": "GroupName",  "type": "categorical" }
     ],
 
     "behavior_profile": {
@@ -206,7 +208,7 @@
 
     "calculation": {
       "type": "base",
-      "sql_expression": "-SUM(\"GTotal\")",
+      "sql_expression": "SUM(\"GTotal\")",
       "dependencies": []
     },
 
