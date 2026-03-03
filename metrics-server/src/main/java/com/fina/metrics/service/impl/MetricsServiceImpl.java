@@ -12,6 +12,7 @@ import com.fina.metrics.mapper.MetricsMetaMapper;
 import com.fina.metrics.service.MetaCatalogService;
 import com.fina.metrics.service.MetricsService;
 import com.fina.metrics.service.SemanticQueryBuilder;
+import com.fina.metrics.service.TableViewMetaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -35,6 +36,7 @@ public class MetricsServiceImpl implements MetricsService {
     private final DynamicDataSourceManager dsManager;
     private final MetaCatalogService       catalog;
     private final SemanticQueryBuilder     queryBuilder;
+    private final TableViewMetaService     tableViewMetaService;
 
     private static final int MAX_LIMIT     = 10000;
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -78,6 +80,7 @@ public class MetricsServiceImpl implements MetricsService {
                 .catalogVersion(catalog.getCatalogVersion())
                 .domainCategories(catalog.getDomainCategories())
                 .metrics(items)
+                .tables(tableViewMetaService.getTableViewsIndex())
                 .build();
     }
 
@@ -191,13 +194,15 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public MetricsMetaFullResponse getMetricsMeta(Long datasourceId) {
+        // index already carries tables[] via getMetricsIndex
         MetricsIndexResponse index = getMetricsIndex(datasourceId);
-        List<MetricsDetailResponse> details = index.getMetrics().stream()
+        List<MetricsDetailResponse> metricsDetails = index.getMetrics().stream()
                 .map(item -> getMetricDetail(datasourceId, item.getMetricName()))
                 .collect(Collectors.toList());
         return MetricsMetaFullResponse.builder()
                 .index(index)
-                .details(details)
+                .metricsDetails(metricsDetails)
+                .tablesDetails(tableViewMetaService.getTableViewsDetails())
                 .build();
     }
 

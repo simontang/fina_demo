@@ -12,6 +12,9 @@ import java.util.List;
  * Lightweight discovery: the agent calls this first to know which metrics
  * exist in the catalog and which are actually registered (queryable) for
  * the given datasource.
+ *
+ * Also includes a tables index so the agent knows what source tables/views
+ * are available for ad-hoc queries.
  */
 @Data
 @Builder
@@ -22,7 +25,10 @@ public class MetricsIndexResponse {
     private String datasourceName;
     private String catalogVersion;
     private List<String> domainCategories;
+    /** Metric catalog index items. */
     private List<MetricIndexItem> metrics;
+    /** Table/View index items — same level as metrics index, for agent discovery. */
+    private List<TableViewIndexItem> tables;
 
     /**
      * One entry per metric in the catalog.
