@@ -2,6 +2,7 @@ package com.fina.metrics.service;
 
 import com.fina.metrics.dto.MetricsDetailResponse;
 import com.fina.metrics.dto.MetricsIndexResponse;
+import com.fina.metrics.dto.MetricsMetaFullResponse;
 import com.fina.metrics.dto.MetricsMetaRequest;
 import com.fina.metrics.dto.MetricsMetaVO;
 import com.fina.metrics.dto.SemanticQueryRequest;
@@ -32,6 +33,12 @@ public interface MetricsService {
      * query_info is null when the metric is not yet registered for this datasource.
      */
     MetricsDetailResponse getMetricDetail(Long datasourceId, String metricName);
+
+    /**
+     * Returns index and full detail for all metrics in one response.
+     * GET /api/v1/datasources/{dsId}/meta
+     */
+    MetricsMetaFullResponse getMetricsMeta(Long datasourceId);
 
     // ── Metric definition CRUD ────────────────────────────────────────────────
 

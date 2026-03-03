@@ -189,6 +189,18 @@ public class MetricsServiceImpl implements MetricsService {
                 .build();
     }
 
+    @Override
+    public MetricsMetaFullResponse getMetricsMeta(Long datasourceId) {
+        MetricsIndexResponse index = getMetricsIndex(datasourceId);
+        List<MetricsDetailResponse> details = index.getMetrics().stream()
+                .map(item -> getMetricDetail(datasourceId, item.getMetricName()))
+                .collect(Collectors.toList());
+        return MetricsMetaFullResponse.builder()
+                .index(index)
+                .details(details)
+                .build();
+    }
+
     // ── Metric definition CRUD ────────────────────────────────────────────────
 
     @Override

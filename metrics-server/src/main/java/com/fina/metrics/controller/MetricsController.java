@@ -18,6 +18,9 @@ import java.util.List;
  * │  2. GET  /api/v1/datasources/{dsId}/metrics/{name}/detail → understand them │
  * │  3. POST /api/v1/metrics/query                            → query data      │
  * ├─────────────────────────────────────────────────────────────────────────────┤
+ * │ One-shot meta:                                                               │
+ * │  GET    /api/v1/datasources/{dsId}/meta                  → index + details │
+ * ├─────────────────────────────────────────────────────────────────────────────┤
  * │ Definition management (CRUD):                                               │
  * │  GET    /api/v1/datasources/{dsId}/metrics                → list DB defs   │
  * │  GET    /api/v1/datasources/{dsId}/metrics/{code}         → single DB def  │
@@ -58,6 +61,15 @@ public class MetricsController {
             @PathVariable Long dsId,
             @PathVariable String metricName) {
         return ApiResponse.ok(metricsService.getMetricDetail(dsId, metricName));
+    }
+
+    /**
+     * One-shot: return metrics index and full detail for every metric.
+     * GET /api/v1/datasources/{dsId}/meta
+     */
+    @GetMapping("/api/v1/datasources/{dsId}/meta")
+    public ApiResponse<MetricsMetaFullResponse> getMetricsMeta(@PathVariable Long dsId) {
+        return ApiResponse.ok(metricsService.getMetricsMeta(dsId));
     }
 
     // ── Query execution ───────────────────────────────────────────────────────
