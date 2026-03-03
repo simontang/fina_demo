@@ -73,8 +73,8 @@ transfer_service() {
     echo "----------------------------------------"
     
     # 步骤1: 从 GitHub Container Registry 拉取镜像
-    log_info "[$step/3] 从 GitHub Container Registry 拉取 $service 镜像..."
-    if docker pull $GITHUB_REGISTRY/$GITHUB_USERNAME/$service:latest; then
+    log_info "[$step/3] 从 GitHub Container Registry 拉取 $service 镜像 (linux/amd64)..."
+    if docker pull --platform linux/amd64 $GITHUB_REGISTRY/$GITHUB_USERNAME/$service:latest; then
         log_success "成功拉取 $service 镜像"
     else
         log_error "拉取 $service 镜像失败"

@@ -1,0 +1,59 @@
+字段ID	字段名	描述	类型
+39e6499f-653f-446c-839b-a0002a985354	DocNum	采购退货单号 例如：1029	INTEGER
+0bf7cad8-5d9a-4a83-8edb-8a2ace7c82c6	DocEntry	内部标识号 例如：1029	INTEGER
+9a8838fc-7916-4e40-8984-bc487724ae40	DocDate	单据日期 例如：2024-05-30	TIMESTAMP
+534d5d3e-4451-4464-8c89-8d90e5eb311d	DocStatus	单据状态 例如：O-未清；C-已结算	NVARCHAR
+c79f73fc-acb6-4369-ad55-48d1d8621e38	DocType	单据类型 例如：I-物料；S-服务	NVARCHAR
+d5f90856-3f2f-4c67-9a72-a83ad729a34c	ObjType	单据对象类型 例如：21-采购退货	NVARCHAR
+24c71eab-a759-499a-91ee-9916e431b03b	CardCode	供应商代码 例如：V10000；S10000	NVARCHAR
+fcf7e785-311d-4a02-91d8-42f3b6e1ec78	CardName	供应商名称 例如：珠海信达电子公司	NVARCHAR
+3d39dd9b-e5a2-4573-98c5-5e85fa563761	GroupName	供应商组/供应商类别供应商分类 例如：主要供应商	NVARCHAR
+82005266-ebd6-4736-a4ac-263a399a230e	DocCur	货币 例如：RMB；USD；EUR	NVARCHAR
+b60923ba-b3eb-4b4e-98c4-59b3ff750e5a	IsLocCurrency	单据是否本位币 例如：Y-是；N-否	VARCHAR
+bf569530-01cc-4e74-923e-e0bbacb27d24	DocRate	汇率 例如：7.9076；1.0000	DECIMAL
+893a92d7-79f0-4adc-819e-eb8747c67159	DiscPrcnt	单据折扣 例如：2	DECIMAL
+12846477-d761-48b8-a942-ba5bcc0d92c0	SlpName	采购员 例如：钱国钧	NVARCHAR
+e950d91f-e5bd-48f3-a2ba-84a66801777b	LineNum	行号 例如：0；1；2	INTEGER
+b86b2278-112c-4790-a369-e18ee8a53569	LineStatus	行状态 例如：O-未清；C-已结算	NVARCHAR
+5b2a4b02-8fce-4c57-9b67-705f29651e39	BaseType	基础单据对象类型 例如：20-采购收货；18-234000032-采购退货请求；	INTEGER
+6c7dc016-8b60-42f1-bea4-f7e5635768b4	BaseEntry	基础单号 例如：1034	INTEGER
+ed2585bb-5413-4aaf-a841-a3a07acf0310	BaseLine	基础行号 例如：0；1；2	INTEGER
+86a21818-2480-476a-9a19-f269adeb50a8	ItemCode	物料代码 例如：A00002；C00005	NVARCHAR
+1d3083ae-7684-4b79-8f0d-733982cf8347	SubCatNum	业务伙伴目录编号 例如：10080910	NVARCHAR
+d22a44aa-bb04-4a63-8ccb-bf2d0bb7fe01	Dscription	物料描述 例如：IBM Infoprint 1222 喷墨打印机	NVARCHAR
+4f0a3b77-eaef-40bc-b5e8-f2c34d10ca83	AcctCode	科目代码 例如：55020408	NVARCHAR
+b1080701-3fda-4421-ae9e-105c95297993	AcctName	科目名称 例如：管理费用-办公费用-其他费用	NVARCHAR
+dea52c68-311d-4ef6-98b5-4ed227d5443a	ItmsGrpNam	物料组/物料分类 例如：203-打印机；202-普通物料	NVARCHAR
+02afbf9a-082b-42ee-8a61-681193f066b1	Quantity	退货数量 例如：-12	DECIMAL
+39979951-e36b-463c-bb12-fbb974a2d489	OpenCreQty	未清数量 例如：2	DECIMAL
+eb03012f-d9ae-4c45-8367-5e00009e9e33	WhsCode	仓库代码 例如：01	NVARCHAR
+ebfb47ff-e7fc-48f4-a962-c1a2e027e7ec	WhsName	仓库名称 例如：主仓库；辅料仓库	NVARCHAR
+7b8d6816-4a48-4c4f-b7ac-798a5c3d5a63	ShipDate	交货日期 例如：2024-05-28	TIMESTAMP
+b8c8dc37-a32e-47f7-9303-494fb891c083	VatGroup	税代码 例如：J1；J2	NVARCHAR
+741a8ec3-24a2-4583-9990-fb6d45a5b6ad	VatPrcnt	税率 例如：13.0000；6.0000	DECIMAL
+b86a3f7b-b091-4be1-ab1b-7ab69f58951c	Currency	单价货币 例如：RMB；USD；EUR	NVARCHAR
+5229d9a8-4619-46ef-9d20-4b94a91c16d7	LineIsLocCurrency	是否本位币 例如：Y-是；N-否	VARCHAR
+a0ca5b7e-d1d3-47f4-8edd-d8b444ef1a75	Rate	单价货币汇率 例如：7.9076；1.0000	DECIMAL
+a98b98d0-6683-4a11-a267-1cd7f2e7b6cc	Price	不含税单价 例如：2310.00	DECIMAL
+b2a96a2f-9d3f-4da8-b55f-a5ce37105fd2	PriceAfVAT	含税单价 例如：2310.00	DECIMAL
+57514ba2-f96c-43bb-ab42-8c27e1868d25	LineTotal	不含税金额 例如：-2702.70	DECIMAL
+af2fd6eb-4821-4161-989a-3bc42b0525db	GTotal	含税金额 例如：-23100.00	DECIMAL
+d36a2816-60b2-4e32-8ec9-c099b10df081	TotalFrgn	不含税外币金额 例如：-3281.25	DECIMAL
+52cebccd-ca9a-4eb5-aa5e-08097c20174d	GTotalFC	含税外币金额 例如：-3281.25	DECIMAL
+c41cc9e8-5fe5-443b-9207-ec8ca0ef2ec3	Reason	退货原因 例如：质量指标超标	NVARCHAR
+f99dc52d-dcb6-4a75-9a7f-9fa17c416daa	Project	项目号 例如：SPI-C23900	NVARCHAR
+40f6e2a4-c760-4f9b-b38e-2461262bda35	PrjName	项目名称 例如：Maxi-Teq的新服务器安装	NVARCHAR
+5c0fc24d-13d0-4a7a-a33d-01228f0a008d	OcrCode	成本利润中心1代码	NVARCHAR
+7f818f22-c312-4a93-b141-1a69ffa0bd61	CostCenterName1	成本利润中心1名称	NVARCHAR
+f2d06f01-dd7c-4d02-a999-a508ad6edfd6	OcrCode2	成本利润中心2代码 例如：D001；D002	NVARCHAR
+8f68d09c-c720-4bc0-bd0b-a734ab62b7fb	CostCenterName2	成本利润中心2名称 例如：财务部；销售部	NVARCHAR
+1f0b5254-5b6e-4393-90d4-bed33e954706	OcrCode3	成本利润中心3代码 例如：E001；E002	NVARCHAR
+7f7462e8-0d24-4fd5-a9d0-f548cb0335b7	CostCenterName3	成本利润中心3名称 例如：张玮；李珊珊	NVARCHAR
+3ffc966c-1af1-4e61-a49c-36710b8086a5	OcrCode4	成本利润中心4代码	NVARCHAR
+6512f20d-721b-4343-ba65-308c713754c8	CostCenterName4	成本利润中心4名称	NVARCHAR
+722ecb70-60da-4ef5-9bf6-1f8a2c180405	OcrCode5	成本利润中心5代码	NVARCHAR
+51687286-3615-4313-b9fb-552691745112	CostCenterName5	成本利润中心5名称	NVARCHAR
+a60b0cb9-fe65-431b-be6f-8a7880c1afb6	Code	财务期间 例如：2024-05	NVARCHAR
+369d3207-5ac5-4a6d-907f-5b26b105784a	Category	财务年度 例如：2024	NVARCHAR
+e75fbac1-0410-461d-bebc-77abafde88f4	BPLId	分支代码 例如：3；4	INTEGER
+53b37f0c-aa35-472d-97ea-06881311f929	BPLName	分支名称 例如：孝闻店；中央花园	NVARCHAR
