@@ -254,9 +254,9 @@ public class TableViewMetaServiceImpl implements TableViewMetaService {
             int nameIdx = -1, descIdx = -1, typeIdx = -1;
             for (int i = 0; i < header.length; i++) {
                 String h = header[i].trim();
-                if ("字段名".equals(h))  nameIdx = i;
-                else if ("描述".equals(h)) descIdx = i;
-                else if ("类型".equals(h)) typeIdx = i;
+                if ("字段名".equals(h) || "Field Name".equals(h))  nameIdx = i;
+                else if ("描述".equals(h) || "Description".equals(h)) descIdx = i;
+                else if ("类型".equals(h) || "Type".equals(h)) typeIdx = i;
             }
             if (nameIdx < 0) return columns;
             while ((line = reader.readLine()) != null) {

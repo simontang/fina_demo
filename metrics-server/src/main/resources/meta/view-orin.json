@@ -1,72 +1,316 @@
 {
   "viewName": "MTC_VW_AI_ORIN",
-  "docType": "应收贷项凭证",
+  "docType": "AR Credit Memo",
   "docTypeEn": "AR Credit Memo",
   "objTypeCode": 14,
   "mainTable": "ORIN",
   "lineTable": "RIN1",
   "selectSql": "SELECT T0.\"DocNum\", T0.\"DocEntry\", T0.\"DocDate\", T0.\"DocStatus\", T0.\"DocType\", T0.\"ObjType\", T0.\"NumAtCard\", T0.\"CardCode\", T0.\"CardName\", T5.\"GroupName\", T11.\"descript\" AS \"Province\", T12.\"descript\" AS \"Region\", T0.\"DocCur\", CASE WHEN T0.\"DocCur\"=T14.\"MainCurncy\" THEN 'Y' ELSE 'N' END AS \"IsLocCurrency\", T0.\"DocRate\", T0.\"DiscPrcnt\", T2.\"SlpName\", T1.\"LineNum\", T1.\"LineStatus\", T1.\"BaseType\", T1.\"BaseEntry\", T1.\"BaseLine\", T1.\"ItemCode\", T1.\"SubCatNum\", T1.\"Dscription\", T1.\"AcctCode\", T6.\"AcctName\", T9.\"ItmsGrpNam\", -T1.\"Quantity\" AS \"Quantity\", T1.\"OpenQty\", T1.\"WhsCode\", T7.\"WhsName\", T1.\"ShipDate\", T1.\"VatGroup\", T1.\"VatPrcnt\", T1.\"Currency\", CASE WHEN T1.\"Currency\"=T14.\"MainCurncy\" THEN 'Y' ELSE 'N' END AS \"LineIsLocCurrency\", T1.\"Rate\", CASE WHEN T0.\"DiscPrcnt\"<>0 THEN (1-T0.\"DiscPrcnt\"/100)*T1.\"Price\" ELSE T1.\"Price\" END AS \"Price\", CASE WHEN T0.\"DiscPrcnt\"<>0 THEN (1-T0.\"DiscPrcnt\"/100)*T1.\"PriceAfVAT\" ELSE T1.\"PriceAfVAT\" END AS \"PriceAfVAT\", CASE WHEN T0.\"DiscPrcnt\"<>0 THEN -(1-T0.\"DiscPrcnt\"/100)*T1.\"LineTotal\" ELSE -T1.\"LineTotal\" END AS \"LineTotal\", CASE WHEN T0.\"DiscPrcnt\"<>0 THEN -(1-T0.\"DiscPrcnt\"/100)*T1.\"GTotal\" ELSE -T1.\"GTotal\" END AS \"GTotal\", CASE WHEN T0.\"DiscPrcnt\"<>0 THEN -(1-T0.\"DiscPrcnt\"/100)*T1.\"TotalFrgn\" ELSE -T1.\"TotalFrgn\" END AS \"TotalFrgn\", CASE WHEN T0.\"DiscPrcnt\"<>0 THEN -(1-T0.\"DiscPrcnt\"/100)*T1.\"GTotalFC\" ELSE -T1.\"GTotalFC\" END AS \"GTotalFC\", T13.\"Reason\", T1.\"Project\", T21.\"PrjName\", T1.\"OcrCode\", T16.\"PrcName\" AS \"CostCenterName1\", T1.\"OcrCode2\", T17.\"PrcName\" AS \"CostCenterName2\", T1.\"OcrCode3\", T18.\"PrcName\" AS \"CostCenterName3\", T1.\"OcrCode4\", T19.\"PrcName\" AS \"CostCenterName4\", T1.\"OcrCode5\", T20.\"PrcName\" AS \"CostCenterName5\", T10.\"Code\", T10.\"Category\", T0.\"BPLId\", T15.\"BPLName\" FROM ORIN T0 INNER JOIN RIN1 T1 ON T0.\"DocEntry\"=T1.\"DocEntry\" LEFT JOIN OSLP T2 ON T0.\"SlpCode\"=T2.\"SlpCode\" INNER JOIN OCRD T4 ON T0.\"CardCode\"=T4.\"CardCode\" LEFT JOIN OCRG T5 ON T4.\"GroupCode\"=T5.\"GroupCode\" INNER JOIN OACT T6 ON T1.\"AcctCode\"=T6.\"AcctCode\" INNER JOIN OWHS T7 ON T1.\"WhsCode\"=T7.\"WhsCode\" INNER JOIN OITM T8 ON T1.\"ItemCode\"=T8.\"ItemCode\" LEFT JOIN OITB T9 ON T8.\"ItmsGrpCod\"=T9.\"ItmsGrpCod\" LEFT JOIN OFPR T10 ON T0.\"FinncPriod\"=T10.\"AbsEntry\" LEFT JOIN OTER T11 ON T4.\"Territory\"=T11.\"territryID\" LEFT JOIN OTER T12 ON T11.\"parent\"=T12.\"territryID\" LEFT JOIN ORER T13 ON T1.\"ReturnRsn\"=T13.\"AbsEntry\" LEFT JOIN OADM T14 ON T0.\"DocCur\"=T14.\"MainCurncy\" LEFT JOIN OBPL T15 ON T0.\"BPLId\"=T15.\"BPLId\" LEFT JOIN OPRJ T21 ON T1.\"Project\"=T21.\"PrjCode\" LEFT JOIN (SELECT \"PrcCode\",\"PrcName\" FROM OPRC WHERE \"DimCode\"=1) T16 ON T1.\"OcrCode\"=T16.\"PrcCode\" LEFT JOIN (SELECT \"PrcCode\",\"PrcName\" FROM OPRC WHERE \"DimCode\"=2) T17 ON T1.\"OcrCode2\"=T17.\"PrcCode\" LEFT JOIN (SELECT \"PrcCode\",\"PrcName\" FROM OPRC WHERE \"DimCode\"=3) T18 ON T1.\"OcrCode3\"=T18.\"PrcCode\" LEFT JOIN (SELECT \"PrcCode\",\"PrcName\" FROM OPRC WHERE \"DimCode\"=4) T19 ON T1.\"OcrCode4\"=T19.\"PrcCode\" LEFT JOIN (SELECT \"PrcCode\",\"PrcName\" FROM OPRC WHERE \"DimCode\"=5) T20 ON T1.\"OcrCode5\"=T20.\"PrcCode\" WHERE T0.CANCELED='N' AND T0.\"DocType\"='I'",
   "columns": [
-    { "name": "DocNum",           "label": "应收贷项单号",            "example": "1029" },
-    { "name": "DocEntry",         "label": "内部标识号",              "example": "1029" },
-    { "name": "DocDate",          "label": "单据日期",               "example": "2024-05-30" },
-    { "name": "DocStatus",        "label": "单据状态",               "example": "O-未清；C-已结算" },
-    { "name": "DocType",          "label": "单据类型",               "example": "I-物料；S-服务" },
-    { "name": "ObjType",          "label": "单据对象类型",            "example": "14-应收贷项凭证" },
-    { "name": "NumAtCard",        "label": "业务伙伴参考编号",         "example": "3893791879038108" },
-    { "name": "CardCode",         "label": "客户代码",               "example": "C19001" },
-    { "name": "CardName",         "label": "客户名称",               "example": "安杰科达有限公司" },
-    { "name": "GroupName",        "label": "客户组/客户类别/客户分类", "example": "大客户；小客户；普通客户" },
-    { "name": "Province",         "label": "省市",                  "example": "广东省" },
-    { "name": "Region",           "label": "区域",                  "example": "华南地区" },
-    { "name": "DocCur",           "label": "货币",                  "example": "RMB；USD；EUR" },
-    { "name": "IsLocCurrency",    "label": "单据是否本位币",          "example": "Y-是；N-否" },
-    { "name": "DocRate",          "label": "汇率",                  "example": "7.9076；1.0000" },
-    { "name": "Discprcnt",        "label": "单据折扣",               "example": "2" },
-    { "name": "SlpName",          "label": "销售员",                 "example": "张涛" },
-    { "name": "LineNum",          "label": "行号",                  "example": "0；1；2" },
-    { "name": "LineStatus",       "label": "行状态",                 "example": "O-未清；C-已结算" },
-    { "name": "BaseType",         "label": "基础单据对象类型",         "example": "16-退货；13-应收发票；234000031-退货请求；203-应收预收款" },
-    { "name": "BaseEntry",        "label": "基础单号",               "example": "1034" },
-    { "name": "BaseLine",         "label": "基础行号",               "example": "0；1；2" },
-    { "name": "ItemCode",         "label": "物料代码",               "example": "A00002；C00005" },
-    { "name": "SubCatNum",        "label": "业务伙伴目录编号",         "example": "10080910" },
-    { "name": "Dscription",       "label": "物料描述",               "example": "IBM Infoprint 1222 喷墨打印机" },
-    { "name": "AcctCode",         "label": "科目代码",               "example": "55020408" },
-    { "name": "AcctName",         "label": "科目名称",               "example": "管理费用-办公费用-其他费用" },
-    { "name": "ItmsGrpNam",       "label": "物料组/物料分类",         "example": "203-打印机；202-普通物料" },
-    { "name": "Quantity",         "label": "退货数量",               "example": "-12" },
-    { "name": "OpenQty",          "label": "未清数量",               "example": "2" },
-    { "name": "WhsCode",          "label": "仓库代码",               "example": "01" },
-    { "name": "WhsName",          "label": "仓库名称",               "example": "主仓库；辅料仓库" },
-    { "name": "ShipDate",         "label": "交货日期",               "example": "2024-05-30" },
-    { "name": "VatGroup",         "label": "税代码",                 "example": "X1；X2" },
-    { "name": "VatPrcnt",         "label": "税率",                  "example": "13.0000；6.0000" },
-    { "name": "Currency",         "label": "单价货币",               "example": "RMB；USD；EUR" },
-    { "name": "LineIsLocCurrency","label": "是否本位币",             "example": "Y-是；N-否" },
-    { "name": "Rate",             "label": "单价货币汇率",            "example": "7.9076；1.0000" },
-    { "name": "Price",            "label": "不含税单价",             "example": "2310.00" },
-    { "name": "PriceAfVAT",       "label": "含税单价",               "example": "-2310.00" },
-    { "name": "LineTotal",        "label": "不含税金额",             "example": "-2702.70" },
-    { "name": "GTotal",           "label": "含税金额",               "example": "-23100.00" },
-    { "name": "TotalFrgn",        "label": "不含税外币金额",          "example": "-3281.25" },
-    { "name": "GTotalFC",         "label": "含税外币金额",            "example": "-3281.25" },
-    { "name": "Reason",           "label": "退货原因",               "example": "质量指标超标" },
-    { "name": "Project",          "label": "项目号",                 "example": "SPI-C23900" },
-    { "name": "PrjName",          "label": "项目名称",               "example": "Maxi-Teq的新服务器安装" },
-    { "name": "OcrCode",          "label": "成本利润中心1代码",        "example": "A01；A02" },
-    { "name": "CostCenterName1",  "label": "成本利润中心1名称",        "example": "大区1；大区2" },
-    { "name": "OcrCode2",         "label": "成本利润中心2代码",        "example": "D001；D002" },
-    { "name": "CostCenterName2",  "label": "成本利润中心2名称",        "example": "财务部；销售部" },
-    { "name": "OcrCode3",         "label": "成本利润中心3代码",        "example": "E001；E002" },
-    { "name": "CostCenterName3",  "label": "成本利润中心3名称",        "example": "张玮；李珊珊" },
-    { "name": "OcrCode4",         "label": "成本利润中心4代码",        "example": "B01；B02" },
-    { "name": "CostCenterName4",  "label": "成本利润中心4名称",        "example": "产品线1；产品线2" },
-    { "name": "OcrCode5",         "label": "成本利润中心5代码",        "example": "C19001" },
-    { "name": "CostCenterName5",  "label": "成本利润中心5名称",        "example": "安杰科达有限公司" },
-    { "name": "Code",             "label": "财务期间",               "example": "2024-05" },
-    { "name": "Category",         "label": "财务年度",               "example": "2024" },
-    { "name": "BPLId",            "label": "分支代码",               "example": "3；4" },
-    { "name": "BPLName",          "label": "分支名称",               "example": "孝闻店；中央花园" }
+    {
+      "name": "DocNum",
+      "label": "AR Credit Memo No.",
+      "example": "1029"
+    },
+    {
+      "name": "DocEntry",
+      "label": "Internal ID",
+      "example": "1029"
+    },
+    {
+      "name": "DocDate",
+      "label": "Document Date",
+      "example": "2024-05-30"
+    },
+    {
+      "name": "DocStatus",
+      "label": "Document Status",
+      "example": "O-Open; C-Closed"
+    },
+    {
+      "name": "DocType",
+      "label": "Document Type",
+      "example": "I-Item; S-Service"
+    },
+    {
+      "name": "ObjType",
+      "label": "Object Type",
+      "example": "14-AR Credit Memo"
+    },
+    {
+      "name": "NumAtCard",
+      "label": "BP Reference",
+      "example": "3893791879038108"
+    },
+    {
+      "name": "CardCode",
+      "label": "Customer Code",
+      "example": "C19001"
+    },
+    {
+      "name": "CardName",
+      "label": "Customer Name",
+      "example": "Acme Ltd"
+    },
+    {
+      "name": "GroupName",
+      "label": "Customer Group",
+      "example": "Key Account; SMB; Standard"
+    },
+    {
+      "name": "Province",
+      "label": "Province",
+      "example": "Guangdong"
+    },
+    {
+      "name": "Region",
+      "label": "Region",
+      "example": "South China"
+    },
+    {
+      "name": "DocCur",
+      "label": "Currency",
+      "example": "RMB; USD; EUR"
+    },
+    {
+      "name": "IsLocCurrency",
+      "label": "Is Local Currency",
+      "example": "Y-Yes; N-No"
+    },
+    {
+      "name": "DocRate",
+      "label": "Exchange Rate",
+      "example": "7.9076; 1.0000"
+    },
+    {
+      "name": "Discprcnt",
+      "label": "Document Discount",
+      "example": "2"
+    },
+    {
+      "name": "SlpName",
+      "label": "Salesperson",
+      "example": "John Smith"
+    },
+    {
+      "name": "LineNum",
+      "label": "Line No.",
+      "example": "0; 1; 2"
+    },
+    {
+      "name": "LineStatus",
+      "label": "Line Status",
+      "example": "O-Open; C-Closed"
+    },
+    {
+      "name": "BaseType",
+      "label": "Base Object Type",
+      "example": "16-Return; 13-AR Invoice; 234000031-Return Request; 203-Advance"
+    },
+    {
+      "name": "BaseEntry",
+      "label": "Base Doc No.",
+      "example": "1034"
+    },
+    {
+      "name": "BaseLine",
+      "label": "Base Line No.",
+      "example": "0; 1; 2"
+    },
+    {
+      "name": "ItemCode",
+      "label": "Item Code",
+      "example": "A00002；C00005"
+    },
+    {
+      "name": "SubCatNum",
+      "label": "BP Catalog No.",
+      "example": "10080910"
+    },
+    {
+      "name": "Dscription",
+      "label": "Item Description",
+      "example": "IBM Infoprint 1222 Inkjet Printer"
+    },
+    {
+      "name": "AcctCode",
+      "label": "Account Code",
+      "example": "55020408"
+    },
+    {
+      "name": "AcctName",
+      "label": "Account Name",
+      "example": "Admin-Office-Other"
+    },
+    {
+      "name": "ItmsGrpNam",
+      "label": "Item Group",
+      "example": "203-Printer; 202-Standard"
+    },
+    {
+      "name": "Quantity",
+      "label": "Return Quantity",
+      "example": "-12"
+    },
+    {
+      "name": "OpenQty",
+      "label": "Open Quantity",
+      "example": "2"
+    },
+    {
+      "name": "WhsCode",
+      "label": "Warehouse Code",
+      "example": "01"
+    },
+    {
+      "name": "WhsName",
+      "label": "Warehouse Name",
+      "example": "Main WH; Aux WH"
+    },
+    {
+      "name": "ShipDate",
+      "label": "Delivery Date",
+      "example": "2024-05-30"
+    },
+    {
+      "name": "VatGroup",
+      "label": "Tax Code",
+      "example": "X1; X2"
+    },
+    {
+      "name": "VatPrcnt",
+      "label": "VAT Rate",
+      "example": "13.0000; 6.0000"
+    },
+    {
+      "name": "Currency",
+      "label": "Line Currency",
+      "example": "RMB; USD; EUR"
+    },
+    {
+      "name": "LineIsLocCurrency",
+      "label": "Is Local Currency",
+      "example": "Y-Yes; N-No"
+    },
+    {
+      "name": "Rate",
+      "label": "Line Exchange Rate",
+      "example": "7.9076; 1.0000"
+    },
+    {
+      "name": "Price",
+      "label": "Price Excl. VAT",
+      "example": "2310.00"
+    },
+    {
+      "name": "PriceAfVAT",
+      "label": "Price Incl. VAT",
+      "example": "-2310.00"
+    },
+    {
+      "name": "LineTotal",
+      "label": "Amount Excl. VAT",
+      "example": "-2702.70"
+    },
+    {
+      "name": "GTotal",
+      "label": "Amount Incl. VAT",
+      "example": "-23100.00"
+    },
+    {
+      "name": "TotalFrgn",
+      "label": "Amount FC Excl. VAT",
+      "example": "-3281.25"
+    },
+    {
+      "name": "GTotalFC",
+      "label": "Amount FC Incl. VAT",
+      "example": "-3281.25"
+    },
+    {
+      "name": "Reason",
+      "label": "Return Reason",
+      "example": "Quality out of spec"
+    },
+    {
+      "name": "Project",
+      "label": "Project Code",
+      "example": "SPI-C23900"
+    },
+    {
+      "name": "PrjName",
+      "label": "Project Name",
+      "example": "Maxi-Teq Server Install"
+    },
+    {
+      "name": "OcrCode",
+      "label": "Cost Center 1 Code",
+      "example": "A01; A02"
+    },
+    {
+      "name": "CostCenterName1",
+      "label": "Cost Center 1 Name",
+      "example": "Region 1; Region 2"
+    },
+    {
+      "name": "OcrCode2",
+      "label": "Cost Center 2 Code",
+      "example": "D001; D002"
+    },
+    {
+      "name": "CostCenterName2",
+      "label": "Cost Center 2 Name",
+      "example": "Finance; Sales"
+    },
+    {
+      "name": "OcrCode3",
+      "label": "Cost Center 3 Code",
+      "example": "E001; E002"
+    },
+    {
+      "name": "CostCenterName3",
+      "label": "Cost Center 3 Name",
+      "example": "Team A; Team B"
+    },
+    {
+      "name": "OcrCode4",
+      "label": "Cost Center 4 Code",
+      "example": "B01; B02"
+    },
+    {
+      "name": "CostCenterName4",
+      "label": "Cost Center 4 Name",
+      "example": "Product Line 1; 2"
+    },
+    {
+      "name": "OcrCode5",
+      "label": "Cost Center 5 Code",
+      "example": "C19001"
+    },
+    {
+      "name": "CostCenterName5",
+      "label": "Cost Center 5 Name",
+      "example": "Acme Ltd"
+    },
+    {
+      "name": "Code",
+      "label": "Period",
+      "example": "2024-05"
+    },
+    {
+      "name": "Category",
+      "label": "Fiscal Year",
+      "example": "2024"
+    },
+    {
+      "name": "BPLId",
+      "label": "Branch Code",
+      "example": "3; 4"
+    },
+    {
+      "name": "BPLName",
+      "label": "Branch Name",
+      "example": "Branch A; Branch B"
+    }
   ]
 }

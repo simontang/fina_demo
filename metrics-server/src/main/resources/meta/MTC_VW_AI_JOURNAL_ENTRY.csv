@@ -1,35 +1,35 @@
-字段ID	字段名	描述	类型
-f68b3e4e-413e-4b8c-a238-1b377b70742d	TransId	日记账交易号 例如：1；2；3	INTEGER
-4c7ef26a-325d-461e-9e3e-0d23a9c54078	Number	编号 例如：1；2；3	INTEGER
-1a749a85-461e-4819-a337-4f2817001e7d	Line_ID	日记账分录行号 例如：0；1；2；3	INTEGER
-05d458b6-64c0-43f8-8206-a3dfa22756e2	Account	科目代码 例如：100101	NVARCHAR
-8bcab840-2539-466a-963c-c6aaca601e02	AcctName	科目名称 例如：现金-人民币	NVARCHAR
-3d1ffecb-51d3-4bd5-91a8-5490f72b519b	ShortName	业务伙伴代码 例如：V30000；C60000	NVARCHAR
-95a53746-c8db-4704-8b1e-b5d43468eb82	CardName	业务伙伴名称 例如：维度电子中国、深圳特达外贸公司	NVARCHAR
-1b03ca74-d098-404b-a5ce-83d5987c025f	CardType	业务伙伴类型 例如：C-客户	NVARCHAR
-28bfefd4-3243-4453-be56-ed7b4fd00fa8	RefDate	过账日期 例如：2017-06-27	TIMESTAMP
-ecbfaf33-2653-495c-8e0c-40c8fd028910	LineMemo	日记账分录行备注 例如：对于期末清算109	NVARCHAR
-1bd8d662-5e7f-41b3-b76c-858bfbf03f8b	Debit	借方金额 例如：153118.59	DECIMAL
-3c153bc4-85df-4b53-846b-56268b26f507	Credit	贷方金额 例如：0	DECIMAL
-49c35600-1f8a-4b8f-85ff-9b450c1c75eb	LineBalance	发生金额 例如：153118.59	DECIMAL
-ad84da96-8178-4c7e-9b9e-2d69f855d539	FCCurrency	日记账货币 录入：USD、EUR	NVARCHAR
-255a26c0-3a22-4bc7-a6a6-dd6008529e55	IsLocCurrency	是否本位币 例如：Y-是	VARCHAR
-69d3592c-4b3e-4da9-ae15-6e50f3a3967d	FCDebit	借方外币金额 例如：200	DECIMAL
-26c34527-8867-49dc-b890-cb9584c388ec	FCCredit	贷方外币金额 例如：0	DECIMAL
-cfb3ca9d-27d8-4cd2-bd52-38db1e9fe480	LineBalanceFC	外币发生金额 例如：200	DECIMAL
-f830d1b1-3024-4d11-ab79-3f3f3fc19582	ProfitCode	成本利润中心1代码 例如：A01；A02	NVARCHAR
-ab06e63a-1f94-4893-b582-1e80f5320b50	PrcName	成本利润中心1名称 例如：大区1；大区2	NVARCHAR
-57822f33-c663-4bbe-8d93-b8bcbc8625d6	OcrCode2	成本利润中心2代码 例如：D001；D002	NVARCHAR
-073d7b56-6a22-46e1-9233-2a54a9d20c22	PrcName2	成本利润中心2名称 例如：财务部；销售部	NVARCHAR
-e84d2f56-ef72-420a-9faf-98f2f0b10a8e	OcrCode3	成本利润中心3代码 例如：E001；E002	NVARCHAR
-5ee0af84-1242-47b8-be37-5afd23c87b0a	PrcName3	成本利润中心3名称 例如：张玮；李珊珊	NVARCHAR
-5261f6e3-3b96-4247-8408-e27a529319c1	OcrCode4	成本利润中心4代码 例如：B01；B02	NVARCHAR
-9ab57945-3292-4d3f-8639-a6efe15fa75f	PrcName4	成本利润中心4名称 例如：产品线1；产品线2	NVARCHAR
-fe3cf3d8-134c-412e-a43f-196c9692f547	OcrCode5	成本利润中心5代码 例如：C19001	NVARCHAR
-d3b297b0-1b46-4cd9-9a07-e5a5bb5e42f8	PrcName5	成本利润中心5名称 例如：安杰科达有限公司	NVARCHAR
-01428450-abc6-4059-8550-b83fb28df457	Project	项目号 例如：NSI-C20000	NVARCHAR
-e637748d-764c-444b-9b0d-0ef3de491e11	PrjName	项目名称 例如：Maxi-Teq的新服务器安装	NVARCHAR
-a5f1f39c-b009-4106-913e-bf93f14678ab	Code	财务期间 例如：2024-05	NVARCHAR
-f8af5233-6ee0-44f8-a0be-0e5ea39347d4	Category	财务年度 例如：2024	NVARCHAR
-c944a786-45e9-4a70-b4c4-ad4203bff07c	BPLId	分支代码 例如：3；4	INTEGER
-beff5964-4d03-47d0-ba14-4dd9973cb7bc	BPLName	分支名称 例如：孝闻店；中央花园	NVARCHAR
+Field ID	Field Name	Description	Type
+f68b3e4e-413e-4b8c-a238-1b377b70742d	TransId	Journal transaction no. e.g. 1; 2; 3	INTEGER
+4c7ef26a-325d-461e-9e3e-0d23a9c54078	Number	Number e.g. 1; 2; 3	INTEGER
+1a749a85-461e-4819-a337-4f2817001e7d	Line_ID	Journal line no. e.g. 0; 1; 2; 3	INTEGER
+05d458b6-64c0-43f8-8206-a3dfa22756e2	Account	Account code e.g. 100101	NVARCHAR
+8bcab840-2539-466a-963c-c6aaca601e02	AcctName	Account name e.g. Cash-CNY	NVARCHAR
+3d1ffecb-51d3-4bd5-91a8-5490f72b519b	ShortName	BP code e.g. V30000; C60000	NVARCHAR
+95a53746-c8db-4704-8b1e-b5d43468eb82	CardName	BP name e.g. Acme China; Vendor XYZ	NVARCHAR
+1b03ca74-d098-404b-a5ce-83d5987c025f	CardType	BP type e.g. C-Customer	NVARCHAR
+28bfefd4-3243-4453-be56-ed7b4fd00fa8	RefDate	Posting date e.g. 2017-06-27	TIMESTAMP
+ecbfaf33-2653-495c-8e0c-40c8fd028910	LineMemo	Journal line memo e.g. For period end 109	NVARCHAR
+1bd8d662-5e7f-41b3-b76c-858bfbf03f8b	Debit	Debit amount e.g. 153118.59	DECIMAL
+3c153bc4-85df-4b53-846b-56268b26f507	Credit	Credit amount e.g. 0	DECIMAL
+49c35600-1f8a-4b8f-85ff-9b450c1c75eb	LineBalance	Line balance e.g. 153118.59	DECIMAL
+ad84da96-8178-4c7e-9b9e-2d69f855d539	FCCurrency	Journal currency e.g. USD; EUR	NVARCHAR
+255a26c0-3a22-4bc7-a6a6-dd6008529e55	IsLocCurrency	Is local currency e.g. Y-Yes	VARCHAR
+69d3592c-4b3e-4da9-ae15-6e50f3a3967d	FCDebit	Debit FC e.g. 200	DECIMAL
+26c34527-8867-49dc-b890-cb9584c388ec	FCCredit	Credit FC e.g. 0	DECIMAL
+cfb3ca9d-27d8-4cd2-bd52-38db1e9fe480	LineBalanceFC	Line balance FC e.g. 200	DECIMAL
+f830d1b1-3024-4d11-ab79-3f3f3fc19582	ProfitCode	Cost center 1 code e.g. A01; A02	NVARCHAR
+ab06e63a-1f94-4893-b582-1e80f5320b50	PrcName	Cost center 1 name e.g. Region 1; Region 2	NVARCHAR
+57822f33-c663-4bbe-8d93-b8bcbc8625d6	OcrCode2	Cost center 2 code e.g. D001; D002	NVARCHAR
+073d7b56-6a22-46e1-9233-2a54a9d20c22	PrcName2	Cost center 2 name e.g. Finance; Sales	NVARCHAR
+e84d2f56-ef72-420a-9faf-98f2f0b10a8e	OcrCode3	Cost center 3 code e.g. E001; E002	NVARCHAR
+5ee0af84-1242-47b8-be37-5afd23c87b0a	PrcName3	Cost center 3 name e.g. Team A; Team B	NVARCHAR
+5261f6e3-3b96-4247-8408-e27a529319c1	OcrCode4	Cost center 4 code e.g. B01; B02	NVARCHAR
+9ab57945-3292-4d3f-8639-a6efe15fa75f	PrcName4	Cost center 4 name e.g. Product Line 1; 2	NVARCHAR
+fe3cf3d8-134c-412e-a43f-196c9692f547	OcrCode5	Cost center 5 code e.g. C19001	NVARCHAR
+d3b297b0-1b46-4cd9-9a07-e5a5bb5e42f8	PrcName5	Cost center 5 name e.g. Acme Ltd	NVARCHAR
+01428450-abc6-4059-8550-b83fb28df457	Project	Project code e.g. NSI-C20000	NVARCHAR
+e637748d-764c-444b-9b0d-0ef3de491e11	PrjName	Project name e.g. Maxi-Teq Server Install	NVARCHAR
+a5f1f39c-b009-4106-913e-bf93f14678ab	Code	Period e.g. 2024-05	NVARCHAR
+f8af5233-6ee0-44f8-a0be-0e5ea39347d4	Category	Fiscal year e.g. 2024	NVARCHAR
+c944a786-45e9-4a70-b4c4-ad4203bff07c	BPLId	Branch code e.g. 3; 4	INTEGER
+beff5964-4d03-47d0-ba14-4dd9973cb7bc	BPLName	Branch name e.g. Branch A; Branch B	NVARCHAR

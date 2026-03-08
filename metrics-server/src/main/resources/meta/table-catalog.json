@@ -1,56 +1,56 @@
 [
   {
     "tableName": "MTC_VW_AI_ORDR",
-    "docType": "销售订单",
+    "docType": "Sales Order",
     "docTypeEn": "Sales Order",
-    "shortDesc": "SAP B1 销售订单明细视图（ORDR/RDR1）。记录每笔客户下单的单据、客户信息、物料行、含税/不含税金额及未清金额。是订单金额、客单价、接单量等前端销售指标的基础数据源，可按客户、物料、销售员、期间、分支等维度聚合分析。"
+    "shortDesc": "SAP B1 sales order line view (ORDR/RDR1). Document, customer, item lines, tax-inclusive/exclusive amounts and open amounts. Base for order amount, ticket size, booking volume; supports aggregation by customer, item, salesperson, period, branch."
   },
   {
     "tableName": "MTC_VW_AI_ODLN",
-    "docType": "交货单",
+    "docType": "Delivery",
     "docTypeEn": "Delivery",
-    "shortDesc": "SAP B1 销售交货单明细视图（ODLN/DLN1）。记录每笔出库交货的单据、客户、物料行、交货数量、含税金额及仓库信息。是交货数量、履约时效等供应链与物流指标的基础数据源，可用于分析发货能力、按仓库或客户群进行交货量拆解。"
+    "shortDesc": "SAP B1 delivery line view (ODLN/DLN1). Document, customer, item lines, quantity, tax-inclusive amount, warehouse. Base for delivery quantity and fulfillment metrics; supports analysis by warehouse and customer group."
   },
   {
     "tableName": "MTC_VW_AI_OINV",
-    "docType": "应收发票",
+    "docType": "AR Invoice",
     "docTypeEn": "AR Invoice",
-    "shortDesc": "SAP B1 应收发票明细视图（OINV/INV1）。记录已开具的客户发票，包含单据、客户、物料行、含税金额、税率及结算状态。是净销售额、已开票收入、税额等财务收入指标的核心数据源，支持按期间、客户、科目等维度分析应收情况。"
+    "shortDesc": "SAP B1 AR invoice line view (OINV/INV1). Issued customer invoices: document, customer, item lines, tax-inclusive amount, tax rate, settlement status. Core source for net sales, billed revenue, tax; supports analysis by period, customer, account."
   },
   {
     "tableName": "MTC_VW_AI_ORDN",
-    "docType": "销售退货单",
+    "docType": "Sales Return",
     "docTypeEn": "Sales Return",
-    "shortDesc": "SAP B1 销售退货单明细视图（ORDN/RDN1）。记录客户发起的退货单据、退货原因、物料行及负向金额。是退货金额、退货率等风控与质量指标的核心数据源，可按退货原因、物料组、客户群分析，辅助识别产品质量或过度承诺问题。"
+    "shortDesc": "SAP B1 sales return line view (ORDN/RDN1). Return documents, return reason, item lines, negative amount. Core for return amount and return rate; supports analysis by return reason, item group, customer for quality or over-commitment issues."
   },
   {
     "tableName": "MTC_VW_AI_ORIN",
-    "docType": "应收贷项凭证",
+    "docType": "AR Credit Memo",
     "docTypeEn": "AR Credit Memo",
-    "shortDesc": "SAP B1 应收贷项凭证明细视图（ORIN/RIN1）。用于冲销或调整已开具的应收发票，记录负向金额及关联发票信息。与应收发票配合使用，可计算净应收、信用调整及客户信用分析，是财务核对与收入修正的补充数据源。"
+    "shortDesc": "SAP B1 AR credit memo line view (ORIN/RIN1). Reverses or adjusts AR invoices; negative amounts and linked invoice. With OINV, used for net AR, credit adjustments, and customer credit analysis."
   },
   {
     "tableName": "MTC_VW_AI_OPDN",
-    "docType": "采购收货单",
+    "docType": "Goods Receipt PO",
     "docTypeEn": "Goods Receipt PO",
-    "shortDesc": "SAP B1 采购收货单明细视图（OPDN/PDN1）。记录每笔采购入库的单据、供应商、物料行、收货数量、不含税及含税成本金额。是采购成本、收货量等采购分析的基础数据源，可按供应商、物料组、仓库、期间进行成本拆解与入库节奏分析。"
+    "shortDesc": "SAP B1 goods receipt (PO) line view (OPDN/PDN1). Purchase receipts: document, vendor, item lines, received quantity, cost (excl./incl. tax). Base for purchase cost and receipt volume; supports analysis by vendor, item group, warehouse, period."
   },
   {
     "tableName": "MTC_VW_AI_ORPD",
-    "docType": "采购退货单",
+    "docType": "Purchase Return",
     "docTypeEn": "Purchase Return",
-    "shortDesc": "SAP B1 采购退货单明细视图（ORPD/RPD1）。记录退回供应商的货物单据、物料行及负向成本金额。是采购质量分析的辅助数据源，结合采购收货单可计算净入库量及供应商退货率，辅助识别供应商质量问题。"
+    "shortDesc": "SAP B1 purchase return line view (ORPD/RPD1). Returns to vendor: document, item lines, negative cost. Used with OPDN for net receipt volume and vendor return rate; supports vendor quality analysis."
   },
   {
     "tableName": "MTC_VW_AI_STOCK",
-    "docType": "库存信息",
+    "docType": "Inventory",
     "docTypeEn": "Inventory",
-    "shortDesc": "SAP B1 库存明细视图，汇总每个物料在各仓库的现有量（OnHand）、已订购量（OnOrder）、已承诺量（IsCommited）、可用量（Available）及物料移动平均成本（AvgPrice）。是库存周转、安全库存预警、缺货风险等供应链指标的基础数据源，支持按仓库、物料组、分支进行库存健康度分析。"
+    "shortDesc": "SAP B1 inventory view: OnHand, OnOrder, IsCommited, Available, AvgPrice by item and warehouse. Base for inventory turnover, safety stock, and out-of-stock risk; supports analysis by warehouse, item group, branch."
   },
   {
     "tableName": "MTC_VW_AI_JOURNAL_ENTRY",
-    "docType": "日记账分录",
+    "docType": "Journal Entry",
     "docTypeEn": "Journal Entry",
-    "shortDesc": "SAP B1 日记账分录视图，记录每条会计分录的科目代码、科目名称、借贷方向、本币金额及所属财务期间。是毛利率、成本费用分析等财务指标的底层数据源，可按科目、期间、成本中心、项目进行财务数据钻取，适用于 AI 辅助的利润表分析与科目异常检测。"
+    "shortDesc": "SAP B1 journal entry view: account code/name, debit/credit, local amount, period. Base for gross margin and cost analysis; supports drill-down by account, period, cost center, project for P&L and anomaly detection."
   }
 ]

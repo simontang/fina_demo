@@ -1,17 +1,17 @@
-字段ID	字段名	描述	类型
-8f82a8ce-0eff-478d-aa26-54b1ab234982	ItemCode	物料代码 例如：A00001	NVARCHAR
-144c9ec0-e373-4e6b-add9-2134b80fd046	ItemName	物料名称/物料描述 例如：IBM Infoprint 1312 喷墨打印机	NVARCHAR
-9ebd07e2-991f-45c5-9643-3a6932deaddb	ItmsGrpCod	物料组代码 例如：101	SMALLINT
-b9d2faef-a188-4226-b8d7-533c224b80b7	ByWh	按仓库管理库存 例如：Y-是；N-否	NVARCHAR
-54466ee7-e16b-4889-83f0-71d6ab6d83e8	MinLevel	最小值 例如：100	DECIMAL
-d4307cce-3b96-49c0-9b4e-b24234875704	ItmsGrpNam	物料组名称 例如：203-打印机	NVARCHAR
-294dc110-5c3e-4ffb-b783-d17c016dd1c1	WhsCode	仓库代码 例如：03	NVARCHAR
-70a12fa6-173c-4726-87fc-47f04f113171	WhsName	仓库名称 例如：直运发货仓库	NVARCHAR
-9a16a4d7-3ecc-4c84-8a19-1406791816f5	OnHand	现有库存量 例如：10	DECIMAL
-d045f406-9194-4aa7-b2cd-ce46be638c06	OnOrder	已订购量 例如：20	DECIMAL
-557350c3-6688-4dd8-b9bb-02b8bf831444	IsCommited	已承诺量 例如：5	DECIMAL
-6829c9f5-f133-4b83-8b76-7575d58d9e2f	Available	可用数量 例如：25	DECIMAL
-6887e1b5-42f4-4521-8b67-82adb9bc952e	AvgPrice	物料成本 例如：2800.00	DECIMAL
-7f6a7343-5a2f-485a-9976-42ae4e4e4f0d	MinStock	仓库的最小库存量/安全库存量 例如：20	DECIMAL
-c7f89704-82f9-4666-a4b8-01d74c480f10	BPLid	分支代码 例如：3；4	INTEGER
-4c973abc-09a1-4106-88b6-d381dc3bafd8	BPLName	分支名称 例如：孝闻店；中央花园	NVARCHAR
+Field ID	Field Name	Description	Type
+8f82a8ce-0eff-478d-aa26-54b1ab234982	ItemCode	Item code e.g. A00001	NVARCHAR
+144c9ec0-e373-4e6b-add9-2134b80fd046	ItemName	Item name/description e.g. IBM Infoprint 1312 Inkjet Printer	NVARCHAR
+9ebd07e2-991f-45c5-9643-3a6932deaddb	ItmsGrpCod	Item group code e.g. 101	SMALLINT
+b9d2faef-a188-4226-b8d7-533c224b80b7	ByWh	Manage stock by warehouse e.g. Y-Yes; N-No	NVARCHAR
+54466ee7-e16b-4889-83f0-71d6ab6d83e8	MinLevel	Minimum level e.g. 100	DECIMAL
+d4307cce-3b96-49c0-9b4e-b24234875704	ItmsGrpNam	Item group name e.g. 203-Printer	NVARCHAR
+294dc110-5c3e-4ffb-b783-d17c016dd1c1	WhsCode	Warehouse code e.g. 03	NVARCHAR
+70a12fa6-173c-4726-87fc-47f04f113171	WhsName	Warehouse name e.g. Direct ship WH	NVARCHAR
+9a16a4d7-3ecc-4c84-8a19-1406791816f5	OnHand	On-hand quantity e.g. 10	DECIMAL
+d045f406-9194-4aa7-b2cd-ce46be638c06	OnOrder	On-order quantity e.g. 20	DECIMAL
+557350c3-6688-4dd8-b9bb-02b8bf831444	IsCommited	Committed quantity e.g. 5	DECIMAL
+6829c9f5-f133-4b83-8b76-7575d58d9e2f	Available	Available quantity e.g. 25	DECIMAL
+6887e1b5-42f4-4521-8b67-82adb9bc952e	AvgPrice	Item cost e.g. 2800.00	DECIMAL
+7f6a7343-5a2f-485a-9976-42ae4e4e4f0d	MinStock	Min/safety stock e.g. 20	DECIMAL
+c7f89704-82f9-4666-a4b8-01d74c480f10	BPLid	Branch code e.g. 3; 4	INTEGER
+4c973abc-09a1-4106-88b6-d381dc3bafd8	BPLName	Branch name e.g. Branch A; Branch B	NVARCHAR

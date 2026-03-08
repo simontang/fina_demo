@@ -1,62 +1,62 @@
-字段ID	字段名	描述	类型
-4c512cfa-1f18-44f5-afd5-87d6d352d5e6	DocNum	采购收货单号 例如：1029	INTEGER
-98f8a63b-ff04-4992-b637-6f2247fa249f	DocEntry	内部标识号 例如：1029	INTEGER
-6929b5ed-7a4d-48e4-af30-56b542b535c5	DocDate	单据日期 例如：2024-05-30	TIMESTAMP
-cd66c285-1974-4a9c-a9c6-c05ed9483c0e	DocStatus	单据状态 例如：0-未清；C-已结算	NVARCHAR
-71839247-14c1-4302-bc1a-411d02b3a66b	DocType	单据类型 例如：I-物料；S-服务	NVARCHAR
-0ccaae00-92f0-40c4-9d79-e394cbfabfd0	ObjType	单据对象类型 例如：20-采购收货	NVARCHAR
-4cc569f1-3aee-4999-99d7-98fa256cf08f	CardCode	供应商代码 例如：V10000；S10000	NVARCHAR
-fae0b55f-f648-4e3b-93fd-7a24ffb3d651	CardName	供应商名称 例如：珠海信达电子公司	NVARCHAR
-b87b37ff-a50c-4490-90b6-48912dafcff3	GroupName	供应商组/供应商类别供应商分类 例如：主要供应商	NVARCHAR
-6bed7309-39ab-4ebd-96a1-7a20ddfb5c88	DocCur	货币 例如：RMB；USD；EUR	NVARCHAR
-881cb757-bdd4-4172-bafd-7517dd985407	IsLocCurrency	单据是否本位币 例如：Y-是；N-否	VARCHAR
-cf101339-e355-4898-8f41-31e96d1570d5	DocRate	汇率 例如：7.9076；1.0000	DECIMAL
-3ef87021-067d-4b50-8372-a5f9cd2c01a4	DiscPrcnt	单据折扣 例如：2	DECIMAL
-b138498d-0829-4d94-912c-4032bfd51204	SlpName	采购员 例如：钱国钧	NVARCHAR
-0b10fb14-f5de-487e-901e-2f67ce0ab932	LineNum	行号 例如：0；1；2	INTEGER
-eb1ba7b4-440b-47ee-9e09-b53eaab826a2	LineStatus	行状态 例如：0-未清；C-已结算	NVARCHAR
-3ab1ade0-40ea-4db8-acaa-a3a211854324	BaseType	基础单据对象类型 例如：540000006-采购报价单；22-采购订单；21-采购退货；18-预留发票；-1-一揽子协议/无来源	INTEGER
-a99036a0-e15a-4bea-93f4-02460b7c5d03	BaseEntry	基础单号 例如：1034	INTEGER
-9213fd60-bd9a-458a-be22-5435d2f40b68	BaseLine	基础行号 例如：0；1；2	INTEGER
-8df8b47b-63c5-45fd-9b03-d7edf69c16b4	ItemCode	物料代码 例如：A00002；C00005	NVARCHAR
-4b443982-c8c7-4ace-8f25-2a4529da02bf	SubCatNum	业务伙伴目录编号 例如：10080910	NVARCHAR
-615a3f21-5249-4bef-b42d-075f208d2436	Dscription	物料描述 例如：IBM Infoprint 1222 喷墨打印机	NVARCHAR
-dabb2aef-0a20-4d34-9c67-d31b0880bc42	AcctCode	科目代码 例如：55020408	NVARCHAR
-b6779e7b-177a-47bd-8763-abb69666085f	AcctName	科目名称 例如：管理费用-办公费用-其他费用	NVARCHAR
-dd75fd7b-b85e-4dca-8c28-a954c57a9e0f	ItmsGrpNam	物料组/物料分类 例如：203-打印机；202-普通物料	NVARCHAR
-4b472d64-90b4-4d60-9d3b-6cf68d4ea686	Quantity	收货数量 例如：12	DECIMAL
-e7302d38-5997-4d2b-a695-de0ffb68100a	OpenCreQty	未生成应付发票数量 例如：2	DECIMAL
-bce6d951-9326-4b93-b89b-143642660fb5	WhsCode	仓库代码 例如：01	NVARCHAR
-27b163fe-105f-4522-b204-b863b45ed3e7	WhsName	仓库名称 例如：主仓库；辅料仓库	NVARCHAR
-368122c3-9f3e-4691-85a1-aa96f4709f89	ShipDate	交货日期 例如：2024-05-28	TIMESTAMP
-d6352fc4-0f41-4e67-953c-26ba90131cbe	VatGroup	税代码 例如：X1；X2	NVARCHAR
-1e8ba35f-ed01-455c-bab2-1d83a3e9a0d4	VatPrcnt	税率 例如：13.0000；6.0000	DECIMAL
-1435b8a4-0ebb-4005-ae69-ee2607b63baf	Currency	单价货币 例如：RMB；USD；EUR	NVARCHAR
-34cb794e-cb9d-44f4-aae0-60b50bd09f5f	LineIsLocCurrency	是否本位币 例如：Y-是；N-否	VARCHAR
-4ee1721d-3581-44f7-9f74-2494106e4e57	Rate	单价货币汇率 例如：7.9076；1.0000	DECIMAL
-79ddadda-f689-4e2b-a016-5a5a6c5ef59d	Price	不含税单价 例如：2310.00	DECIMAL
-cee77ae4-3685-4a6b-9627-45739140757e	PriceAfVAT	含税单价 例如：2310.00	DECIMAL
-654f92f1-4571-4843-92f2-38d5d3c1ab72	LineTotal	不含税金额 例如：2702.70	DECIMAL
-aa1e8bc6-27cd-4545-9fe6-e9b852d93703	GTotal	含税金额 例如：23100.00	DECIMAL
-8ec03370-1110-428f-bd80-350acc13fbcb	TotalFrgn	不含税外币金额 例如：3281.25	DECIMAL
-a5147f63-3200-4b0b-86e3-ae6806c6e6e9	GTotalFC	含税外币金额 例如：3281.25	DECIMAL
-b0cb37f9-ba56-4ef9-8781-10e38858a021	Project	项目号 例如：SPI-C23900	NVARCHAR
-560242c2-0cc6-4048-8467-1f404e958691	PrjName	项目名称 例如：Maxi-Teq的新服务器安装	NVARCHAR
-0c54c5d4-4507-425d-a9d8-f04d7583e4e2	OcrCode	成本利润中心1代码	NVARCHAR
-f230d16b-c8cf-4e6c-b387-bbbe5692529a	CostCenterName1	成本利润中心1名称	NVARCHAR
-2e63ce7c-73b8-4295-b27b-6f601605efa0	OcrCode2	成本利润中心2代码 例如：D001；D002	NVARCHAR
-e9972543-9598-4e46-bdee-83c7cd1a37e8	CostCenterName2	成本利润中心2名称 例如：财务部；销售部	NVARCHAR
-654bf6c4-2502-47b5-ace8-a692dd596b83	OcrCode3	成本利润中心3代码 例如：E001；E002	NVARCHAR
-bacccdf0-8d4a-416f-886a-df3301ca0a11	CostCenterName3	成本利润中心3名称 例如：张玮；李珊珊	NVARCHAR
-0de9cfa5-68df-4e56-825e-813ff5259e4d	OcrCode4	成本利润中心4代码	NVARCHAR
-30af9814-b9c7-4885-8617-8b485e5482f1	CostCenterName4	成本利润中心4名称	NVARCHAR
-1fd95fa2-a94c-47bb-b2ee-afb620f4f50e	OcrCode5	成本利润中心5代码	NVARCHAR
-3570eee2-d39c-4167-a21a-966b20b5d88e	CostCenterName5	成本利润中心5名称	NVARCHAR
-8568c373-6cb4-48d7-87a8-5709d92c79d9	Code	财务期间 例如：2024-05	NVARCHAR
-15c76c15-7bb0-4ad7-9448-5338b0659a5d	Category	财务年度 例如：2024	NVARCHAR
-08def120-9fff-4486-9996-9b4f6e37dbe5	BPLId	分支代码 例如：3；4	INTEGER
-76e053e1-1b09-4174-88d0-058c1575cbb2	BPLName	分支名称 例如：孝闻店；中央花园	NVARCHAR
-284d0371-a859-4b95-a7d4-80601edb69e0	OpenLineTotal	未清不含税金额  例如：2702.70	DECIMAL
-69d12816-3229-4637-b3a4-6e6990838009	OpenGTotal	未清含税金额  例如：23100.00	DECIMAL
-059629d8-3122-4ff3-a837-705d4e5f692c	OpenTotalFrgn	未清不含税外币金额  例如：3281.25	DECIMAL
-26d26ce2-2151-4514-84f0-565b80dbc9a3	OpenGTotalFC	未清含税外币金额  例如：3281.25	DECIMAL
+Field ID	Field Name	Description	Type
+4c512cfa-1f18-44f5-afd5-87d6d352d5e6	DocNum	Goods receipt no. e.g. 1029	INTEGER
+98f8a63b-ff04-4992-b637-6f2247fa249f	DocEntry	Internal ID e.g. 1029	INTEGER
+6929b5ed-7a4d-48e4-af30-56b542b535c5	DocDate	Document date e.g. 2024-05-30	TIMESTAMP
+cd66c285-1974-4a9c-a9c6-c05ed9483c0e	DocStatus	Document status e.g. O-Open; C-Closed	NVARCHAR
+71839247-14c1-4302-bc1a-411d02b3a66b	DocType	Document type e.g. I-Item; S-Service	NVARCHAR
+0ccaae00-92f0-40c4-9d79-e394cbfabfd0	ObjType	Object type e.g. 20-Goods receipt	NVARCHAR
+4cc569f1-3aee-4999-99d7-98fa256cf08f	CardCode	Vendor code e.g. V10000；S10000	NVARCHAR
+fae0b55f-f648-4e3b-93fd-7a24ffb3d651	CardName	Vendor name e.g. Zhuhai Vendor Ltd	NVARCHAR
+b87b37ff-a50c-4490-90b6-48912dafcff3	GroupName	Vendor group e.g. Key vendor	NVARCHAR
+6bed7309-39ab-4ebd-96a1-7a20ddfb5c88	DocCur	Currency e.g. RMB; USD; EUR	NVARCHAR
+881cb757-bdd4-4172-bafd-7517dd985407	IsLocCurrency	Is local currency e.g. Y-Yes; N-No	VARCHAR
+cf101339-e355-4898-8f41-31e96d1570d5	DocRate	Exchange rate e.g. 7.9076; 1.0000	DECIMAL
+3ef87021-067d-4b50-8372-a5f9cd2c01a4	DiscPrcnt	Document discount e.g. 2	DECIMAL
+b138498d-0829-4d94-912c-4032bfd51204	SlpName	Buyer e.g. Buyer Name	NVARCHAR
+0b10fb14-f5de-487e-901e-2f67ce0ab932	LineNum	Line no. e.g. 0; 1; 2	INTEGER
+eb1ba7b4-440b-47ee-9e09-b53eaab826a2	LineStatus	Line status e.g. O-Open; C-Closed	NVARCHAR
+3ab1ade0-40ea-4db8-acaa-a3a211854324	BaseType	Base object type e.g. 540000006-PO Quotation; 22-PO; 21-Purchase return; 18-Invoice; -1-None	INTEGER
+a99036a0-e15a-4bea-93f4-02460b7c5d03	BaseEntry	Base doc no. e.g. 1034	INTEGER
+9213fd60-bd9a-458a-be22-5435d2f40b68	BaseLine	Base line no. e.g. 0; 1; 2	INTEGER
+8df8b47b-63c5-45fd-9b03-d7edf69c16b4	ItemCode	Item code e.g. A00002；C00005	NVARCHAR
+4b443982-c8c7-4ace-8f25-2a4529da02bf	SubCatNum	BP catalog no. e.g. 10080910	NVARCHAR
+615a3f21-5249-4bef-b42d-075f208d2436	Dscription	Item description e.g. IBM Infoprint 1222 Inkjet Printer	NVARCHAR
+dabb2aef-0a20-4d34-9c67-d31b0880bc42	AcctCode	Account code e.g. 55020408	NVARCHAR
+b6779e7b-177a-47bd-8763-abb69666085f	AcctName	Account name e.g. Admin-Office-Other	NVARCHAR
+dd75fd7b-b85e-4dca-8c28-a954c57a9e0f	ItmsGrpNam	Item group e.g. 203-Printer; 202-Standard	NVARCHAR
+4b472d64-90b4-4d60-9d3b-6cf68d4ea686	Quantity	Received quantity e.g. 12	DECIMAL
+e7302d38-5997-4d2b-a695-de0ffb68100a	OpenCreQty	Open AP quantity e.g. 2	DECIMAL
+bce6d951-9326-4b93-b89b-143642660fb5	WhsCode	Warehouse code e.g. 01	NVARCHAR
+27b163fe-105f-4522-b204-b863b45ed3e7	WhsName	Warehouse name e.g. Main WH; Aux WH	NVARCHAR
+368122c3-9f3e-4691-85a1-aa96f4709f89	ShipDate	Delivery date e.g. 2024-05-28	TIMESTAMP
+d6352fc4-0f41-4e67-953c-26ba90131cbe	VatGroup	Tax code e.g. X1; X2	NVARCHAR
+1e8ba35f-ed01-455c-bab2-1d83a3e9a0d4	VatPrcnt	VAT rate e.g. 13.0000; 6.0000	DECIMAL
+1435b8a4-0ebb-4005-ae69-ee2607b63baf	Currency	Line currency e.g. RMB; USD; EUR	NVARCHAR
+34cb794e-cb9d-44f4-aae0-60b50bd09f5f	LineIsLocCurrency	Is local currency e.g. Y-Yes; N-No	VARCHAR
+4ee1721d-3581-44f7-9f74-2494106e4e57	Rate	Line exchange rate e.g. 7.9076; 1.0000	DECIMAL
+79ddadda-f689-4e2b-a016-5a5a6c5ef59d	Price	Price excl. VAT e.g. 2310.00	DECIMAL
+cee77ae4-3685-4a6b-9627-45739140757e	PriceAfVAT	Price incl. VAT e.g. 2310.00	DECIMAL
+654f92f1-4571-4843-92f2-38d5d3c1ab72	LineTotal	Amount excl. VAT e.g. 2702.70	DECIMAL
+aa1e8bc6-27cd-4545-9fe6-e9b852d93703	GTotal	Amount incl. VAT e.g. 23100.00	DECIMAL
+8ec03370-1110-428f-bd80-350acc13fbcb	TotalFrgn	Amount FC excl. VAT e.g. 3281.25	DECIMAL
+a5147f63-3200-4b0b-86e3-ae6806c6e6e9	GTotalFC	Amount FC incl. VAT e.g. 3281.25	DECIMAL
+b0cb37f9-ba56-4ef9-8781-10e38858a021	Project	Project code e.g. SPI-C23900	NVARCHAR
+560242c2-0cc6-4048-8467-1f404e958691	PrjName	Project name e.g. Maxi-Teq Server Install	NVARCHAR
+0c54c5d4-4507-425d-a9d8-f04d7583e4e2	OcrCode	Cost center 1 code	NVARCHAR
+f230d16b-c8cf-4e6c-b387-bbbe5692529a	CostCenterName1	Cost center 1 name	NVARCHAR
+2e63ce7c-73b8-4295-b27b-6f601605efa0	OcrCode2	Cost center 2 code e.g. D001; D002	NVARCHAR
+e9972543-9598-4e46-bdee-83c7cd1a37e8	CostCenterName2	Cost center 2 name e.g. Finance; Sales	NVARCHAR
+654bf6c4-2502-47b5-ace8-a692dd596b83	OcrCode3	Cost center 3 code e.g. E001; E002	NVARCHAR
+bacccdf0-8d4a-416f-886a-df3301ca0a11	CostCenterName3	Cost center 3 name e.g. Team A; Team B	NVARCHAR
+0de9cfa5-68df-4e56-825e-813ff5259e4d	OcrCode4	Cost center 4 code	NVARCHAR
+30af9814-b9c7-4885-8617-8b485e5482f1	CostCenterName4	Cost center 4 name	NVARCHAR
+1fd95fa2-a94c-47bb-b2ee-afb620f4f50e	OcrCode5	Cost center 5 code	NVARCHAR
+3570eee2-d39c-4167-a21a-966b20b5d88e	CostCenterName5	Cost center 5 name	NVARCHAR
+8568c373-6cb4-48d7-87a8-5709d92c79d9	Code	Period e.g. 2024-05	NVARCHAR
+15c76c15-7bb0-4ad7-9448-5338b0659a5d	Category	Fiscal year e.g. 2024	NVARCHAR
+08def120-9fff-4486-9996-9b4f6e37dbe5	BPLId	Branch code e.g. 3; 4	INTEGER
+76e053e1-1b09-4174-88d0-058c1575cbb2	BPLName	Branch name e.g. Branch A; Branch B	NVARCHAR
+284d0371-a859-4b95-a7d4-80601edb69e0	OpenLineTotal	Open amount excl. VAT e.g. 2702.70	DECIMAL
+69d12816-3229-4637-b3a4-6e6990838009	OpenGTotal	Open amount incl. VAT e.g. 23100.00	DECIMAL
+059629d8-3122-4ff3-a837-705d4e5f692c	OpenTotalFrgn	Open FC excl. VAT e.g. 3281.25	DECIMAL
+26d26ce2-2151-4514-84f0-565b80dbc9a3	OpenGTotalFC	Open FC incl. VAT e.g. 3281.25	DECIMAL

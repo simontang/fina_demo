@@ -1,15 +1,15 @@
 [
   {
     "metric_name": "order_amt_tax_inc",
-    "display_name": "订单金额（含税）",
+    "display_name": "Order Amount (Tax Inclusive)",
     "domain": "sales_performance",
-    "description": "销售接单阶段的含税总金额。作为反映销售团队开拓能力与市场需求的先导指标，用于预测未来的营收转化。",
+    "description": "Total tax-inclusive amount at the sales order stage. A leading indicator of sales team pipeline and market demand, used to predict future revenue conversion.",
     "data_type": "currency",
     "format": "¥0,0.00",
 
     "default_time_context": {
       "time_dimension": "DocDate",
-      "label": "单据日期",
+      "label": "Document Date",
       "granularity": "month",
       "window": "current_month",
       "supported_grains": ["day", "week", "month", "year"]
@@ -39,7 +39,7 @@
     },
 
     "ai_agent_context": {
-      "synonyms": ["接单金额", "订单额", "签约金额", "含税接单额", "Booking Amount"],
+      "synonyms": ["Booking Amount", "Order Value", "Contract Amount", "Tax-inclusive Booking"],
       "polarity": "positive",
 
       "thresholds": [
@@ -61,21 +61,21 @@
         "analysis_logic": "backlog_vs_real_decline"
       },
 
-      "human_readable_explanation": "当接单金额出现下滑时，系统已自动引入『净销售额』进行交叉比对。如果开票收入持平但接单下降，说明业务正在消耗历史积压订单（Backlog）；如果两者双降，系统将自动向下钻取大区与销售员业绩，为您定位具体的业绩流失点。"
+      "human_readable_explanation": "When order amount declines, the system automatically compares with Net Sales. If billing is flat but orders drop, backlog is being consumed; if both drop, the system drills down by region and salesperson to locate the loss."
     }
   },
 
   {
     "metric_name": "net_sales_amt",
-    "display_name": "净销售额（含税）",
+    "display_name": "Net Sales (Tax Inclusive)",
     "domain": "revenue_and_growth",
-    "description": "已开具应收发票的含税金额总和，代表已实际确认的账面营收。与订单金额对比可反映 Backlog 消耗情况。",
+    "description": "Total tax-inclusive amount of issued AR invoices; represents recognized book revenue. Compare with order amount to assess backlog consumption.",
     "data_type": "currency",
     "format": "¥0,0.00",
 
     "default_time_context": {
       "time_dimension": "DocDate",
-      "label": "单据日期",
+      "label": "Document Date",
       "granularity": "month",
       "window": "current_month",
       "supported_grains": ["day", "week", "month", "year"]
@@ -105,7 +105,7 @@
     },
 
     "ai_agent_context": {
-      "synonyms": ["开票金额", "发票金额", "净营收", "Billing Amount", "Revenue"],
+      "synonyms": ["Billing Amount", "Invoice Amount", "Net Revenue", "Revenue"],
       "polarity": "positive",
 
       "thresholds": [
@@ -124,21 +124,21 @@
         "analysis_logic": "billing_vs_booking_gap"
       },
 
-      "human_readable_explanation": "净销售额下降时，系统会对比订单金额：若接单正常而开票下降，说明交货/开票环节有延迟；若两者同步下滑，则属于真实需求萎缩。"
+      "human_readable_explanation": "When net sales drop, the system compares with order amount: if orders are stable but billing drops, delivery or invoicing is delayed; if both drop, demand is declining."
     }
   },
 
   {
     "metric_name": "delivery_qty",
-    "display_name": "交货数量",
+    "display_name": "Delivery Quantity",
     "domain": "fulfillment_and_logistics",
-    "description": "实际通过交货单发出（发货出库）的物料总件数。用于衡量供应链的履约吞吐量和仓库的作业负荷。",
+    "description": "Total units shipped via delivery documents (goods issue). Measures supply chain fulfillment throughput and warehouse load.",
     "data_type": "number",
     "format": "0,0",
 
     "default_time_context": {
       "time_dimension": "DocDate",
-      "label": "交货日期",
+      "label": "Delivery Date",
       "granularity": "day",
       "window": "last_7_days",
       "supported_grains": ["day", "week", "month", "year"]
@@ -167,7 +167,7 @@
     },
 
     "ai_agent_context": {
-      "synonyms": ["发货件数", "发货量", "出库数量", "交货量", "Shipped Units"],
+      "synonyms": ["Shipped Units", "Shipment Qty", "Goods Issue Qty", "Delivery Volume"],
       "polarity": "positive",
 
       "thresholds": [
@@ -186,21 +186,21 @@
         "analysis_logic": "fulfillment_bottleneck_check"
       },
 
-      "human_readable_explanation": "当交货数量出现异常下跌时，系统将自动下钻至具体仓库和品类，排查是单仓爆仓/停摆，还是某类核心物料出现断货导致无法发货。"
+      "human_readable_explanation": "When delivery quantity drops abnormally, the system drills down by warehouse and category to find whether a single warehouse is overloaded or a key product is out of stock."
     }
   },
 
   {
     "metric_name": "return_amt",
-    "display_name": "退货金额",
+    "display_name": "Return Amount",
     "domain": "quality_and_risk",
-    "description": "客户退货产生的含税单据金额。此指标过高直接反映产品质量缺陷、过度承诺或物流破损等问题。",
+    "description": "Tax-inclusive amount of customer return documents. High values indicate product quality issues, over-commitment, or logistics damage.",
     "data_type": "currency",
     "format": "¥0,0.00",
 
     "default_time_context": {
       "time_dimension": "DocDate",
-      "label": "退货日期",
+      "label": "Return Date",
       "granularity": "month",
       "window": "current_month",
       "supported_grains": ["day", "week", "month", "year"]
@@ -229,7 +229,7 @@
     },
 
     "ai_agent_context": {
-      "synonyms": ["退货额", "退款金额", "退回金额", "Return Value"],
+      "synonyms": ["Return Value", "Refund Amount", "Returned Amount"],
       "polarity": "negative",
 
       "thresholds": [
@@ -249,21 +249,21 @@
         "analysis_logic": "quality_vs_expectation_gap"
       },
 
-      "human_readable_explanation": "退货金额飙升属于严重风控事件。系统会强制优先分析退货原因（如质量指标超标），并交叉对比客户维度，以防大客户因体验不佳而流失。"
+      "human_readable_explanation": "A sharp rise in return amount is a serious risk event. The system prioritizes return-reason analysis and cross-checks by customer to prevent churn due to poor experience."
     }
   },
 
   {
     "metric_name": "avg_ticket_size_per_customer",
-    "display_name": "客单价",
+    "display_name": "Average Ticket Size per Customer",
     "domain": "customer_value",
-    "description": "平均每个独立客户在特定周期内贡献的含税订单总额。衡量客户的总体购买力和企业的交叉销售能力。",
+    "description": "Average tax-inclusive order total per distinct customer in a period. Measures customer purchasing power and cross-sell effectiveness.",
     "data_type": "currency",
     "format": "¥0,0.00",
 
     "default_time_context": {
       "time_dimension": "DocDate",
-      "label": "单据日期",
+      "label": "Document Date",
       "granularity": "month",
       "window": "current_quarter",
       "supported_grains": ["day", "week", "month", "year"]
@@ -292,7 +292,7 @@
     },
 
     "ai_agent_context": {
-      "synonyms": ["单客产出", "平均单客消费", "ARPU", "Ticket Size"],
+      "synonyms": ["ARPU", "Ticket Size", "Avg Spend per Customer"],
       "polarity": "positive",
 
       "thresholds": [
@@ -311,21 +311,21 @@
         "analysis_logic": "customer_wallet_share_analysis"
       },
 
-      "human_readable_explanation": "客单价下滑可能意味着客户消费降级或预算被竞品分流。系统会自动下钻客户群组（如大客户vs普通客户），排查是低净值新客涌入拉低了均值，还是核心老客的采购量在缩水。"
+      "human_readable_explanation": "A drop in ticket size may mean customer downgrade or budget shift to competitors. The system drills down by customer group (e.g. key accounts vs. standard) to see if new low-value customers dilute the average or core customers are buying less."
     }
   },
 
   {
     "metric_name": "avg_selling_price",
-    "display_name": "平均成交单价 (ASP)",
+    "display_name": "Average Selling Price (ASP)",
     "domain": "pricing_and_margin",
-    "description": "每售出一件单品的平均含税价格。用于监控价格体系稳健程度及产品的市场溢价能力。",
+    "description": "Average tax-inclusive price per unit sold. Used to monitor price discipline and product premium capability.",
     "data_type": "currency",
     "format": "¥0,0.00",
 
     "default_time_context": {
       "time_dimension": "DocDate",
-      "label": "单据日期",
+      "label": "Document Date",
       "granularity": "month",
       "window": "current_month",
       "supported_grains": ["day", "week", "month", "year"]
@@ -353,7 +353,7 @@
     },
 
     "ai_agent_context": {
-      "synonyms": ["件单价", "ASP", "单品均价", "平均售价"],
+      "synonyms": ["ASP", "Unit Price", "Avg Price", "Price per Unit"],
       "polarity": "positive",
 
       "thresholds": [
@@ -372,21 +372,21 @@
         "analysis_logic": "price_drop_vs_mix_shift"
       },
 
-      "human_readable_explanation": "当 ASP 下降时，系统会优先按品类下钻，以厘清这是因为我们在主动降价促销，还是因为低价产品线卖得太好导致整体盘子的结构性均价被拉低（Sales Mix 变化）。"
+      "human_readable_explanation": "When ASP drops, the system drills down by category to distinguish proactive price promotion from mix shift (low-price lines selling more and pulling down the average)."
     }
   },
 
   {
     "metric_name": "avg_discount_rate",
-    "display_name": "折扣率",
+    "display_name": "Discount Rate",
     "domain": "pricing_and_margin",
-    "description": "订单成交时给予客户的平均让利幅度。严格监控此指标可防止业务员过度放价导致毛利受损。",
+    "description": "Average discount given at order close. Monitoring this helps prevent excessive discounting and margin leakage.",
     "data_type": "percentage",
     "format": "0.00%",
 
     "default_time_context": {
       "time_dimension": "DocDate",
-      "label": "单据日期",
+      "label": "Document Date",
       "granularity": "month",
       "window": "current_month",
       "supported_grains": ["day", "week", "month", "year"]
@@ -409,19 +409,19 @@
       {
         "dim_id": "sales_person", "field_name": "SlpName", "type": "categorical",
         "filter_operators": ["IN", "EQ", "NEQ"],
-        "filter_example": { "dimension": "sales_person", "operator": "EQ", "values": ["张三"] },
+        "filter_example": { "dimension": "sales_person", "operator": "EQ", "values": ["John Smith"] },
         "group_by_example": "sales_person"
       },
       {
         "dim_id": "customer_group", "field_name": "GroupName", "type": "categorical",
         "filter_operators": ["IN", "EQ", "NEQ"],
-        "filter_example": { "dimension": "customer_group", "operator": "IN", "values": ["VIP客户"] },
+        "filter_example": { "dimension": "customer_group", "operator": "IN", "values": ["VIP Customer"] },
         "group_by_example": "customer_group"
       },
       {
         "dim_id": "org_region", "field_name": "Region", "type": "categorical",
         "filter_operators": ["IN", "EQ", "NEQ"],
-        "filter_example": { "dimension": "org_region", "operator": "IN", "values": ["华东", "华南"] },
+        "filter_example": { "dimension": "org_region", "operator": "IN", "values": ["East China", "South China"] },
         "group_by_example": "org_region"
       }
     ],
@@ -432,7 +432,7 @@
     },
 
     "ai_agent_context": {
-      "synonyms": ["让利比例", "降价幅度", "折扣比例", "Discount %"],
+      "synonyms": ["Discount %", "Concession Rate", "Discount Level"],
       "polarity": "negative",
 
       "thresholds": [
@@ -452,7 +452,7 @@
         "analysis_logic": "discount_ROI_evaluation"
       },
 
-      "human_readable_explanation": "折扣率异常上升是利润流失的红灯警告。系统将立即按大区和销售员层层剥离，找出放价最严重的组织节点，供管理层评估这种以价换量的策略是否合理。"
+      "human_readable_explanation": "An abnormal rise in discount rate is a margin alert. The system drills down by region and salesperson to find where discounting is heaviest for management to evaluate volume-vs-price trade-off."
     }
   }
 ]
