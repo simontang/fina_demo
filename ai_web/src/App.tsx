@@ -23,7 +23,7 @@ import { CustomSiderWrapper } from "./components/custom-sider-wrapper";
 import { Header } from "./components/header";
 import { ColorModeContextProvider } from "./contexts/color-mode";
 import { AgentList } from "./pages/agents";
-import { LoginPage, RegisterPage, TenantSelectPage } from "./pages/auth";
+import { LoginPage } from "./pages/auth";
 import { DataAgentList } from "./pages/agents/data";
 import { DeepResearchAgentList } from "./pages/agents/deep-research";
 import { DeepResearchCritique } from "./pages/agents/deep-research/critique";
@@ -293,7 +293,6 @@ const AppContent: React.FC = () => {
   if (tenants.length > 1 && !currentTenant) {
     return (
       <Routes>
-        <Route path="/tenant-select" element={<TenantSelectPage />} />
         <Route path="*" element={<CatchAllNavigate to="/tenant-select" />} />
       </Routes>
     );
