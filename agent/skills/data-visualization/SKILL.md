@@ -1,6 +1,6 @@
 ---
 name: data-visualization
-description: 为数据分析结果选择合适的图表类型并生成 ECharts 配置。适用于需要将查询结果可视化为柱状图、折线图、饼图、散点图等图表的场景。
+description: 为数据分析结果选择合适的图表类型并生成markdown。适用于需要将查询结果可视化为柱状图、折线图、饼图、散点图等图表的场景。
 metadata:
   category: analysis
 ---
@@ -31,7 +31,7 @@ metadata:
 
 ## ECharts 配置要求
 
-生成完整的 ECharts 配置，必须包含：
+生成完整的markdown，必须包含：
 
 \`\`\`chart
 {
@@ -74,7 +74,7 @@ metadata:
 
 ## 输出格式
 
-提供完整的 chart JSON 配置，可直接用于渲染。
+提供完整的 chart markdown block，可直接用于渲染。
 
 ## 常用图表用例
 

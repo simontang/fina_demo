@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import path from "path";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
-import { PostgreSQLAssistantStore, PostgreSQLThreadStore, PostgreSQLDatabaseConfigStore, PostgreSQLWorkspaceStore, PostgreSQLProjectStore } from "@axiom-lattice/pg-stores";
+import { PostgreSQLAssistantStore, PostgreSQLThreadStore, PostgreSQLDatabaseConfigStore, PostgreSQLWorkspaceStore, PostgreSQLProjectStore, PostgreSQLUserStore, PostgreSQLTenantStore, PostgreSQLUserTenantLinkStore, PostgreSQLMetricsServerConfigStore } from "@axiom-lattice/pg-stores";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 import { startServer } from "./gateway";
@@ -15,6 +15,7 @@ import {
   FileSystemSkillStore,
   sandboxLatticeManager,
   sqlDatabaseManager,
+  metricsServerManager,
 } from "@axiom-lattice/core";
 const fs = require("fs");
 
@@ -145,6 +146,23 @@ registerStoreLattice("default", "database", databaseConfigStore);
 sqlDatabaseManager.loadAllConfigsFromStore(databaseConfigStore)
 console.log("PostgreSQL DatabaseConfigStore initialized with auto-migration");
 
+
+
+// Initialize and register PostgreSQL MetricsServerConfigStore
+// This stores metrics server configurations with apiKey and password encryption
+const metricsConfigStore = new PostgreSQLMetricsServerConfigStore({
+  poolConfig: process.env.DATABASE_URL || "",
+  autoMigrate: true,
+});
+
+// Register metricsConfigStore to replace the default in-memory store
+storeLatticeManager.removeLattice("default", "metrics");
+registerStoreLattice("default", "metrics", metricsConfigStore);
+metricsServerManager.loadAllConfigsFromStore(metricsConfigStore)
+console.log("PostgreSQL MetricsServerConfigStore initialized with auto-migration");
+
+
+
 // Initialize and register PostgreSQL WorkspaceStore
 const workspaceStore = new PostgreSQLWorkspaceStore({
   poolConfig: process.env.DATABASE_URL || "",
@@ -167,7 +185,45 @@ storeLatticeManager.removeLattice("default", "project");
 registerStoreLattice("default", "project", projectStore);
 console.log("PostgreSQL ProjectStore initialized with auto-migration");
 
+// Initialize and register PostgreSQL UserStore (for authentication)
+const userStore = new PostgreSQLUserStore({
+  poolConfig: process.env.DATABASE_URL || "",
+  autoMigrate: true,
+});
+storeLatticeManager.removeLattice("default", "user");
+registerStoreLattice("default", "user", userStore);
+console.log("PostgreSQL UserStore initialized with auto-migration");
 
+// Initialize and register PostgreSQL TenantStore (for multi-tenancy)
+const tenantStore = new PostgreSQLTenantStore({
+  poolConfig: process.env.DATABASE_URL || "",
+  autoMigrate: true,
+});
+storeLatticeManager.removeLattice("default", "tenant");
+registerStoreLattice("default", "tenant", tenantStore);
+console.log("PostgreSQL TenantStore initialized with auto-migration");
+
+// Initialize and register PostgreSQL UserTenantLinkStore (for user-tenant relationships)
+const userTenantLinkStore = new PostgreSQLUserTenantLinkStore({
+  poolConfig: process.env.DATABASE_URL || "",
+  autoMigrate: true,
+});
+storeLatticeManager.removeLattice("default", "userTenantLink");
+registerStoreLattice("default", "userTenantLink", userTenantLinkStore);
+console.log("PostgreSQL UserTenantLinkStore initialized with auto-migration");
+
+// Auth configuration
+const AUTH_CONFIG = {
+  autoApproveUsers: process.env.AUTO_APPROVE_USERS !== "false",
+  allowTenantRegistration: process.env.ALLOW_TENANT_REGISTRATION !== "false",
+  jwtSecret: process.env.JWT_SECRET || "your-secret-key-change-in-production",
+  tokenExpiration: parseInt(process.env.TOKEN_EXPIRATION || "86400", 10),
+};
+
+console.log("Auth Configuration:");
+console.log(`  - Auto Approve Users: ${AUTH_CONFIG.autoApproveUsers}`);
+console.log(`  - Allow Tenant Registration: ${AUTH_CONFIG.allowTenantRegistration}`);
+console.log(`  - Token Expiration: ${AUTH_CONFIG.tokenExpiration}s`);
 
 //Register Sandbox Manager Lattice
 sandboxLatticeManager.registerLattice("default", { baseURL: "https://demo.alphafina.cn" })

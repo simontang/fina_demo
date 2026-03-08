@@ -1,8 +1,11 @@
 import type { AuthProvider, DataProvider } from "@refinedev/core";
 import { notification } from "antd";
+import { getToken } from "./utils/sessionStorage";
 
-export const TOKEN_KEY = "refine-auth";
-export const USER_KEY = "refine-user";
+// Keep these for backward compatibility with existing imports
+export const TOKEN_KEY = "axiom-auth-token";
+export const USER_KEY = "axiom-user";
+
 const apiUrl = import.meta.env.VITE_API_URL;
 
 /** Python 预测/数据集 API 地址，默认同主机 5703 端口，可用 VITE_PYTHON_API_URL 覆盖 */
@@ -160,7 +163,7 @@ export const createAuthenticatedDataProvider = (): DataProvider => {
   };
 
   const getHeaders = (): Record<string, string> => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = getToken();
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
@@ -176,8 +179,8 @@ export const createAuthenticatedDataProvider = (): DataProvider => {
     if (!response.ok) {
       if (response.status === 401) {
         // Token 过期或无效，清除本地存储并重定向到登录页
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(USER_KEY);
+        const { clearAuth } = require("./utils/sessionStorage");
+        clearAuth();
         window.location.href = "/admin/login";
         throw new Error("Authentication failed");
       }

@@ -63,6 +63,9 @@ services:
       VOICE_WELCOME_MESSAGE: ${VOICE_WELCOME_MESSAGE:-Hello! I'm here to help with B2B order status, credit limits, and stock transfers—let's optimize your operations!}
       # Tavily Search API (for internet_search tool in Deep Research Agent)
       TAVILY_API_KEY: ${TAVILY_API_KEY:-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}
+      LATTICE_ENCRYPTION_KEY: deep-research-encryption-key-change-in-production!
+      JWT_SECRET: fuli-agent-secret-key-change-in-production-environment
+
     volumes:
       - ./uploads:/app/uploads
       - ./lattice_store:/app/lattice_store
