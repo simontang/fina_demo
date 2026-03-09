@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import path from "path";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
-import { PostgreSQLAssistantStore, PostgreSQLThreadStore, PostgreSQLDatabaseConfigStore, PostgreSQLWorkspaceStore, PostgreSQLProjectStore, PostgreSQLUserStore, PostgreSQLTenantStore, PostgreSQLUserTenantLinkStore, PostgreSQLMetricsServerConfigStore } from "@axiom-lattice/pg-stores";
+import { PostgreSQLAssistantStore, PostgreSQLThreadStore, PostgreSQLDatabaseConfigStore, PostgreSQLWorkspaceStore, PostgreSQLProjectStore, PostgreSQLUserStore, PostgreSQLTenantStore, PostgreSQLUserTenantLinkStore, PostgreSQLMetricsServerConfigStore, PostgreSQLMcpServerConfigStore } from "@axiom-lattice/pg-stores";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 import { startServer } from "./gateway";
@@ -161,6 +161,19 @@ registerStoreLattice("default", "metrics", metricsConfigStore);
 metricsServerManager.loadAllConfigsFromStore(metricsConfigStore)
 console.log("PostgreSQL MetricsServerConfigStore initialized with auto-migration");
 
+
+
+// Initialize and register PostgreSQL McpServerConfigStore
+// This stores MCP server configurations with env encryption
+const mcpConfigStore = new PostgreSQLMcpServerConfigStore({
+  poolConfig: process.env.DATABASE_URL || "",
+  autoMigrate: true,
+});
+
+// Register mcpConfigStore to replace the default in-memory store
+storeLatticeManager.removeLattice("default", "mcp");
+registerStoreLattice("default", "mcp", mcpConfigStore);
+console.log("PostgreSQL McpServerConfigStore initialized with auto-migration");
 
 
 // Initialize and register PostgreSQL WorkspaceStore
