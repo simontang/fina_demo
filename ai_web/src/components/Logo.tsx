@@ -25,7 +25,7 @@ export const Logo: React.FC<LogoProps> = ({
             }}
         >
             <img
-                src="/logo.png"
+                src="./logo.png"
                 alt="Logo"
                 width={width}
                 height={height}
