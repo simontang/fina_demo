@@ -9,8 +9,8 @@ export default defineConfig(({ mode }) => {
   
   return {
     plugins: [react()],
-    // 动态 base 路径 - 根据构建目标自动调整
-    base: "/",
+    // App is served under /admin/; assets must be requested from /admin/assets/ so nginx proxy serves them
+    base: "/admin/",
     server: {
       host: "0.0.0.0",
       port: 5701,
