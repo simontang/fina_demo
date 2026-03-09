@@ -3,12 +3,14 @@ import { createRoot } from "react-dom/client";
 import "./styles/tokens.css";
 import "./ui_lattices";
 import App from "./App";
+import DataAgentApp from "./DataAgentApp";
 
 const container = document.getElementById("root") as HTMLElement;
 const root = createRoot(container);
 
 root.render(
   // <React.StrictMode>
-  <App />
+  // <App />
+  <DataAgentApp />
   // </React.StrictMode>
 );
