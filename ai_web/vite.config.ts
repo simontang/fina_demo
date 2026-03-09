@@ -29,26 +29,11 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       rollupOptions: {
-        input: {
-          admin: path.resolve(__dirname, "index.html"),
-          "data-agent": path.resolve(__dirname, "data-agent.html"),
-        },
+        input: path.resolve(__dirname, "index.html"),
         output: {
-          entryFileNames: (chunkInfo) => {
-            // 根据入口名称输出到不同目录
-            if (chunkInfo.name === "admin") {
-              return "admin/[name]-[hash].js";
-            }
-            if (chunkInfo.name === "data-agent") {
-              return "data-agent/[name]-[hash].js";
-            }
-            return "assets/[name]-[hash].js";
-          },
+          entryFileNames: "assets/[name]-[hash].js",
           chunkFileNames: "assets/[name]-[hash].js",
-          assetFileNames: (assetInfo) => {
-            // 静态资源统一放在 assets 目录
-            return "assets/[name]-[hash][extname]";
-          },
+          assetFileNames: "assets/[name]-[hash][extname]",
         },
       },
     },
