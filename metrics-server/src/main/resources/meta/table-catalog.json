@@ -52,5 +52,221 @@
     "docType": "Journal Entry",
     "docTypeEn": "Journal Entry",
     "shortDesc": "SAP B1 journal entry view: account code/name, debit/credit, local amount, period. Base for gross margin and cost analysis; supports drill-down by account, period, cost center, project for P&L and anomaly detection."
+  },
+  {
+    "tableName": "MTC_VW_AI_OPCH",
+    "docType": "AP Invoice",
+    "docTypeEn": "AP Invoice",
+    "shortDesc": "AP invoice view (purchasing). Positive purchase amounts; used for AP and procurement analysis."
+  },
+  {
+    "tableName": "MTC_VW_AI_ORPC",
+    "docType": "AP Credit Memo",
+    "docTypeEn": "AP Credit Memo",
+    "shortDesc": "AP credit memo view (purchasing). Negative purchase amounts (returns/adjustments)."
+  },
+  {
+    "tableName": "MTC_VW_AI_OPKL",
+    "docType": "Picking List",
+    "docTypeEn": "Picking List",
+    "shortDesc": "Picking list view. Picking header and status for warehouse operations."
+  },
+  {
+    "tableName": "MTC_VW_AI_CUSTBAL",
+    "docType": "Customer Balance Details",
+    "docTypeEn": "Customer Balance Details",
+    "shortDesc": "Customer balance details (AR): aging/terms, payments received, and outstanding receivables."
+  },
+  {
+    "tableName": "MTC_VW_AI_CUSTCREDIT",
+    "docType": "Customer Credit Exposure",
+    "docTypeEn": "Customer Credit Exposure",
+    "shortDesc": "Customer credit exposure: credit limit, AR account balance (local currency), open orders, and open deliveries."
+  },
+  {
+    "tableName": "MTC_VW_AI_CUSTBPID",
+    "docType": "Customer Branch Mapping",
+    "docTypeEn": "Customer Branch Mapping",
+    "shortDesc": "Customer to branch/company mapping (organizational assignment)."
+  },
+  {
+    "tableName": "MTC_VW_AI_DEALBAL",
+    "docType": "Vendor Balance Details",
+    "docTypeEn": "Vendor Balance Details",
+    "shortDesc": "Vendor balance details (AP): aging/terms, payments made, and outstanding payables."
+  },
+  {
+    "tableName": "MTC_VW_AI_DEALCREDIT",
+    "docType": "Vendor Credit Exposure",
+    "docTypeEn": "Vendor Credit Exposure",
+    "shortDesc": "Vendor credit exposure: credit limit, AP account balance (local currency), open purchase orders, and open goods receipts."
+  },
+  {
+    "tableName": "MTC_VW_AI_DEALBPID",
+    "docType": "Vendor Branch Mapping",
+    "docTypeEn": "Vendor Branch Mapping",
+    "shortDesc": "Vendor to branch/company mapping (organizational assignment)."
+  },
+  {
+    "tableName": "MTC_VW_AI_FUNDBAL",
+    "docType": "Fund Balance",
+    "docTypeEn": "Fund Balance",
+    "shortDesc": "Fund/cash balance view."
+  },
+  {
+    "tableName": "MTC_VW_AI_OWOR",
+    "docType": "Production Order",
+    "docTypeEn": "Production Order",
+    "shortDesc": "Production order header view."
+  },
+  {
+    "tableName": "MTC_VW_AI_OWORDetail",
+    "docType": "Production Order Details",
+    "docTypeEn": "Production Order Details",
+    "shortDesc": "Production order detail/line view."
+  },
+  {
+    "tableName": "MTC_VW_AI_ODRF_OIGE",
+    "docType": "Inventory Goods Issue Draft",
+    "docTypeEn": "Inventory Goods Issue Draft",
+    "shortDesc": "Draft inventory goods issue (stock outbound) view."
+  },
+  {
+    "tableName": "MTC_VW_AI_ODRF_OIGN",
+    "docType": "Inventory Goods Receipt Draft",
+    "docTypeEn": "Inventory Goods Receipt Draft",
+    "shortDesc": "Draft inventory goods receipt (stock inbound) view."
+  },
+  {
+    "tableName": "MTC_VW_AI_ODRF_OWTQ",
+    "docType": "Inventory Transfer Request Draft",
+    "docTypeEn": "Inventory Transfer Request Draft",
+    "shortDesc": "Draft inventory transfer request view."
+  },
+  {
+    "tableName": "MTC_VW_AI_OWTQ",
+    "docType": "Inventory Transfer Request",
+    "docTypeEn": "Inventory Transfer Request",
+    "shortDesc": "Inventory transfer request view."
+  },
+  {
+    "tableName": "MTC_VW_AI_OWTR",
+    "docType": "Inventory Transfer",
+    "docTypeEn": "Inventory Transfer",
+    "shortDesc": "Inventory transfer view."
+  },
+  {
+    "tableName": "MTC_VW_AI_OACT",
+    "docType": "G/L Account Master",
+    "docTypeEn": "G/L Account Master",
+    "shortDesc": "G/L account master data view."
+  },
+  {
+    "tableName": "MTC_VW_AI_OBPL",
+    "docType": "Branch Master",
+    "docTypeEn": "Branch Master",
+    "shortDesc": "Branch (BPL) master data view."
+  },
+  {
+    "tableName": "MTC_VW_AI_OIGE",
+    "docType": "Inventory Goods Issue",
+    "docTypeEn": "Inventory Goods Issue",
+    "shortDesc": "Inventory goods issue (stock outbound) view."
+  },
+  {
+    "tableName": "MTC_VW_AI_OIGN",
+    "docType": "Inventory Goods Receipt",
+    "docTypeEn": "Inventory Goods Receipt",
+    "shortDesc": "Inventory goods receipt (stock inbound) view."
+  },
+  {
+    "tableName": "MTC_VW_AI_OITM",
+    "docType": "Item Master",
+    "docTypeEn": "Item Master",
+    "shortDesc": "Item master data view."
+  },
+  {
+    "tableName": "MTC_VW_AI_OWHS",
+    "docType": "Warehouse Master",
+    "docTypeEn": "Warehouse Master",
+    "shortDesc": "Warehouse master data view."
+  },
+  {
+    "tableName": "MTC_VW_AI_OPLN",
+    "docType": "Price List",
+    "docTypeEn": "Price List",
+    "shortDesc": "Price list master view."
+  },
+  {
+    "tableName": "MTC_VW_AI_ITM1",
+    "docType": "Item Price List",
+    "docTypeEn": "Item Price List",
+    "shortDesc": "Item price list view."
+  },
+  {
+    "tableName": "MTC_VW_AI_OSPP",
+    "docType": "BP Special Prices",
+    "docTypeEn": "BP Special Prices",
+    "shortDesc": "Business partner special prices view."
+  },
+  {
+    "tableName": "MTC_VW_AI_FixedAssets",
+    "docType": "Fixed Assets Master",
+    "docTypeEn": "Fixed Assets Master",
+    "shortDesc": "Fixed assets master data view."
+  },
+  {
+    "tableName": "MTC_VW_AI_ORCT",
+    "docType": "Incoming Payment",
+    "docTypeEn": "Incoming Payment",
+    "shortDesc": "Incoming payment (receipt) view."
+  },
+  {
+    "tableName": "MTC_VW_AI_OVPM",
+    "docType": "Outgoing Payment",
+    "docTypeEn": "Outgoing Payment",
+    "shortDesc": "Outgoing payment view."
+  },
+  {
+    "tableName": "MTC_VW_AI_OPOR",
+    "docType": "Purchase Order",
+    "docTypeEn": "Purchase Order",
+    "shortDesc": "Purchase order view for procurement analytics, open POs, and vendor delivery/receipt tracking."
+  },
+  {
+    "tableName": "MTC_VW_AI_ODRF_OWTR",
+    "docType": "Inventory Transfer Draft",
+    "docTypeEn": "Inventory Transfer Draft",
+    "shortDesc": "Draft inventory transfer view."
+  },
+  {
+    "tableName": "MTC_VW_AI_BOM_LIST",
+    "docType": "Bill of Materials",
+    "docTypeEn": "Bill of Materials",
+    "shortDesc": "Bill of materials (BOM) view."
+  },
+  {
+    "tableName": "MTC_VW_AI_Customer",
+    "docType": "Customer Master",
+    "docTypeEn": "Customer Master",
+    "shortDesc": "Customer master data view."
+  },
+  {
+    "tableName": "MTC_VW_AI_Supplier",
+    "docType": "Vendor Master",
+    "docTypeEn": "Vendor Master",
+    "shortDesc": "Vendor master data view."
+  },
+  {
+    "tableName": "MTC_VW_AI_OINC",
+    "docType": "Inventory Counting",
+    "docTypeEn": "Inventory Counting",
+    "shortDesc": "Inventory counting (stocktaking) view."
+  },
+  {
+    "tableName": "MTC_VW_AI_OIVL",
+    "docType": "Inventory Movements",
+    "docTypeEn": "Inventory Movements",
+    "shortDesc": "Item inventory movements; used to identify inactive/slow-moving items."
   }
 ]

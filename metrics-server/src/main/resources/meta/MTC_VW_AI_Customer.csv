@@ -1,0 +1,43 @@
+Field ID	Field Name	Description	Type
+811eb582-2d78-4849-b11e-e640218203d5	CardCode	BP code e.g. C26000;V10000	NVARCHAR
+02e1ef24-785e-40f7-ac43-b6b3654a0712	CardName	BP name e.g. Acme Ltd	NVARCHAR
+f729092a-6980-41e4-ad17-b30ed97a4ece	CardType	BP type e.g. L-Lead;S-Vendor;C-Customer	NVARCHAR
+d8fefb91-9fe2-4ed1-8b22-e3647529d99b	Currency	Currency e.g. RMB; USD; EUR	NVARCHAR
+d0289ea6-8ab7-4e1a-bec1-d2589e294403	LicTradNum	LicTradNum	NVARCHAR
+4143c0e1-5ac9-4d62-982f-ca6d6a7a7a5b	validFor	validFor	NVARCHAR
+7cd8a919-0aee-4ca9-b743-13844d0fea9a	GroupName	BP group e.g. Key Account; Standard	NVARCHAR
+d6356219-4bf3-4a34-8b13-67c166ffdbaa	SlpName	Salesperson/buyer name e.g. John Smith	NVARCHAR
+55bbc0b1-8603-448f-939a-c3f80e7a76f0	Province	Province e.g. Guangdong	NVARCHAR
+655d924b-8a5d-4d73-8ef1-b9bffdc9a3d2	Region	Region e.g. South China	NVARCHAR
+b8c68edd-9a6a-4695-97a9-3c8bd7baf609	GTSRegNum	GTSRegNum	NVARCHAR
+92a5491e-fdd1-496c-841f-87dfeca8c356	GTSBankAct	GTSBankAct	NVARCHAR
+2a113dd0-5aa9-4ccd-8d41-d403bfce8e97	GTSBilAddr	GTSBilAddr	NVARCHAR
+719f909e-bcea-40b6-a074-be4026d149d8	ECVatGroup	ECVatGroup	NVARCHAR
+9f7ad02b-0b88-4f63-b1dc-20a621fec53f	VatName	VatName	NVARCHAR
+2c7e5413-96ef-4f3e-b98a-d39edc0c06f1	Phone1	Phone1	NVARCHAR
+6eddc1d6-f002-44b3-93a8-d82af4a691c7	Phone2	Phone2	NVARCHAR
+6d2d213d-6a1d-413a-ab77-32ed3be2995f	E_Mail	E_Mail	NVARCHAR
+eda786f7-da94-4e9e-b693-332af32f57a3	CntctPrsn	CntctPrsn	NVARCHAR
+00764ab5-daac-4493-866c-3586394fb2ec	Position	Position	NVARCHAR
+3b47f6ae-1eab-40a4-8c2a-6feeeb103db7	CntAddress	CntAddress	NVARCHAR
+aca8bd4a-2c7a-4cf2-9122-d93cc64fc4dd	Tel1	Tel1	NVARCHAR
+3280af6b-30a0-4c75-a010-368ce84a5a76	Cellolar	Cellolar	NVARCHAR
+828ec5fb-b9e7-48fe-819f-79ad67cc5906	E_MailL	E_MailL	NVARCHAR
+49135f9b-3da8-452d-8a28-4e77d78d3d8f	Address	Address	NVARCHAR
+fe59bf2c-f15f-48a9-96f0-625452e8c3d4	MailAddres	MailAddres	NVARCHAR
+b9371297-dbe3-45e8-8503-8eadaf538dd5	PymntGroup	PymntGroup	NVARCHAR
+b87a792f-0540-40e7-83ff-d3eed4d7db86	ListName	ListName	NVARCHAR
+2a412ad4-eb34-4535-9ed3-9f82d3428763	BankCountr	BP bank country/region e.g. CN	NVARCHAR
+89ee42bc-4f2a-4dc2-83ab-f7e5a6553409	BankCode	BP bank code e.g. ABC	NVARCHAR
+70a69636-53ca-4d72-96e4-41537069d635	BankName	BP bank name e.g. Acme Ltd	NVARCHAR
+d488b4c2-2375-4e97-b098-c036fbc36dca	DflAccount	BP bank account e.g. 45-126-592121	NVARCHAR
+0c36f089-e763-4e89-98af-91cd474565e1	DflSwift	BP BIC/SWIFT code e.g. BNPAFRPP	NVARCHAR
+edce7028-3bb4-4bdc-873e-de64bb2be331	DflBranch	BP bank branch e.g. Sample	NVARCHAR
+10d826cc-b6f0-4e28-9650-55d3f5bc6262	UseShpdGd	UseShpdGd	NVARCHAR
+78ede5d4-4002-4286-b59b-c3f71fb4a392	ConnBP	ConnBP	NVARCHAR
+4b4c8e52-a292-4889-ac1c-5f1a1d9fa548	ConnBPName	ConnBPName	NVARCHAR
+199baa7f-7385-4bc4-b426-e7d65b62f65f	FatherType	FatherType	NVARCHAR
+1a835b75-ac08-4560-9099-92c2a2e66cb7	FatherCard	FatherCard	NVARCHAR
+663bb4cb-e499-4963-abe5-763cbb220ec4	FatherName	FatherName	NVARCHAR
+57c31f0c-9b43-4f17-af37-ee603c0ed0d9	CreateDate	CreateDate	TIMESTAMP
+b5ca07d7-0293-4ec9-86e4-faabe2105f39	UpdateDate	UpdateDate	TIMESTAMP

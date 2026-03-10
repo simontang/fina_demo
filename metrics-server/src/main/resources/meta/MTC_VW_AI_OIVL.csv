@@ -1,0 +1,14 @@
+Field ID	Field Name	Description	Type
+ff9a6bda-b7f6-4de8-8bcf-8603e9820ba1	DocDate	Document date e.g. 2025-02-11 00:00:00.000	TIMESTAMP
+46ad0f66-df6f-4f7a-b101-5714662a8b35	TransType	TransType	INTEGER
+f4c95159-0118-48cf-ba6a-6f6904983a9b	BASE_REF	BASE_REF	NVARCHAR
+55dd662b-0402-41bc-9208-c03918418f70	DocLineNum	DocLineNum	INTEGER
+f50aa7f6-0b8d-4070-9985-1b335b3f8da6	ItemCode	Item code e.g. A00001	NVARCHAR
+55fcc4ce-e0be-4760-aa92-c7b8792e91cc	ItemName	Item name/description e.g. Inkjet Printer	NVARCHAR
+493e7dca-85bc-4847-9bbb-27d702eac99d	ItmsGrpNam	Item group name e.g. 203-Printer	NVARCHAR
+15c7b23b-fe4a-41f9-95e9-a994d64a18cd	InQty	InQty	DECIMAL
+08b4e3b9-ade3-4529-8f09-9a9a69de4eba	OutQty	OutQty	DECIMAL
+3b8adcde-e997-4144-b901-17beed3b23a9	LocCode	Warehouse code e.g. 01	NVARCHAR
+639bedfa-41c2-425d-a55e-b6b2fcc3fa56	WhsName	Warehouse name e.g. Main WH	NVARCHAR
+34046257-f823-4c99-b807-3a151e069a02	BPLid	BPLid	INTEGER
+fc232728-865a-45b4-8e30-f77b2ef9ecdd	BPLName	BPLName	NVARCHAR

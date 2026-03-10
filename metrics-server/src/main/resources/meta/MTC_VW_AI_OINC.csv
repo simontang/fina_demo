@@ -1,0 +1,35 @@
+Field ID	Field Name	Description	Type
+92498dfb-2832-4eb4-ad66-5b5b6b831c30	DocNum	Document no. e.g. 1029	INTEGER
+d215ae62-6a92-486e-ab7a-c187463f2df9	CountDate	CountDate	TIMESTAMP
+685b70a5-34ba-49dc-aa5b-9dd5c1e51dc2	CountType	CountType	NVARCHAR
+7ba84c86-2a71-4b76-be97-12cdd7a31781	ObjType	Object type code	NVARCHAR
+4433b9ef-c534-4543-ab77-0eabedf3635a	Remarks	Remarks e.g. Sample	NCLOB
+959d721d-028a-427b-9a19-4bbfb6532f6b	Ref2	Ref2	NVARCHAR
+af8b2f24-0fdf-4dec-bd43-9e983feca961	Status	Document status e.g. Sample	NVARCHAR
+f4083b18-ea43-4117-804b-12d2ea9cfd00	ItemCode	Item code e.g. LM4029PS	NVARCHAR
+f099e140-958d-4050-95d2-ed11fc877180	ItemDesc	Item name e.g. Sample	NVARCHAR
+8684b273-b1d8-40e2-8617-a0e47535dc3a	ItmsGrpNam	Item group e.g. 203-Printer	NVARCHAR
+39ddcbf0-4cc0-49ff-a876-721050b4fa71	WhsCode	Warehouse code e.g. 01	NVARCHAR
+98b64ef8-dd5b-4674-9f9e-5cf8fcac5707	WhsName	Warehouse name e.g. Main WH	NVARCHAR
+2e5245aa-a6d7-4b1b-8efc-6f7dad8d8495	InWhsQty	InWhsQty	DECIMAL
+6777e58a-84d7-4eef-a6c7-cd5407106482	Freeze	Freeze	NVARCHAR
+49c40f33-0f81-4370-b08c-17bd48b54abc	Counted	Counted	NVARCHAR
+76474b92-0953-475f-83f7-0695583de49e	CountQty	CountQty	DECIMAL
+f854c1ed-e3ee-48b2-8ff4-e41aa1ef80cf	CountQtyT2	CountQtyT2	DECIMAL
+2e8fd946-7084-4a3c-8efd-a73eeebbb789	Difference	Difference	DECIMAL
+922a7948-76a5-4e8f-a49d-c7e35026c4b6	ProjCode	ProjCode	NVARCHAR
+6708385b-6b5f-4a20-8a65-4c81e94c5a88	PrjName	Project name e.g. Acme Ltd	NVARCHAR
+998fba0f-8b2b-4785-8267-dc11f48ede6c	OcrCode	Profit center 1 code e.g. A01;A02	NVARCHAR
+ca6ba776-0027-431d-8009-60978d7c23e1	CostCenterName1	Profit center 1 name e.g. Sample	NVARCHAR
+bede32ee-d259-49c4-af84-055f24313092	OcrCode2	Profit center 2 code e.g. D001;D002	NVARCHAR
+7695d030-ba3f-4431-a739-57e39267962d	CostCenterName2	Profit center 2 name e.g. Sample	NVARCHAR
+7b66a65d-147e-49eb-a76e-eb09ca288ef9	OcrCode3	Profit center 3 code e.g. E001;E002	NVARCHAR
+db9d77bc-c986-422b-ba07-f66fbcc71457	CostCenterName3	Profit center 3 name e.g. Sample	NVARCHAR
+9b2ca361-10b9-4f1f-8c86-84e4a74a4c6b	OcrCode4	Profit center 4 code e.g. B01;B02	NVARCHAR
+ce5efd49-0d16-4523-b347-6bab7a898c1c	CostCenterName4	Profit center 4 name e.g. Sample	NVARCHAR
+264131d6-717e-47b7-b481-cb25c9c5209a	OcrCode5	Profit center 5 code e.g. C19001	NVARCHAR
+04f86f17-375b-439b-80b1-63a8fa8aca11	CostCenterName5	Profit center 5 name e.g. Sample	NVARCHAR
+cca47712-12e8-44cf-bad3-dc1c2bc60b69	Code	Code	NVARCHAR
+09c3edf8-064a-43e0-982e-ca1eb555fe35	Category	Category	NVARCHAR
+f8c90371-7606-4465-845d-3a70fe900faa	BPLId	BPLId	INTEGER
+937e7c26-5c90-4cd0-b34d-bf67275aaf48	BPLName	BPLName	NVARCHAR
