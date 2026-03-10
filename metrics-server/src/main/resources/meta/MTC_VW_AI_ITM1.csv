@@ -1,0 +1,12 @@
+Field ID	Field Name	Description	Type
+4a12a06b-1241-4493-826c-c20e65c0f8ef	ItemCode	Item code e.g. LM4029PS	NVARCHAR
+2a2bae1b-eef9-4f63-aa20-ad00607405c4	ItemName	Item name e.g. Inkjet Printer	NVARCHAR
+51d4e21a-86fc-45e3-8ebd-b51b33842a41	ItmsGrpNam	Item group e.g. 203-Printer	NVARCHAR
+4e07f2fc-12be-46b6-8d4c-11bcf35f0b8b	PriceList	PriceList	SMALLINT
+056675af-fd7c-44d2-8a82-565faa37a620	ListName	ListName	NVARCHAR
+b3718825-652d-4ca0-9ba5-5d356bc3d713	Currency	Currency e.g. RMB; USD; EUR	NVARCHAR
+e843505c-be70-4c85-8973-020f90c8394f	Price	Unit price (excl. tax) e.g. 2310.00	DECIMAL
+81f6ad7f-ef87-4aeb-b985-62ca9922c4fc	Currency1	Currency1	NVARCHAR
+34334392-9f8f-48cd-be5c-ef82f7977584	AddPrice1	AddPrice1	DECIMAL
+73b46862-27c0-4b42-89cf-1bf8fc658869	Currency2	Currency2	NVARCHAR
+8f39dad6-001c-4727-8b82-d6f00d4a3f53	AddPrice2	AddPrice2	DECIMAL

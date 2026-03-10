@@ -62,5 +62,14 @@ next-env.d.ts
 *.log.*
 *.gz
 *.tmp
+
+# python bytecode / caches
+__pycache__/
+*.py[cod]
+
+# python virtualenvs
+.venv/
+.venv*/
+
 # mp
 apps/mp/unpackage/dist

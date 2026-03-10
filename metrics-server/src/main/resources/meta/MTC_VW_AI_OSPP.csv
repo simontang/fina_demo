@@ -1,0 +1,13 @@
+Field ID	Field Name	Description	Type
+a90fdf1f-aef5-4314-a5dd-0839e373008f	ItemCode	Item code e.g. LM4029PS	NVARCHAR
+af02899d-f496-4e86-a465-e05d39f0a5b1	ItemName	Item name e.g. Inkjet Printer	NVARCHAR
+2f2d8530-fe0d-46e8-94de-28c3dd074feb	ItmsGrpNam	Item group e.g. 203-Printer	NVARCHAR
+5f6770d3-0262-404b-b624-354d72d23ddd	CardCode	BP code e.g. C26000;V10000	NVARCHAR
+615ca96e-d455-4202-8014-0fabf1d8bc08	CardName	BP name e.g. Acme Ltd	NVARCHAR
+ab7501ef-d965-4bb2-bd34-78fe1be244ce	GroupName	BP group e.g. Key Account; Standard	NVARCHAR
+e9490c01-70a6-4f83-a8fe-d04d6671a475	CardType	BP type e.g. L-Lead;S-Vendor;C-Customer	NVARCHAR
+4511dcab-12bc-4541-a5ea-edc450c81bc9	Price	Currency e.g.:RMB	DECIMAL
+0c78632b-c725-4a24-8e58-24049781f407	Currency	Currency e.g. RMB; USD; EUR	NVARCHAR
+b9c747de-80ef-45d1-966c-c98b143babcc	Valid	Valid	NVARCHAR
+c87a359d-9ee6-4196-ae11-6913c678a515	ValidFrom	ValidFrom	TIMESTAMP
+95d86415-8f2d-44db-82fb-05674b2d2451	ValidTo	ValidTo	TIMESTAMP

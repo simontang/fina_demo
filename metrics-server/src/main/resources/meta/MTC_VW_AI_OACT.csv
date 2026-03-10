@@ -1,0 +1,14 @@
+Field ID	Field Name	Description	Type
+c7e36da5-5a02-4878-b58b-a71067ddfb5f	AcctCode	Account code e.g. 112101	NVARCHAR
+ca3da380-16b5-4e09-8b8f-3a96f3ad3fcb	AcctName	Account name e.g. Acme Ltd	NVARCHAR
+3ac1dd82-6adf-43e7-ae18-9a2b34191f55	FatherNum	Parent account code e.g. 1121	NVARCHAR
+963e2962-7581-4e31-8a3e-e4166e1cfb7e	Levels	Levels	SMALLINT
+afa2bac8-d2ad-4a2a-9296-fc44956d63fe	Finanse	Finanse	NVARCHAR
+50f19c13-fd20-40a4-9118-47eeea052f2e	Postable	Postable	NVARCHAR
+72784e26-f168-488c-8f01-898f97555e7f	ActCurr	AccountCurrency e.g. Sample	NVARCHAR
+ee593949-0bf6-4463-9ff3-6498086ea241	CurrTotal	CurrTotal	DECIMAL
+7d755fdf-3457-42d0-9465-c87b59525ba7	ActType	AccountType e.g. Sample	NVARCHAR
+a664ec4a-cbf8-4c27-af11-db6019372b60	ValidFor	ValidFor	NVARCHAR
+bb59441b-8416-4e1c-9fdb-6e1b3c4ab294	FrozenFor	FrozenFor	NVARCHAR
+081dd2fa-f353-49d1-9bc7-4b13c6e5fa69	BPLId	BPLId	INTEGER
+420f2eb9-f41a-4d10-a108-d063c2096a2b	BPLName	BPLName	NVARCHAR

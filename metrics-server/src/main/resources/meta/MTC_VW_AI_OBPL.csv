@@ -1,0 +1,3 @@
+Field ID	Field Name	Description	Type
+279a710f-1d72-4b3a-8937-33e752ad0d31	BPLId	BPLId	INTEGER
+c72d8930-9930-44bc-85bb-d380ac3b95b1	BPLName	BPLName	NVARCHAR
