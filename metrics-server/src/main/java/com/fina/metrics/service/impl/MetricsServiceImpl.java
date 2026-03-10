@@ -272,8 +272,9 @@ public class MetricsServiceImpl implements MetricsService {
             log.info("Ad-hoc query datasource={}", request.getDatasourceId());
             SemanticQueryResponse.MetricResult result =
                     executeAdHocSql(request.getDatasourceId(), request.getCustomSql(),
-                            request.getParams());
-            List<String> sqls = debug ? List.of(request.getCustomSql()) : null;
+                            request.getParams(), request.getLimit());
+            String executedSql = result.getExecutedSql() != null ? result.getExecutedSql() : request.getCustomSql();
+            List<String> sqls = debug ? List.of(executedSql) : null;
             return SemanticQueryResponse.builder()
                     .datasourceId(request.getDatasourceId())
                     .datasourceName(dsName)
@@ -401,16 +402,21 @@ public class MetricsServiceImpl implements MetricsService {
 
     /** Execute an ad-hoc SQL string directly on the datasource */
     private SemanticQueryResponse.MetricResult executeAdHocSql(
-            Long datasourceId, String sql, Map<String, Object> params) {
+            Long datasourceId, String sql, Map<String, Object> params, Integer limit) {
         long start = System.currentTimeMillis();
+        int resolvedLimit = resolveLimit(limit);
+        String sqlToRun = sql;
+        if (limit != null && limit > 0 && !sql.trim().toUpperCase().contains(" LIMIT ")) {
+            sqlToRun = sql.trim() + "\nLIMIT " + resolvedLimit;
+        }
         try {
             NamedParameterJdbcTemplate jdbc = dsManager.getNamedJdbcTemplate(datasourceId);
             Map<String, Object> safeParams = params != null ? params : Map.of();
-            log.debug("Executing ad-hoc SQL datasource={} sql={}", datasourceId, sql);
+            log.debug("Executing ad-hoc SQL datasource={} limit={} sql={}", datasourceId, resolvedLimit, sqlToRun);
 
             List<String> columns = new ArrayList<>();
             List<Map<String, Object>> rows = jdbc.query(
-                    sql,
+                    sqlToRun,
                     new MapSqlParameterSource(safeParams),
                     rs -> {
                         List<Map<String, Object>> out = new ArrayList<>();
@@ -442,6 +448,7 @@ public class MetricsServiceImpl implements MetricsService {
                     .rows(rows)
                     .rowCount(rows.size())
                     .executionTimeMs(elapsed)
+                    .executedSql(sqlToRun)
                     .build();
         } catch (Exception e) {
             log.error("Ad-hoc SQL failed datasource={}: {}", datasourceId, e.getMessage(), e);
@@ -453,6 +460,11 @@ public class MetricsServiceImpl implements MetricsService {
                     .error(e.getMessage())
                     .build();
         }
+    }
+
+    private static int resolveLimit(Integer requested) {
+        if (requested == null || requested <= 0) return 1000;
+        return Math.min(requested, 10000);
     }
 
     private SemanticQueryResponse.AiHints buildAiHints(JsonNode catalogDetail) {
