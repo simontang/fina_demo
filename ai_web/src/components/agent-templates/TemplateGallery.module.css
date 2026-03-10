@@ -1,0 +1,119 @@
+.root {
+  width: 100%;
+  padding: 20px 18px 26px;
+  margin-top: 18px;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(245, 247, 250, 0.72) 100%);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: 0.2px;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--text-regular);
+  line-height: 1.35;
+}
+
+.domains {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.domainBlock {
+  border: 1px solid rgba(220, 223, 230, 0.75);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.75);
+  padding: 12px 12px 14px;
+}
+
+.domainHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.domainName {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.domainDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.03);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.card {
+  border: 1px solid rgba(220, 223, 230, 0.9);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-height: 92px;
+}
+
+.iconWrap {
+  width: 62px;
+  height: 42px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(245, 247, 250, 0.6);
+  border: 1px solid rgba(220, 223, 230, 0.75);
+}
+
+.cardText {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cardTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.cardDesc {
+  font-size: 12px;
+  color: var(--text-regular);
+  line-height: 1.35;
+}
+
+@media (max-width: 900px) {
+  .cards {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+}
+
