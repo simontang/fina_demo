@@ -30,6 +30,15 @@ public class SemanticQueryResponse {
     /** One entry per metric in the request, in request order */
     private List<MetricResult> results;
 
+    /**
+     * When there is exactly one result, same as results[0].
+     * Lets clients use result instead of results[0] for custom_sql or single-metric queries.
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public MetricResult getResult() {
+        return (results != null && results.size() == 1) ? results.get(0) : null;
+    }
+
     /** Total wall-clock time including all parallel HANA executions (ms) */
     private Long totalExecutionTimeMs;
 
@@ -66,6 +75,12 @@ public class SemanticQueryResponse {
         private List<Map<String, Object>> rows;
         private Integer rowCount;
         private Long executionTimeMs;
+
+        /**
+         * For ad-hoc custom_sql: the actual SQL executed (including appended LIMIT if any).
+         * Null for semantic metric results.
+         */
+        private String executedSql;
 
         /**
          * Null on success.
