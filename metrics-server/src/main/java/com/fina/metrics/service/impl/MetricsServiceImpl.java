@@ -262,254 +262,116 @@ public class MetricsServiceImpl implements MetricsService {
     // ── Query execution ───────────────────────────────────────────────────────
 
     @Override
-    public SemanticQueryResponse query(SemanticQueryRequest request) {
-        long wallStart = System.currentTimeMillis();
-        String dsName  = resolveDatasourceName(request.getDatasourceId());
-        boolean debug  = Boolean.TRUE.equals(request.getDebug());
+    public MetricsQueryData query(SemanticQueryRequest request) {
+        boolean debug = Boolean.TRUE.equals(request.getDebug());
 
-        // ── Ad-hoc SQL escape hatch ───────────────────────────────────────────
+        // ── Ad-hoc SQL ───────────────────────────────────────────────────────
         if (StringUtils.hasText(request.getCustomSql())) {
             log.info("Ad-hoc query datasource={}", request.getDatasourceId());
-            SemanticQueryResponse.MetricResult result =
-                    executeAdHocSql(request.getDatasourceId(), request.getCustomSql(),
-                            request.getParams(), request.getLimit());
-            String executedSql = result.getExecutedSql() != null ? result.getExecutedSql() : request.getCustomSql();
-            List<String> sqls = debug ? List.of(executedSql) : null;
-            return SemanticQueryResponse.builder()
-                    .datasourceId(request.getDatasourceId())
-                    .datasourceName(dsName)
-                    .results(List.of(result))
-                    .totalExecutionTimeMs(System.currentTimeMillis() - wallStart)
-                    .executedSqls(sqls)
+            int resolvedLimit = resolveLimit(request.getLimit());
+            String sqlToRun = request.getCustomSql().trim();
+            if (resolvedLimit > 0 && !sqlToRun.toUpperCase().contains(" LIMIT ")) {
+                sqlToRun = sqlToRun + "\nLIMIT " + resolvedLimit;
+            }
+            Map<String, Object> params = request.getParams() != null ? request.getParams() : Map.of();
+            QueryResult qr = executeQuery(request.getDatasourceId(), sqlToRun, params);
+            Map<String, Object> debugObj = debug
+                    ? Map.of("sql", sqlToRun, "params", params)
+                    : null;
+            return MetricsQueryData.builder()
+                    .semanticModel("adhoc")
+                    .columns(qr.columns())
+                    .rows(qr.rows())
+                    .debug(debugObj)
                     .build();
         }
 
-        // ── Semantic multi-metric mode ────────────────────────────────────────
+        // ── Semantic mode: one SQL for all metrics ────────────────────────────
         List<String> metrics = request.getMetrics() != null ? request.getMetrics() : List.of();
         if (metrics.isEmpty()) {
             throw new IllegalArgumentException(
                     "Either 'metrics' (semantic mode) or 'custom_sql' must be provided");
         }
 
-        // Execute each metric in parallel; a single failure is captured per-result
-        List<ExecutionBundle> bundles = metrics.parallelStream()
-                .map(metricName -> executeMetric(metricName, request))
-                .collect(Collectors.toList());
+        List<JsonNode> catalogDetails = new ArrayList<>();
+        for (String metricName : metrics) {
+            JsonNode detail = catalog.findDetailItem(metricName)
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Metric '" + metricName + "' not found in catalog"));
+            catalogDetails.add(detail);
+        }
 
-        List<SemanticQueryResponse.MetricResult> results = bundles.stream()
-                .map(ExecutionBundle::result)
-                .collect(Collectors.toList());
+        SemanticQueryBuilder.BuildResult built = queryBuilder.buildMulti(metrics, request, catalogDetails);
+        QueryResult qr = executeQuery(request.getDatasourceId(), built.sql(), built.params());
 
-        List<String> executedSqls = debug
-                ? bundles.stream().map(ExecutionBundle::sql).collect(Collectors.toList())
-                : null;
+        String semanticModel = catalogDetails.get(0).path("source").path("table_view").asText("");
 
-        return SemanticQueryResponse.builder()
-                .datasourceId(request.getDatasourceId())
-                .datasourceName(dsName)
-                .results(results)
-                .totalExecutionTimeMs(System.currentTimeMillis() - wallStart)
-                .executedSqls(executedSqls)
+        Map<String, Object> debugObj = null;
+        if (debug) {
+            debugObj = new LinkedHashMap<>();
+            debugObj.put("sql", built.sql());
+            debugObj.put("params", built.params());
+        }
+
+        return MetricsQueryData.builder()
+                .semanticModel(semanticModel)
+                .columns(qr.columns())
+                .rows(qr.rows())
+                .debug(debugObj)
                 .build();
     }
 
-    // ── Private execution helpers ─────────────────────────────────────────────
-
     /**
-     * Build SQL and execute a single metric. All exceptions are caught and
-     * recorded in MetricResult.error so other metrics still succeed.
+     * Execute SQL and return columns (name+type) and rows as value arrays.
+     * Column order in rows matches columns list.
      */
-    private ExecutionBundle executeMetric(String metricName, SemanticQueryRequest request) {
-        long start = System.currentTimeMillis();
-        String generatedSql = null;
+    private QueryResult executeQuery(Long datasourceId, String sql, Map<String, Object> params) {
+        NamedParameterJdbcTemplate jdbc = dsManager.getNamedJdbcTemplate(datasourceId);
+        Map<String, Object> safeParams = params != null ? params : Map.of();
 
-        try {
-            // Catalog detail is required for SQL generation
-            JsonNode catalogDetail = catalog.findDetailItem(metricName)
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "Metric '" + metricName + "' not found in catalog"));
+        List<ColumnMeta> columns = new ArrayList<>();
+        List<List<Object>> rows = jdbc.query(sql, new MapSqlParameterSource(safeParams), rs -> {
+            ResultSetMetaData meta = rs.getMetaData();
+            int n = meta.getColumnCount();
+            for (int i = 1; i <= n; i++) {
+                columns.add(ColumnMeta.builder()
+                        .name(meta.getColumnLabel(i))
+                        .type(mapJdbcTypeToDocType(meta.getColumnTypeName(i)))
+                        .build());
+            }
+            List<List<Object>> out = new ArrayList<>();
+            while (rs.next()) {
+                List<Object> row = new ArrayList<>(n);
+                for (int i = 1; i <= n; i++) {
+                    row.add(rs.getObject(i));
+                }
+                out.add(row);
+            }
+            return out;
+        });
+        if (rows == null) rows = List.of();
 
-            // Build SQL
-            SemanticQueryBuilder.BuildResult built =
-                    queryBuilder.build(metricName, request, catalogDetail);
-            generatedSql = built.sql();
-
-            // Execute
-            NamedParameterJdbcTemplate jdbc =
-                    dsManager.getNamedJdbcTemplate(request.getDatasourceId());
-
-            List<String> columns = new ArrayList<>();
-            List<Map<String, Object>> rows = jdbc.query(
-                    built.sql(),
-                    new MapSqlParameterSource(built.params()),
-                    rs -> {
-                        List<Map<String, Object>> out = new ArrayList<>();
-                        ResultSetMetaData rsMeta = rs.getMetaData();
-                        int colCount = rsMeta.getColumnCount();
-                        if (columns.isEmpty()) {
-                            for (int i = 1; i <= colCount; i++) {
-                                columns.add(rsMeta.getColumnLabel(i));
-                            }
-                        }
-                        while (rs.next()) {
-                            Map<String, Object> row = new LinkedHashMap<>();
-                            for (int i = 1; i <= colCount; i++) {
-                                row.put(rsMeta.getColumnLabel(i), rs.getObject(i));
-                            }
-                            out.add(row);
-                        }
-                        return out;
-                    }
-            );
-            if (rows == null) rows = List.of();
-
-            long elapsed = System.currentTimeMillis() - start;
-            log.info("Executed metric={} datasource={} rows={} time={}ms",
-                    metricName, request.getDatasourceId(), rows.size(), elapsed);
-
-            SemanticQueryResponse.MetricResult metricResult =
-                    SemanticQueryResponse.MetricResult.builder()
-                            .metricName(metricName)
-                            .displayName(catalogDetail.path("display_name").asText(null))
-                            .dataType(catalogDetail.path("data_type").asText(null))
-                            .format(catalogDetail.path("format").asText(null))
-                            .polarity(catalogDetail.path("ai_agent_context")
-                                    .path("polarity").asText(null))
-                            .columns(columns)
-                            .rows(rows)
-                            .rowCount(rows.size())
-                            .executionTimeMs(elapsed)
-                            .error(null)
-                            .aiHints(buildAiHints(catalogDetail))
-                            .build();
-
-            return new ExecutionBundle(metricResult, generatedSql);
-
-        } catch (Exception e) {
-            log.error("Failed to execute metric={}: {}", metricName, e.getMessage(), e);
-            SemanticQueryResponse.MetricResult errorResult =
-                    SemanticQueryResponse.MetricResult.builder()
-                            .metricName(metricName)
-                            .columns(List.of())
-                            .rows(List.of())
-                            .rowCount(0)
-                            .executionTimeMs(System.currentTimeMillis() - start)
-                            .error(e.getMessage())
-                            .build();
-            return new ExecutionBundle(errorResult, generatedSql);
-        }
+        log.info("Query executed datasource={} rows={}", datasourceId, rows.size());
+        return new QueryResult(columns, rows);
     }
 
-    /** Execute an ad-hoc SQL string directly on the datasource */
-    private SemanticQueryResponse.MetricResult executeAdHocSql(
-            Long datasourceId, String sql, Map<String, Object> params, Integer limit) {
-        long start = System.currentTimeMillis();
-        int resolvedLimit = resolveLimit(limit);
-        String sqlToRun = sql;
-        if (limit != null && limit > 0 && !sql.trim().toUpperCase().contains(" LIMIT ")) {
-            sqlToRun = sql.trim() + "\nLIMIT " + resolvedLimit;
-        }
-        try {
-            NamedParameterJdbcTemplate jdbc = dsManager.getNamedJdbcTemplate(datasourceId);
-            Map<String, Object> safeParams = params != null ? params : Map.of();
-            log.debug("Executing ad-hoc SQL datasource={} limit={} sql={}", datasourceId, resolvedLimit, sqlToRun);
-
-            List<String> columns = new ArrayList<>();
-            List<Map<String, Object>> rows = jdbc.query(
-                    sqlToRun,
-                    new MapSqlParameterSource(safeParams),
-                    rs -> {
-                        List<Map<String, Object>> out = new ArrayList<>();
-                        ResultSetMetaData rsMeta = rs.getMetaData();
-                        int colCount = rsMeta.getColumnCount();
-                        if (columns.isEmpty()) {
-                            for (int i = 1; i <= colCount; i++) {
-                                columns.add(rsMeta.getColumnLabel(i));
-                            }
-                        }
-                        while (rs.next()) {
-                            Map<String, Object> row = new LinkedHashMap<>();
-                            for (int i = 1; i <= colCount; i++) {
-                                row.put(rsMeta.getColumnLabel(i), rs.getObject(i));
-                            }
-                            out.add(row);
-                        }
-                        return out;
-                    }
-            );
-            if (rows == null) rows = List.of();
-
-            long elapsed = System.currentTimeMillis() - start;
-            log.info("Ad-hoc SQL executed datasource={} rows={} time={}ms",
-                    datasourceId, rows.size(), elapsed);
-
-            return SemanticQueryResponse.MetricResult.builder()
-                    .columns(columns)
-                    .rows(rows)
-                    .rowCount(rows.size())
-                    .executionTimeMs(elapsed)
-                    .executedSql(sqlToRun)
-                    .build();
-        } catch (Exception e) {
-            log.error("Ad-hoc SQL failed datasource={}: {}", datasourceId, e.getMessage(), e);
-            return SemanticQueryResponse.MetricResult.builder()
-                    .columns(List.of())
-                    .rows(List.of())
-                    .rowCount(0)
-                    .executionTimeMs(System.currentTimeMillis() - start)
-                    .error(e.getMessage())
-                    .build();
-        }
+    /** Map JDBC type name to doc-friendly type (varchar, numeric, date). */
+    private static String mapJdbcTypeToDocType(String jdbcTypeName) {
+        if (jdbcTypeName == null) return "varchar";
+        String u = jdbcTypeName.toUpperCase();
+        if (u.contains("CHAR") || u.contains("TEXT") || u.contains("STRING")) return "varchar";
+        if (u.contains("DECIMAL") || u.contains("NUMERIC") || u.contains("DOUBLE")
+                || u.contains("FLOAT") || u.contains("REAL")) return "numeric";
+        if (u.contains("INT") || u.contains("LONG") || u.contains("SMALLINT")) return "numeric";
+        if (u.contains("DATE") || u.contains("TIME") || u.contains("STAMP")) return "date";
+        return jdbcTypeName.toLowerCase();
     }
+
+    private record QueryResult(List<ColumnMeta> columns, List<List<Object>> rows) {}
 
     private static int resolveLimit(Integer requested) {
         if (requested == null || requested <= 0) return 1000;
         return Math.min(requested, 10000);
-    }
-
-    private SemanticQueryResponse.AiHints buildAiHints(JsonNode catalogDetail) {
-        JsonNode aiCtx  = catalogDetail.path("ai_agent_context");
-        String polarity = aiCtx.path("polarity").asText("positive");
-        String role     = catalogDetail.path("behavior_profile").path("role").asText("");
-
-        String interpretation = "positive".equals(polarity)
-                ? "Higher is better." + (role.isBlank() ? "" : " This metric is a " + role.replace("_", " ") + ".")
-                : "Lower is better."  + (role.isBlank() ? "" : " This metric is a " + role.replace("_", " ") + ".");
-
-        List<Map<String, Object>> thresholds = parseJsonArray(aiCtx.path("thresholds"));
-        List<String> followup = buildFollowupHints(aiCtx.path("diagnostic_workflow"));
-
-        return SemanticQueryResponse.AiHints.builder()
-                .polarity(polarity)
-                .valueInterpretation(interpretation)
-                .thresholds(thresholds)
-                .suggestedFollowup(followup)
-                .build();
-    }
-
-    private List<String> buildFollowupHints(JsonNode workflowNode) {
-        if (workflowNode == null || workflowNode.isMissingNode()) return List.of();
-        List<String> hints = new ArrayList<>();
-        JsonNode actions = workflowNode.path("actions");
-        if (actions.isArray()) {
-            actions.forEach(action -> {
-                String type   = action.path("type").asText("");
-                String intent = action.path("intent").asText("").replace("_", " ");
-                switch (type) {
-                    case "compare_metric" -> {
-                        String target = action.path("metric").asText("");
-                        hints.add("compare_metric: " + target + " — " + intent);
-                    }
-                    case "drill_down" -> {
-                        List<String> dims = new ArrayList<>();
-                        action.path("dimensions").forEach(d -> dims.add(d.asText()));
-                        hints.add("drill_down by " + String.join(", ", dims) + " — " + intent);
-                    }
-                    default -> hints.add(type + " — " + intent);
-                }
-            });
-        }
-        return hints;
     }
 
     // ── Shared helpers ────────────────────────────────────────────────────────
@@ -565,6 +427,4 @@ public class MetricsServiceImpl implements MetricsService {
         }
     }
 
-    /** Carrier record: bundles the MetricResult with the SQL used (for debug mode) */
-    private record ExecutionBundle(SemanticQueryResponse.MetricResult result, String sql) {}
 }

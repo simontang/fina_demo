@@ -287,17 +287,21 @@ Always start broad (monthly trend over a year), then narrow (weekly in the probl
 
 ## Debug Mode
 
-Set `"debug": true` to receive `executedSqls` in the response. Use this to verify that the generated SQL matches your intent before presenting results to the user.
+Set `"debug": true` in the request to receive `data.debug` in the response (with `sql` and `params`). Use this to verify that the generated SQL matches your intent before presenting results to the user.
 
-```json
-{ ..., "debug": true }
-```
-
-Response:
+Response `data` shape:
 ```json
 {
-  "results": [...],
-  "executedSqls": ["SELECT TO_NVARCHAR(\"DocDate\", 'YYYY-MM') AS \"DocDate__month\", SUM(\"GTotal\") AS \"value\" FROM MTC_VW_AI_ORDR WHERE ..."]
+  "semanticModel": "MTC_VW_AI_ORDR",
+  "columns": [
+    { "name": "DocDate__month", "type": "varchar" },
+    { "name": "order_amt_tax_inc", "type": "numeric" }
+  ],
+  "rows": [["2025-01", 12345.67], ...],
+  "debug": {
+    "sql": "SELECT ... FROM \"MTC_VW_AI_ORDR\" ...",
+    "params": { ... }
+  }
 }
 ```
 

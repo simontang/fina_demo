@@ -7,11 +7,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Converts a semantic query request into executable HANA SQL for a single metric.
+ * Converts a semantic query request into executable HANA SQL.
  *
- * The builder reads the metric's catalog definition (sql_expression, source.table_view,
- * supported_dimensions) and the request (groupBy, filters, orderBy, limit) to produce
- * a parameterised SQL string and its named parameter map.
+ * Single metric: one SELECT with groupBy + one metric expression.
+ * Multiple metrics: one SELECT with groupBy + multiple metric expressions (same FROM/WHERE),
+ * provided all metrics share the same source.table_view.
  */
 public interface SemanticQueryBuilder {
 
@@ -28,6 +28,19 @@ public interface SemanticQueryBuilder {
                       JsonNode catalogDetail);
 
     /**
+     * Build a single HANA SQL for multiple metrics (one result set).
+     * All metrics must share the same source.table_view; otherwise throws.
+     *
+     * @param metricNames   list of catalog metric_name (order = SELECT column order after groupBy)
+     * @param request       the full semantic query request
+     * @param catalogDetails list of detail JsonNodes, same order as metricNames
+     * @return BuildResult with columns = groupBy labels + metric names
+     */
+    BuildResult buildMulti(List<String> metricNames,
+                           SemanticQueryRequest request,
+                           List<JsonNode> catalogDetails);
+
+    /**
      * Holds the generated SQL, its named parameters, and the ordered column name list
      * that the caller should use when mapping result set columns.
      */
@@ -36,7 +49,7 @@ public interface SemanticQueryBuilder {
             String sql,
             /** Named parameter map: param_key → value (String or List<Object>) */
             Map<String, Object> params,
-            /** Column labels in SELECT order (group_by cols first, then "value") */
+            /** Column labels in SELECT order (group_by cols first, then metric names) */
             List<String> columns
     ) {}
 }

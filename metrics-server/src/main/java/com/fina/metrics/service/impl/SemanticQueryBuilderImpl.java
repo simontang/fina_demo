@@ -86,9 +86,9 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
             selectCols.add(gbItem);
         }
 
-        // ── SELECT: metric expression AS "value" ──────────────────────────────
-        selectExprs.add(sqlExpr + " AS \"value\"");
-        columnLabels.add("value");
+        // ── SELECT: metric expression AS metric name (doc: column = metric name) ──
+        selectExprs.add(sqlExpr + " AS \"" + metricName + "\"");
+        columnLabels.add(metricName);
 
         // ── WHERE clause ──────────────────────────────────────────────────────
         List<String> whereParts = new ArrayList<>();
@@ -199,6 +199,158 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
         sql.append("\nLIMIT ").append(limit);
 
         log.debug("Built SQL for metric={}: {}", metricName, sql);
+        return new BuildResult(sql.toString(), params, columnLabels);
+    }
+
+    @Override
+    public BuildResult buildMulti(List<String> metricNames,
+                                  SemanticQueryRequest request,
+                                  List<JsonNode> catalogDetails) {
+        if (metricNames == null || metricNames.isEmpty() || catalogDetails == null
+                || catalogDetails.size() != metricNames.size()) {
+            throw new IllegalArgumentException("metricNames and catalogDetails must be non-empty and same size");
+        }
+        String tableView = catalogDetails.get(0).path("source").path("table_view").asText("");
+        if (!StringUtils.hasText(tableView)) {
+            throw new IllegalStateException("First metric has no source.table_view in catalog");
+        }
+        for (int i = 1; i < catalogDetails.size(); i++) {
+            String tv = catalogDetails.get(i).path("source").path("table_view").asText("");
+            if (!tableView.equals(tv)) {
+                throw new IllegalArgumentException(
+                        "All requested metrics must share the same source table/view. "
+                                + "First uses " + tableView + ", metric " + metricNames.get(i) + " uses " + tv);
+            }
+        }
+
+        JsonNode first = catalogDetails.get(0);
+        JsonNode dimNodes = first.path("supported_dimensions");
+        JsonNode timeDimNode = first.path("default_time_context");
+        JsonNode baseFilters = first.path("source").path("base_filters");
+
+        Map<String, String> dimMap = buildDimMap(dimNodes, timeDimNode);
+        List<String> groupByItems = request.getGroupBy() != null ? request.getGroupBy() : List.of();
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        List<String> selectExprs = new ArrayList<>();
+        List<String> groupByClauses = new ArrayList<>();
+        List<String> columnLabels = new ArrayList<>();
+
+        for (String gbItem : groupByItems) {
+            DimRef ref = resolveGroupByItem(gbItem, dimMap);
+            selectExprs.add(ref.selectExpr + " AS \"" + gbItem + "\"");
+            groupByClauses.add(ref.groupByExpr);
+            columnLabels.add(gbItem);
+        }
+
+        for (int i = 0; i < metricNames.size(); i++) {
+            String metricName = metricNames.get(i);
+            String sqlExpr = catalogDetails.get(i).path("calculation").path("sql_expression").asText("");
+            if (!StringUtils.hasText(sqlExpr)) {
+                throw new IllegalStateException(
+                        "Metric " + metricName + " has no calculation.sql_expression in catalog");
+            }
+            selectExprs.add(sqlExpr + " AS \"" + metricName + "\"");
+            columnLabels.add(metricName);
+        }
+
+        List<String> whereParts = new ArrayList<>();
+        if (baseFilters != null && baseFilters.isArray()) {
+            baseFilters.forEach(bf -> {
+                String field = bf.path("field").asText("");
+                String operator = bf.path("operator").asText("").toUpperCase();
+                if (StringUtils.hasText(field) && "NOT_NULL".equals(operator)) {
+                    whereParts.add("\"" + field + "\" IS NOT NULL");
+                }
+            });
+        }
+
+        List<SemanticQueryRequest.FilterItem> filters = request.getFilters() != null
+                ? request.getFilters() : List.of();
+        for (int i = 0; i < filters.size(); i++) {
+            SemanticQueryRequest.FilterItem f = filters.get(i);
+            String fieldName = resolveFieldName(f.getDimension(), dimMap);
+            String quotedField = "\"" + fieldName + "\"";
+            String op = f.getOperator().toUpperCase();
+            List<Object> values = f.getValues() != null ? f.getValues() : List.of();
+
+            switch (op) {
+                case "BETWEEN" -> {
+                    String p0 = "f" + i + "_v0", p1 = "f" + i + "_v1";
+                    whereParts.add(quotedField + " BETWEEN :" + p0 + " AND :" + p1);
+                    params.put(p0, values.get(0));
+                    params.put(p1, values.get(1));
+                }
+                case "IN" -> {
+                    String pKey = "f" + i + "_vals";
+                    whereParts.add(quotedField + " IN (:" + pKey + ")");
+                    params.put(pKey, values);
+                }
+                case "EQ" -> {
+                    String pKey = "f" + i + "_v0";
+                    whereParts.add(quotedField + " = :" + pKey);
+                    params.put(pKey, values.get(0));
+                }
+                case "NEQ" -> {
+                    String pKey = "f" + i + "_v0";
+                    whereParts.add(quotedField + " != :" + pKey);
+                    params.put(pKey, values.get(0));
+                }
+                case "GT" -> {
+                    String pKey = "f" + i + "_v0";
+                    whereParts.add(quotedField + " > :" + pKey);
+                    params.put(pKey, values.get(0));
+                }
+                case "GTE" -> {
+                    String pKey = "f" + i + "_v0";
+                    whereParts.add(quotedField + " >= :" + pKey);
+                    params.put(pKey, values.get(0));
+                }
+                case "LT" -> {
+                    String pKey = "f" + i + "_v0";
+                    whereParts.add(quotedField + " < :" + pKey);
+                    params.put(pKey, values.get(0));
+                }
+                case "LTE" -> {
+                    String pKey = "f" + i + "_v0";
+                    whereParts.add(quotedField + " <= :" + pKey);
+                    params.put(pKey, values.get(0));
+                }
+                case "LIKE" -> {
+                    String pKey = "f" + i + "_v0";
+                    whereParts.add(quotedField + " LIKE :" + pKey);
+                    params.put(pKey, values.get(0));
+                }
+                case "NOT_NULL" -> whereParts.add(quotedField + " IS NOT NULL");
+                default -> log.warn("Unknown filter operator '{}' — skipped", op);
+            }
+        }
+
+        List<String> orderByParts = new ArrayList<>();
+        List<SemanticQueryRequest.OrderByItem> orderBys = request.getOrderBy() != null
+                ? request.getOrderBy() : List.of();
+        for (SemanticQueryRequest.OrderByItem ob : orderBys) {
+            String dir = "DESC".equalsIgnoreCase(ob.getDirection()) ? "DESC" : "ASC";
+            orderByParts.add("\"" + ob.getField() + "\" " + dir);
+        }
+
+        int limit = resolveLimit(request.getLimit());
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT\n  ");
+        sql.append(String.join(",\n  ", selectExprs));
+        sql.append("\nFROM \"").append(tableView).append("\"");
+        if (!whereParts.isEmpty()) {
+            sql.append("\nWHERE ").append(String.join("\n  AND ", whereParts));
+        }
+        if (!groupByClauses.isEmpty()) {
+            sql.append("\nGROUP BY ").append(String.join(", ", groupByClauses));
+        }
+        if (!orderByParts.isEmpty()) {
+            sql.append("\nORDER BY ").append(String.join(", ", orderByParts));
+        }
+        sql.append("\nLIMIT ").append(limit);
+
+        log.debug("Built multi-metric SQL for metrics={}: {}", metricNames, sql);
         return new BuildResult(sql.toString(), params, columnLabels);
     }
 
