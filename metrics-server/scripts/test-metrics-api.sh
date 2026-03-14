@@ -33,8 +33,8 @@ echo ""
 echo "--- 5. POST /api/v1/metrics/query (semantic query) ---"
 curl -s -X POST "$BASE_URL/api/v1/metrics/query" \
   -H "Content-Type: application/json" \
-  -d '{"datasource_id":'"${DS_ID}"',"metric_id":"net_sales_amt","time_range":{"start":"2025-01-01","end":"2025-12-31"},"group_by":["DocDate__month"]}' \
-  -w "\nHTTP: %{http_code}\n" | head -40
+  -d '{"datasourceId":'"${DS_ID}"',"metrics":["net_sales_amt"],"groupBy":["DocDate__month"],"filters":[{"dimension":"DocDate","operator":"BETWEEN","values":["2025-01-01","2025-12-31"]}],"limit":10}' \
+  -w "\nHTTP: %{http_code}\n" | head -50
 
 echo ""
 echo "=== Done ==="

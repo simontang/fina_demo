@@ -5,8 +5,8 @@ import com.fina.metrics.dto.MetricsIndexResponse;
 import com.fina.metrics.dto.MetricsMetaFullResponse;
 import com.fina.metrics.dto.MetricsMetaRequest;
 import com.fina.metrics.dto.MetricsMetaVO;
+import com.fina.metrics.dto.MetricsQueryData;
 import com.fina.metrics.dto.SemanticQueryRequest;
-import com.fina.metrics.dto.SemanticQueryResponse;
 
 import java.util.List;
 
@@ -60,16 +60,14 @@ public interface MetricsService {
     // ── Query execution ───────────────────────────────────────────────────────
 
     /**
-     * Execute a semantic query against the target SAP B1 HANA datasource.
+     * Execute a semantic query against the target datasource.
      *
      * Semantic mode (metrics[] set):
-     *   One HANA SQL is generated per metric using SemanticQueryBuilder.
-     *   Queries execute in parallel; results are returned as SemanticQueryResponse.results[].
-     *   A single metric failure does not abort the others (per-result error field).
+     *   One SQL is built for all requested metrics (same table_view required).
+     *   Returns one result set: data.semanticModel, data.columns, data.rows, data.debug.
      *
      * Ad-hoc mode (custom_sql set):
-     *   The SQL is executed directly; metrics/groupBy/filters are ignored.
-     *   Returns a single MetricResult with metricName=null.
+     *   The SQL is executed directly; semanticModel is "adhoc".
      */
-    SemanticQueryResponse query(SemanticQueryRequest request);
+    MetricsQueryData query(SemanticQueryRequest request);
 }

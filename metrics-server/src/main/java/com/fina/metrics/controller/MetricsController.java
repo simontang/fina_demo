@@ -75,22 +75,15 @@ public class MetricsController {
     // ── Query execution ───────────────────────────────────────────────────────
 
     /**
-     * Execute a semantic metric query against a SAP B1 HANA datasource.
+     * Execute a semantic metric query (BI Metrics Query API).
      *
-     * Semantic mode (metrics[] populated):
-     *   One HANA SQL is generated per metric from the catalog definition.
-     *   All queries run in parallel; results are returned as response.results[].
-     *   A single metric failure is captured in MetricResult.error without
-     *   aborting the other metrics.
+     * Semantic mode (metrics[]): one SQL for all metrics (same table_view required).
+     * Response data: semanticModel, columns (name+type), rows (value arrays), debug.
      *
-     * Ad-hoc mode (custom_sql populated):
-     *   Executes the SQL directly. metrics/groupBy/filters/orderBy are ignored.
-     *   Use :paramName placeholders and supply values in params.
-     *
-     * See SemanticQueryRequest for supported operators and groupBy granularity syntax.
+     * Ad-hoc mode (custom_sql): executes SQL directly; semanticModel is "adhoc".
      */
     @PostMapping("/api/v1/metrics/query")
-    public ApiResponse<SemanticQueryResponse> query(
+    public ApiResponse<MetricsQueryData> query(
             @Valid @RequestBody SemanticQueryRequest request) {
         if (log.isInfoEnabled()) {
             log.info("Query datasource={} metrics={} customSql={}",

@@ -51,7 +51,7 @@
 | **GET** | `/api/v1/datasources/{dsId}/metrics/index` | 指标索引：该 datasource 下所有目录指标及是否已配置 SQL（registered） |
 | **GET** | `/api/v1/datasources/{dsId}/metrics/{metricName}/detail` | 单个指标的完整说明（维度、时间、AI 上下文、query_info 等） |
 | **GET** | `/api/v1/datasources/{dsId}/meta` | **一次性返回** 指标的 index + 所有指标的 detail；以及 **Table/View 的 index（tablesIndex）与 detail（tablesDetails）**。数据来源：meta 目录下 view-*.json（主）、MTC_VW_AI_*.csv（仅对未在 view 中出现的表补充） |
-| **POST** | `/api/v1/metrics/query` | 执行语义查询或自定义 SQL 查询，返回 results[] |
+| **POST** | `/api/v1/metrics/query` | 执行语义查询或自定义 SQL 查询，返回单结果集（data: semanticModel, columns, rows, debug） |
 
 **GET /api/v1/datasources/{dsId}/meta 响应说明**  
 `data` 包含四部分：  
@@ -74,24 +74,22 @@ Table/View 数据来自 `meta/view-*.json`（优先）与 `meta/MTC_VW_AI_*.csv`
 
 ---
 
-## 三、POST /api/v1/metrics/query 请求体说明
+## 三、POST /api/v1/metrics/query 请求体与响应
 
-**语义查询模式**（按目录指标名 + 时间/分组）：
+**请求体**
 
-- `datasourceId`（必填）：datasource 主键
-- `metrics`：指标名数组，如 `["net_sales_amt","order_amt_tax_inc"]`
-- `timeRange`：`{ "start": "2025-01-01", "end": "2025-12-31" }`
-- `groupBy`：维度或时间粒度，如 `["DocDate__month"]`、`["customer_group"]`
-- `filters`：可选，筛选条件数组
-- `orderBy`：可选，排序
-- `limit`：可选，每指标最大行数（默认 1000，最大 10000）
-- `debug`：可选 true，返回 executed_sqls
+语义查询模式：`datasourceId`（必填）、`metrics`（指标名数组）、`groupBy`、`filters`、`orderBy`、`limit`（默认 1000，最大 10000）、`debug`（可选 true，响应中返回 debug 对象）。  
 
-**自定义 SQL 模式**（不走目录）：
+自定义 SQL 模式：`datasourceId`（必填）、`customSql`（可带 `:paramName`）、`params`、`limit`。
 
-- `datasourceId`（必填）
-- `customSql`：带 `:paramName` 的 SQL
-- `params`：参数对象，如 `{"startDate":"2025-01-01"}`
+**响应 data 结构**（BI Metrics Query API 文档一致）：
+
+- `semanticModel`（string）：命中的语义模型名（如 source.table_view；adhoc 时为 `"adhoc"`）
+- `columns`（array）：列元信息，每项 `{ "name": "<列名>", "type": "<数据类型>" }`，与 rows 每行元素一一对应
+- `rows`（array）：行数组，每行为与 columns 同序的**值数组**（非对象）
+- `debug`（object | null）：仅当请求 `debug: true` 时存在，可含 `sql`、`params` 等
+
+多指标请求时，所有指标须来自同一 source.table_view，接口返回**单结果集**（一条 SQL，columns = 维度 + 各指标名）。
 
 ---
 
