@@ -15,14 +15,14 @@ importers:
   .:
     dependencies:
       '@axiom-lattice/core':
-        specifier: ^2.1.35
-        version: 2.1.35(@browserbasehq/sdk@2.8.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(crypto-js@4.2.0)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(playwright@1.58.2)(redis@5.11.0)(weaviate-client@3.12.0)(ws@8.19.0)
+        specifier: ^2.1.36
+        version: 2.1.36(@browserbasehq/sdk@2.8.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(crypto-js@4.2.0)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(playwright@1.58.2)(redis@5.11.0)(weaviate-client@3.12.0)(ws@8.19.0)
       '@axiom-lattice/gateway':
-        specifier: ^2.1.41
-        version: 2.1.41(@browserbasehq/sdk@2.8.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(crypto-js@4.2.0)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(playwright@1.58.2)(weaviate-client@3.12.0)(ws@8.19.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76)
+        specifier: ^2.1.42
+        version: 2.1.42(@browserbasehq/sdk@2.8.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(crypto-js@4.2.0)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(playwright@1.58.2)(weaviate-client@3.12.0)(ws@8.19.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76)
       '@axiom-lattice/pg-stores':
-        specifier: ^1.0.25
-        version: 1.0.25(@browserbasehq/sdk@2.8.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(@langchain/core@1.1.30(openai@6.29.0(ws@8.19.0)(zod@3.25.76)))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(openai@6.29.0(ws@8.19.0)(zod@3.25.76)))(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(crypto-js@4.2.0)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(playwright@1.58.2)(redis@5.11.0)(weaviate-client@3.12.0)(ws@8.19.0)(zod@3.25.76)
+        specifier: ^1.0.26
+        version: 1.0.26(@browserbasehq/sdk@2.8.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(@langchain/core@1.1.30(openai@6.29.0(ws@8.19.0)(zod@3.25.76)))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(openai@6.29.0(ws@8.19.0)(zod@3.25.76)))(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(crypto-js@4.2.0)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(playwright@1.58.2)(redis@5.11.0)(weaviate-client@3.12.0)(ws@8.19.0)(zod@3.25.76)
       '@fastify/cors':
         specifier: ^11.1.0
         version: 11.2.0
@@ -151,14 +151,14 @@ packages:
   '@anthropic-ai/sdk@0.27.3':
     resolution: {integrity: sha512-IjLt0gd3L4jlOfilxVXTifn42FnVffMgDC04RJK1KDZpmkBWLv0XC92MVVmkxrFZNS/7l3xWgP/I3nqtX1sQHw==}
 
-  '@axiom-lattice/core@2.1.35':
-    resolution: {integrity: sha512-et7S2Fh3dMFt8GeT+6ND5+QBzTsUhq84rMUgynQKRDugtB6CBw+TiQh+2bZQtvJI1JCIhAAQK+yxyuC4pbQtsg==}
+  '@axiom-lattice/core@2.1.36':
+    resolution: {integrity: sha512-lv/zxULmWyVIVLL61N2TdW2NKIukcNvQg+s1Yi2e9UXb9hsHzBUH5/eSbqzEFbVImuHFtjbHzvCA27v17FVayQ==}
 
-  '@axiom-lattice/gateway@2.1.41':
-    resolution: {integrity: sha512-Q1YwoAxV2rEj02vZwcBt5zgqVayHLCcmhI8JM2vOUs0tyFvbnLB2Q7SZ5dVhoBARY+CC8mxRBXhRsmjgijrXAw==}
+  '@axiom-lattice/gateway@2.1.42':
+    resolution: {integrity: sha512-Ad3w1N368HSWCFudDpeh5aEyQprRpKLAprvwil+Wt7CSptIwFgHM0kUqjnSufs24cEUcjy2/u1SjU63MwLpytA==}
 
-  '@axiom-lattice/pg-stores@1.0.25':
-    resolution: {integrity: sha512-C8hlsYUJlUynUGFtRwpItFWcaNgVkF/EL1ckJQwLs9NoaOR6roEtKyyXgwuSU/CBoIk/vmMBeOLySb/qMa7ycA==}
+  '@axiom-lattice/pg-stores@1.0.26':
+    resolution: {integrity: sha512-cmtmTlKSxP0ngd8gjxK4L7YS7uU6KXO7ibHC5Bh2Z8iqof2CMLFeZ94r320VmOy8noziSejMYfWceHevSVTj1g==}
 
   '@axiom-lattice/protocols@2.1.20':
     resolution: {integrity: sha512-yT+SCvKcgpYJZivaLWK4dgzv2p+rT+Bv2CgkFpSaFZNS/0PJIGW3qIYLIYOaNII/S0CxkKw/uNETNIERp6ro5w==}
@@ -4498,7 +4498,7 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@axiom-lattice/core@2.1.35(@browserbasehq/sdk@2.8.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(crypto-js@4.2.0)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(playwright@1.58.2)(redis@5.11.0)(weaviate-client@3.12.0)(ws@8.19.0)':
+  '@axiom-lattice/core@2.1.36(@browserbasehq/sdk@2.8.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(crypto-js@4.2.0)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(playwright@1.58.2)(redis@5.11.0)(weaviate-client@3.12.0)(ws@8.19.0)':
     dependencies:
       '@agent-infra/sandbox': 1.0.12
       '@axiom-lattice/protocols': 2.1.20(@langchain/core@1.1.30(openai@6.29.0(ws@8.19.0)(zod@3.25.76)))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(openai@6.29.0(ws@8.19.0)(zod@3.25.76)))(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(zod@3.25.76)
@@ -4664,9 +4664,9 @@ snapshots:
       - ws
       - youtubei.js
 
-  '@axiom-lattice/gateway@2.1.41(@browserbasehq/sdk@2.8.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(crypto-js@4.2.0)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(playwright@1.58.2)(weaviate-client@3.12.0)(ws@8.19.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76)':
+  '@axiom-lattice/gateway@2.1.42(@browserbasehq/sdk@2.8.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(crypto-js@4.2.0)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(playwright@1.58.2)(weaviate-client@3.12.0)(ws@8.19.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76)':
     dependencies:
-      '@axiom-lattice/core': 2.1.35(@browserbasehq/sdk@2.8.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(crypto-js@4.2.0)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(playwright@1.58.2)(redis@5.11.0)(weaviate-client@3.12.0)(ws@8.19.0)
+      '@axiom-lattice/core': 2.1.36(@browserbasehq/sdk@2.8.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(crypto-js@4.2.0)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(playwright@1.58.2)(redis@5.11.0)(weaviate-client@3.12.0)(ws@8.19.0)
       '@axiom-lattice/protocols': 2.1.20(@langchain/core@1.1.30(openai@6.29.0(ws@8.19.0)(zod@3.25.76)))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(openai@6.29.0(ws@8.19.0)(zod@3.25.76)))(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(zod@3.25.76)
       '@axiom-lattice/queue-redis': 1.0.19(@langchain/core@1.1.30(openai@6.29.0(ws@8.19.0)(zod@3.25.76)))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(openai@6.29.0(ws@8.19.0)(zod@3.25.76)))(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(zod@3.25.76)
       '@fastify/cors': 11.2.0
@@ -4829,9 +4829,9 @@ snapshots:
       - zod
       - zod-to-json-schema
 
-  '@axiom-lattice/pg-stores@1.0.25(@browserbasehq/sdk@2.8.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(@langchain/core@1.1.30(openai@6.29.0(ws@8.19.0)(zod@3.25.76)))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(openai@6.29.0(ws@8.19.0)(zod@3.25.76)))(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(crypto-js@4.2.0)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(playwright@1.58.2)(redis@5.11.0)(weaviate-client@3.12.0)(ws@8.19.0)(zod@3.25.76)':
+  '@axiom-lattice/pg-stores@1.0.26(@browserbasehq/sdk@2.8.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(@langchain/core@1.1.30(openai@6.29.0(ws@8.19.0)(zod@3.25.76)))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(openai@6.29.0(ws@8.19.0)(zod@3.25.76)))(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(crypto-js@4.2.0)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(playwright@1.58.2)(redis@5.11.0)(weaviate-client@3.12.0)(ws@8.19.0)(zod@3.25.76)':
     dependencies:
-      '@axiom-lattice/core': 2.1.35(@browserbasehq/sdk@2.8.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(crypto-js@4.2.0)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(playwright@1.58.2)(redis@5.11.0)(weaviate-client@3.12.0)(ws@8.19.0)
+      '@axiom-lattice/core': 2.1.36(@browserbasehq/sdk@2.8.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(crypto-js@4.2.0)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.29.0(ws@8.19.0)(zod@3.25.76))(playwright@1.58.2)(redis@5.11.0)(weaviate-client@3.12.0)(ws@8.19.0)
       '@axiom-lattice/protocols': 2.1.20(@langchain/core@1.1.30(openai@6.29.0(ws@8.19.0)(zod@3.25.76)))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(openai@6.29.0(ws@8.19.0)(zod@3.25.76)))(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(zod@3.25.76)
       pg: 8.19.0
     transitivePeerDependencies:
