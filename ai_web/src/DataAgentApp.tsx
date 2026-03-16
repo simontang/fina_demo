@@ -194,6 +194,7 @@ function AppContent() {
             enableSkillSlot: false,
             enableDatabaseSlot: false,
             resourceFolders: [
+              { name: "/", displayName: "root", allowUpload: false },
               { name: "tmp", displayName: "Working Directory", allowUpload: true },
               // { name: "metrics", displayName: "Metrics", allowUpload: true },
               { name: "artifacts", displayName: "artifacts", allowUpload: false },
