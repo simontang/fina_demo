@@ -77,7 +77,7 @@ export async function startServer(port: number = 5702) {
   try {
 
     // 注册路由
-    registerRoutes(app);
+    // registerRoutes(app);
 
     await startAsHttpEndpoint({
       port,
