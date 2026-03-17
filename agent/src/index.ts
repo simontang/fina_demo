@@ -38,14 +38,25 @@ import "./agents";
 //   streaming: true,
 // });
 
-registerModelLattice("default", {
-  model: process.env.VOLCENGINE_MODEL || "kimi-k2-250905",
-  provider: "volcengine",
-  streaming: true,
-  apiKeyEnvName: "VOLCENGINE_API_KEY2",
-  baseURL: process.env.VOLCENGINE_API_URL || "https://ark.cn-beijing.volces.com/api/v3",
-  maxTokens: 32768,
-});
+// registerModelLattice("default", {
+//   model: process.env.VOLCENGINE_MODEL || "kimi-k2-250905",
+//   provider: "volcengine",
+//   streaming: true,
+//   apiKeyEnvName: "VOLCENGINE_API_KEY2",
+//   baseURL: process.env.VOLCENGINE_API_URL || "https://ark.cn-beijing.volces.com/api/v3",
+//   maxTokens: 32768,
+// });
+
+registerModelLattice("default",
+  {
+    model: "qwen3.5-plus",
+    provider: "openai",
+    streaming: true,
+    apiKeyEnvName: "API_KEY3",
+    baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    // enableThinking: true,
+  }
+);
 
 
 
