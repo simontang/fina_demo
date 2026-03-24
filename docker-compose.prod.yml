@@ -44,6 +44,8 @@ services:
       VOLCENGINE_API_URL: ${VOLCENGINE_API_URL:-https://ark.cn-beijing.volces.com/api/v3}
       VOLCENGINE_MODEL: ${VOLCENGINE_MODEL:-kimi-k2-250905}
       API_KEY3: sk-3b662d54fc774502875ffada3c324494
+      OPEN_API=sk-t9V3yMUWsMJt6yVLCyPHDJ8FhXiUliiUYIzZxZCmTMEsToU7
+
       # RTC / Voice Chat configuration (Volcengine RTC)
       # These should be set via environment variables or .env file
       VOLCENGINE_APP_ID: ${VOLCENGINE_APP_ID:-691afa7690b35401752447aa}

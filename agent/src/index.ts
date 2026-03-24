@@ -47,17 +47,26 @@ import "./agents";
 //   maxTokens: 32768,
 // });
 
+// registerModelLattice("default",
+//   {
+//     model: "qwen3.5-27b",
+//     provider: "openai",
+//     streaming: true,
+//     apiKeyEnvName: "API_KEY3",
+//     baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+//     // enableThinking: true,
+//   }
+// );
 registerModelLattice("default",
   {
-    model: "qwen3.5-plus",
+    model: "gpt-5.4",
     provider: "openai",
     streaming: true,
-    apiKeyEnvName: "API_KEY3",
-    baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    apiKeyEnvName: "OPEN_API",
+    baseURL: "https://new.ibadoo.cn/v1",
     // enableThinking: true,
   }
 );
-
 
 
 // registerModelLattice("default", {
