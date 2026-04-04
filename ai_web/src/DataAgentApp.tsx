@@ -191,13 +191,16 @@ function AppContent() {
       <div style={{ width: "100vw", height: "100vh", overflow: "hidden" }}>
         <LatticeChatShell
           initialConfig={{
+            enableModelSelector: true,
             enableSkillSlot: false,
             enableDatabaseSlot: false,
             resourceFolders: [
-              { name: "/", displayName: "root", allowUpload: false },
+              { name: "/", displayName: "Project Root", allowUpload: false },
               { name: "tmp", displayName: "Working Directory", allowUpload: true },
               // { name: "metrics", displayName: "Metrics", allowUpload: true },
               { name: "artifacts", displayName: "artifacts", allowUpload: false },
+              // { name: "agent", displayName: "Agent", allowUpload: false },
+
             ],
             enableWorkspace: true,
             enableThreadCreation: true,

@@ -57,14 +57,71 @@ import "./agents";
 //     // enableThinking: true,
 //   }
 // );
-registerModelLattice("default",
+registerModelLattice("gpt-5.4",
   {
     model: "gpt-5.4",
+    displayName: "GPT-5.4",
     provider: "openai",
     streaming: true,
     apiKeyEnvName: "OPEN_API",
     baseURL: "https://new.ibadoo.cn/v1",
     // enableThinking: true,
+  }
+);
+registerModelLattice(
+  "default",
+
+  {
+    model: "kimi-k2.5",
+    displayName: "kimi-k2.5",
+    //model: "qwen3.5-35b-a3b",
+    provider: "openai",
+    streaming: true,
+    apiKeyEnvName: "API_KEY3",
+    baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    modelKwargs: {
+      "enable_thinking": false
+    }
+  }
+);
+registerModelLattice(
+  "qwen3.5-35b-a3b",
+
+  {
+    model: "qwen3.5-35b-a3b",
+    displayName: "qwen3.5-35b-a3b",
+    provider: "openai",
+    streaming: true,
+    apiKeyEnvName: "API_KEY3",
+    baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+
+  }
+);
+registerModelLattice(
+  "qwen3.5-plus",
+
+  {
+    model: "qwen3.5-plus",
+    displayName: "qwen3.5-plus",
+    provider: "openai",
+    streaming: true,
+    apiKeyEnvName: "API_KEY3",
+    baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+
+  }
+);
+registerModelLattice(
+  "doubao-seed-2-0-pro",
+
+  {
+    displayName: "Doubao pro 2.0",
+    model: "doubao-seed-2-0-pro-260215",
+    provider: "volcengine",
+    streaming: true,
+    apiKeyEnvName: "VOLCENGINE_API_KEY2",
+    modelKwargs: {
+      "thinking": { "type": "disabled" }
+    },
   }
 );
 
