@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import path from "path";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
-import { PostgreSQLAssistantStore, PostgreSQLThreadStore, PostgreSQLDatabaseConfigStore, PostgreSQLWorkspaceStore, PostgreSQLProjectStore, PostgreSQLUserStore, PostgreSQLTenantStore, PostgreSQLUserTenantLinkStore, PostgreSQLMetricsServerConfigStore, PostgreSQLMcpServerConfigStore } from "@axiom-lattice/pg-stores";
+import { PostgreSQLAssistantStore, PostgreSQLThreadStore, PostgreSQLDatabaseConfigStore, PostgreSQLWorkspaceStore, PostgreSQLProjectStore, PostgreSQLUserStore, PostgreSQLTenantStore, PostgreSQLUserTenantLinkStore, PostgreSQLMetricsServerConfigStore, PostgreSQLMcpServerConfigStore, PostgreSQLScheduleStorage } from "@axiom-lattice/pg-stores";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 import { startServer } from "./gateway";
@@ -17,10 +17,12 @@ import {
   sqlDatabaseManager,
   metricsServerManager,
   SandboxSkillStore,
+  registerScheduleLattice,
 } from "@axiom-lattice/core";
 const fs = require("fs");
 
 import "./agents";
+import { ScheduleType } from "@axiom-lattice/protocols";
 
 // 加载环境变量
 
@@ -289,6 +291,19 @@ registerStoreLattice("default", "skill", skillStore);
 
 // Configure SkillLatticeManager to use the store
 skillLatticeManager.configureStore("default");
+
+const scheduleStorage = new PostgreSQLScheduleStorage({
+  poolConfig: process.env.DATABASE_URL || "",
+  autoMigrate: false,
+});
+scheduleStorage.initialize();
+registerScheduleLattice("default", {
+  name: "Default Scheduler",
+  description: "Production scheduler with PostgreSQL persistence",
+  type: ScheduleType.POSTGRES,
+  storage: scheduleStorage,
+});
+console.log("✓ PostgreSQL ScheduleStorage initialized");
 
 
 //migrateVectorStoreToPGVectorStore();
