@@ -65,8 +65,7 @@ export const registerRoutes = (app: FastifyInstance): void => {
   // RTC / Voice Chat APIs (frontend calls /api/rtc/* via this agent).
   registerRtcRoutes(app);
 
-  // Register LatticeGateway routes at root path (required for sub-agent calls to /api/runs)
-  LatticeGateway.registerLatticeRoutes(app);
+  // LatticeGateway routes are registered automatically by startAsHttpEndpoint
 
   // Register custom API routes under /api prefix
   app.register(async (apiApp) => registerApiRoutes(apiApp), { prefix: "/api" });

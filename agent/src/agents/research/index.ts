@@ -158,4 +158,4 @@ const research_agents: AgentConfig[] = [
   },
 ];
 
-registerAgentLattices(research_agents);
+//registerAgentLattices(research_agents);

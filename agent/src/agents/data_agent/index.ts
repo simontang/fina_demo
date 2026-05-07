@@ -662,7 +662,7 @@ const data_agents: AgentConfig[] = [
 ];
 
 // Register the agents
-registerAgentLattices(data_agents);
+//registerAgentLattices(data_agents);
 
 /**
  * Helper function to initialize database connection for the data agent
@@ -696,7 +696,7 @@ export function initializeDataAgentDatabase(
   key: string,
   config: DatabaseConfig
 ): void {
-  sqlDatabaseManager.registerDatabase(key, config);
+  sqlDatabaseManager.registerDatabase("default", key, config);
 }
 
 /**
@@ -705,7 +705,7 @@ export function initializeDataAgentDatabase(
  * @param key - Database key to set as default
  */
 export function setDefaultDatabase(key: string): void {
-  sqlDatabaseManager.setDefaultDatabase(key);
+  sqlDatabaseManager.setDefaultDatabase("default", key);
 }
 
 /**

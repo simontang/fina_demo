@@ -22,5 +22,5 @@ const agents: AgentConfig[] = [
   },
 ];
 
-registerAgentLattices(agents);
+//registerAgentLattices(agents);
 

@@ -43,8 +43,8 @@ services:
       VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2:-a0533576-d6ed-4ca4-a308-473cbf7ebd10}
       VOLCENGINE_API_URL: ${VOLCENGINE_API_URL:-https://ark.cn-beijing.volces.com/api/v3}
       VOLCENGINE_MODEL: ${VOLCENGINE_MODEL:-kimi-k2-250905}
-      API_KEY3: sk-3b662d54fc774502875ffada3c324494
-      OPEN_API=sk-t9V3yMUWsMJt6yVLCyPHDJ8FhXiUliiUYIzZxZCmTMEsToU7
+      API_KEY3: ${API_KEY3:-sk-3b662d54fc774502875ffada3c324494}
+      OPEN_API: ${OPEN_API:-sk-t9V3yMUWsMJt6yVLCyPHDJ8FhXiUliiUYIzZxZCmTMEsToU7}
 
       # RTC / Voice Chat configuration (Volcengine RTC)
       # These should be set via environment variables or .env file
@@ -66,8 +66,12 @@ services:
       VOICE_WELCOME_MESSAGE: ${VOICE_WELCOME_MESSAGE:-Hello! I'm here to help with B2B order status, credit limits, and stock transfers—let's optimize your operations!}
       # Tavily Search API (for internet_search tool in Deep Research Agent)
       TAVILY_API_KEY: ${TAVILY_API_KEY:-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}
-      LATTICE_ENCRYPTION_KEY: deep-research-encryption-key-change-in-production!
-      JWT_SECRET: fuli-agent-secret-key-change-in-production-environment
+      LATTICE_ENCRYPTION_KEY: ${LATTICE_ENCRYPTION_KEY:-deep-research-encryption-key-change-in-production!}
+      JWT_SECRET: ${JWT_SECRET:-fuli-agent-secret-key-change-in-production-environment}
+      # Microsandbox Remote Configuration
+      SANDBOX_PROVIDER_TYPE: ${SANDBOX_PROVIDER_TYPE:-microsandbox-remote}
+      MICROSANDBOX_SERVICE_BASE_URL: ${MICROSANDBOX_SERVICE_BASE_URL:-http://38.76.211.27:4002}
+      MICROSANDBOX_API_KEY: ${MICROSANDBOX_API_KEY:-qwertyuiop1234567890}
 
     volumes:
       - ./uploads:/app/uploads

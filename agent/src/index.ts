@@ -1,9 +1,17 @@
 import dotenv from "dotenv";
 import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import { PostgreSQLAssistantStore, PostgreSQLThreadStore, PostgreSQLDatabaseConfigStore, PostgreSQLWorkspaceStore, PostgreSQLProjectStore, PostgreSQLUserStore, PostgreSQLTenantStore, PostgreSQLUserTenantLinkStore, PostgreSQLMetricsServerConfigStore, PostgreSQLMcpServerConfigStore, PostgreSQLScheduleStorage } from "@axiom-lattice/pg-stores";
+import {
+  ScheduleType,
+} from "@axiom-lattice/protocols";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
+
 import { startServer } from "./gateway";
 import {
   registerCheckpointSaver,
@@ -16,13 +24,11 @@ import {
   sandboxLatticeManager,
   sqlDatabaseManager,
   metricsServerManager,
-  SandboxSkillStore,
+  createSandboxProvider,
   registerScheduleLattice,
 } from "@axiom-lattice/core";
-const fs = require("fs");
 
 import "./agents";
-import { ScheduleType } from "@axiom-lattice/protocols";
 
 // 加载环境变量
 
@@ -277,34 +283,25 @@ console.log(`  - Allow Tenant Registration: ${AUTH_CONFIG.allowTenantRegistratio
 console.log(`  - Token Expiration: ${AUTH_CONFIG.tokenExpiration}s`);
 
 //Register Sandbox Manager Lattice
-sandboxLatticeManager.registerLattice("default", { baseURL: "https://demo.alphafina.cn" })
-
-
-const skillStore = new SandboxSkillStore({
-  sandboxManager: sandboxLatticeManager.getSandboxLattice("default"),
+const sandboxProvider = createSandboxProvider({
+  type: (process.env.SANDBOX_PROVIDER_TYPE as "microsandbox-remote") || "microsandbox-remote",
+  microsandboxServiceBaseURL: process.env.MICROSANDBOX_SERVICE_BASE_URL!,
 });
+sandboxLatticeManager.registerLattice("default", sandboxProvider)
 
-// Remove the default skill store and register our custom one
-// This ensures tools like load_skills and load_skill_content can access our skills
-storeLatticeManager.removeLattice("default", "skill");
-registerStoreLattice("default", "skill", skillStore);
 
-// Configure SkillLatticeManager to use the store
-skillLatticeManager.configureStore("default");
-
-const scheduleStorage = new PostgreSQLScheduleStorage({
-  poolConfig: process.env.DATABASE_URL || "",
-  autoMigrate: false,
-});
-scheduleStorage.initialize();
-registerScheduleLattice("default", {
-  name: "Default Scheduler",
-  description: "Production scheduler with PostgreSQL persistence",
-  type: ScheduleType.POSTGRES,
-  storage: scheduleStorage,
-});
-console.log("✓ PostgreSQL ScheduleStorage initialized");
-
+  // Initialize and register PostgreSQL ScheduleStorage for scheduled tasks
+  const scheduleStorage = new PostgreSQLScheduleStorage({
+    poolConfig: process.env.DATABASE_URL || "",
+    autoMigrate: false,
+  });
+  //await scheduleStorage.initialize();
+  registerScheduleLattice("default", {
+    name: "Default Scheduler",
+    description: "Production scheduler with PostgreSQL persistence",
+    type: ScheduleType.POSTGRES,
+    storage: scheduleStorage,
+  });
 
 //migrateVectorStoreToPGVectorStore();
 

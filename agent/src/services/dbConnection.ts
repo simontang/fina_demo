@@ -2,6 +2,10 @@ import { Pool, PoolClient } from "pg";
 import * as dotenv from "dotenv";
 import * as path from "path";
 import * as fs from "fs";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // 加载环境变量
 // 优先尝试加载 prediction_app/.env
