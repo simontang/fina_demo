@@ -65,23 +65,23 @@ import "./agents";
 //     // enableThinking: true,
 //   }
 // );
-registerModelLattice("gpt-5.4",
-  {
-    model: "gpt-5.4",
-    displayName: "GPT-5.4",
-    provider: "openai",
-    streaming: true,
-    apiKeyEnvName: "OPEN_API",
-    baseURL: "https://new.ibadoo.cn/v1",
-    // enableThinking: true,
-  }
-);
+// registerModelLattice("gpt-5.4",
+//   {
+//     model: "gpt-5.4",
+//     displayName: "GPT-5.4",
+//     provider: "openai",
+//     streaming: true,
+//     apiKeyEnvName: "OPEN_API",
+//     baseURL: "https://new.ibadoo.cn/v1",
+//     // enableThinking: true,
+//   }
+// );
 registerModelLattice(
   "default",
 
   {
-    model: "kimi-k2.5",
-    displayName: "kimi-k2.5",
+    model: "kimi-k2.6",
+    displayName: "kimi-k2.6",
     //model: "qwen3.5-35b-a3b",
     provider: "openai",
     streaming: true,
@@ -93,11 +93,41 @@ registerModelLattice(
   }
 );
 registerModelLattice(
-  "qwen3.5-35b-a3b",
+  "deepseek-v4-pro",
 
   {
-    model: "qwen3.5-35b-a3b",
-    displayName: "qwen3.5-35b-a3b",
+    model: "deepseek-v4-pro",
+    displayName: "deepseek-v4-pro",
+    provider: "openai",
+    streaming: true,
+    apiKeyEnvName: "API_KEY3",
+    baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    modelKwargs: {
+      "enable_thinking": false
+    }
+  }
+);
+registerModelLattice(
+  "deepseek-v4-flash",
+
+  {
+    model: "deepseek-v4-flash",
+    displayName: "deepseek-v4-flash",
+    provider: "openai",
+    streaming: true,
+    apiKeyEnvName: "API_KEY3",
+    baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    modelKwargs: {
+      "enable_thinking": false
+    }
+  }
+);
+registerModelLattice(
+  "qwen3.6-35b-a3b",
+
+  {
+    model: "qwen3.6-35b-a3b",
+    displayName: "qwen3.6-35b-a3b",
     provider: "openai",
     streaming: true,
     apiKeyEnvName: "API_KEY3",
@@ -106,11 +136,24 @@ registerModelLattice(
   }
 );
 registerModelLattice(
-  "qwen3.5-plus",
+  "qwen3.6-27b",
 
   {
-    model: "qwen3.5-plus",
-    displayName: "qwen3.5-plus",
+    model: "qwen3.6-27b",
+    displayName: "qwen3.6-27b",
+    provider: "openai",
+    streaming: true,
+    apiKeyEnvName: "API_KEY3",
+    baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+
+  }
+);
+registerModelLattice(
+  "qwen3.6-plus",
+
+  {
+    model: "qwen3.6-plus",
+    displayName: "qwen3.6-plus",
     provider: "openai",
     streaming: true,
     apiKeyEnvName: "API_KEY3",
