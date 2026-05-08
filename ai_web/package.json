@@ -43,7 +43,7 @@
     "vite": "^6.3.5"
   },
   "scripts": {
-    "dev": "refine dev",
+    "dev": "lsof -ti:5701 | xargs kill -9 && refine dev",
     "build": "tsc && refine build",
     "start": "refine start",
     "refine": "refine",
