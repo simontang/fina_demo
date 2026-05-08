@@ -1,4 +1,4 @@
-FROM node:20-bookworm-slim AS deps
+FROM node:22-bookworm-slim AS deps
 
 WORKDIR /app/agent
 
@@ -16,7 +16,7 @@ COPY . .
 RUN pnpm build
 
 
-FROM node:20-bookworm-slim AS runner
+FROM node:22-bookworm-slim AS runner
 
 WORKDIR /app/agent
 
