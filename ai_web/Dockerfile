@@ -1,6 +1,8 @@
 # This Dockerfile uses nginx to serve the static files.
 FROM node:22-bookworm-slim AS base
 
+WORKDIR /app/refine
+
 FROM base as deps
 
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
