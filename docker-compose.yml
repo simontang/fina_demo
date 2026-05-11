@@ -43,6 +43,11 @@ services:
       COZEBOT_BOT_ID: ${COZEBOT_BOT_ID:-7597420991484379170}
       COZEBOT_URL: ${COZEBOT_URL:-https://api.coze.cn}
       VOICE_WELCOME_MESSAGE: ${VOICE_WELCOME_MESSAGE:-Hello! I'm here to help with B2B order status, credit limits, and stock transfers—let's optimize your operations!}
+      # Microsandbox Remote Configuration
+      SANDBOX_PROVIDER_TYPE: ${SANDBOX_PROVIDER_TYPE:-microsandbox-remote}
+      MICROSANDBOX_SERVICE_BASE_URL: ${MICROSANDBOX_SERVICE_BASE_URL:-http://38.76.211.27:4002}
+      MICROSANDBOX_API_KEY: ${MICROSANDBOX_API_KEY:-qwertyuiop1234567890}
+      MICROSANDBOX_MEMORY: ${MICROSANDBOX_MEMORY:-1024}
     volumes:
       - ./uploads:/app/uploads
     depends_on:
