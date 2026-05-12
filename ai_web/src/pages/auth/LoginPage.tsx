@@ -105,7 +105,7 @@ function AppContent() {
         background: "#ffffff"
       }}>
         <AxiomLoginPage
-          title="agentall.ai"
+          title="Alpha Fina"
           logo={<Logo />}
           footer={
             <p style={{ textAlign: "center", marginTop: "20px" }}>

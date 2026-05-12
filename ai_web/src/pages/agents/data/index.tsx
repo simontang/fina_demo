@@ -41,7 +41,7 @@ export const DataAgentList = () => {
               sidebarDefaultExpanded: true,
               sidebarShowToggle: true,
               sidebarShowNewAnalysis: false,
-              sidebarLogoText: "agentall.ai",
+              sidebarLogoText: "AlphaFina",
               sidebarLogoIcon: <Logo width={28} height={28} />,
               assistantId: "new-data-agent",
               showSideMenu: false,

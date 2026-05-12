@@ -95,7 +95,7 @@ function AppContent() {
         background: "#ffffff"
       }}>
         <LoginPage
-          title="agentall.ai"
+          title="Alpha Fina"
           logo={<Logo />}
           footer={
             <p style={{ textAlign: "center", marginTop: "20px" }}>
@@ -212,7 +212,7 @@ function AppContent() {
             sidebarDefaultExpanded: true,
             sidebarShowToggle: true,
             sidebarShowNewAnalysis: false,
-            sidebarLogoText: "agentall.ai",
+            sidebarLogoText: "AlphaFina",
             sidebarLogoIcon: <Logo width={28} height={28} />,
             // Default agent
             assistantId: "new-data-agent",
