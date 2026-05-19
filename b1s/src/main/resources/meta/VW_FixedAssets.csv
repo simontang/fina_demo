@@ -1,0 +1,30 @@
+Field ID	Field Name	Description	Type
+3e0c02ab-0b37-42ab-b16c-b52aad331d47	ItemCode	Item code e.g. A00001	NVARCHAR
+b913d013-44a8-446f-ba7b-9f906980dc7d	ItemName	Item name/description e.g. Inkjet Printer	NVARCHAR
+4d135085-81a9-4352-82ea-abe6a07f4de0	AssetSerNo	AssetSerNo	NVARCHAR
+6ec56b62-9acc-428f-af5d-654bcc69ea31	AssetClass	AssetClass	NVARCHAR
+879eba7e-f0f5-4396-bf24-83187421f839	AssetClassName	AssetClassName	NVARCHAR
+2bf4e27e-13c4-4459-8439-f7cd3878c3f5	DprArea	Depreciation area 101	NVARCHAR
+9bdb05d4-fe1d-4339-9c67-94d358bfb94b	DprAreaName	Depreciation area name Post to G/L	NVARCHAR
+d8703744-82f5-4bf5-920f-bd17f8525b56	DprType	Depreciation type LINP05	NVARCHAR
+315c2853-d059-4594-8532-90475acdadcb	DprTypeName	Depreciation type name Straight-line depreciation-5%	NVARCHAR
+31aef288-ed53-4a3c-a62d-f59b9c5bbd09	AsstStatus	AsstStatus	NVARCHAR
+9050e40e-60b9-4873-885c-c79ac3bafcb0	AcqDate	AcqDate	TIMESTAMP
+d21de48d-a7c7-46c3-84c8-d7cfb1f17e27	CapDate	CapDate	TIMESTAMP
+1c7f8cc0-365a-4309-946e-4c653c75fb07	DprStart	DprStart	TIMESTAMP
+cfe34af1-d964-44ff-ba52-f55e6c58b0ab	DprEnd	DprEnd	TIMESTAMP
+3f3df25a-9b36-4fc1-b731-c96f15af8f73	ServiceLife	Useful life 36	INTEGER
+f70c6ff7-66f8-4c76-912e-aa61eaaaa4ce	Project	Project code	NVARCHAR
+ca49cdcc-7f63-4f87-b3ca-a125538a2b55	PrjName	Project name e.g. Acme Ltd	NVARCHAR
+acef4a47-7365-4266-8e63-1ac25342be8b	OcrCode	Profit center 1 code e.g. A01;A02	NVARCHAR
+41e3bad7-774e-4b33-aec1-a01ff4c7ca9b	CostCenterName1	Profit center 1 name e.g. Sample	NVARCHAR
+5c5dc63f-d2f2-46aa-a88e-67305433291d	OcrCode2	Profit center 2 code e.g. D001;D002	NVARCHAR
+d6efd5c7-c1ca-4f12-a243-5c36b7494b9e	CostCenterName2	Profit center 2 name e.g. Sample	NVARCHAR
+a86aa16d-732f-4b18-8b3e-5bde146ef5e6	OcrCode3	Profit center 3 code e.g. E001;E002	NVARCHAR
+936b0562-ac07-404e-850b-7768b9342aac	CostCenterName3	Profit center 3 name e.g. Sample	NVARCHAR
+c6e50335-224b-452a-b0d6-1c13bad5c878	OcrCode4	Profit center 4 code	NVARCHAR
+715ea910-a630-433c-a659-c4465f2664a9	CostCenterName4	Profit center 4 name	NVARCHAR
+592f8381-b369-4486-8ba6-8e840854d913	OcrCode5	Profit center 5 code	NVARCHAR
+a80b5933-af36-420e-9ddf-2d47ffd6bda4	CostCenterName5	Profit center 5 name	NVARCHAR
+0ea4f06f-4b91-4bf0-a66b-5caa3efe6820	BPLId	BPLId	INTEGER
+9da18ccd-e152-41de-ae10-e7adb2a4cad4	BPLName	BPLName	NVARCHAR

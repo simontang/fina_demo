@@ -1,0 +1,272 @@
+[
+  {
+    "tableName": "VW_ORDR",
+    "docType": "Sales Order",
+    "docTypeEn": "Sales Order",
+    "shortDesc": "SAP B1 sales order line view (ORDR/RDR1). Document, customer, item lines, tax-inclusive/exclusive amounts and open amounts. Base for order amount, ticket size, booking volume; supports aggregation by customer, item, salesperson, period, branch."
+  },
+  {
+    "tableName": "VW_ODLN",
+    "docType": "Delivery",
+    "docTypeEn": "Delivery",
+    "shortDesc": "SAP B1 delivery line view (ODLN/DLN1). Document, customer, item lines, quantity, tax-inclusive amount, warehouse. Base for delivery quantity and fulfillment metrics; supports analysis by warehouse and customer group."
+  },
+  {
+    "tableName": "VW_OINV",
+    "docType": "AR Invoice",
+    "docTypeEn": "AR Invoice",
+    "shortDesc": "SAP B1 AR invoice line view (OINV/INV1). Issued customer invoices: document, customer, item lines, tax-inclusive amount, tax rate, settlement status. Core source for net sales, billed revenue, tax; supports analysis by period, customer, account."
+  },
+  {
+    "tableName": "VW_ORDN",
+    "docType": "Sales Return",
+    "docTypeEn": "Sales Return",
+    "shortDesc": "SAP B1 sales return line view (ORDN/RDN1). Return documents, return reason, item lines, negative amount. Core for return amount and return rate; supports analysis by return reason, item group, customer for quality or over-commitment issues."
+  },
+  {
+    "tableName": "VW_ORIN",
+    "docType": "AR Credit Memo",
+    "docTypeEn": "AR Credit Memo",
+    "shortDesc": "SAP B1 AR credit memo line view (ORIN/RIN1). Reverses or adjusts AR invoices; negative amounts and linked invoice. With OINV, used for net AR, credit adjustments, and customer credit analysis."
+  },
+  {
+    "tableName": "VW_OPDN",
+    "docType": "Goods Receipt PO",
+    "docTypeEn": "Goods Receipt PO",
+    "shortDesc": "SAP B1 goods receipt (PO) line view (OPDN/PDN1). Purchase receipts: document, vendor, item lines, received quantity, cost (excl./incl. tax). Base for purchase cost and receipt volume; supports analysis by vendor, item group, warehouse, period."
+  },
+  {
+    "tableName": "VW_ORPD",
+    "docType": "Purchase Return",
+    "docTypeEn": "Purchase Return",
+    "shortDesc": "SAP B1 purchase return line view (ORPD/RPD1). Returns to vendor: document, item lines, negative cost. Used with OPDN for net receipt volume and vendor return rate; supports vendor quality analysis."
+  },
+  {
+    "tableName": "VW_STOCK",
+    "docType": "Inventory",
+    "docTypeEn": "Inventory",
+    "shortDesc": "SAP B1 inventory view: OnHand, OnOrder, IsCommited, Available, AvgPrice by item and warehouse. Base for inventory turnover, safety stock, and out-of-stock risk; supports analysis by warehouse, item group, branch."
+  },
+  {
+    "tableName": "VW_JOURNAL_ENTRY",
+    "docType": "Journal Entry",
+    "docTypeEn": "Journal Entry",
+    "shortDesc": "SAP B1 journal entry view: account code/name, debit/credit, local amount, period. Base for gross margin and cost analysis; supports drill-down by account, period, cost center, project for P&L and anomaly detection."
+  },
+  {
+    "tableName": "VW_OPCH",
+    "docType": "AP Invoice",
+    "docTypeEn": "AP Invoice",
+    "shortDesc": "AP invoice view (purchasing). Positive purchase amounts; used for AP and procurement analysis."
+  },
+  {
+    "tableName": "VW_ORPC",
+    "docType": "AP Credit Memo",
+    "docTypeEn": "AP Credit Memo",
+    "shortDesc": "AP credit memo view (purchasing). Negative purchase amounts (returns/adjustments)."
+  },
+  {
+    "tableName": "VW_OPKL",
+    "docType": "Picking List",
+    "docTypeEn": "Picking List",
+    "shortDesc": "Picking list view. Picking header and status for warehouse operations."
+  },
+  {
+    "tableName": "VW_CUSTBAL",
+    "docType": "Customer Balance Details",
+    "docTypeEn": "Customer Balance Details",
+    "shortDesc": "Customer balance details (AR): aging/terms, payments received, and outstanding receivables."
+  },
+  {
+    "tableName": "VW_CUSTCREDIT",
+    "docType": "Customer Credit Exposure",
+    "docTypeEn": "Customer Credit Exposure",
+    "shortDesc": "Customer credit exposure: credit limit, AR account balance (local currency), open orders, and open deliveries."
+  },
+  {
+    "tableName": "VW_CUSTBPID",
+    "docType": "Customer Branch Mapping",
+    "docTypeEn": "Customer Branch Mapping",
+    "shortDesc": "Customer to branch/company mapping (organizational assignment)."
+  },
+  {
+    "tableName": "VW_DEALBAL",
+    "docType": "Vendor Balance Details",
+    "docTypeEn": "Vendor Balance Details",
+    "shortDesc": "Vendor balance details (AP): aging/terms, payments made, and outstanding payables."
+  },
+  {
+    "tableName": "VW_DEALCREDIT",
+    "docType": "Vendor Credit Exposure",
+    "docTypeEn": "Vendor Credit Exposure",
+    "shortDesc": "Vendor credit exposure: credit limit, AP account balance (local currency), open purchase orders, and open goods receipts."
+  },
+  {
+    "tableName": "VW_DEALBPID",
+    "docType": "Vendor Branch Mapping",
+    "docTypeEn": "Vendor Branch Mapping",
+    "shortDesc": "Vendor to branch/company mapping (organizational assignment)."
+  },
+  {
+    "tableName": "VW_FUNDBAL",
+    "docType": "Fund Balance",
+    "docTypeEn": "Fund Balance",
+    "shortDesc": "Fund/cash balance view."
+  },
+  {
+    "tableName": "VW_OWOR",
+    "docType": "Production Order",
+    "docTypeEn": "Production Order",
+    "shortDesc": "Production order header view."
+  },
+  {
+    "tableName": "VW_OWORDetail",
+    "docType": "Production Order Details",
+    "docTypeEn": "Production Order Details",
+    "shortDesc": "Production order detail/line view."
+  },
+  {
+    "tableName": "VW_ODRF_OIGE",
+    "docType": "Inventory Goods Issue Draft",
+    "docTypeEn": "Inventory Goods Issue Draft",
+    "shortDesc": "Draft inventory goods issue (stock outbound) view."
+  },
+  {
+    "tableName": "VW_ODRF_OIGN",
+    "docType": "Inventory Goods Receipt Draft",
+    "docTypeEn": "Inventory Goods Receipt Draft",
+    "shortDesc": "Draft inventory goods receipt (stock inbound) view."
+  },
+  {
+    "tableName": "VW_ODRF_OWTQ",
+    "docType": "Inventory Transfer Request Draft",
+    "docTypeEn": "Inventory Transfer Request Draft",
+    "shortDesc": "Draft inventory transfer request view."
+  },
+  {
+    "tableName": "VW_OWTQ",
+    "docType": "Inventory Transfer Request",
+    "docTypeEn": "Inventory Transfer Request",
+    "shortDesc": "Inventory transfer request view."
+  },
+  {
+    "tableName": "VW_OWTR",
+    "docType": "Inventory Transfer",
+    "docTypeEn": "Inventory Transfer",
+    "shortDesc": "Inventory transfer view."
+  },
+  {
+    "tableName": "VW_OACT",
+    "docType": "G/L Account Master",
+    "docTypeEn": "G/L Account Master",
+    "shortDesc": "G/L account master data view."
+  },
+  {
+    "tableName": "VW_OBPL",
+    "docType": "Branch Master",
+    "docTypeEn": "Branch Master",
+    "shortDesc": "Branch (BPL) master data view."
+  },
+  {
+    "tableName": "VW_OIGE",
+    "docType": "Inventory Goods Issue",
+    "docTypeEn": "Inventory Goods Issue",
+    "shortDesc": "Inventory goods issue (stock outbound) view."
+  },
+  {
+    "tableName": "VW_OIGN",
+    "docType": "Inventory Goods Receipt",
+    "docTypeEn": "Inventory Goods Receipt",
+    "shortDesc": "Inventory goods receipt (stock inbound) view."
+  },
+  {
+    "tableName": "VW_OITM",
+    "docType": "Item Master",
+    "docTypeEn": "Item Master",
+    "shortDesc": "Item master data view."
+  },
+  {
+    "tableName": "VW_OWHS",
+    "docType": "Warehouse Master",
+    "docTypeEn": "Warehouse Master",
+    "shortDesc": "Warehouse master data view."
+  },
+  {
+    "tableName": "VW_OPLN",
+    "docType": "Price List",
+    "docTypeEn": "Price List",
+    "shortDesc": "Price list master view."
+  },
+  {
+    "tableName": "VW_ITM1",
+    "docType": "Item Price List",
+    "docTypeEn": "Item Price List",
+    "shortDesc": "Item price list view."
+  },
+  {
+    "tableName": "VW_OSPP",
+    "docType": "BP Special Prices",
+    "docTypeEn": "BP Special Prices",
+    "shortDesc": "Business partner special prices view."
+  },
+  {
+    "tableName": "VW_FixedAssets",
+    "docType": "Fixed Assets Master",
+    "docTypeEn": "Fixed Assets Master",
+    "shortDesc": "Fixed assets master data view."
+  },
+  {
+    "tableName": "VW_ORCT",
+    "docType": "Incoming Payment",
+    "docTypeEn": "Incoming Payment",
+    "shortDesc": "Incoming payment (receipt) view."
+  },
+  {
+    "tableName": "VW_OVPM",
+    "docType": "Outgoing Payment",
+    "docTypeEn": "Outgoing Payment",
+    "shortDesc": "Outgoing payment view."
+  },
+  {
+    "tableName": "VW_OPOR",
+    "docType": "Purchase Order",
+    "docTypeEn": "Purchase Order",
+    "shortDesc": "Purchase order view for procurement analytics, open POs, and vendor delivery/receipt tracking."
+  },
+  {
+    "tableName": "VW_ODRF_OWTR",
+    "docType": "Inventory Transfer Draft",
+    "docTypeEn": "Inventory Transfer Draft",
+    "shortDesc": "Draft inventory transfer view."
+  },
+  {
+    "tableName": "VW_BOM_LIST",
+    "docType": "Bill of Materials",
+    "docTypeEn": "Bill of Materials",
+    "shortDesc": "Bill of materials (BOM) view."
+  },
+  {
+    "tableName": "VW_Customer",
+    "docType": "Customer Master",
+    "docTypeEn": "Customer Master",
+    "shortDesc": "Customer master data view."
+  },
+  {
+    "tableName": "VW_Supplier",
+    "docType": "Vendor Master",
+    "docTypeEn": "Vendor Master",
+    "shortDesc": "Vendor master data view."
+  },
+  {
+    "tableName": "VW_OINC",
+    "docType": "Inventory Counting",
+    "docTypeEn": "Inventory Counting",
+    "shortDesc": "Inventory counting (stocktaking) view."
+  },
+  {
+    "tableName": "VW_OIVL",
+    "docType": "Inventory Movements",
+    "docTypeEn": "Inventory Movements",
+    "shortDesc": "Item inventory movements; used to identify inactive/slow-moving items."
+  }
+]

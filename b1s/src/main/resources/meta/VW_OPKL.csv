@@ -1,0 +1,19 @@
+Field ID	Field Name	Description	Type
+335771d1-ef7a-4d8d-b613-c531cd785a5f	AbsEntry	AbsEntry	INTEGER
+655fcdb8-78d5-4f30-8679-0f40edd8a0b8	PickDate	PickDate	TIMESTAMP
+4cd8fba5-8edb-4d21-9291-1fd8b3565ac8	Canceled	Canceled e.g. N-No;Y-Yes	NVARCHAR
+b923b351-b530-4473-93d8-277a528f49dc	CreateDate	CreateDate	TIMESTAMP
+0dc065bc-9eb5-4905-b0eb-63be8192fabc	Status	Status e.g. Sample	NVARCHAR
+a7e69c9e-6a58-405f-9224-39b0405f06b2	BaseObject	BaseObject	INTEGER
+fe440dce-285f-4f6f-9268-32db060f4277	OrderEntry	OrderEntry	INTEGER
+f053ba02-1994-40b7-adfe-27b600757a8a	OrderLine	OrderLine	INTEGER
+b1e9e2f7-ad3e-4b34-a647-d642f2e580cb	CardCode	Business partner code e.g. C19001; V10000	NVARCHAR
+4c48b37e-4c67-4a95-a924-efe548f8f154	CardName	Business partner name e.g. Acme Ltd	NVARCHAR
+5c4a4a77-5074-43a7-a885-273569c5119b	SlpName	Salesperson/buyer name e.g. John Smith	NVARCHAR
+d27ba342-b69b-4d19-b560-842730054158	ItemCode	Item code e.g. A00003	NVARCHAR
+365b538d-c121-4ae1-a6d4-6e28baf8ad1f	Dscription	Item description e.g. Inkjet Printer	NVARCHAR
+427e2a80-7308-4747-8ea3-7ed5376ad1e8	RelQtty	RelQtty	DECIMAL
+8eeedb48-a512-4e6b-85f1-d17246c35e4b	PickQtty	PickQtty	DECIMAL
+691021ce-b4ac-48d4-83c8-631ecbe336a6	PickStatus	PickStatus	NVARCHAR
+f6e02eef-ac17-4fd6-bdba-c0e18703952d	BPLId	BPLId	INTEGER
+499957b7-41de-428c-a36a-a08f61b0b136	BPLName	BPLName	NVARCHAR

@@ -1,0 +1,29 @@
+Field ID	Field Name	Description	Type
+f324c9ed-fb10-46cf-9be3-34b75272ddcd	DocNum	Document no. e.g. 1029	INTEGER
+f114fe22-24a1-425b-97d6-be87ed3d837f	DocType	Document type e.g. I-Item; S-Service	NVARCHAR
+7e86f047-d2d9-4728-a4bb-36edab12b1a1	Canceled	Canceled e.g. Y-Yes;N-No	NVARCHAR
+022bd9fe-3ef0-4353-b274-7b83cdb5cbdc	DocDate	Document date e.g. 2024-05-30	TIMESTAMP
+34ec6365-a373-45ec-b372-a598d0e522cd	CardCode	BP code e.g. C20000;55010406;V10000	NVARCHAR
+6f35cbee-640a-4ed5-8754-deead7dff180	CardName	BP name e.g. Acme Ltd	NVARCHAR
+77c471ef-c326-4d0e-9d17-e9b2be9ed729	Comments	Remarks e.g. NULL	NVARCHAR
+81ac756f-a258-4466-bb0b-3548839f0f7a	JrnlMemo	JrnlMemo	NVARCHAR
+b4ef6ca3-a5ac-44f7-838e-2ebdf18f0bd1	TransId	Depreciation type name Straight-line depreciation-5%	INTEGER
+78329185-0857-4dd5-9cba-7b3ca8885669	DocCurr	Currency e.g.:RMB;USD;EUR	NVARCHAR
+40704bd3-bbee-4757-8265-81ecff93756a	IsLocCurrency	Is local currency e.g. Y-Yes; N-No	VARCHAR
+821882c1-f0fa-4914-8446-699d707b01dc	DocRate	Exchange rate e.g. 7.124000	DECIMAL
+6e9555ac-9a5d-4a9f-86b7-a7b8bdee0ecb	DocTotal	DocTotal	DECIMAL
+78509beb-23e5-457c-9914-700e3bccf936	DocTotalFC	DocTotalFC	DECIMAL
+f06a5751-e223-4d3c-b005-20e880b0d6df	CashSum	CashSum	DECIMAL
+21a9397c-dca4-4169-a6f6-f4c49b0a80db	CashSumFC	CashSumFC	DECIMAL
+ed519a7f-0e2c-4eea-9993-640848878f99	CreditSum	CreditSum	DECIMAL
+67487b5a-db0f-4e14-921d-40b832a60b12	CredSumFC	CredSumFC	DECIMAL
+cfc66279-ca69-4c63-b9a2-872329cbb411	CheckSum	CheckSum	DECIMAL
+90a87c68-519f-47bb-84ba-45b29298b30b	CheckSumFC	CheckSumFC	DECIMAL
+446df2a2-b8c0-4c81-b3c7-f63af827cf9c	TrsfrSum	TrsfrSum	DECIMAL
+8f9ffc4c-3beb-417e-a540-41252274e08f	TrsfrSumFC	TrsfrSumFC	DECIMAL
+d1914e99-8764-4232-8f73-e9a69e5a7dcb	NoDocSum	NoDocSum	DECIMAL
+e8b28a8f-ccfe-4a98-92aa-b18e8bb90ed8	NoDocSumFC	NoDocSumFC	DECIMAL
+ac601526-cc14-45de-afef-19aaf3d71e31	Code	Code	NVARCHAR
+010070fd-63e0-4386-af4d-3860ef6a8fec	Category	Category	NVARCHAR
+38ed4906-cdd2-4f51-9784-c6d16f3e6937	BPLId	BPLId	INTEGER
+ea489c0e-9cdd-46d8-bdff-15746b491111	BPLName	BPLName	NVARCHAR

@@ -9,6 +9,7 @@ SERVICE_1="fina-demo-agent"
 SERVICE_2="fina-demo-prediction-app"
 SERVICE_3="fina-demo-ai-web"
 SERVICE_4="fina-demo-metrics-server"
+SERVICE_5="fina-demo-b1s"
 
 # GitHub Container Registry 配置
 # NOTE: Do NOT hardcode credentials in git history. Provide them via environment variables.
@@ -25,11 +26,15 @@ VOLCANO_PASSWORD="${VOLCANO_PASSWORD:-}"
 DEPLOY_USER="deploy"
 DEPLOY_HOST="14.103.152.204"
 DEPLOY_PATH="/app/fina_demo"
+B1S_DEPLOY_USER="${B1S_DEPLOY_USER:-deploy}"
+B1S_DEPLOY_HOST="${B1S_DEPLOY_HOST:-app.alphafina.cn}"
+B1S_DEPLOY_PATH="${B1S_DEPLOY_PATH:-/app/b1s}"
 
 # 环境变量文件配置
 # 优先级：.env.prod > .env.{项目名} > .env
 # 如果设置了 ENV_FILE，则使用指定的文件，否则按优先级查找
 ENV_FILE="${ENV_FILE:-}"
+ENV_FILE_TO_UPLOAD=""
 
 # 颜色输出配置
 RED='\033[0;31m'
@@ -115,6 +120,7 @@ usage() {
     echo "    2 - $SERVICE_2"
     echo "    3 - $SERVICE_3"
     echo "    4 - $SERVICE_4"
+    echo "    5 - $SERVICE_5"
     echo ""
     echo "选项:"
     echo "    --help, -h          显示此帮助信息"
@@ -192,125 +198,133 @@ get_compose_service_name() {
         "$SERVICE_4")
             echo "metrics_server"
             ;;
+        "$SERVICE_5")
+            echo "b1s"
+            ;;
         *)
             echo ""
             ;;
     esac
 }
 
-# 服务器部署函数
-deploy_to_server() {
-    local services_to_deploy=("$@")
-    
-    log_info "开始部署到服务器..."
-    echo "----------------------------------------"
-    
-    # First, copy the production docker-compose file to the server
-    log_info "上传 docker-compose.prod.yml 到服务器..."
-    if scp docker-compose.prod.yml $DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/docker-compose.yml; then
-        log_success "docker-compose.yml 上传成功"
-    else
-        log_error "docker-compose.yml 上传失败"
-        return 1
-    fi
-    
-    # Upload .env file following priority rules
-    # 原则：
-    # 1. 如果设置了 ENV_FILE 环境变量，使用指定的文件
-    # 2. 否则按优先级查找：.env.prod > .env.fina_demo > .env
-    # 3. 如果都不存在，跳过上传（使用服务器上现有的 .env）
-    local env_file_to_upload=""
-    
+select_env_file() {
+    ENV_FILE_TO_UPLOAD=""
+
     if [[ -n "$ENV_FILE" ]]; then
-        # 使用用户指定的文件
         if [[ -f "$ENV_FILE" ]]; then
-            env_file_to_upload="$ENV_FILE"
+            ENV_FILE_TO_UPLOAD="$ENV_FILE"
             log_info "使用指定的环境变量文件: $ENV_FILE"
         else
             log_error "指定的环境变量文件不存在: $ENV_FILE"
             log_warning "将跳过 .env 文件上传，使用服务器上现有的配置"
         fi
-    else
-        # 按优先级查找
-        if [[ -f .env.prod ]]; then
-            env_file_to_upload=".env.prod"
-            log_info "找到生产环境配置文件: .env.prod"
-        elif [[ -f .env.fina_demo ]]; then
-            env_file_to_upload=".env.fina_demo"
-            log_info "找到项目特定配置文件: .env.fina_demo"
-        elif [[ -f .env ]]; then
-            env_file_to_upload=".env"
-            log_warning "找到本地开发环境文件: .env"
-            log_warning "建议使用 .env.prod 或 .env.fina_demo 用于生产部署"
-            if [[ -t 0 ]]; then
-                read -p "是否继续使用本地 .env 文件？(y/N): " -n 1 -r
-                echo
-                if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-                    log_info "跳过 .env 文件上传，使用服务器上现有的配置"
-                    env_file_to_upload=""
-                fi
+    elif [[ -f .env.prod ]]; then
+        ENV_FILE_TO_UPLOAD=".env.prod"
+        log_info "找到生产环境配置文件: .env.prod"
+    elif [[ -f .env.fina_demo ]]; then
+        ENV_FILE_TO_UPLOAD=".env.fina_demo"
+        log_info "找到项目特定配置文件: .env.fina_demo"
+    elif [[ -f .env ]]; then
+        log_warning "找到本地开发环境文件: .env"
+        log_warning "建议使用 .env.prod 或 .env.fina_demo 用于生产部署"
+        if [[ -t 0 ]]; then
+            read -p "是否继续使用本地 .env 文件？(y/N): " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                ENV_FILE_TO_UPLOAD=".env"
             else
-                log_info "非交互模式，跳过 .env 上传，使用服务器上现有配置"
-                env_file_to_upload=""
+                log_info "跳过 .env 文件上传，使用服务器上现有的配置"
             fi
-        fi
-    fi
-    
-    if [[ -n "$env_file_to_upload" ]]; then
-        log_info "上传环境变量文件 $env_file_to_upload 到服务器..."
-        if scp "$env_file_to_upload" $DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/.env; then
-            log_success "环境变量文件上传成功"
         else
-            log_warning "环境变量文件上传失败，将使用服务器上现有的 .env 文件或默认值"
+            log_info "非交互模式，跳过 .env 上传，使用服务器上现有配置"
         fi
     else
         log_info "未找到环境变量文件，将使用服务器上现有的 .env 文件或默认值"
     fi
-    
-    # Login to Volcano Engine Container Registry on the server
+}
+
+deploy_compose_to_target() {
+    local target_user=$1
+    local target_host=$2
+    local target_path=$3
+    local compose_file=$4
+    shift 4
+    local services_to_deploy=("$@")
+
+    log_info "开始部署到服务器 $target_user@$target_host:$target_path ..."
+    echo "----------------------------------------"
+
+    ssh $target_user@$target_host "mkdir -p $target_path"
+
+    log_info "上传 $compose_file 到服务器..."
+    if scp "$compose_file" $target_user@$target_host:$target_path/docker-compose.yml; then
+        log_success "docker-compose.yml 上传成功"
+    else
+        log_error "docker-compose.yml 上传失败"
+        return 1
+    fi
+
+    if [[ -n "$ENV_FILE_TO_UPLOAD" ]]; then
+        log_info "上传环境变量文件 $ENV_FILE_TO_UPLOAD 到服务器..."
+        scp "$ENV_FILE_TO_UPLOAD" $target_user@$target_host:$target_path/.env \
+            || log_warning "环境变量文件上传失败，将使用服务器上现有的 .env 文件或默认值"
+    fi
+
     log_info "在服务器上登录到 Volcano Engine Container Registry..."
     local login_cmd="echo '$VOLCANO_PASSWORD' | docker login $VOLCANO_REGISTRY -u $VOLCANO_USERNAME --password-stdin"
-    if ! ssh $DEPLOY_USER@$DEPLOY_HOST "$login_cmd"; then
+    if ! ssh $target_user@$target_host "$login_cmd"; then
         log_error "服务器上登录容器注册表失败"
         return 1
     fi
-    
-    # Build list of docker-compose service names to deploy
+
     local compose_services=""
-    if [[ ${#services_to_deploy[@]} -gt 0 ]]; then
-        for service in "${services_to_deploy[@]}"; do
-            local compose_service=$(get_compose_service_name "$service")
-            if [[ -n "$compose_service" ]]; then
-                compose_services="$compose_services $compose_service"
-            fi
-        done
-        log_info "将部署以下服务:$compose_services"
-    else
-        log_info "将部署所有服务"
-    fi
-    
-    # Build the deployment command
-    local ssh_cmd="cd $DEPLOY_PATH && docker-compose pull$compose_services"
-    
+    for service in "${services_to_deploy[@]}"; do
+        local compose_service=$(get_compose_service_name "$service")
+        if [[ -n "$compose_service" ]]; then
+            compose_services="$compose_services $compose_service"
+        fi
+    done
+
+    local ssh_cmd="cd $target_path && docker-compose pull$compose_services"
     if [[ -n "$compose_services" ]]; then
-        # Deploy only specific services
-        # Stop and remove the specific containers first to avoid metadata conflicts
         ssh_cmd="$ssh_cmd && docker-compose stop$compose_services && docker-compose rm -f$compose_services && docker-compose up -d$compose_services"
     else
-        # Deploy all services
-        ssh_cmd="$ssh_cmd && docker-compose down --remove-orphans && docker system prune -a -f && docker-compose up --force-recreate -d"
+        ssh_cmd="$ssh_cmd && docker-compose down --remove-orphans && docker-compose up --force-recreate -d"
     fi
-    
-    log_info "连接到服务器 $DEPLOY_USER@$DEPLOY_HOST 执行部署..."
-    if ssh $DEPLOY_USER@$DEPLOY_HOST "$ssh_cmd"; then
+
+    log_info "连接到服务器 $target_user@$target_host 执行部署..."
+    if ssh $target_user@$target_host "$ssh_cmd"; then
         log_success "部署完成！"
     else
         log_error "部署失败"
         return 1
     fi
-    
     echo "----------------------------------------"
     echo
+}
+
+# 服务器部署函数
+deploy_to_server() {
+    local services_to_deploy=("$@")
+
+    select_env_file
+
+    local main_services=()
+    local b1s_services=()
+    for service in "${services_to_deploy[@]}"; do
+        if [[ "$service" == "$SERVICE_5" ]]; then
+            b1s_services+=("$service")
+        else
+            main_services+=("$service")
+        fi
+    done
+
+    if [[ ${#main_services[@]} -gt 0 ]]; then
+        deploy_compose_to_target "$DEPLOY_USER" "$DEPLOY_HOST" "$DEPLOY_PATH" docker-compose.prod.yml "${main_services[@]}" || return 1
+    fi
+    if [[ ${#b1s_services[@]} -gt 0 ]]; then
+        deploy_compose_to_target "$B1S_DEPLOY_USER" "$B1S_DEPLOY_HOST" "$B1S_DEPLOY_PATH" b1s/deploy/docker-compose-b1s.yml "${b1s_services[@]}" || return 1
+    fi
 }
 
 # 主程序开始
@@ -362,6 +376,10 @@ main() {
                 services_to_transfer+=("$SERVICE_4")
                 shift
                 ;;
+            5)
+                services_to_transfer+=("$SERVICE_5")
+                shift
+                ;;
             *)
                 log_error "无效的服务编号: $1"
                 usage
@@ -370,9 +388,9 @@ main() {
     done
     
     # 如果没有指定服务，则传输所有服务
-    if [[ ${#services_to_transfer[@]} -eq 0 ]] && [[ "$transfer_images" == true ]]; then
+    if [[ ${#services_to_transfer[@]} -eq 0 ]]; then
         log_info "未指定具体服务，将传输所有服务..."
-        services_to_transfer=("$SERVICE_1" "$SERVICE_2" "$SERVICE_3" "$SERVICE_4")
+        services_to_transfer=("$SERVICE_1" "$SERVICE_2" "$SERVICE_3" "$SERVICE_4" "$SERVICE_5")
     fi
     
     # 检查 Docker

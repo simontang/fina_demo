@@ -1,0 +1,10 @@
+Field ID	Field Name	Description	Type
+f48c8aee-a3bb-4bb6-aab7-960be4200490	WhsCode	Warehouse code e.g. 01	NVARCHAR
+70a740c0-d951-473d-8217-734bffdb08c3	WhsName	Warehouse name e.g. Main WH	NVARCHAR
+4c7608dd-7204-4de1-89eb-f22b6715fa34	Inactive	Inactive	NVARCHAR
+1423d29a-a1fc-4eb5-8029-b5ac05e25be9	Location	Location	NVARCHAR
+f87d37f5-d879-4a3f-86d9-95df2b529883	DropShip	DropShip	NVARCHAR
+e7e71d98-93c7-4d5d-82de-997556da6133	NegStckAct	NegStckAct	NVARCHAR
+b96d2487-b041-424d-a7ff-4268725af60a	BinActivat	BinActivat	NVARCHAR
+f91d3c46-b704-4a98-adc2-aac362e7beef	createDate	createDate	TIMESTAMP
+14181193-2a35-4236-9734-d01b71a7caf5	updateDate	updateDate	TIMESTAMP

@@ -1,0 +1,6 @@
+Field ID	Field Name	Description	Type
+76e838c6-79fd-4376-a64d-f425dd22d69f	CardCode	Business partner code e.g. C19001; V10000	NVARCHAR
+7eff42e2-eff5-4b6c-b135-85157d20a73f	CardName	Business partner name e.g. Acme Ltd	NVARCHAR
+7f861315-1436-4b0e-b064-098140872f9d	CardType	BP type e.g. C-Customer	NVARCHAR
+b4d95d48-3730-4060-a9f3-94edb0a91e5b	BPLId	BPLId	INTEGER
+0da19400-512b-4d83-88bc-21bfe73f6c6c	BPLName	BPLName	NVARCHAR

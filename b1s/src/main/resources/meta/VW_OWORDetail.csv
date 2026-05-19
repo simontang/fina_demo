@@ -1,0 +1,26 @@
+Field ID	Field Name	Description	Type
+3b051e05-0f55-4dbf-bef2-0997b1eae640	DocNum	Document no. e.g. 1029	INTEGER
+23a67087-ad17-4686-a730-f3f989f9fa01	PostDate	PostDate	TIMESTAMP
+e43c2ee5-79c0-4d96-a503-ab4a1e747276	StartDate	StartDate	TIMESTAMP
+98267939-9c7e-41b4-86a2-8027bf83c2a9	DueDate	DueDate	TIMESTAMP
+929b1361-0136-4260-bd0b-cdd217c9e626	Type	Type	NVARCHAR
+efc61929-0e87-4d30-b642-a5fe111e51f7	Status	Status	NVARCHAR
+8b795a6a-455a-492d-be12-bd3991cec112	ItemCode	Item code e.g. A00001	NVARCHAR
+a4725059-20bc-459d-ad06-9189bc61379a	ItemName	Item name/description e.g. Inkjet Printer	NVARCHAR
+fbd41b23-95bc-47a7-a3dd-04854cb434e6	ChildItemCode	ChildItemCode	NVARCHAR
+888949c0-54ef-4a96-9740-b11bf70c3df4	ChildItemName	ChildItemName	NVARCHAR
+838cd5dd-8d70-4dc8-8a74-fe64087a9acb	ChildItemGrp	ChildItemGrp	NVARCHAR
+22ac1450-2923-4ae1-ab25-2c126aa92b38	wareHouse	wareHouse	NVARCHAR
+c624f2ec-5df2-46b3-bded-23698c661464	WhsName	Warehouse name e.g. Main WH	NVARCHAR
+1cb84794-80cf-46e5-82d3-bd1b6cb45d64	BaseQty	BaseQty	DECIMAL
+bca8c4a2-03ef-4d1f-95a9-06c091dcf7ce	PlannedQty	PlannedQty	DECIMAL
+db93d37d-ca4a-4e67-8fa8-893f63d23e5a	AdditQty	AdditQty	DECIMAL
+dc1c9442-f0db-4d95-97fe-0d9c18970413	IssuedQty	IssuedQty	DECIMAL
+6c16023e-d852-4193-9fda-1e7271640ff3	OverIssuedQty	OverIssuedQty	DECIMAL
+6c3a60e6-ff77-4e3b-bf60-6a8144b626b2	OverIssuedFlag	OverIssuedFlag	VARCHAR
+8f8e7f6d-4caa-4306-aaf4-072b8437ec0a	IssueType	IssueType	NVARCHAR
+94f53b85-cb37-4976-b150-743300dcc69e	ShortageQty	ShortageQty	DECIMAL
+14376c2c-ec32-4567-9307-ec217e46b3d2	OnHand	OnHand	DECIMAL
+8c4be5a0-e80d-43ea-a031-84b0904b5496	AvailableQty	AvailableQty	DECIMAL
+2a2e2af8-445c-4d7b-8741-918b553408ea	BPLid	BPLid	INTEGER
+df3e3b71-6bb6-4b5f-98d0-ffd54681b009	BPLName	BPLName	NVARCHAR

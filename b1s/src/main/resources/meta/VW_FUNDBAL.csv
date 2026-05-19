@@ -1,0 +1,9 @@
+Field ID	Field Name	Description	Type
+470e2e43-5331-4714-be3e-24ff49ab00ec	AcctCode	Account code e.g. 100101	NVARCHAR
+1524ee88-550a-4df5-b390-f4c3f9fd444b	AcctName	Account name e.g. Acme Ltd	NVARCHAR
+d8666599-bd0d-4350-826a-288b489b6305	ActCurr	Currency e.g.:RMB;USD	NVARCHAR
+fafd4ba9-8ead-4647-91d6-3258f0f52df5	IsLocCurrency	Is local currency e.g. Y-Yes; N-No	VARCHAR
+204406ec-e92d-47ea-a807-eb3d599ddf93	CurrTotal	Amount e.g. 456161.14	DECIMAL
+760ab81a-924b-461d-b22f-ec103f76e4e6	FcTotal	foreign currencyAmount e.g. 55456.95	DECIMAL
+255dac6e-4621-40e9-be61-2f7e5b8299fe	BPLId	BPLId	INTEGER
+831c6c7b-977e-43b3-b4ee-bb25a471991a	BPLName	BPLName	NVARCHAR

@@ -24,6 +24,7 @@ jobs:
       prediction-app: ${{ steps.filter.outputs.prediction-app }}
       ai-web: ${{ steps.filter.outputs.ai-web }}
       metrics-server: ${{ steps.filter.outputs.metrics-server }}
+      b1s: ${{ steps.filter.outputs.b1s }}
 
     steps:
       # 步骤1: 检出代码仓库
@@ -45,6 +46,8 @@ jobs:
               - 'ai_web/**'
             metrics-server:
               - 'metrics-server/**'
+            b1s:
+              - 'b1s/**'
 
   # 构建和推送 Agent 服务的 Docker 镜像
   build-and-push-agent:
@@ -149,6 +152,38 @@ jobs:
           file: metrics-server/Dockerfile
           push: true
           tags: ghcr.io/409zhangshu/fina-demo-metrics-server:latest
+          # 缓存 Gradle 依赖层，避免每次重新下载 JAR
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # 构建和推送 B1S 服务的 Docker 镜像（Java / Spring Boot / Gradle）
+  build-and-push-b1s:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    # 仅当 B1S 代码发生变更时执行
+    if: github.ref == 'refs/heads/main' && needs.detect-changes.outputs.b1s == 'true'
+
+    steps:
+      - uses: actions/checkout@v3
+
+      # 启用 Docker Buildx（支持缓存，加速 Gradle 依赖下载）
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: 409zhangshu
+          password: ${{ secrets.TOKEN }}
+
+      - name: Build and push fina-demo-b1s
+        uses: docker/build-push-action@v5
+        with:
+          context: b1s
+          file: b1s/Dockerfile
+          push: true
+          tags: ghcr.io/409zhangshu/fina-demo-b1s:latest
           # 缓存 Gradle 依赖层，避免每次重新下载 JAR
           cache-from: type=gha
           cache-to: type=gha,mode=max

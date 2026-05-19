@@ -1,0 +1,38 @@
+Field ID	Field Name	Description	Type
+f0a73562-15ae-41b6-9d54-97f0b4bb2fb7	DocNum	Document no. e.g. 1029	INTEGER
+fea78982-c336-4ab6-9bc1-51ef341c2fd1	DocDate	Document date e.g. 2025-09-26	TIMESTAMP
+c8656110-0705-4fdc-b251-25e14582c8e1	DocType	Document type e.g. I-Item;	NVARCHAR
+6f5c0796-25f9-4ba3-b7ba-275fe919013d	ObjType	Object type code	NVARCHAR
+15b19194-39fb-487c-b4db-0a6c791efdd3	Comments	Remarks e.g. Sample	NVARCHAR
+8c67ab87-b770-43c9-bdbf-eceebf67a039	Ref2	Ref2	NVARCHAR
+d01193bd-0a2e-4f6f-963d-67ee62996b29	BaseType	Base object type code	INTEGER
+5ee4b4f6-7539-4a36-9b6b-74cb6e0adbb8	BaseEntry	Base document internal ID	INTEGER
+c32b625b-443e-4f82-9c8b-e760370a5534	BaseLine	Base line no.	INTEGER
+57817bd5-1be4-4205-a75a-86e82c1c2299	ItemCode	Item code e.g. LM4029PS	NVARCHAR
+f718a295-5964-48a5-b0c3-907b9351e37a	Dscription	Item name e.g. Inkjet Printer	NVARCHAR
+84518877-eda1-4b53-80bd-81d60bb936ad	ItmsGrpNam	Item group e.g. 203-Printer	NVARCHAR
+15237430-bb3a-4b14-87af-f1565af56681	WhsCode	Warehouse code e.g. 01	NVARCHAR
+6fbf775c-fc60-4e0b-b896-a2f9719eb041	WhsName	Warehouse name e.g. Main WH	NVARCHAR
+f5af8b8f-70b3-4bed-b27b-2fc5bcbe4215	Quantity	Quantity e.g. 1;2	DECIMAL
+b312e85e-658f-4a02-b22b-8dbc0707ba4a	Price	Unit price (excl. tax) e.g. 2310.00	DECIMAL
+3db59119-9cbe-42c6-b4c6-abdb35257600	LineTotal	Amount (excl. tax) e.g. 2702.70	DECIMAL
+80cfd87c-8e17-443b-8092-301e166dda3a	Currency	Currency e.g.:RMB	NVARCHAR
+8567e849-628f-47d4-8552-a9b829784104	IsLocCurrency	Is local currency e.g. Y-Yes; N-No	VARCHAR
+6d6a84d5-4158-4567-8007-5fa2bb978395	AcctCode	Account code e.g. 124101	NVARCHAR
+7323d4b7-c963-4f91-8c21-f3ad7e2067d8	AcctName	Account name e.g. Acme Ltd	NVARCHAR
+61f15655-f37b-479a-a397-d5926fc0a584	Project	Project code	NVARCHAR
+f441bd1a-92d9-48ed-81f9-da8d45b9bc43	PrjName	Project name e.g. Acme Ltd	NVARCHAR
+52a75043-acb8-4b95-84c9-0fc968e47940	OcrCode	Profit center 1 code e.g. A01;A02	NVARCHAR
+d957b62a-3a85-4ecc-be38-3c0d53c96c56	CostCenterName1	Profit center 1 name e.g. Sample	NVARCHAR
+32dcbd47-72cf-432b-9996-6514c67ffb4d	OcrCode2	Profit center 2 code e.g. D001;D002	NVARCHAR
+561155f7-f5d4-492d-aee5-b4d69c577fb6	CostCenterName2	Profit center 2 name e.g. Sample	NVARCHAR
+260a228f-f348-4b58-8689-13f720a70935	OcrCode3	Profit center 3 code e.g. E001;E002	NVARCHAR
+1e46433a-82e0-465f-aafb-4b687dd3df10	CostCenterName3	Profit center 3 name e.g. Sample	NVARCHAR
+53470d33-9770-46bc-9b21-950c13bf091f	OcrCode4	Profit center 4 code e.g. B01;B02	NVARCHAR
+fb9b443b-00ff-4798-b1e0-f855932f1588	CostCenterName4	Profit center 4 name e.g. Sample	NVARCHAR
+9769ca9a-720f-4246-9297-52e98febedc0	OcrCode5	Profit center 5 code e.g. C19001	NVARCHAR
+37117ce6-4b35-48de-93d2-e6592e5b97fa	CostCenterName5	Profit center 5 name e.g. Sample	NVARCHAR
+16dc5105-88ca-4273-9d74-cf743a672a60	Code	Code	NVARCHAR
+38aa7ca1-7d64-4916-acd5-9a5112768efb	Category	Category	NVARCHAR
+5c21a5a3-d706-4124-950e-ba5a9aaf2ba5	BPLId	BPLId	INTEGER
+59f3c5eb-90d2-4daa-9233-e33111eb0f03	BPLName	BPLName	NVARCHAR
