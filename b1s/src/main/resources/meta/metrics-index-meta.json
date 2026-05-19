@@ -1,0 +1,55 @@
+{
+    "metric_catalog_version": "1.0",
+    "domain_categories": ["revenue_and_growth", "sales_performance", "fulfillment_and_logistics", "quality_and_risk", "customer_value", "pricing_and_margin"],
+    "metrics_index": [
+      {
+        "metric_name": "order_amt_tax_inc",
+        "display_name": "Order Amount (Tax Inclusive)",
+        "domain": "sales_performance",
+        "short_desc": "Total tax-inclusive amount at order stage. Measures sales pipeline, deal closure, and expected future revenue.",
+        "search_keywords": ["Booking Amount", "Order Value", "Contract Amount", "Tax-inclusive Booking", "Sales Amount"]
+      },
+      {
+        "metric_name": "delivery_qty",
+        "display_name": "Delivery Quantity",
+        "domain": "fulfillment_and_logistics",
+        "short_desc": "Total units shipped (goods issue). Reflects warehouse throughput and supply chain fulfillment.",
+        "search_keywords": ["Shipped Units", "Shipment Qty", "Goods Issue", "Delivery Volume", "Outbound"]
+      },
+      {
+        "metric_name": "return_amt",
+        "display_name": "Return Amount",
+        "domain": "quality_and_risk",
+        "short_desc": "Tax-inclusive amount of customer returns. Key risk metric for product quality, over-commitment, or logistics damage.",
+        "search_keywords": ["Return Value", "Refund", "Returns", "Customer Returns", "Quality Returns"]
+      },
+      {
+        "metric_name": "avg_ticket_size_per_customer",
+        "display_name": "Average Ticket Size per Customer",
+        "domain": "customer_value",
+        "short_desc": "Average tax-inclusive order total per customer. Measures purchasing power, wallet share, and cross-sell.",
+        "search_keywords": ["ARPU", "Avg Spend", "Ticket Size", "Customer Output"]
+      },
+      {
+        "metric_name": "avg_selling_price",
+        "display_name": "Average Selling Price (ASP)",
+        "domain": "pricing_and_margin",
+        "short_desc": "Average price per unit sold. Monitors price discipline and product premium capability.",
+        "search_keywords": ["Unit Price", "ASP", "Avg Price", "Price per Unit", "Price Drop"]
+      },
+      {
+        "metric_name": "net_sales_amt",
+        "display_name": "Net Sales (Tax Inclusive)",
+        "domain": "revenue_and_growth",
+        "short_desc": "Total tax-inclusive amount of issued AR invoices; recognized book revenue. Compare with order amount to assess backlog health.",
+        "search_keywords": ["Billing Amount", "Invoice Amount", "Net Revenue", "Recognized Revenue", "Billing"]
+      },
+      {
+        "metric_name": "avg_discount_rate",
+        "display_name": "Discount Rate",
+        "domain": "pricing_and_margin",
+        "short_desc": "Average discount given at order close. Monitors discount behavior and margin leakage.",
+        "search_keywords": ["Concession", "Discount", "Price Cut", "Discount %", "Discount Level"]
+      }
+    ]
+  }

@@ -1,0 +1,40 @@
+Field ID	Field Name	Description	Type
+c66a5461-5ebd-4ccd-a83f-f4f37fc449fa	ItemCode	Item code e.g. LM4029PS	NVARCHAR
+5564bb99-6084-4bc3-828d-23b92fd09a6c	ItemName	Item name e.g. Inkjet Printer	NVARCHAR
+4d673aa9-38b0-4a7e-9a6d-d621e2a43354	FrgnName	FrgnName	NVARCHAR
+d6fd3641-b06b-4266-ab9c-4075695d2370	ItemType	ItemType	NVARCHAR
+79c9f6e2-e24a-4692-8c04-dad011140a2b	ItmsGrpNam	Item group e.g. 203-Printer	NVARCHAR
+be7dcfaf-a111-44b7-b1c9-418053caec56	InvntItem	InvntItem	NVARCHAR
+7d31b7b6-02f4-4d1a-8af2-0084aeb956fc	SellItem	SellItem	NVARCHAR
+913c0f0d-663f-4c07-a52a-18f6f2784de9	PrchseItem	PrchseItem	NVARCHAR
+330fae8c-dd8c-48d5-be1a-56614f348eb6	FirmName	FirmName	NVARCHAR
+9689066f-5d5d-4dc5-806b-2e823b4a3942	IsManBtchSer	IsManBtchSer	NVARCHAR
+03cd85db-700b-43f6-92dd-d6dac4697ae0	MngMethod	MngMethod	NVARCHAR
+c3d58cdd-e4fe-42ed-9e14-26040074e6d2	BuyUnitMsr	BuyUnitMsr	NVARCHAR
+019edf30-5629-4e2b-8c7d-cb430848dffc	NumInBuy	NumInBuy	DECIMAL
+0ce7a0bc-f818-4482-8007-9e44a0b41f63	VatGroupPu	VatGroupPu	NVARCHAR
+0e0e4137-2475-41d8-bfe4-6b90e8455786	SuppCatNum	SuppCatNum	NVARCHAR
+5e9e3c4a-2e72-4412-884f-2a0c345b5d4c	SalUnitMsr	SalUnitMsr	NVARCHAR
+91a4dc31-7327-46af-8688-751a3a30fc1f	NumInSale	NumInSale	DECIMAL
+78395d4a-5097-42b6-bf26-e4f04fa048f3	VatGourpSa	VatGourpSa	NVARCHAR
+4b462573-a821-4c5e-ac5e-2b8d6592875f	validFor	validFor	NVARCHAR
+73562f33-2116-4ef5-8f1f-07a0d318e55a	frozenFor	frozenFor	NVARCHAR
+b23ff2b2-fd30-415b-91a0-d2b68d867349	Spec	Spec	NVARCHAR
+9b033361-2b3c-4edc-bb9f-b7b2930c6b5a	TaxCtg	TaxCtg	NVARCHAR
+6f058bce-406b-4933-a048-ab62e214c671	TaxCatCode	TaxCatCode	NVARCHAR
+9742953c-5798-4ca5-9ffc-b539e588d075	TaxCatName	TaxCatName	NVARCHAR
+fc95b138-757b-4fb2-b105-26000a41fe8e	InvntryUom	InvntryUom	NVARCHAR
+3bee241a-1a97-4834-95b3-29423e81ba31	GLMethod	GLMethod	NVARCHAR
+5ead24bd-940a-4bb7-960d-6d00f916b961	EvalSystem	EvalSystem	NVARCHAR
+2ea1f5ec-e383-4d76-9ab7-1ee1b708585c	ByWh	ByWh	NVARCHAR
+a009768b-13c8-4128-9116-cba7631e74cf	MinLevel	MinLevel	DECIMAL
+3ef531fb-c83b-4e10-a5ba-04f1b6430ec8	MaxLevel	MaxLevel	DECIMAL
+d4973be1-dcbd-4292-92c3-05eb2ca3f159	PlaningSys	PlaningSys	NVARCHAR
+8898e6b0-54f3-4f0f-ad03-916bf699918d	PrcrmntMtd	PrcrmntMtd	NVARCHAR
+33adfeb9-8771-43aa-9151-e90508ac9939	OrdrMulti	OrdrMulti	DECIMAL
+52febf5d-8c54-418c-8db5-9ded5bb85bfb	MinOrdrQty	MinOrdrQty	DECIMAL
+838b7639-d530-4bd9-8885-da5c73c21956	LeadTime	LeadTime	INTEGER
+27f566c6-5f60-4381-8a6c-d5e26b11e272	Phantom	Phantom	NVARCHAR
+e06ba69a-3e5e-4b4f-bfe9-14d77375515a	IssueMthd	IssueMthd	NVARCHAR
+4745bb31-c1c4-404e-8c30-70c4c909d8c8	CreateDate	CreateDate	TIMESTAMP
+f57c20cf-d0b8-4a62-8c80-e7c7478eb355	UpdateDate	UpdateDate	TIMESTAMP

@@ -1,0 +1,63 @@
+Field ID	Field Name	Description	Type
+c3417133-0701-4d8c-a8e2-c17cae1c9d06	DocNum	Document no. e.g. 1029	INTEGER
+76351526-153a-4c69-bf66-68dbb7fac303	DocEntry	Internal ID e.g. 1029	INTEGER
+fdcc9fd7-916c-4fac-a8e2-19342117274c	DocDate	Document date e.g. 2024-05-30	TIMESTAMP
+ea397ffd-13b3-4ec7-baa0-d0e13ea0ec9f	DocStatus	Document status e.g. O-Open;C-Closed	NVARCHAR
+83edd942-b926-431e-a990-770623d1b50a	DocType	Document type e.g. I-Item;S-Service	NVARCHAR
+d2f0753e-f5b5-4ef3-bc9c-b017d8ee1438	ObjType	Object type code	NVARCHAR
+608f0f3a-0437-4968-802d-2efc6a0873a4	NumAtCard	BP reference e.g. 2025101290	NVARCHAR
+c57136a8-e549-4c1f-8586-1db7114635d9	CardCode	Business partner code e.g. C19001; V10000	NVARCHAR
+e09e769b-de95-4fbe-9d3a-2127e51dde34	CardName	Business partner name e.g. Acme Ltd	NVARCHAR
+953d2848-2aea-48e2-9e01-02cbcb123c6f	GroupName	Business partner group e.g. Key Account; Standard	NVARCHAR
+1c72299f-8e02-4445-81d8-aa8ca4aa534d	DocCur	Currency e.g.:RMB;USD;EUR	NVARCHAR
+85101097-9830-4646-9cc8-fa28450e4cef	IsLocCurrency	Is local currency e.g. Y-Yes; N-No	VARCHAR
+bd4e772b-8cc4-4bc9-b862-908b368dde44	DocRate	Exchange rate e.g. 7.9076;1.0000	DECIMAL
+e88bc22f-d50f-4c7d-8770-315fbf96f9a6	DiscPrcnt	Document discount e.g. 2	DECIMAL
+b41f65eb-2b6e-413a-94df-a0166e961f1f	SlpName	Salesperson/buyer name e.g. John Smith	NVARCHAR
+4c1811b6-ecdd-4564-a045-97aa012c33c5	LineNum	Line no. e.g. 0; 1; 2	INTEGER
+0126381c-37e5-42b6-92a0-f0a2499d5d28	LineStatus	Line status e.g. O-Open; C-Closed	NVARCHAR
+d5cc9608-034c-4b0f-b407-3761e2509251	BaseType	Base object type code	INTEGER
+633b2e83-c726-42d4-96ca-a456aeb40317	BaseEntry	Base document internal ID	INTEGER
+9eeb1175-4c9d-4587-97ae-f1a7fa152e18	BaseLine	Base line no.	INTEGER
+1b69e62d-18b2-45ed-bd11-77852067d12b	ItemCode	Item code e.g. A00002;C00005	NVARCHAR
+fe9fd4f7-6331-4d2c-b0d4-0404f6b6cdd7	SubCatNum	BP catalog no. e.g. 10080910	NVARCHAR
+9f18b482-7c0e-4d5f-bc31-822ea5b52f26	Dscription	Item description e.g. Inkjet Printer	NVARCHAR
+148c98cd-2152-4509-9c00-a22a2c2b7441	AcctCode	Account code e.g. 55020408	NVARCHAR
+03b63b35-bd6c-4c9d-9816-4121e0fe3998	AcctName	Account name e.g. Acme Ltd	NVARCHAR
+c75746e3-9c08-4c0e-a9b4-750dce38b043	ItmsGrpNam	Item group name e.g. 203-Printer	NVARCHAR
+505e7042-9b52-4e8d-a5b6-fe5110e6baeb	Quantity	Quantity e.g. 12	DECIMAL
+c4adba6d-c635-4144-b056-66366c8db9d1	OpenQty	Open quantity e.g. 2	DECIMAL
+f7a0f7ee-106d-41be-9142-79878c1f72d9	WhsCode	Warehouse code e.g. 01	NVARCHAR
+979eabab-1c65-40d6-817a-2a77b5f110c0	WhsName	Warehouse name e.g. Main WH	NVARCHAR
+c02d83e5-6db9-431d-b83d-c107a3c76709	ShipDate	Ship date e.g. 2024-05-30	TIMESTAMP
+a1cb076a-c228-4a89-a83b-00775c1cef6b	VatGroup	Tax code e.g. X1; X2	NVARCHAR
+29d25c6a-33a5-40d4-9b6c-0c7050c90cce	VatPrcnt	Tax/VAT rate % e.g. 13.0	DECIMAL
+cabc51fb-ac12-422b-b0ea-38cb2d5dea47	Currency	Currency e.g. RMB; USD; EUR	NVARCHAR
+bc61ff01-9502-4ba4-8a22-728740995e6a	LineIsLocCurrency	LineIsLocCurrency	VARCHAR
+1d257bb8-4ea6-4fac-9a98-18ca4935d112	Rate	Exchange rate e.g. 7.9076	DECIMAL
+922eb6b9-2d29-41b2-b6a3-04c92801545d	Price	Unit price (excl. tax) e.g. 2310.00	DECIMAL
+03f9defe-6eef-4479-8a72-3806118a89cc	PriceAfVAT	Unit price (incl. tax) e.g. 2310.00	DECIMAL
+a88b58f2-5892-42d2-af75-692c85863ff1	LineTotal	Amount (excl. tax) e.g. 2702.70	DECIMAL
+0dd0735b-a16a-43a9-9cea-6231cf6417f7	GTotal	Amount (incl. tax) e.g. 23100.00	DECIMAL
+55716fad-4b28-4fff-80dd-0d00b15d0033	TotalFrgn	Amount (excl. tax, FC) e.g. 3281.25	DECIMAL
+9706040f-d352-4853-886e-8c62653f981d	GTotalFC	Amount (incl. tax, FC) e.g. 3281.25	DECIMAL
+871ad901-77f3-44a1-9f85-7ed85cafbce7	Project	Project code	NVARCHAR
+dd9608a6-f4ef-4198-9e1a-1b2bcdbd8c94	PrjName	Project name e.g. Acme Ltd	NVARCHAR
+55a7365e-5801-45a0-8e24-53543bae3052	OcrCode	Profit center 1 code	NVARCHAR
+f0a637a9-d127-4a21-a460-016fc99297fd	CostCenterName1	Profit center 1 name	NVARCHAR
+047453ed-93f9-413b-8b93-1b66633dba06	OcrCode2	Profit center 2 code e.g. D001;D002	NVARCHAR
+cd4f7ca8-89cb-44cd-b1db-252a453f3ff9	CostCenterName2	Profit center 2 name e.g. Sample	NVARCHAR
+839607ee-177f-44c9-a258-57e5b51557b3	OcrCode3	Profit center 3 code e.g. E001;E002	NVARCHAR
+eea8e258-532a-4050-87ac-d718fd4656b6	CostCenterName3	Profit center 3 name e.g. Sample	NVARCHAR
+b938cd6d-065c-4c72-9bfc-e3c3dc4ecaae	OcrCode4	Profit center 4 code	NVARCHAR
+794f6ce3-701b-4ea6-bd58-82a8bfc514c1	CostCenterName4	Profit center 4 name	NVARCHAR
+709e57c6-17bc-4144-a164-29242b5a19c6	OcrCode5	Profit center 5 code	NVARCHAR
+c307e201-d678-42c1-b3b0-6601e6d6bafe	CostCenterName5	Profit center 5 name	NVARCHAR
+ce690126-baaf-4c04-b927-a396b9712b15	Code	Code	NVARCHAR
+17f39b12-9fe6-4b2e-95e0-4e71500fe62b	Category	Category	NVARCHAR
+35607353-33c2-489a-814e-7e0fb29380e3	BPLId	BPLId	INTEGER
+f1b8ec0a-fb5f-405f-8327-624aaef316f5	BPLName	BPLName	NVARCHAR
+bca2f08d-227f-4b63-a999-c6c0f2b4ec6a	OpenLineTotal	OpenLineTotal	DECIMAL
+c61d3f72-5425-450a-863e-d1fddf94bbb7	OpenGTotal	OpenGTotal	DECIMAL
+8fabcc1b-8fd9-4144-80d1-2931fa1ea5a9	OpenTotalFrgn	OpenTotalFrgn	DECIMAL
+12daee42-48b5-44a8-92ed-16abc869e97a	OpenGTotalFC	OpenGTotalFC	DECIMAL

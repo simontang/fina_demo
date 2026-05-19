@@ -77,6 +77,30 @@ services:
       - "5704:5704"
     restart: unless-stopped
 
+  b1s:
+    build:
+      context: ./b1s
+      dockerfile: Dockerfile
+    environment:
+      SERVER_PORT: "5705"
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com:5432/postgres}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-postgres_fuli}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:?SPRING_DATASOURCE_PASSWORD is required}
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      METRICS_DATASOURCE_TYPE: SQLSERVER
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-fina-metrics-2024!}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SKIP_INIT: ${SKIP_INIT:-false}
+      B1_SERVICE_LAYER_BASE_URL: ${B1_SERVICE_LAYER_BASE_URL:-https://tengnat.yiyuntong.net:13450/b1s/v1}
+      B1_COMPANY_DB: ${B1_COMPANY_DB:-XSM_ZSK}
+      B1_USERNAME: ${B1_USERNAME:-manager}
+      B1_PASSWORD: ${B1_PASSWORD:-1124}
+    volumes:
+      - ./logs/b1s:/app/logs
+    ports:
+      - "5705:5705"
+    restart: unless-stopped
+
   ai_web:
     build:
       context: ./ai_web
@@ -86,4 +110,3 @@ services:
     ports:
       - "5701:5701"
     restart: unless-stopped
-

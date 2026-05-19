@@ -1,0 +1,20 @@
+Field ID	Field Name	Description	Type
+6c4e10c3-3ec1-4708-9066-59d8b7782ffd	ShortName	ShortName	NVARCHAR
+e3efa503-0c01-437b-9cbf-56d2b9cd0f7f	CardName	Business partner name e.g. Acme Ltd	NVARCHAR
+604844a0-5f3f-4b0f-8f84-3081637adf82	Province	Province e.g. Guangdong	NVARCHAR
+13138d6d-430d-4194-a2d3-f61c658ba4f6	Region	Region e.g. South China	NVARCHAR
+aba3a571-17fa-4480-b7c6-d7e405d87d9a	CardType	BP type e.g. C-Customer;S-Vendor	NVARCHAR
+0cd9fb35-b516-41f8-b99a-5fbf24c73ef4	GroupName	Business partner group e.g. Key Account; Standard	NVARCHAR
+4c3c20a4-eb04-4d4c-9992-c7e1eb877638	SlpName	Salesperson/buyer name e.g. John Smith	NVARCHAR
+301791ef-b43e-41db-9e90-e0f9a4ee914a	RefDate	RefDate	TIMESTAMP
+f65dae75-6149-4fec-ba40-bcf9d8e2d087	DueDate	DueDate	TIMESTAMP
+26c7b485-6e4f-4ec5-b3d3-994d3e0a5169	TransId	TransId	INTEGER
+0a51da33-bb04-4ed8-82b7-1c7c0427c716	Currency	Currency e.g.;RMB;EUR	NVARCHAR
+3253adc3-84be-4576-81f7-0a4a5abb0eab	IsLocCurrency	Is local currency e.g. Y-Yes; N-No	VARCHAR
+1b09a22a-2920-4875-aecb-97aba80ddc66	Amount	Amount	DECIMAL
+79feac2e-9e0e-4c89-afcf-58bccce3a9fc	BalDue	BalDue	DECIMAL
+f91101db-7cff-40bb-854b-940636409102	FCAmount	FCAmount	DECIMAL
+6dde0063-b247-447d-9155-463fd7ae00f8	BalFcDue	BalFcDue	DECIMAL
+3ec862d1-42dc-42b7-b35e-2883118c35dc	Aging	Aging	VARCHAR
+67fa4534-dff4-4d78-bc9b-e5ace8343faa	BPLId	BPLId	INTEGER
+b0aeb367-dc8a-4aca-8733-4341b79c522d	BPLName	BPLName	NVARCHAR

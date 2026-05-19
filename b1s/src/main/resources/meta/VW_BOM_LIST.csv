@@ -1,0 +1,13 @@
+Field ID	Field Name	Description	Type
+018b062e-f0ba-40ea-9283-5a11787e787e	ProductCode	ProductCode	NVARCHAR
+0d47df68-4f3c-4b9e-a690-d1c8caac2d1b	ProductName	ProductName	NVARCHAR
+5450a16e-03df-49da-ae24-c24903e9c2e1	ItemCode	Item code e.g. A00001	NVARCHAR
+b1993d79-da5b-46c3-a77c-aaea0d1012e8	ItemName	Item name/description e.g. Inkjet Printer	NVARCHAR
+a584cd8c-efd3-47fb-b618-31b1ed4722ea	TreeType	BOMTypeCode	NVARCHAR
+2bf9bb33-b56d-4be2-a134-220525fe4228	TreeTypeName	BOMTypeName	NVARCHAR
+bb3e4286-fdfb-4ada-9149-068301cf9018	WhsCode	Warehouse code	NVARCHAR
+3bcc76a3-d090-4665-8d1a-fddf56830f5a	Quantity	BOMQuantity	DECIMAL
+ae6af8a5-f4df-4ed0-ace7-90ea7268adae	WhsName	Warehouse name	NVARCHAR
+d69b563f-3d74-44fe-8623-00d050ce665c	AddQuantity	AddQuantity	DECIMAL
+fdd6e630-7c12-46ed-888e-ce4d155cd45c	IssueMthd	Issue method;M-Manual;B-Backflush	NVARCHAR
+180d11d3-f214-40c1-b23e-a58eed7c5e64	Father	Father	NVARCHAR

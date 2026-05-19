@@ -1,0 +1,13 @@
+Field ID	Field Name	Description	Type
+ff9543bf-ccca-4f18-9ebf-d28276a35173	ListNum	ListNum	SMALLINT
+854fea64-3ad7-469f-972d-3ce63e00a460	ListName	ListName	NVARCHAR
+d8c1b2bb-8b12-41e5-bc8a-a4587291d483	BASE_NUM	BASE_NUM	SMALLINT
+38865800-2abd-4b49-8048-276bfbed72d4	Factor	Factor	DECIMAL
+da81fb7a-820c-47a5-946b-288e0f63a467	IsGrossPrc	Unit price (incl. tax) e.g. Y-Yes;N-No	NVARCHAR
+85b56b8c-da7a-4d31-9d23-7ea29e849462	ValidFor	ValidFor	NVARCHAR
+0a59b585-c321-42c4-bebc-3c0b71528ebd	ValidFrom	ValidFrom	TIMESTAMP
+5fc35a0b-7356-42cc-9880-6d8031a4aa8b	ValidTo	ValidTo	TIMESTAMP
+c9ac5853-ba21-42e6-a5e3-75d05557646d	CreateDate	CreateDate	TIMESTAMP
+c187bb55-557b-4864-8057-0e250a490195	PrimCurr	PrimCurr	NVARCHAR
+06511485-ca6c-4db9-83c9-b38a61cc86da	AddCurr1	AddCurr1	NVARCHAR
+c114b9d4-bd4f-4b11-8258-6940c95df0e9	AddCurr2	AddCurr2	NVARCHAR

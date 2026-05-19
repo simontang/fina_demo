@@ -1,0 +1,19 @@
+Field ID	Field Name	Description	Type
+3e0e69c5-70cd-4b52-8ef7-0a2dd784c953	CardCode	Business partner code e.g. C19001; V10000	NVARCHAR
+48014a2b-fbf4-40e7-9a15-be6962a4cfd8	CardName	Business partner name e.g. Acme Ltd	NVARCHAR
+2fd8de61-8252-4062-a13c-8f8690c74201	CardType	BP type e.g. C-Customer;S-Vendor	NVARCHAR
+520d060a-bd62-4513-9be3-2a6a6fc3eef0	GroupName	Business partner group e.g. Key Account; Standard	NVARCHAR
+0bc69bf4-2b88-4781-95e7-64fffd634a57	SlpName	Salesperson/buyer name e.g. John Smith	NVARCHAR
+2f333f6e-4d29-4f0e-a203-40a2f02dc3df	Province	Province e.g. Guangdong	NVARCHAR
+d797be6d-3897-44e8-9af3-a822e3b6a8af	Region	Region e.g. South China	NVARCHAR
+c52782cf-1503-4b24-83de-d1bb895bebd4	CreditLine	CreditLine	DECIMAL
+f1f00791-bf44-4d9e-904d-07f98b680175	Currency	Currency e.g.:RMB;USD	NVARCHAR
+7b997090-4b6e-4bd8-bd4b-0fadf06c3754	IsLocCurrency	Is local currency e.g. Y-Yes; N-No	VARCHAR
+2660ff17-529c-41ab-9310-d3d38a7896cf	OrdersBal	OrdersBal	DECIMAL
+29998f7c-1f28-4582-8c32-12ebe08db579	OrderBalFC	OrderBalFC	DECIMAL
+5f2edcf4-2c2c-4f6b-b2b7-bd5b80f36425	DNotesBal	DNotesBal	DECIMAL
+ded681d3-1b4e-449e-b1d8-5346bf443bac	DNoteBalFC	DNoteBalFC	DECIMAL
+20b06026-54da-4eaf-bfe7-dcc02365140b	Balance	Balance	DECIMAL
+283f558d-bd49-4faf-8442-07549b3e1d10	BalanceFC	BalanceFC	DECIMAL
+abd7cb22-ab80-4dc5-b5c5-1b34efb7107e	ChecksBalL	ChecksBalL	DECIMAL
+126f6673-891e-4c2f-a00a-6b90cb88cf58	ChecksBal	ChecksBal	DECIMAL
