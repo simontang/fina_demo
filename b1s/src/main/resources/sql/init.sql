@@ -19,6 +19,10 @@ CREATE TABLE IF NOT EXISTS t_datasource_config (
     deleted     SMALLINT        NOT NULL DEFAULT 0   -- 1=deleted (soft delete)
 );
 
+-- Existing deployments may already have t_datasource_config without instance_type.
+ALTER TABLE t_datasource_config
+    ADD COLUMN IF NOT EXISTS instance_type VARCHAR(50) NOT NULL DEFAULT 'SQLSERVER';
+
 CREATE INDEX IF NOT EXISTS idx_ds_status ON t_datasource_config (status, deleted);
 CREATE INDEX IF NOT EXISTS idx_ds_name   ON t_datasource_config (name);
 CREATE INDEX IF NOT EXISTS idx_ds_instance_type ON t_datasource_config (instance_type, status, deleted);
@@ -54,7 +58,7 @@ CREATE INDEX IF NOT EXISTS idx_mm_code  ON t_metrics_meta (metric_code);
 -- INSERT INTO t_datasource_config (name, url, username, password, schema_name, instance_type, description, status)
 -- VALUES (
 --     'SAP B1 SQL Server',
---     'jdbc:sqlserver://localhost:14333;databaseName=XSM_ZSK;encrypt=true;trustServerCertificate=true',
+--     'jdbc:sqlserver://tengnat.yiyuntong.net:14333;databaseName=XSM_ZSK;encrypt=true;trustServerCertificate=true',
 --     'sa',
 --     '<aes-encrypted-password>',
 --     'XSM_ZSK',

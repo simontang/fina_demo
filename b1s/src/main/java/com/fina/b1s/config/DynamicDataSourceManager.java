@@ -51,8 +51,8 @@ public class DynamicDataSourceManager {
                     new LambdaQueryWrapper<DataSourceConfig>()
                             .eq(DataSourceConfig::getStatus, 1)
                             .eq(DataSourceConfig::getDeleted, 0)
+                            .eq(DataSourceConfig::getInstanceType, datasourceType)
             );
-            configs = configs.stream().filter(this::matchesDatasourceType).toList();
             configs.forEach(cfg -> {
                 try {
                     registerDataSource(cfg);
@@ -210,7 +210,7 @@ public class DynamicDataSourceManager {
 
     private boolean matchesDatasourceType(DataSourceConfig config) {
         String type = config.getInstanceType();
-        return !StringUtils.hasText(type) || datasourceType.equalsIgnoreCase(type);
+        return StringUtils.hasText(type) && datasourceType.equalsIgnoreCase(type.trim());
     }
 
     private static String quoteSqlServerIdentifier(String identifier) {

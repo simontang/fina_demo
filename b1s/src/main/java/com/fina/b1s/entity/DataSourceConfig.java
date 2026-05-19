@@ -23,7 +23,6 @@ public class DataSourceConfig {
 
     private String schemaName;
 
-    @TableField(exist = false)
     private String instanceType = "SQLSERVER";
 
     private String description;
