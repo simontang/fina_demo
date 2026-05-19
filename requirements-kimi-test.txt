@@ -1,0 +1,2 @@
+# 仅用于 test_kimi_bailian.py 调用阿里云百炼 Kimi 2.5
+openai>=1.0.0

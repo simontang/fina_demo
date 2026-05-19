@@ -1,0 +1,225 @@
+{
+  "generated_at": "20260405_173111",
+  "retried": 89,
+  "succeeded": [
+    "AgentAll_DocBatch",
+    "AgentAll_DocBatch_KaiMay",
+    "AgentAll_FixedAssets",
+    "AgentAll_JournalEntry",
+    "AgentAll_ODLN",
+    "AgentAll_ODPI",
+    "AgentAll_ODPO",
+    "AgentAll_OIGE",
+    "AgentAll_OIGN",
+    "AgentAll_OINV",
+    "AgentAll_OPCH",
+    "AgentAll_OPDN",
+    "AgentAll_OPOR",
+    "AgentAll_OPRC",
+    "AgentAll_OQUT",
+    "AgentAll_ORDN",
+    "AgentAll_ORDR",
+    "AgentAll_ORIN",
+    "AgentAll_ORPC",
+    "AgentAll_ORPD",
+    "AgentAll_OWTQ",
+    "AgentAll_OWTR",
+    "B1_DocLinkedDownpaymentsView",
+    "B1_EDFLatestLogsView",
+    "B1_ElectronicCRWView",
+    "B1_ElectronicDocumentLogViewBR",
+    "B1_ElectronicDocumentLogViewMX",
+    "B1_ElectronicDocumentView",
+    "B1_SnBOpenQtyInnerView",
+    "B1_SnBOpenQtyView",
+    "B1_SnBOpenQtyViewForWTR",
+    "B1_WTaxView",
+    "MTC_VW_AI_DocBatch",
+    "MTC_VW_AI_DocBatch_KaiMay",
+    "MTC_VW_AI_FixedAssets",
+    "MTC_VW_AI_JournalEntry",
+    "MTC_VW_AI_ODLN",
+    "MTC_VW_AI_ODPI",
+    "MTC_VW_AI_ODPO",
+    "MTC_VW_AI_OIGE",
+    "MTC_VW_AI_OIGN",
+    "MTC_VW_AI_OINV",
+    "MTC_VW_AI_OPCH",
+    "MTC_VW_AI_OPDN",
+    "MTC_VW_AI_OPOR",
+    "MTC_VW_AI_OPRC",
+    "MTC_VW_AI_OQUT",
+    "MTC_VW_AI_ORDN",
+    "MTC_VW_AI_ORDR",
+    "MTC_VW_AI_ORIN",
+    "MTC_VW_AI_ORPC",
+    "MTC_VW_AI_ORPD",
+    "MTC_VW_AI_OWTQ",
+    "MTC_VW_AI_OWTR",
+    "SBO_PROFIT_COD_ATTR",
+    "SBO_PROFIT_COD_TXT",
+    "SBO_PROFIT_CTR_ATTR",
+    "SBO_PROFIT_CTR_TXT",
+    "VBIN"
+  ],
+  "failed": [
+    {
+      "view": "AgentAll_BOMLIST",
+      "ok": false,
+      "error": "ERROR:  function AgentAll_BOM_LIST(integer) does not exist\nLINE 27: FROM \"AgentAll_BOM_LIST\"(1) T0 \n              ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "AgentAll_OWORCost",
+      "ok": false,
+      "error": "ERROR:  relation \"B1_ProductionContributionView\" does not exist\nLINE 48:  FROM \"B1_ProductionContributionView\" \n               ^"
+    },
+    {
+      "view": "AgentAll_PROCESSLOG",
+      "ok": false,
+      "error": "ERROR:  relation \"AgentAll_PROCESS_MONITOR_LOG\" does not exist\nLINE 13: FROM \"AgentAll_PROCESS_MONITOR_LOG\";\n              ^"
+    },
+    {
+      "view": "AgentAll_SalesRevenueCost",
+      "ok": false,
+      "error": "ERROR:  operator does not exist: integer = character varying\nLINE 29: ...OM \"OINM\" WHERE \"TransType\"=13) T20 ON T0.\"DocNum\"=T20.\"BASE...\n                                                              ^\nHINT:  No operator matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "AgentAll_USERPERM",
+      "ok": false,
+      "error": "ERROR:  relation \"AgentAll_USRPERM\" does not exist\nLINE 7: from \"AgentAll_USRPERM\";\n             ^"
+    },
+    {
+      "view": "B1_AllDocumentsView_VAWG",
+      "ok": false,
+      "error": "ERROR:  UNION types character varying and integer cannot be matched\nLINE 2: ...\" FROM  \"sbodemous\".\"OQUT\" T0)) UNION ALL (SELECT 202 AS \"Ob...\n                                                             ^"
+    },
+    {
+      "view": "B1_CashFlowForecastRecurringTrasactionView",
+      "ok": false,
+      "error": "ERROR:  operator does not exist: character varying = numeric\nLINE 145:     ON T0.\"ObjType\" = ABS(CAST(T1.\"DocObjType\" AS numeric))\n                              ^\nHINT:  No operator matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "B1_ProductionContributionView",
+      "ok": false,
+      "error": "ERROR:  UNION types integer and character varying cannot be matched\nLINE 2: ...pe\", '' AS \"IsInventory\", T0.\"DocEntry\" AS \"WOR\", T0.\"ObjTyp...\n                                                             ^"
+    },
+    {
+      "view": "B1_ProductionVarianceView",
+      "ok": false,
+      "error": "ERROR:  relation \"sbodemous.B1_ProductionContributionView\" does not exist\nLINE 2: ...t\", 0.000000 AS \"Variance\", T0.\"EvalSystem\" FROM  \"sbodemous...\n                                                             ^"
+    },
+    {
+      "view": "B1_VatPerPaymentMeansView",
+      "ok": false,
+      "error": "ERROR:  UNION types text and timestamp without time zone cannot be matched\nLINE 2: ...D\" AS \"MeansID\", T9.\"MeansStrID\" AS \"MeansStrID\", T9.\"MeansD...\n                                                             ^"
+    },
+    {
+      "view": "B1_VatView",
+      "ok": false,
+      "error": "ERROR:  invalid input syntax for type timestamp: \"\"\nLINE 2: ...UP\", T7.\"ActType\", T1.\"IsSplitPay\", 0 AS \"BPLId\", '' AS \"Cre...\n                                                             ^"
+    },
+    {
+      "view": "B1_WAVGListOfTransactionsView",
+      "ok": false,
+      "error": "ERROR:  relation \"sbodemous.B1_AllDocumentsView_VAWG\" does not exist\nLINE 2: ...e\" FROM  \"sbodemous\".\"OILM\" T0   LEFT OUTER  JOIN \"sbodemous...\n                                                             ^"
+    },
+    {
+      "view": "MTC_VW_AI_OWORCost",
+      "ok": false,
+      "error": "ERROR:  relation \"B1_ProductionContributionView\" does not exist\nLINE 48:  FROM \"B1_ProductionContributionView\" \n               ^"
+    },
+    {
+      "view": "MTC_VW_AI_SalesRevenueCost",
+      "ok": false,
+      "error": "ERROR:  operator does not exist: integer = character varying\nLINE 29: ...OM \"OINM\" WHERE \"TransType\"=13) T20 ON T0.\"DocNum\"=T20.\"BASE...\n                                                              ^\nHINT:  No operator matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "OSRI",
+      "ok": false,
+      "error": "ERROR:  missing FROM-clause entry for table \"T11\"\nLINE 2: SELECT \"T11\".\"ItemCode\" , \"T11\".\"SysSerial\" , \"T11\".\"SuppSer...\n               ^"
+    },
+    {
+      "view": "SBO_CUSTOMER_ATTR",
+      "ok": false,
+      "error": "ERROR:  function to_char(numeric) does not exist\nLINE 5:          TO_CHAR(EXTRACT(YEAR FROM \"CreateDate\"))\n                 ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "SBO_CUSTOMER_TEXT",
+      "ok": false,
+      "error": "ERROR:  missing FROM-clause entry for table \"ocrd\"\nLINE 2: SELECT     OCRD.\"CardCode\" as \"CARDCODE\", OCRD.\"CardName\" as...\n                   ^"
+    },
+    {
+      "view": "SBO_FI_GL_01",
+      "ok": false,
+      "error": "ERROR:  function to_char(numeric) does not exist\nLINE 9:     '0' || TO_CHAR(EXTRACT(MONTH FROM J.\"RefDate\")) || TO_CH...\n                   ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "SBO_FI_GL_02",
+      "ok": false,
+      "error": "ERROR:  function to_char(numeric) does not exist\nLINE 32:    TO_CHAR(EXTRACT(YEAR FROM J.\"DueDate\"))  \n            ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "SBO_FI_PC_01",
+      "ok": false,
+      "error": "ERROR:  function to_char(numeric) does not exist\nLINE 7:     TO_CHAR(EXTRACT(YEAR FROM J.\"RefDate\"))  \n            ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "SBO_MATERIAL_ATTR",
+      "ok": false,
+      "error": "ERROR:  function to_char(numeric) does not exist\nLINE 3:          TO_CHAR(EXTRACT(YEAR FROM \"CreateDate\"))\n                 ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "SBO_MATERIAL_TEXT",
+      "ok": false,
+      "error": "ERROR:  function to_char(numeric) does not exist\nLINE 3:          TO_CHAR(EXTRACT(YEAR FROM \"UpdateDate\"))\n                 ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "SBO_PUR_GR_GRET",
+      "ok": false,
+      "error": "ERROR:  missing FROM-clause entry for table \"pdn1\"\nLINE 71:    INNER JOIN \"sbodemous\".\"OPDN\" ON PDN1.\"DocEntry\" = OPDN.\"...\n                                             ^"
+    },
+    {
+      "view": "SBO_PUR_IV_CM",
+      "ok": false,
+      "error": "ERROR:  missing FROM-clause entry for table \"pch1\"\nLINE 70:        \"sbodemous\".\"OPCH\" ON PCH1.\"DocEntry\" = OPCH.\"DocEntr...\n                                      ^"
+    },
+    {
+      "view": "SBO_PUR_PO",
+      "ok": false,
+      "error": "ERROR:  missing FROM-clause entry for table \"por1\"\nLINE 51:       \"sbodemous\".\"OPOR\" ON POR1.\"DocEntry\" = OPOR.\"DocEntry...\n                                     ^"
+    },
+    {
+      "view": "SBO_SALES_DE",
+      "ok": false,
+      "error": "ERROR:  missing FROM-clause entry for table \"dln1\"\nLINE 47:                       \"sbodemous\".\"ODLN\" ON DLN1.\"DocEntry\" ...\n                                                     ^"
+    },
+    {
+      "view": "SBO_SALES_IN",
+      "ok": false,
+      "error": "ERROR:  missing FROM-clause entry for table \"inv1\"\nLINE 59:                       \"sbodemous\".\"OINV\" ON INV1.\"DocEntry\" ...\n                                                     ^"
+    },
+    {
+      "view": "SBO_SALES_SO",
+      "ok": false,
+      "error": "ERROR:  missing FROM-clause entry for table \"rdr1\"\nLINE 60:                       \"sbodemous\".\"ORDR\" ON RDR1.\"DocEntry\" ...\n                                                     ^"
+    },
+    {
+      "view": "SBO_VENDOR_ATTR",
+      "ok": false,
+      "error": "ERROR:  function to_char(numeric) does not exist\nLINE 5:       TO_CHAR(EXTRACT(YEAR FROM \"CreateDate\"))\n              ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "SBO_VENDOR_TEXT",
+      "ok": false,
+      "error": "ERROR:  function to_char(numeric) does not exist\nLINE 3:       TO_CHAR(EXTRACT(YEAR FROM \"UpdateDate\"))\n              ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    }
+  ],
+  "failure_categories": {
+    "missing_function": 9,
+    "missing_relation": 6,
+    "operator_mismatch": 3,
+    "union_type_mismatch": 3,
+    "invalid_timestamp_literal": 1,
+    "missing_from_alias": 8
+  }
+}

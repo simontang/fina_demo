@@ -1,0 +1,355 @@
+{
+  "timestamp": "2026-04-05T17:21:11.263177",
+  "retried": 89,
+  "succeeded": [
+    "AgentAll_JournalEntry",
+    "MTC_VW_AI_JournalEntry",
+    "VBIN"
+  ],
+  "failed": [
+    {
+      "view": "AgentAll_BOMLIST",
+      "error": "ERROR:  function AgentAll_BOM_LIST(integer) does not exist\nLINE 27: FROM \"AgentAll_BOM_LIST\"(1) T0 \n              ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "AgentAll_DocBatch",
+      "error": "ERROR:  syntax error at or near \"0\"\nLINE 61:  0);\n          ^"
+    },
+    {
+      "view": "AgentAll_DocBatch_KaiMay",
+      "error": "ERROR:  syntax error at or near \"0\"\nLINE 60:  0);\n          ^"
+    },
+    {
+      "view": "AgentAll_FixedAssets",
+      "error": "ERROR:  invalid input syntax for type timestamp: \"\"\nLINE 40:  '')='') T2 ON T1.\"ItemCode\" = T2.\"ItemCode\" \n          ^"
+    },
+    {
+      "view": "AgentAll_ODLN",
+      "error": "ERROR:  syntax error at or near \"0\"\nLINE 141:  0) \n           ^"
+    },
+    {
+      "view": "AgentAll_ODPI",
+      "error": "ERROR:  syntax error at or near \"0\"\nLINE 128:   0) \n            ^"
+    },
+    {
+      "view": "AgentAll_ODPO",
+      "error": "ERROR:  syntax error at or near \"0\"\nLINE 128:   0) \n            ^"
+    },
+    {
+      "view": "AgentAll_OIGE",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 35: WHERE T0.CANCELED='N';\n               ^\nHINT:  Perhaps you meant to reference the column \"t4.Canceled\"."
+    },
+    {
+      "view": "AgentAll_OIGN",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 35: WHERE T0.CANCELED='N';\n               ^\nHINT:  Perhaps you meant to reference the column \"t4.Canceled\"."
+    },
+    {
+      "view": "AgentAll_OINV",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 83: WHERE T0.CANCELED='N';\n               ^\nHINT:  Perhaps you meant to reference the column \"t8.Canceled\"."
+    },
+    {
+      "view": "AgentAll_OPCH",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 79: WHERE T0.CANCELED='N';\n               ^\nHINT:  Perhaps you meant to reference the column \"t8.Canceled\"."
+    },
+    {
+      "view": "AgentAll_OPDN",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 93: WHERE T0.CANCELED='N';\n               ^\nHINT:  Perhaps you meant to reference the column \"t8.Canceled\"."
+    },
+    {
+      "view": "AgentAll_OPOR",
+      "error": "ERROR:  syntax error at or near \"0\"\nLINE 166:   0) \n            ^"
+    },
+    {
+      "view": "AgentAll_OPRC",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 41: WHERE T0.CANCELED='N' \n               ^\nHINT:  Perhaps you meant to reference the column \"t8.Canceled\"."
+    },
+    {
+      "view": "AgentAll_OQUT",
+      "error": "ERROR:  syntax error at or near \"0\"\nLINE 186:   0) \n            ^"
+    },
+    {
+      "view": "AgentAll_ORDN",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 84: WHERE T0.CANCELED='N';\n               ^\nHINT:  Perhaps you meant to reference the column \"t8.Canceled\"."
+    },
+    {
+      "view": "AgentAll_ORDR",
+      "error": "ERROR:  syntax error at or near \"0\"\nLINE 176:   0) \n            ^"
+    },
+    {
+      "view": "AgentAll_ORIN",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 85: WHERE T0.CANCELED='N' \n               ^\nHINT:  Perhaps you meant to reference the column \"t8.Canceled\"."
+    },
+    {
+      "view": "AgentAll_ORPC",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 81: WHERE T0.CANCELED='N';\n               ^\nHINT:  Perhaps you meant to reference the column \"t8.Canceled\"."
+    },
+    {
+      "view": "AgentAll_ORPD",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 81: WHERE T0.CANCELED='N';\n               ^\nHINT:  Perhaps you meant to reference the column \"t8.Canceled\"."
+    },
+    {
+      "view": "AgentAll_OWORCost",
+      "error": "ERROR:  syntax error at or near \"0\"\nLINE 113:  0) \n           ^"
+    },
+    {
+      "view": "AgentAll_OWTQ",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 61: WHERE T0.CANCELED='N';\n               ^\nHINT:  Perhaps you meant to reference the column \"t4.Canceled\"."
+    },
+    {
+      "view": "AgentAll_OWTR",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 61: WHERE T0.CANCELED='N';\n               ^\nHINT:  Perhaps you meant to reference the column \"t4.Canceled\"."
+    },
+    {
+      "view": "AgentAll_PROCESSLOG",
+      "error": "ERROR:  relation \"AgentAll_PROCESS_MONITOR_LOG\" does not exist\nLINE 13: FROM \"AgentAll_PROCESS_MONITOR_LOG\";\n              ^"
+    },
+    {
+      "view": "AgentAll_SalesRevenueCost",
+      "error": "ERROR:  operator does not exist: integer = character varying\nLINE 29: ...OM \"OINM\" WHERE \"TransType\"=13) T20 ON T0.\"DocNum\"=T20.\"BASE...\n                                                              ^\nHINT:  No operator matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "AgentAll_USERPERM",
+      "error": "ERROR:  relation \"AgentAll_USRPERM\" does not exist\nLINE 7: from \"AgentAll_USRPERM\";\n             ^"
+    },
+    {
+      "view": "B1_AllDocumentsView_VAWG",
+      "error": "ERROR:  UNION types character varying and integer cannot be matched\nLINE 2: ...\" FROM  \"sbodemous\".\"OQUT\" T0)) UNION ALL (SELECT 202 AS \"Ob...\n                                                             ^"
+    },
+    {
+      "view": "B1_CashFlowForecastRecurringTrasactionView",
+      "error": "ERROR:  function abs(character varying) does not exist\nLINE 145:     ON T0.\"ObjType\" = ABS(T1.\"DocObjType\")\n                                ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "B1_DocLinkedDownpaymentsView",
+      "error": "ERROR:  function to_number(character varying) does not exist\nLINE 2: ...\"ODPI\" T1  ON  T1.\"DocEntry\" = T0.\"BaseAbs\"  AND  TO_NUMBER(...\n                                                             ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "B1_EDFLatestLogsView",
+      "error": "ERROR:  missing FROM-clause entry for table \"TBLRANK\"\nLINE 2: SELECT \"TBLRANK\".\"AbsEntry\" , \"TBLRANK\".\"LogNum\" , \"TBLRANK\"...\n               ^"
+    },
+    {
+      "view": "B1_ElectronicCRWView",
+      "error": "ERROR:  relation \"sbodemous.B1_EDFLatestLogsView\" does not exist\nLINE 2: ...T2.\"CardCode\" = T1.\"CardCode\"    LEFT OUTER  JOIN \"sbodemous...\n                                                             ^"
+    },
+    {
+      "view": "B1_ElectronicDocumentLogViewBR",
+      "error": "ERROR:  function to_char(smallint) does not exist\nLINE 2: ...''    LEFT OUTER  JOIN \"sbodemous\".\"NFN5\" T5  ON  TO_CHAR(T5...\n                                                             ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "B1_ElectronicDocumentLogViewMX",
+      "error": "ERROR:  relation \"sbodemous.B1_EDFLatestLogsView\" does not exist\nLINE 2: ....\"OADM\" T2  ON  T2.\"Code\" = 1    LEFT OUTER  JOIN \"sbodemous...\n                                                             ^"
+    },
+    {
+      "view": "B1_ElectronicDocumentView",
+      "error": "ERROR:  relation \"sbodemous.B1_EDFLatestLogsView\" does not exist\nLINE 2: ...3 ,4 ,11 ,12 ,13 ,14 ,15 )  ))   LEFT OUTER  JOIN \"sbodemous...\n                                                             ^"
+    },
+    {
+      "view": "B1_ProductionContributionView",
+      "error": "ERROR:  function to_number(character varying) does not exist\nLINE 2: ...\"ORSC\" T2  ON  T2.\"ResCode\" = T1.\"ItemCode\"  AND  TO_NUMBER(...\n                                                             ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "B1_ProductionVarianceView",
+      "error": "ERROR:  relation \"sbodemous.B1_ProductionContributionView\" does not exist\nLINE 2: ...t\", 0.000000 AS \"Variance\", T0.\"EvalSystem\" FROM  \"sbodemous...\n                                                             ^"
+    },
+    {
+      "view": "B1_SnBOpenQtyInnerView",
+      "error": "ERROR:  function to_number(character varying) does not exist\nLINE 2: ...ew\" T2  ON  T2.\"DocEntry\" = T0.\"ApplyEntry\"  AND  TO_NUMBER(...\n                                                             ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "B1_SnBOpenQtyView",
+      "error": "ERROR:  relation \"sbodemous.B1_SnBOpenQtyInnerView\" does not exist\nLINE 2: ...\"LocCode\", SUM(T0.\"Quantity\") AS \"Quantity\" FROM  \"sbodemous...\n                                                             ^"
+    },
+    {
+      "view": "B1_SnBOpenQtyViewForWTR",
+      "error": "ERROR:  relation \"sbodemous.B1_SnBOpenQtyInnerView\" does not exist\nLINE 2: ...\"LocCode\", SUM(T0.\"Quantity\") AS \"Quantity\" FROM  \"sbodemous...\n                                                             ^"
+    },
+    {
+      "view": "B1_VatPerPaymentMeansView",
+      "error": "ERROR:  UNION types text and timestamp without time zone cannot be matched\nLINE 2: ...D\" AS \"MeansID\", T9.\"MeansStrID\" AS \"MeansStrID\", T9.\"MeansD...\n                                                             ^"
+    },
+    {
+      "view": "B1_VatView",
+      "error": "ERROR:  invalid input syntax for type timestamp: \"\"\nLINE 2: ...UP\", T7.\"ActType\", T1.\"IsSplitPay\", 0 AS \"BPLId\", '' AS \"Cre...\n                                                             ^"
+    },
+    {
+      "view": "B1_WAVGListOfTransactionsView",
+      "error": "ERROR:  relation \"sbodemous.B1_AllDocumentsView_VAWG\" does not exist\nLINE 2: ...e\" FROM  \"sbodemous\".\"OILM\" T0   LEFT OUTER  JOIN \"sbodemous...\n                                                             ^"
+    },
+    {
+      "view": "B1_WTaxView",
+      "error": "ERROR:  function to_char(integer) does not exist\nLINE 2: ...bsEntry\"   INNER  JOIN \"sbodemous\".\"OWTD\" T3  ON  TO_CHAR(T3...\n                                                             ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "MTC_VW_AI_DocBatch",
+      "error": "ERROR:  syntax error at or near \"0\"\nLINE 61:  0);\n          ^"
+    },
+    {
+      "view": "MTC_VW_AI_DocBatch_KaiMay",
+      "error": "ERROR:  syntax error at or near \"0\"\nLINE 60:  0);\n          ^"
+    },
+    {
+      "view": "MTC_VW_AI_FixedAssets",
+      "error": "ERROR:  invalid input syntax for type timestamp: \"\"\nLINE 40:  '')='') T2 ON T1.\"ItemCode\" = T2.\"ItemCode\" \n          ^"
+    },
+    {
+      "view": "MTC_VW_AI_ODLN",
+      "error": "ERROR:  syntax error at or near \"0\"\nLINE 141:  0) \n           ^"
+    },
+    {
+      "view": "MTC_VW_AI_ODPI",
+      "error": "ERROR:  syntax error at or near \"0\"\nLINE 128:   0) \n            ^"
+    },
+    {
+      "view": "MTC_VW_AI_ODPO",
+      "error": "ERROR:  syntax error at or near \"0\"\nLINE 128:   0) \n            ^"
+    },
+    {
+      "view": "MTC_VW_AI_OIGE",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 35: WHERE T0.CANCELED='N';\n               ^\nHINT:  Perhaps you meant to reference the column \"t4.Canceled\"."
+    },
+    {
+      "view": "MTC_VW_AI_OIGN",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 35: WHERE T0.CANCELED='N';\n               ^\nHINT:  Perhaps you meant to reference the column \"t4.Canceled\"."
+    },
+    {
+      "view": "MTC_VW_AI_OINV",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 83: WHERE T0.CANCELED='N';\n               ^\nHINT:  Perhaps you meant to reference the column \"t8.Canceled\"."
+    },
+    {
+      "view": "MTC_VW_AI_OPCH",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 79: WHERE T0.CANCELED='N';\n               ^\nHINT:  Perhaps you meant to reference the column \"t8.Canceled\"."
+    },
+    {
+      "view": "MTC_VW_AI_OPDN",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 93: WHERE T0.CANCELED='N';\n               ^\nHINT:  Perhaps you meant to reference the column \"t8.Canceled\"."
+    },
+    {
+      "view": "MTC_VW_AI_OPOR",
+      "error": "ERROR:  syntax error at or near \"0\"\nLINE 166:   0) \n            ^"
+    },
+    {
+      "view": "MTC_VW_AI_OPRC",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 41: WHERE T0.CANCELED='N' \n               ^\nHINT:  Perhaps you meant to reference the column \"t8.Canceled\"."
+    },
+    {
+      "view": "MTC_VW_AI_OQUT",
+      "error": "ERROR:  syntax error at or near \"0\"\nLINE 186:   0) \n            ^"
+    },
+    {
+      "view": "MTC_VW_AI_ORDN",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 84: WHERE T0.CANCELED='N';\n               ^\nHINT:  Perhaps you meant to reference the column \"t8.Canceled\"."
+    },
+    {
+      "view": "MTC_VW_AI_ORDR",
+      "error": "ERROR:  syntax error at or near \"0\"\nLINE 176:   0) \n            ^"
+    },
+    {
+      "view": "MTC_VW_AI_ORIN",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 85: WHERE T0.CANCELED='N' \n               ^\nHINT:  Perhaps you meant to reference the column \"t8.Canceled\"."
+    },
+    {
+      "view": "MTC_VW_AI_ORPC",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 81: WHERE T0.CANCELED='N';\n               ^\nHINT:  Perhaps you meant to reference the column \"t8.Canceled\"."
+    },
+    {
+      "view": "MTC_VW_AI_ORPD",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 81: WHERE T0.CANCELED='N';\n               ^\nHINT:  Perhaps you meant to reference the column \"t8.Canceled\"."
+    },
+    {
+      "view": "MTC_VW_AI_OWORCost",
+      "error": "ERROR:  syntax error at or near \"0\"\nLINE 113:  0) \n           ^"
+    },
+    {
+      "view": "MTC_VW_AI_OWTQ",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 61: WHERE T0.CANCELED='N';\n               ^\nHINT:  Perhaps you meant to reference the column \"t4.Canceled\"."
+    },
+    {
+      "view": "MTC_VW_AI_OWTR",
+      "error": "ERROR:  column t0.canceled does not exist\nLINE 61: WHERE T0.CANCELED='N';\n               ^\nHINT:  Perhaps you meant to reference the column \"t4.Canceled\"."
+    },
+    {
+      "view": "MTC_VW_AI_SalesRevenueCost",
+      "error": "ERROR:  operator does not exist: integer = character varying\nLINE 29: ...OM \"OINM\" WHERE \"TransType\"=13) T20 ON T0.\"DocNum\"=T20.\"BASE...\n                                                              ^\nHINT:  No operator matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "OSRI",
+      "error": "ERROR:  missing FROM-clause entry for table \"T11\"\nLINE 2: SELECT \"T11\".\"ItemCode\" , \"T11\".\"SysSerial\" , \"T11\".\"SuppSer...\n               ^"
+    },
+    {
+      "view": "SBO_CUSTOMER_ATTR",
+      "error": "ERROR:  function to_char(character varying) does not exist\nLINE 2: SELECT TO_CHAR(\"CardCode\") AS \"CARDCODE\", \"City\" AS \"CITY\", ...\n               ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "SBO_CUSTOMER_TEXT",
+      "error": "ERROR:  missing FROM-clause entry for table \"ocrd\"\nLINE 2: SELECT     OCRD.\"CardCode\" as \"CARDCODE\", OCRD.\"CardName\" as...\n                   ^"
+    },
+    {
+      "view": "SBO_FI_GL_01",
+      "error": "ERROR:  function month(timestamp without time zone) does not exist\nLINE 9:     '0' || TO_CHAR(MONTH(J.\"RefDate\")) || TO_CHAR(YEAR(J.\"Re...\n                           ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "SBO_FI_GL_02",
+      "error": "ERROR:  function to_int(integer) does not exist\nLINE 31: ...J2.\"Credit\") from \"sbodemous\".\"JDT1\" as J2 where (TO_INT(J2....\n                                                              ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "SBO_FI_PC_01",
+      "error": "ERROR:  function to_char(character varying) does not exist\nLINE 2: SELECT TO_CHAR(P.\"PrcCode\") as \"PROFIT_CTR\",\n               ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "SBO_MATERIAL_ATTR",
+      "error": "ERROR:  function year(timestamp without time zone) does not exist\nLINE 3:          TO_CHAR(YEAR(\"CreateDate\"))\n                         ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "SBO_MATERIAL_TEXT",
+      "error": "ERROR:  function year(timestamp without time zone) does not exist\nLINE 3:          TO_CHAR(YEAR(\"UpdateDate\"))\n                         ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "SBO_PROFIT_COD_ATTR",
+      "error": "ERROR:  function to_char(character varying) does not exist\nLINE 2: SELECT TO_CHAR(P.\"OcrCode\") AS \"SBOPFT_COD\"\n               ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "SBO_PROFIT_COD_TXT",
+      "error": "ERROR:  function to_char(character varying) does not exist\nLINE 2: SELECT TO_CHAR(P.\"OcrCode\") AS \"SBOPFT_COD\", \n               ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "SBO_PROFIT_CTR_ATTR",
+      "error": "ERROR:  function to_char(character varying) does not exist\nLINE 2: SELECT TO_CHAR(P.\"PrcCode\") AS \"PROFIT_CTR\", \n               ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "SBO_PROFIT_CTR_TXT",
+      "error": "ERROR:  function to_char(character varying) does not exist\nLINE 2: SELECT TO_CHAR(P.\"PrcCode\") AS \"PROFIT_CTR\", \n               ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "SBO_PUR_GR_GRET",
+      "error": "ERROR:  missing FROM-clause entry for table \"pdn1\"\nLINE 71:    INNER JOIN \"sbodemous\".\"OPDN\" ON PDN1.\"DocEntry\" = OPDN.\"...\n                                             ^"
+    },
+    {
+      "view": "SBO_PUR_IV_CM",
+      "error": "ERROR:  missing FROM-clause entry for table \"pch1\"\nLINE 70:        \"sbodemous\".\"OPCH\" ON PCH1.\"DocEntry\" = OPCH.\"DocEntr...\n                                      ^"
+    },
+    {
+      "view": "SBO_PUR_PO",
+      "error": "ERROR:  missing FROM-clause entry for table \"por1\"\nLINE 51:       \"sbodemous\".\"OPOR\" ON POR1.\"DocEntry\" = OPOR.\"DocEntry...\n                                     ^"
+    },
+    {
+      "view": "SBO_SALES_DE",
+      "error": "ERROR:  missing FROM-clause entry for table \"dln1\"\nLINE 47:                       \"sbodemous\".\"ODLN\" ON DLN1.\"DocEntry\" ...\n                                                     ^"
+    },
+    {
+      "view": "SBO_SALES_IN",
+      "error": "ERROR:  missing FROM-clause entry for table \"inv1\"\nLINE 59:                       \"sbodemous\".\"OINV\" ON INV1.\"DocEntry\" ...\n                                                     ^"
+    },
+    {
+      "view": "SBO_SALES_SO",
+      "error": "ERROR:  missing FROM-clause entry for table \"rdr1\"\nLINE 60:                       \"sbodemous\".\"ORDR\" ON RDR1.\"DocEntry\" ...\n                                                     ^"
+    },
+    {
+      "view": "SBO_VENDOR_ATTR",
+      "error": "ERROR:  function to_char(character varying) does not exist\nLINE 2: SELECT TO_CHAR(\"CardCode\") AS \"CARDCODE\", \"City\" AS \"CITY\", ...\n               ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    },
+    {
+      "view": "SBO_VENDOR_TEXT",
+      "error": "ERROR:  function to_char(character varying) does not exist\nLINE 2: SELECT  TO_CHAR(\"CardCode\") AS \"CARDCODE\", \"CardName\" AS \"CA...\n                ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+    }
+  ]
+}

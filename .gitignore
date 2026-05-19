@@ -3,6 +3,7 @@
 # dependencies
 node_modules
 uploads
+outputs/
 .pnp
 .pnp.js
 .pnpm-store/
@@ -30,6 +31,7 @@ yarn-error.log*
 # local env files
 .env*.local
 *.env
+*.env.bak
 
 # vercel
 .vercel
@@ -73,3 +75,4 @@ __pycache__/
 
 # mp
 apps/mp/unpackage/dist
+.omx/
