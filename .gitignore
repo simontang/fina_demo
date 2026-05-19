@@ -9,6 +9,7 @@ outputs/
 .pnpm-store/
 .yarn/install-state.gz
 dist
+agent.md
 # testing
 /coverage
 
