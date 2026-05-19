@@ -26,8 +26,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class B1ProxyController {
 
-    private static final List<String> HOP_BY_HOP_HEADERS = List.of(
-            "host", "connection", "content-length", "transfer-encoding", "cookie");
+    private static final List<String> REQUEST_HOP_BY_HOP_HEADERS = List.of(
+            "host", "connection", "content-length", "transfer-encoding", "cookie",
+            "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailer", "trailers", "upgrade");
+
+    private static final List<String> RESPONSE_HOP_BY_HOP_HEADERS = List.of(
+            "connection", "content-length", "transfer-encoding",
+            "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailer", "trailers", "upgrade");
 
     private final RestTemplate b1RestTemplate;
     private final B1ServiceLayerProperties properties;
@@ -56,7 +61,10 @@ public class B1ProxyController {
         byte[] body = StreamUtils.copyToByteArray(request.getInputStream());
         URI uri = buildTargetUri(request);
         HttpMethod method = HttpMethod.valueOf(request.getMethod());
-        return b1RestTemplate.exchange(uri, method, new HttpEntity<>(body, headers), byte[].class);
+        ResponseEntity<byte[]> response = b1RestTemplate.exchange(uri, method, new HttpEntity<>(body, headers), byte[].class);
+        return ResponseEntity.status(response.getStatusCode())
+                .headers(copyResponseHeaders(response.getHeaders()))
+                .body(response.getBody());
     }
 
     private URI buildTargetUri(HttpServletRequest request) {
@@ -74,11 +82,21 @@ public class B1ProxyController {
         Enumeration<String> names = request.getHeaderNames();
         while (names.hasMoreElements()) {
             String name = names.nextElement();
-            if (HOP_BY_HOP_HEADERS.contains(name.toLowerCase())) {
+            if (REQUEST_HOP_BY_HOP_HEADERS.contains(name.toLowerCase())) {
                 continue;
             }
             headers.put(name, Collections.list(request.getHeaders(name)));
         }
+        return headers;
+    }
+
+    private static HttpHeaders copyResponseHeaders(HttpHeaders source) {
+        HttpHeaders headers = new HttpHeaders();
+        source.forEach((name, values) -> {
+            if (!RESPONSE_HOP_BY_HOP_HEADERS.contains(name.toLowerCase())) {
+                headers.put(name, values);
+            }
+        });
         return headers;
     }
 
