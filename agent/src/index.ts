@@ -61,7 +61,7 @@ import "./agents";
 //     provider: "openai",
 //     streaming: true,
 //     apiKeyEnvName: "API_KEY3",
-//     baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+//     baseURL: "https://llm.alphafina.cn/v1",
 //     // enableThinking: true,
 //   }
 // );
@@ -86,7 +86,7 @@ registerModelLattice(
     provider: "openai",
     streaming: true,
     apiKeyEnvName: "API_KEY3",
-    baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    baseURL: "https://llm.alphafina.cn/v1",
     modelKwargs: {
       "enable_thinking": false
     }
@@ -101,7 +101,7 @@ registerModelLattice(
     provider: "openai",
     streaming: true,
     apiKeyEnvName: "API_KEY3",
-    baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    baseURL: "https://llm.alphafina.cn/v1",
     modelKwargs: {
       "enable_thinking": false
     }
@@ -116,7 +116,7 @@ registerModelLattice(
     provider: "openai",
     streaming: true,
     apiKeyEnvName: "API_KEY3",
-    baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    baseURL: "https://llm.alphafina.cn/v1",
     modelKwargs: {
       "enable_thinking": false
     }
@@ -131,7 +131,7 @@ registerModelLattice(
     provider: "openai",
     streaming: true,
     apiKeyEnvName: "API_KEY3",
-    baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    baseURL: "https://llm.alphafina.cn/v1",
 
   }
 );
@@ -144,7 +144,7 @@ registerModelLattice(
     provider: "openai",
     streaming: true,
     apiKeyEnvName: "API_KEY3",
-    baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    baseURL: "https://llm.alphafina.cn/v1",
 
   }
 );
@@ -157,7 +157,7 @@ registerModelLattice(
     provider: "openai",
     streaming: true,
     apiKeyEnvName: "API_KEY3",
-    baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    baseURL: "https://llm.alphafina.cn/v1",
 
   }
 );
@@ -182,7 +182,7 @@ registerModelLattice(
 //   provider: "openai",
 //   streaming: true,
 //   apiKeyEnvName: "DASHSCOPE_API_KEY",
-//   baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+//   baseURL: "https://llm.alphafina.cn/v1/chat/completions",
 // });
 
 if (process.env.NODE_ENV === "production") {
