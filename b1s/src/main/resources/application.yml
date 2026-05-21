@@ -39,6 +39,7 @@ metrics:
   encryption:
     key: ${ENCRYPT_KEY:fina-metrics-2024!}
   skip-init: ${SKIP_INIT:false}
+  master-schema-init: ${MASTER_SCHEMA_INIT:true}
   datasource-type: ${METRICS_DATASOURCE_TYPE:SQLSERVER}
 
 b1:
@@ -49,6 +50,28 @@ b1:
     default-password: ${B1_PASSWORD:1124}
     connect-timeout: ${B1_CONNECT_TIMEOUT:10s}
     read-timeout: ${B1_READ_TIMEOUT:60s}
+
+mail:
+  listener:
+    enabled: ${MAIL_LISTENER_ENABLED:false}
+    imap-host: ${MAIL_IMAP_HOST:imap.larksuite.com}
+    imap-port: ${MAIL_IMAP_PORT:993}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    folder: ${MAIL_FOLDER:INBOX}
+    poll-interval: ${MAIL_POLL_INTERVAL:60s}
+    poll-interval-ms: ${MAIL_POLL_INTERVAL_MS:60000}
+    batch-size: ${MAIL_BATCH_SIZE:20}
+    mark-seen: ${MAIL_MARK_SEEN:true}
+
+tos:
+  enabled: ${TOS_ENABLED:${S3_ENABLED:false}}
+  endpoint: ${TOS_ENDPOINT:${S3_ENDPOINT:}}
+  region: ${TOS_REGION:${S3_REGION:}}
+  access-key: ${TOS_ACCESS_KEY:${S3_ACCESS_KEY:}}
+  secret-key: ${TOS_SECRET_KEY:${S3_SECRET_KEY:}}
+  bucket: ${TOS_BUCKET:${S3_BUCKET:}}
+  key-prefix: ${TOS_KEY_PREFIX:${S3_KEY_PREFIX:b1s/mail-attachments}}
 
 management:
   endpoints:
