@@ -63,7 +63,16 @@ CREATE TABLE IF NOT EXISTS t_mail_message (
     received_at      VARCHAR(50),
     has_attachments  BOOLEAN       NOT NULL DEFAULT FALSE,
     attachment_count INTEGER       NOT NULL DEFAULT 0,
+    body_text        TEXT,
     snippet          TEXT,
+    order_intent     BOOLEAN       NOT NULL DEFAULT FALSE,
+    workflow_status  VARCHAR(50),
+    workflow_thread_id VARCHAR(500),
+    workflow_run_id  VARCHAR(200),
+    workflow_request TEXT,
+    workflow_response TEXT,
+    workflow_error   TEXT,
+    workflow_triggered_at TIMESTAMP,
     created_at       TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -75,6 +84,27 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_mail_message_message_id
     ON t_mail_message (mailbox, message_id)
     WHERE message_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_mail_message_created_at ON t_mail_message (created_at DESC);
+
+ALTER TABLE t_mail_message
+    ADD COLUMN IF NOT EXISTS body_text TEXT;
+ALTER TABLE t_mail_message
+    ADD COLUMN IF NOT EXISTS order_intent BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE t_mail_message
+    ADD COLUMN IF NOT EXISTS workflow_status VARCHAR(50);
+ALTER TABLE t_mail_message
+    ADD COLUMN IF NOT EXISTS workflow_thread_id VARCHAR(500);
+ALTER TABLE t_mail_message
+    ADD COLUMN IF NOT EXISTS workflow_run_id VARCHAR(200);
+ALTER TABLE t_mail_message
+    ADD COLUMN IF NOT EXISTS workflow_request TEXT;
+ALTER TABLE t_mail_message
+    ADD COLUMN IF NOT EXISTS workflow_response TEXT;
+ALTER TABLE t_mail_message
+    ADD COLUMN IF NOT EXISTS workflow_error TEXT;
+ALTER TABLE t_mail_message
+    ADD COLUMN IF NOT EXISTS workflow_triggered_at TIMESTAMP;
+CREATE INDEX IF NOT EXISTS idx_mail_message_order_intent ON t_mail_message (order_intent);
+CREATE INDEX IF NOT EXISTS idx_mail_message_workflow_status ON t_mail_message (workflow_status);
 
 -- Inbound email attachments. The binary file is stored in Volcano Engine TOS;
 -- this table stores only metadata and object location.

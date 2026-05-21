@@ -73,6 +73,28 @@ tos:
   bucket: ${TOS_BUCKET:${S3_BUCKET:}}
   key-prefix: ${TOS_KEY_PREFIX:${S3_KEY_PREFIX:b1s/mail-attachments}}
 
+llm:
+  intent:
+    enabled: ${LLM_INTENT_ENABLED:false}
+    endpoint: ${LLM_INTENT_ENDPOINT:https://llm.alphafina.cn/v1/messages}
+    bearer-token: ${LLM_INTENT_BEARER_TOKEN:}
+    model: ${LLM_INTENT_MODEL:kimi-k2.6}
+    max-tokens: ${LLM_INTENT_MAX_TOKENS:128}
+    anthropic-version: ${LLM_INTENT_ANTHROPIC_VERSION:2023-06-01}
+
+agent:
+  run:
+    enabled: ${AGENT_RUN_ENABLED:false}
+    base-url: ${AGENT_RUN_BASE_URL:https://demo.alphafina.cn}
+    bearer-token: ${AGENT_RUN_BEARER_TOKEN:}
+    tenant-id: ${AGENT_RUN_TENANT_ID:default}
+    workspace-id: ${AGENT_RUN_WORKSPACE_ID:}
+    project-id: ${AGENT_RUN_PROJECT_ID:}
+    assistant-id: ${AGENT_RUN_ASSISTANT_ID:new-data-agent}
+    mode: ${AGENT_RUN_MODE:}
+    streaming: ${AGENT_RUN_STREAMING:false}
+    background: ${AGENT_RUN_BACKGROUND:false}
+
 management:
   endpoints:
     web:

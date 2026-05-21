@@ -20,7 +20,6 @@ import jakarta.mail.UIDFolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.io.ByteArrayInputStream;
@@ -48,9 +47,10 @@ public class MailIngestServiceImpl implements MailIngestService {
     private final MailAttachmentMapper attachmentMapper;
     private final TosStorageService tosStorageService;
     private final com.fina.b1s.tos.TosProperties tosProperties;
+    private final MailIntentService mailIntentService;
+    private final MailWorkflowService mailWorkflowService;
 
     @Override
-    @Transactional
     public int pollInbox() {
         if (!properties.enabled()) {
             return 0;
@@ -89,7 +89,8 @@ public class MailIngestServiceImpl implements MailIngestService {
             if (exists(uid, message)) {
                 continue;
             }
-        saveMessage(folder, uid, message);
+            MailMessage saved = saveMessage(folder, uid, message);
+            mailWorkflowService.dispatchIfOrderIntent(saved);
             if (properties.markSeen()) {
                 message.setFlag(Flags.Flag.SEEN, true);
             }
@@ -113,7 +114,11 @@ public class MailIngestServiceImpl implements MailIngestService {
         entity.setCcAddresses(addressesToString(message.getRecipients(Message.RecipientType.CC)));
         entity.setSentAt(formatDate(message.getSentDate()));
         entity.setReceivedAt(formatDate(message.getReceivedDate()));
-        entity.setSnippet(extractSnippet(message));
+        String bodyText = extractBodyText(message);
+        entity.setBodyText(bodyText);
+        entity.setSnippet(trim(bodyText, SNIPPET_LIMIT));
+        entity.setOrderIntent(mailIntentService.isOrderIntent(entity));
+        entity.setWorkflowStatus(entity.getOrderIntent() ? "PENDING" : "NOT_ORDER_INTENT");
 
         List<AttachmentPayload> attachments = collectAttachments(message);
         entity.setAttachmentCount(attachments.size());
@@ -202,26 +207,40 @@ public class MailIngestServiceImpl implements MailIngestService {
         }
     }
 
-    private String extractSnippet(Part part) throws Exception {
+    private String extractBodyText(Part part) throws Exception {
         if (part.isMimeType("text/plain")) {
             Object content = part.getContent();
-            return trim(String.valueOf(content), SNIPPET_LIMIT);
+            return normalizeBody(String.valueOf(content));
         }
         if (part.isMimeType("text/html")) {
             Object content = part.getContent();
             String text = String.valueOf(content).replaceAll("<[^>]+>", " ");
-            return trim(text.replaceAll("\\s+", " "), SNIPPET_LIMIT);
+            return normalizeBody(text);
         }
         if (part.isMimeType("multipart/*")) {
             Multipart multipart = (Multipart) part.getContent();
+            String firstHtml = null;
             for (int i = 0; i < multipart.getCount(); i++) {
-                String snippet = extractSnippet(multipart.getBodyPart(i));
-                if (StringUtils.hasText(snippet)) {
-                    return snippet;
+                BodyPart bodyPart = multipart.getBodyPart(i);
+                String body = extractBodyText(bodyPart);
+                if (StringUtils.hasText(body) && bodyPart.isMimeType("text/plain")) {
+                    return body;
+                }
+                if (firstHtml == null && StringUtils.hasText(body)) {
+                    firstHtml = body;
                 }
             }
+            return firstHtml;
         }
         return null;
+    }
+
+    private String normalizeBody(String value) {
+        if (value == null) {
+            return null;
+        }
+        String normalized = value.replace('\u00a0', ' ').replaceAll("[ \\t\\x0B\\f\\r]+", " ").trim();
+        return StringUtils.hasText(normalized) ? normalized : null;
     }
 
     private String buildTosKey(Long mailMessageId, String fileName) {

@@ -22,7 +22,16 @@ public class MailMessageVO {
     private String receivedAt;
     private Boolean hasAttachments;
     private Integer attachmentCount;
+    private String bodyText;
     private String snippet;
+    private Boolean orderIntent;
+    private String workflowStatus;
+    private String workflowThreadId;
+    private String workflowRunId;
+    private String workflowRequest;
+    private String workflowResponse;
+    private String workflowError;
+    private LocalDateTime workflowTriggeredAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<MailAttachmentVO> attachments;
