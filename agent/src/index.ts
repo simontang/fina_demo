@@ -3,7 +3,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
-import { PostgreSQLAssistantStore, PostgreSQLThreadStore, PostgreSQLDatabaseConfigStore, PostgreSQLWorkspaceStore, PostgreSQLProjectStore, PostgreSQLUserStore, PostgreSQLTenantStore, PostgreSQLUserTenantLinkStore, PostgreSQLMetricsServerConfigStore, PostgreSQLMcpServerConfigStore, PostgreSQLScheduleStorage } from "@axiom-lattice/pg-stores";
+import { PostgreSQLAssistantStore, PostgreSQLThreadStore, PostgreSQLDatabaseConfigStore, PostgreSQLWorkspaceStore, PostgreSQLProjectStore, PostgreSQLUserStore, PostgreSQLTenantStore, PostgreSQLUserTenantLinkStore, PostgreSQLMetricsServerConfigStore, PostgreSQLMcpServerConfigStore, PostgreSQLScheduleStorage, PostgreSQLWorkflowTrackingStore } from "@axiom-lattice/pg-stores";
 import {
   ScheduleType,
 } from "@axiom-lattice/protocols";
@@ -311,6 +311,15 @@ const userTenantLinkStore = new PostgreSQLUserTenantLinkStore({
 storeLatticeManager.removeLattice("default", "userTenantLink");
 registerStoreLattice("default", "userTenantLink", userTenantLinkStore);
 console.log("PostgreSQL UserTenantLinkStore initialized with auto-migration");
+
+// Initialize and register PostgreSQL WorkflowTrackingStore
+const workflowTrackingStore = new PostgreSQLWorkflowTrackingStore({
+  poolConfig: process.env.DATABASE_URL || "",
+  autoMigrate: true,
+});
+storeLatticeManager.removeLattice("default", "workflowTracking");
+registerStoreLattice("default", "workflowTracking", workflowTrackingStore);
+console.log("PostgreSQL WorkflowTrackingStore initialized with auto-migration");
 
 // Auth configuration
 const AUTH_CONFIG = {

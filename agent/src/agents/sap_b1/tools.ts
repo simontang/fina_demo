@@ -208,10 +208,13 @@ const API_LIST: ApiEntry[] = [
     entityType: "SAPB1.Document",
     primaryKey: "DocEntry",
     domain: "Document",
-    description: "销售草稿",
+    description: "销售草稿/采购草稿（支持创建、查询、更新、删除）",
     fields: [
-      "DocEntry", "DocNum", "DocType", "DocDate",
-      "CardCode", "CardName", "DocTotal", "Comments",
+      "DocEntry", "DocNum", "DocObjectCode", "DocType", "DocDate", "DocDueDate", "TaxDate",
+      "CardCode", "CardName", "DocTotal", "DocCurrency",
+      "Comments", "SalesPersonCode", "Confirmed", "Cancelled", "DocumentStatus",
+      "U_YWLX", "U_YWLX2",
+      "DocumentLines",
     ],
   },
 
