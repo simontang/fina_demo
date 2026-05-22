@@ -45,7 +45,7 @@ metrics:
 b1:
   service-layer:
     base-url: ${B1_SERVICE_LAYER_BASE_URL:https://tengnat.yiyuntong.net:13450/b1s/v1}
-    default-company-db: ${B1_COMPANY_DB:XSM_ZSK}
+    default-company-db: ${B1_COMPANY_DB:SBODemoUS}
     default-username: ${B1_USERNAME:manager}
     default-password: ${B1_PASSWORD:1124}
     company-credentials:
