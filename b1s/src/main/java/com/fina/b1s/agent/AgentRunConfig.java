@@ -13,10 +13,14 @@ import java.time.Duration;
 public class AgentRunConfig {
 
     @Bean
-    public RestTemplate agentRunRestTemplate(RestTemplateBuilder builder) {
+    public RestTemplate agentRunRestTemplate(RestTemplateBuilder builder, AgentRunProperties properties) {
         return builder
-                .setConnectTimeout(Duration.ofSeconds(15))
-                .setReadTimeout(Duration.ofSeconds(60))
+                .setConnectTimeout(Duration.ofMillis(timeoutOrDefault(properties.connectTimeoutMs(), 15_000)))
+                .setReadTimeout(Duration.ofMillis(timeoutOrDefault(properties.readTimeoutMs(), 600_000)))
                 .build();
+    }
+
+    private long timeoutOrDefault(long value, long defaultValue) {
+        return value > 0 ? value : defaultValue;
     }
 }

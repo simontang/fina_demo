@@ -13,6 +13,8 @@ public record AgentRunProperties(
         String assistantId,
         String mode,
         boolean streaming,
-        boolean background
+        boolean background,
+        long connectTimeoutMs,
+        long readTimeoutMs
 ) {
 }

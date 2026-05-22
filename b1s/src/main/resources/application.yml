@@ -94,6 +94,8 @@ agent:
     mode: ${AGENT_RUN_MODE:}
     streaming: ${AGENT_RUN_STREAMING:false}
     background: ${AGENT_RUN_BACKGROUND:true}
+    connect-timeout-ms: ${AGENT_RUN_CONNECT_TIMEOUT_MS:15000}
+    read-timeout-ms: ${AGENT_RUN_READ_TIMEOUT_MS:600000}
 
 management:
   endpoints:
