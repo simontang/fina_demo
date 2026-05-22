@@ -41,10 +41,24 @@ public class ViewTranslationServiceImpl implements ViewTranslationService {
         }
         String translated = QUOTED_IDENTIFIER.matcher(sql).replaceAll("[$1]");
         translated = translateDateFormats(translated);
-        for (Map.Entry<String, String> entry : translations.entrySet()) {
-            translated = translated.replace("FROM [" + entry.getKey() + "]", "FROM " + entry.getValue());
-        }
+        translated = replaceLogicalViews(translated);
         translated = replaceTrailingLimit(translated);
+        return translated;
+    }
+
+    private String replaceLogicalViews(String sql) {
+        String translated = sql;
+        for (Map.Entry<String, String> entry : translations.entrySet()) {
+            Pattern pattern = Pattern.compile("(?i)\\b(FROM|JOIN)\\s+\\[" + Pattern.quote(entry.getKey()) + "\\]");
+            Matcher matcher = pattern.matcher(translated);
+            StringBuffer out = new StringBuffer();
+            while (matcher.find()) {
+                String clause = matcher.group(1);
+                matcher.appendReplacement(out, Matcher.quoteReplacement(clause + " " + entry.getValue()));
+            }
+            matcher.appendTail(out);
+            translated = out.toString();
+        }
         return translated;
     }
 
