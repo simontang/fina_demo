@@ -11,6 +11,7 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
+const baseURL = process.env.LLM_BASE_URL || "https://llm.alphafina.cn/v1";
 
 import { startServer } from "./gateway";
 import {
@@ -86,7 +87,7 @@ registerModelLattice(
     provider: "openai",
     streaming: true,
     apiKeyEnvName: "API_KEY3",
-    baseURL: "https://llm.alphafina.cn/v1",
+    baseURL: baseURL,
     modelKwargs: {
       "enable_thinking": false
     }
@@ -101,7 +102,7 @@ registerModelLattice(
     provider: "openai",
     streaming: true,
     apiKeyEnvName: "API_KEY3",
-    baseURL: "https://llm.alphafina.cn/v1",
+    baseURL: baseURL,
     modelKwargs: {
       "enable_thinking": false
     }
@@ -116,7 +117,7 @@ registerModelLattice(
     provider: "openai",
     streaming: true,
     apiKeyEnvName: "API_KEY3",
-    baseURL: "https://llm.alphafina.cn/v1",
+    baseURL: baseURL,
     modelKwargs: {
       "enable_thinking": false
     }
@@ -131,7 +132,7 @@ registerModelLattice(
     provider: "openai",
     streaming: true,
     apiKeyEnvName: "API_KEY3",
-    baseURL: "https://llm.alphafina.cn/v1",
+    baseURL: baseURL,
 
   }
 );
@@ -144,7 +145,7 @@ registerModelLattice(
     provider: "openai",
     streaming: true,
     apiKeyEnvName: "API_KEY3",
-    baseURL: "https://llm.alphafina.cn/v1",
+    baseURL: baseURL,
 
   }
 );
@@ -157,7 +158,7 @@ registerModelLattice(
     provider: "openai",
     streaming: true,
     apiKeyEnvName: "API_KEY3",
-    baseURL: "https://llm.alphafina.cn/v1",
+    baseURL: baseURL,
 
   }
 );
