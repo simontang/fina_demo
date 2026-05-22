@@ -85,15 +85,15 @@ llm:
 agent:
   run:
     enabled: ${AGENT_RUN_ENABLED:false}
-    base-url: ${AGENT_RUN_BASE_URL:https://demo.alphafina.cn}
+    base-url: ${AGENT_RUN_BASE_URL:https://ada.alphafina.cn}
     bearer-token: ${AGENT_RUN_BEARER_TOKEN:}
-    tenant-id: ${AGENT_RUN_TENANT_ID:default}
+    tenant-id: ${AGENT_RUN_TENANT_ID:tenant_2}
     workspace-id: ${AGENT_RUN_WORKSPACE_ID:}
     project-id: ${AGENT_RUN_PROJECT_ID:}
     assistant-id: ${AGENT_RUN_ASSISTANT_ID:v2-sales-order-orchestrator}
     mode: ${AGENT_RUN_MODE:}
     streaming: ${AGENT_RUN_STREAMING:false}
-    background: ${AGENT_RUN_BACKGROUND:false}
+    background: ${AGENT_RUN_BACKGROUND:true}
 
 management:
   endpoints:
