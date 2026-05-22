@@ -28,38 +28,40 @@ public class B1SessionManager {
 
     private final RestTemplate b1RestTemplate;
     private final B1ServiceLayerProperties properties;
-    private final Map<String, Deque<B1Session>> sessionsByTenant = new ConcurrentHashMap<>();
+    private final Map<String, Deque<B1Session>> sessionsByContext = new ConcurrentHashMap<>();
 
-    public B1Session getOrLogin(String tenantId) {
-        Deque<B1Session> sessions = sessionsByTenant.computeIfAbsent(tenantKey(tenantId),
+    public B1Session getOrLogin(String tenantId, String companyDb) {
+        String resolvedCompanyDb = properties.resolveCompanyDb(companyDb);
+        Deque<B1Session> sessions = sessionsByContext.computeIfAbsent(sessionKey(tenantId, resolvedCompanyDb),
                 key -> new ConcurrentLinkedDeque<>());
         B1Session existing = sessions.peekFirst();
         if (existing != null) {
             return existing;
         }
 
-        B1Session created = login();
+        B1Session created = login(resolvedCompanyDb);
         sessions.addFirst(created);
         trim(sessions);
         return created;
     }
 
-    public void discard(String tenantId, B1Session session) {
-        Deque<B1Session> sessions = sessionsByTenant.get(tenantKey(tenantId));
+    public void discard(String tenantId, String companyDb, B1Session session) {
+        Deque<B1Session> sessions = sessionsByContext.get(sessionKey(tenantId, properties.resolveCompanyDb(companyDb)));
         if (sessions != null) {
             sessions.remove(session);
         }
     }
 
-    private B1Session login() {
+    private B1Session login(String companyDb) {
         URI uri = UriComponentsBuilder.fromHttpUrl(properties.baseUrl())
                 .path("/Login")
                 .build(true)
                 .toUri();
+        B1ServiceLayerProperties.Credentials credentials = properties.credentialsFor(companyDb);
         LoginRequest request = new LoginRequest(
-                properties.defaultCompanyDb(),
-                properties.defaultUsername(),
-                properties.defaultPassword());
+                companyDb,
+                credentials.username(),
+                credentials.password());
 
         ResponseEntity<LoginResponse> response = b1RestTemplate.exchange(
                 uri,
@@ -74,7 +76,7 @@ public class B1SessionManager {
         }
 
         String routeId = extractCookie(response.getHeaders(), "ROUTEID");
-        log.info("Created B1 Service Layer session routePresent={}", routeId != null);
+        log.info("Created B1 Service Layer session companyDb={} routePresent={}", companyDb, routeId != null);
         return new B1Session(sessionId, routeId, Instant.now());
     }
 
@@ -95,8 +97,16 @@ public class B1SessionManager {
         return null;
     }
 
-    private static String tenantKey(String tenantId) {
+    private static String sessionKey(String tenantId, String companyDb) {
+        return normalizedTenant(tenantId) + "::" + normalizedCompanyDb(companyDb);
+    }
+
+    private static String normalizedTenant(String tenantId) {
         return tenantId == null || tenantId.isBlank() ? "default" : tenantId.trim();
+    }
+
+    private static String normalizedCompanyDb(String companyDb) {
+        return companyDb == null || companyDb.isBlank() ? "default" : companyDb.trim();
     }
 
     private static void trim(Deque<B1Session> sessions) {

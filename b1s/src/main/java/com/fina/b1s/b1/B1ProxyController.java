@@ -28,7 +28,8 @@ public class B1ProxyController {
 
     private static final List<String> REQUEST_HOP_BY_HOP_HEADERS = List.of(
             "host", "connection", "content-length", "transfer-encoding", "cookie",
-            "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailer", "trailers", "upgrade");
+            "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailer", "trailers", "upgrade",
+            "x-company-db", "companydb", "company-db");
 
     private static final List<String> RESPONSE_HOP_BY_HOP_HEADERS = List.of(
             "connection", "content-length", "transfer-encoding",
@@ -41,13 +42,15 @@ public class B1ProxyController {
     @RequestMapping("/b1s/v1/**")
     public ResponseEntity<byte[]> proxy(HttpServletRequest request) throws IOException {
         String tenantId = firstHeader(request, "X-Tenant-Id", "Tenant-Id");
-        B1Session session = sessionManager.getOrLogin(tenantId);
+        String companyDb = firstHeaderOrDefault(request, properties.defaultCompanyDb(),
+                "X-Company-DB", "CompanyDB", "Company-DB", "companydb");
+        B1Session session = sessionManager.getOrLogin(tenantId, companyDb);
         try {
             return forward(request, session);
         } catch (HttpStatusCodeException ex) {
             if (ex.getStatusCode().value() == 401 || ex.getStatusCode().value() == 403) {
-                sessionManager.discard(tenantId, session);
-                B1Session refreshed = sessionManager.getOrLogin(tenantId);
+                sessionManager.discard(tenantId, companyDb, session);
+                B1Session refreshed = sessionManager.getOrLogin(tenantId, companyDb);
                 return forward(request, refreshed);
             }
             throw ex;
@@ -101,12 +104,16 @@ public class B1ProxyController {
     }
 
     private static String firstHeader(HttpServletRequest request, String... names) {
+        return firstHeaderOrDefault(request, "default", names);
+    }
+
+    private static String firstHeaderOrDefault(HttpServletRequest request, String defaultValue, String... names) {
         for (String name : names) {
             String value = request.getHeader(name);
             if (value != null && !value.isBlank()) {
                 return value;
             }
         }
-        return "default";
+        return defaultValue;
     }
 }
