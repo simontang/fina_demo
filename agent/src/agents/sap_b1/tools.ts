@@ -19,7 +19,7 @@ interface ApiEntry {
 }
 
 // ============================================================
-// $expand 子实体常用字段
+// 支持 $expand 的文档类实体
 // ============================================================
 
 const EXPAND_FIELDS: Record<string, string[]> = {
@@ -30,21 +30,6 @@ const EXPAND_FIELDS: Record<string, string[]> = {
   ],
   "DocumentAdditionalExpenses": [
     "LineNum", "ExpenseCode", "LineTotal", "TaxCode", "VatGroup",
-  ],
-  "ItemPrices": [
-    "PriceList", "Price", "Currency", "Factor",
-  ],
-  "ItemWarehouseInfoCollection": [
-    "WarehouseCode", "InStock", "Committed", "Ordered",
-    "Locked", "MinimalStock", "MaximalStock",
-  ],
-  "BPAddresses": [
-    "AddressName", "Street", "City", "Country", "AddressType",
-    "Default", "State",
-  ],
-  "ContactEmployees": [
-    "Name", "FirstName", "LastName", "Phone1", "MobilePhone",
-    "EMail", "Active", "Position",
   ],
 };
 
@@ -67,9 +52,10 @@ const API_LIST: ApiEntry[] = [
     fields: [
       "CardCode", "CardName", "CardType", "GroupCode", "Currency",
       "Phone1", "Phone2", "EmailAddress", "Address", "City", "Country",
-      "SalesPersonCode", "PriceListNum", "CreditLimit", "Balance",
+      "SalesPersonCode", "PriceListNum", "CreditLimit",
       "PayTermsGrpCode", "VatGroup", "VatLiable", "FederalTaxID",
-      "Valid", "Frozen", "CompanyPrivate", "CreateDate", "UpdateDate",
+      "Valid", "Frozen", "CompanyPrivate", "CreateDate", "CreateTime", "UpdateDate", "UpdateTime",
+      "BPAddresses", "ContactEmployees",
     ],
   },
   {
@@ -107,6 +93,7 @@ const API_LIST: ApiEntry[] = [
       "ManageSerialNumbers", "ManageBatchNumbers",
       "SalesVATGroup", "PurchaseVATGroup",
       "Valid", "Frozen", "CreateDate", "UpdateDate",
+      "ItemPrices", "ItemWarehouseInfoCollection",
     ],
   },
   {
@@ -157,6 +144,7 @@ const API_LIST: ApiEntry[] = [
       "Comments", "Reference1", "Reference2", "NumAtCard",
       "VatSum", "RoundDif", "DiscountPercent",
       "PaymentGroupCode", "Project",
+      "DocumentLines",
     ],
   },
   {
@@ -171,6 +159,7 @@ const API_LIST: ApiEntry[] = [
       "CardCode", "CardName", "DocTotal", "DocCurrency",
       "SalesPersonCode", "Confirmed", "Cancelled", "DocumentStatus",
       "Comments", "NumAtCard",
+      "DocumentLines",
     ],
   },
   {
@@ -185,6 +174,7 @@ const API_LIST: ApiEntry[] = [
       "CardCode", "CardName", "DocTotal", "DocCurrency",
       "SalesPersonCode", "Confirmed", "Cancelled", "DocumentStatus",
       "Comments", "NumAtCard", "VatSum",
+      "DocumentLines",
     ],
   },
   {
@@ -198,6 +188,7 @@ const API_LIST: ApiEntry[] = [
       "DocEntry", "DocNum", "DocType", "DocDate", "DocDueDate",
       "CardCode", "CardName", "DocTotal", "DocCurrency",
       "SalesPersonCode", "Comments", "DocumentStatus",
+      "DocumentLines",
     ],
   },
   {
@@ -211,6 +202,7 @@ const API_LIST: ApiEntry[] = [
       "DocEntry", "DocNum", "DocType", "DocDate",
       "CardCode", "CardName", "DocTotal", "DocCurrency",
       "Comments",
+      "DocumentLines",
     ],
   },
   {
@@ -224,6 +216,7 @@ const API_LIST: ApiEntry[] = [
       "DocEntry", "DocNum", "DocType", "DocDate",
       "CardCode", "CardName", "DocTotal", "DocCurrency",
       "Comments",
+      "DocumentLines",
     ],
   },
   {
@@ -237,6 +230,7 @@ const API_LIST: ApiEntry[] = [
       "DocEntry", "DocNum", "DocType", "DocDate",
       "CardCode", "CardName", "DocTotal", "DocCurrency",
       "DownPaymentType", "DownPaymentAmount",
+      "DocumentLines",
     ],
   },
   {
@@ -268,6 +262,7 @@ const API_LIST: ApiEntry[] = [
       "CardCode", "CardName", "DocTotal", "DocCurrency",
       "SalesPersonCode", "Confirmed", "Cancelled", "DocumentStatus",
       "Comments", "NumAtCard",
+      "DocumentLines",
     ],
   },
   {
@@ -280,6 +275,7 @@ const API_LIST: ApiEntry[] = [
     fields: [
       "DocEntry", "DocNum", "DocType", "DocDate",
       "CardCode", "CardName", "DocTotal", "Comments",
+      "DocumentLines",
     ],
   },
   {
@@ -293,6 +289,7 @@ const API_LIST: ApiEntry[] = [
       "DocEntry", "DocNum", "DocType", "DocDate", "DocDueDate",
       "CardCode", "CardName", "DocTotal", "DocCurrency",
       "Comments",
+      "DocumentLines",
     ],
   },
   {
@@ -305,6 +302,7 @@ const API_LIST: ApiEntry[] = [
     fields: [
       "DocEntry", "DocNum", "DocType", "DocDate",
       "CardCode", "CardName", "DocTotal", "Comments",
+      "DocumentLines",
     ],
   },
   {
@@ -317,6 +315,7 @@ const API_LIST: ApiEntry[] = [
     fields: [
       "DocEntry", "DocNum", "DocType", "DocDate",
       "CardCode", "CardName", "DocTotal", "Comments",
+      "DocumentLines",
     ],
   },
 
@@ -332,6 +331,7 @@ const API_LIST: ApiEntry[] = [
       "DocEntry", "DocNum", "DocType", "DocDate",
       "Comments", "JournalMemo", "Reference1", "Reference2",
       "WareHouseUpdateType",
+      "DocumentLines",
     ],
   },
   {
@@ -344,6 +344,7 @@ const API_LIST: ApiEntry[] = [
     fields: [
       "DocEntry", "DocNum", "DocType", "DocDate",
       "Comments", "JournalMemo", "Reference1", "Reference2",
+      "DocumentLines",
     ],
   },
   {
@@ -610,20 +611,50 @@ const API_LIST: ApiEntry[] = [
 // Tool 1: sap_api_search
 // ============================================================
 
+function mapResult(e: ApiEntry): Record<string, unknown> {
+  const r: Record<string, unknown> = {
+    name: e.name,
+    kind: e.kind,
+    domain: e.domain,
+    description: e.description,
+    primaryKey: e.primaryKey || null,
+    fields: e.fields,
+    readySelect: e.fields.length > 0 ? `$select=${e.fields.join(",")}` : undefined,
+    hint:
+      e.kind === "EntitySet"
+        ? `${e.name} — ${e.description}。主键: ${e.primaryKey}。调用 sap_api_call 进行 CRUD 操作。`
+        : `${e.name} — ${e.description}。调用 sap_api_call 执行此方法。`,
+  };
+  if (ENTITIES_WITH_LINES.has(e.name)) {
+    r.expand = ["DocumentLines", "DocumentAdditionalExpenses"];
+  }
+  if (e.name === "Items") {
+    r.expand = ["ItemPrices", "ItemWarehouseInfoCollection"];
+  }
+  if (e.name === "BusinessPartners") {
+    r.expand = ["BPAddresses", "ContactEmployees"];
+  }
+  return r;
+}
+
 registerToolLattice(
   "sap_api_search",
   {
     name: "sap_api_search",
     description:
-      "搜索 SAP B1 Service Layer API 接口。覆盖业务伙伴(BP)、物料(Item)、销售/采购订单(Document/Order)、" +
-      "库存(Inventory/Warehouse) 四大领域。返回接口名称、主键、常用字段列表及描述。",
+      "搜索 SAP B1 Service Layer API 接口元数据，覆盖 BP/物料/订单/库存四大领域。" +
+      "返回接口名、主键、字段列表、可选 expand 导航。" +
+      "可用 discover 模式发现关联接口（如搜 SalesPerson 也能找到 SalesPersons API）。" +
+      "搜索结果中的 readySelect 可直接复制到 $select。",
     needUserApprove: false,
     schema: z.object({
       query: z
         .string()
+        .optional()
         .describe(
-          "搜索关键词。可以是 API 名称（如 'BusinessPartners', 'Orders', 'Items', 'PurchaseOrders'）" +
-            "或业务描述（如 '客户', '订单', '物料', '库存', '采购', '仓库'）"
+          "搜索关键词（可选，不传则返回全部接口）。" +
+            "API 名称如 'BusinessPartners', 'Orders', 'Items', 'PurchaseOrders'，" +
+            "或中文描述如 '客户', '订单', '物料', '库存', '采购', '仓库'"
         ),
       domain: z
         .string()
@@ -631,14 +662,15 @@ registerToolLattice(
         .describe(
           "按领域过滤: 'BusinessPartner'(BP), 'Item / Product'(物料), 'Document'(订单/发票), 'Inventory / Warehouse'(库存/仓库)"
         ),
-      maxResults: z.number().optional().default(10).describe("最大返回条数"),
+      maxResults: z.number().optional().default(20).describe("最大返回条数"),
     }),
   },
   async (input) => {
-    const q = input.query.toLowerCase();
-    const max = input.maxResults ?? 10;
+    const q = input.query?.toLowerCase();
+    const max = input.maxResults ?? 20;
 
-    // 中文关键词映射到领域
+    const hasQuery = q && q.trim().length > 0;
+
     const domainHints: Record<string, string> = {
       "客户": "BusinessPartner",
       "供应商": "BusinessPartner",
@@ -670,13 +702,29 @@ registerToolLattice(
       "到岸": "Document",
     };
 
-    const hintedDomain = domainHints[q] || undefined;
+    const hintedDomain = q ? (domainHints[q] || undefined) : undefined;
     const effectiveDomain = input.domain || hintedDomain;
 
-    const scored = API_LIST.filter((e) => {
+    const filtered = API_LIST.filter((e) => {
       if (effectiveDomain && e.domain !== effectiveDomain) return false;
       return true;
-    }).map((e) => {
+    });
+
+    if (!q) {
+      const top = filtered.slice(0, max);
+      const domainCounts: Record<string, number> = {};
+      for (const e of top) domainCounts[e.domain] = (domainCounts[e.domain] || 0) + 1;
+      return {
+        query: input.query || null,
+        domainFilter: effectiveDomain || null,
+        totalMatches: filtered.length,
+        domainsFound: domainCounts,
+        results: top.map(mapResult),
+        suggestion: undefined,
+      };
+    }
+
+    const scored = filtered.map((e) => {
       let score = 0;
       const nameLo = e.name.toLowerCase();
       const descLo = e.description.toLowerCase();
@@ -705,34 +753,11 @@ registerToolLattice(
     for (const e of top) domainCounts[e.domain] = (domainCounts[e.domain] || 0) + 1;
 
     return {
-      query: input.query,
+      query: input.query!,
       domainFilter: effectiveDomain || null,
       totalMatches: scored.filter((e) => e.score > 0).length,
       domainsFound: domainCounts,
-      results: top.map((e) => {
-        const result: Record<string, unknown> = {
-          name: e.name,
-          kind: e.kind,
-          domain: e.domain,
-          description: e.description,
-          primaryKey: e.primaryKey || null,
-          fields: e.fields,
-          hint:
-            e.kind === "EntitySet"
-              ? `${e.name} — ${e.description}。主键: ${e.primaryKey}。调用 sap_api_call 进行 CRUD 操作。`
-              : `${e.name} — ${e.description}。调用 sap_api_call 执行此方法。`,
-        };
-        if (ENTITIES_WITH_LINES.has(e.name)) {
-          result.expand = ["DocumentLines", "DocumentAdditionalExpenses"];
-        }
-        if (e.name === "Items") {
-          result.expand = ["ItemPrices", "ItemWarehouseInfoCollection"];
-        }
-        if (e.name === "BusinessPartners") {
-          result.expand = ["BPAddresses", "ContactEmployees"];
-        }
-        return result;
-      }),
+      results: top.map(mapResult),
       suggestion:
         top.length === 0
           ? `未找到匹配 "${input.query}" 的接口。可用领域: BusinessPartner(客户/供应商), Item / Product(物料), Document(订单/发票), Inventory / Warehouse(库存/仓库)。尝试用英文名称搜索。`
@@ -754,11 +779,19 @@ registerToolLattice(
   {
     name: "sap_api_call",
     description:
-      "执行对 SAP B1 Service Layer 的 OData API 调用。" +
-      `当前 Base URL: ${BASE_URL}。` +
-      "GET 查询会自动注入 $select(精简字段) 和 $top=20(分页)，" +
-      "如需全部字段或更多数据请手动传 $select/$top 覆盖。$expand 也会自动加子 $select 限制嵌套数据量。" +
-      "POST/PATCH/DELETE 需设置环境变量 SAP_B1SESSION。",
+      "执行 SAP B1 Service Layer 的 OData API 查询/创建/更新/删除。" +
+      `Base: ${BASE_URL}。` +
+      "⚠️ 先确认是否已通过 sap_api_search 查过字段列表，勿凭记忆编字段名。\n" +
+      "$filter 操作符: eq/ne/gt/lt/ge/le/contains(f,'v')/startswith(f,'v')/endswith(f,'v')，多条件用 and/or。" +
+      "字符串值必须单引号包裹。$orderby=Field desc 排序。\n\n" +
+      "⚠️ SAP B1 实战经验:\n" +
+      "1. 不要用 $expand！$expand 极易触发 400/500。改用 $select 包含嵌套字段，如 $select=DocEntry,DocNum,DocumentLines，\n" +
+      "   DocumentLines 会自动作为嵌套 JSON 返回。ItemPrices、BPAddresses 等同理。\n" +
+      "2. 不要用主键路径 /Orders('1173')，易 500。用 $filter=DocEntry eq 1173 代替。\n" +
+      "3. 查单条记录时优先 $filter，而非传 id 参数。\n" +
+      "400 多为特殊字符未编码(引号用 %27)；500 多为字段不存在或用错了 $expand；无结果则放宽 filter。\n" +
+      "POST 创建: body 必含必要字段(DocDate,CardCode 等)；PATCH: 只传变更字段；DELETE: 需传 id。\n" +
+      "GET 自动注入 $select+$top=20，手动传入可覆盖。认证需 SAP_B1SESSION 环境变量。",
     needUserApprove: false,
     schema: z.object({
       entitySet: z
@@ -773,12 +806,11 @@ registerToolLattice(
         .string()
         .optional()
         .describe(
-          "OData 查询参数（不含 `?` 前缀）。常用: " +
-            "$top=10, $skip=20, " +
-            "$select=CardCode,CardName, " +
-            "$filter=contains(CardName,'清华'), " +
-            "$orderby=DocDate desc, " +
-            "$expand=DocumentLines"
+          "OData 查询参数（不含 `?` 前缀）。" +
+            "常用: $top=10, $select=CardCode,CardName, " +
+            "$filter=CardName eq 'xxx' or contains(CardName,'xxx'), " +
+            "$orderby=DocDate desc, $expand=DocumentLines。字符串值用单引号。" +
+            "sap_api_search 返回的 readySelect 可直接复制到 $select。"
         ),
       body: z.record(z.unknown()).optional().describe("POST/PATCH 时的 JSON 请求体"),
     }),
@@ -868,31 +900,7 @@ function applyDefaultSelect(entitySet: string, method: string, id?: string, quer
     parts.push(queryOptions);
   }
 
-  return parts.length > 0 ? injectExpandSelects(parts.join("&")) : undefined;
-}
-
-function injectExpandSelects(query: string): string {
-  return query.replace(/\$expand=([^&]*)/g, (_match, val: string) => {
-    const rewritten = val.split(",").map((target: string) => {
-      const targetTrimmed = target.trim();
-      const nameMatch = targetTrimmed.match(/^([^(]+)/);
-      if (!nameMatch) return targetTrimmed;
-
-      const name = nameMatch[1].trim();
-      const fields = EXPAND_FIELDS[name];
-      if (!fields) return targetTrimmed;
-
-      if (/\$select\s*=/.test(targetTrimmed)) return targetTrimmed;
-
-      const subSelect = `$select=${fields.join(",")}`;
-
-      if (targetTrimmed.includes("(")) {
-        return targetTrimmed.replace(/\)$/, `;${subSelect})`);
-      }
-      return `${targetTrimmed}(${subSelect})`;
-    });
-    return `$expand=${rewritten}`;
-  });
+  return parts.length > 0 ? parts.join("&").replace(/'/g, "%27") : undefined;
 }
 
 function cleanODataNoise(data: unknown): void {
