@@ -1,0 +1,97 @@
+services:
+  prediction_app:
+    image: ${VOLCANO_REGISTRY:-finai-cn-shanghai.cr.volces.com}/default/fina-demo-prediction-app:latest
+    environment:
+      PORT: "5703"
+      DB_HOST: ${DB_HOST:-pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-postgres}
+      DB_USER: ${DB_USER:-postgres_fuli}
+      DB_PASSWORD: ${DB_PASSWORD}
+      VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2}
+      VOLCENGINE_API_URL: ${VOLCENGINE_API_URL:-https://ark.cn-beijing.volces.com/api/v3}
+      VOLCENGINE_MODEL: ${VOLCENGINE_MODEL:-kimi-k2-250905}
+      RFM_AI_TIMEOUT_SECONDS: ${RFM_AI_TIMEOUT_SECONDS:-300}
+      SEGMENTATION_AI_TIMEOUT_SECONDS: ${SEGMENTATION_AI_TIMEOUT_SECONDS:-300}
+      STOCK_ALLOC_AI_TIMEOUT_SECONDS: ${STOCK_ALLOC_AI_TIMEOUT_SECONDS:-300}
+    volumes:
+      - ./uploads:/app/uploads
+    ports:
+      - "127.0.0.1:5703:5703"
+    restart: unless-stopped
+
+  agent:
+    image: ${VOLCANO_REGISTRY:-finai-cn-shanghai.cr.volces.com}/default/fina-demo-agent:latest
+    environment:
+      TZ: Asia/Shanghai
+      NODE_ENV: production
+      PORT: "5702"
+      PYTHON_API_URL: http://prediction_app:5703
+      UPLOAD_DIR: /app/uploads
+      DATABASE_URL: ${DATABASE_URL}
+      DB_HOST: ${DB_HOST:-pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-postgres}
+      DB_USER: ${DB_USER:-postgres_fuli}
+      DB_PASSWORD: ${DB_PASSWORD}
+      VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2}
+      VOLCENGINE_API_URL: ${VOLCENGINE_API_URL:-https://ark.cn-beijing.volces.com/api/v3}
+      VOLCENGINE_MODEL: ${VOLCENGINE_MODEL:-kimi-k2-250905}
+      API_KEY3: ${API_KEY3}
+      OPEN_API: ${OPEN_API}
+      VOLCENGINE_APP_ID: ${VOLCENGINE_APP_ID}
+      VOLCENGINE_APP_KEY: ${VOLCENGINE_APP_KEY}
+      VOLC_RTC_API_URL: ${VOLC_RTC_API_URL:-https://rtc.volcengineapi.com}
+      VOLC_REGION: ${VOLC_REGION:-cn-north-1}
+      VOLC_ACCESSKEY: ${VOLC_ACCESSKEY}
+      VOLC_SECRETKEY: ${VOLC_SECRETKEY}
+      VOLC_SPEECH_APP_ID: ${VOLC_SPEECH_APP_ID}
+      VOLC_SPEECH_ACCESS_TOKEN: ${VOLC_SPEECH_ACCESS_TOKEN}
+      VOLC_SPEECH_SECRET_KEY: ${VOLC_SPEECH_SECRET_KEY}
+      VOLC_TTS_CLUSTER: ${VOLC_TTS_CLUSTER:-volcano_tts}
+      VOLC_TTS_VOICE_TYPE: ${VOLC_TTS_VOICE_TYPE:-zh_male_xudong_conversation_wvae_bigtts}
+      COZEBOT_APIKEY: ${COZEBOT_APIKEY}
+      COZEBOT_BOT_ID: ${COZEBOT_BOT_ID}
+      VOICE_WELCOME_MESSAGE: ${VOICE_WELCOME_MESSAGE:-Hello! I'm here to help with B2B order status, credit limits, and stock transfers—let's optimize your operations!}
+      TAVILY_API_KEY: ${TAVILY_API_KEY}
+      LATTICE_ENCRYPTION_KEY: ${LATTICE_ENCRYPTION_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_REQUIRED: ${AUTH_REQUIRED:-false}
+      SANDBOX_PROVIDER_TYPE: ${SANDBOX_PROVIDER_TYPE:-microsandbox-remote}
+      MICROSANDBOX_SERVICE_BASE_URL: ${MICROSANDBOX_SERVICE_BASE_URL:-http://38.76.211.27:4002}
+      MICROSANDBOX_API_KEY: ${MICROSANDBOX_API_KEY}
+      MICROSANDBOX_MEMORY: ${MICROSANDBOX_MEMORY:-1024}
+    volumes:
+      - ./uploads:/app/uploads
+      - ./lattice_store:/app/lattice_store
+      - ./prediction_app/config:/app/prediction_app/config:ro
+    depends_on:
+      - prediction_app
+    ports:
+      - "127.0.0.1:5702:5702"
+    restart: unless-stopped
+
+  metrics_server:
+    image: ${VOLCANO_REGISTRY:-finai-cn-shanghai.cr.volces.com}/default/fina-demo-metrics-server:latest
+    environment:
+      SERVER_PORT: "5704"
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com:5432/postgres}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-postgres_fuli}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SKIP_INIT: ${SKIP_INIT:-false}
+    volumes:
+      - ./logs/metrics-server:/app/logs
+    ports:
+      - "127.0.0.1:5704:5704"
+    restart: unless-stopped
+
+  ai_web:
+    image: ${VOLCANO_REGISTRY:-finai-cn-shanghai.cr.volces.com}/default/fina-demo-ai-web:latest
+    depends_on:
+      - agent
+    ports:
+      - "127.0.0.1:5701:5701"
+    restart: unless-stopped
