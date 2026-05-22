@@ -18,6 +18,43 @@ interface ApiEntry {
   fields: string[];
 }
 
+// ============================================================
+// $expand 子实体常用字段
+// ============================================================
+
+const EXPAND_FIELDS: Record<string, string[]> = {
+  "DocumentLines": [
+    "LineNum", "ItemCode", "ItemDescription", "Quantity", "UnitPrice",
+    "WarehouseCode", "Total", "Currency", "TaxCode", "PriceAfterVAT",
+    "UoMEntry", "UoMCode",
+  ],
+  "DocumentAdditionalExpenses": [
+    "LineNum", "ExpenseCode", "LineTotal", "TaxCode", "VatGroup",
+  ],
+  "ItemPrices": [
+    "PriceList", "Price", "Currency", "Factor",
+  ],
+  "ItemWarehouseInfoCollection": [
+    "WarehouseCode", "InStock", "Committed", "Ordered",
+    "Locked", "MinimalStock", "MaximalStock",
+  ],
+  "BPAddresses": [
+    "AddressName", "Street", "City", "Country", "AddressType",
+    "Default", "State",
+  ],
+  "ContactEmployees": [
+    "Name", "FirstName", "LastName", "Phone1", "MobilePhone",
+    "EMail", "Active", "Position",
+  ],
+};
+
+const ENTITIES_WITH_LINES = new Set([
+  "Orders", "DeliveryNotes", "Invoices", "Quotations", "CreditNotes",
+  "Returns", "Drafts", "PurchaseOrders", "PurchaseDeliveryNotes",
+  "PurchaseInvoices", "PurchaseReturns", "PurchaseQuotations",
+  "DownPayments", "InventoryGenEntries", "InventoryGenExits",
+]);
+
 const API_LIST: ApiEntry[] = [
   // ========== Business Partner ==========
   {
@@ -672,18 +709,30 @@ registerToolLattice(
       domainFilter: effectiveDomain || null,
       totalMatches: scored.filter((e) => e.score > 0).length,
       domainsFound: domainCounts,
-      results: top.map((e) => ({
-        name: e.name,
-        kind: e.kind,
-        domain: e.domain,
-        description: e.description,
-        primaryKey: e.primaryKey || null,
-        fields: e.fields,
-        hint:
-          e.kind === "EntitySet"
-            ? `${e.name} — ${e.description}。主键: ${e.primaryKey}。调用 sap_api_call 进行 CRUD 操作。`
-            : `${e.name} — ${e.description}。调用 sap_api_call 执行此方法。`,
-      })),
+      results: top.map((e) => {
+        const result: Record<string, unknown> = {
+          name: e.name,
+          kind: e.kind,
+          domain: e.domain,
+          description: e.description,
+          primaryKey: e.primaryKey || null,
+          fields: e.fields,
+          hint:
+            e.kind === "EntitySet"
+              ? `${e.name} — ${e.description}。主键: ${e.primaryKey}。调用 sap_api_call 进行 CRUD 操作。`
+              : `${e.name} — ${e.description}。调用 sap_api_call 执行此方法。`,
+        };
+        if (ENTITIES_WITH_LINES.has(e.name)) {
+          result.expand = ["DocumentLines", "DocumentAdditionalExpenses"];
+        }
+        if (e.name === "Items") {
+          result.expand = ["ItemPrices", "ItemWarehouseInfoCollection"];
+        }
+        if (e.name === "BusinessPartners") {
+          result.expand = ["BPAddresses", "ContactEmployees"];
+        }
+        return result;
+      }),
       suggestion:
         top.length === 0
           ? `未找到匹配 "${input.query}" 的接口。可用领域: BusinessPartner(客户/供应商), Item / Product(物料), Document(订单/发票), Inventory / Warehouse(库存/仓库)。尝试用英文名称搜索。`
@@ -705,9 +754,11 @@ registerToolLattice(
   {
     name: "sap_api_call",
     description:
-      "执行对 SAP B1 Service Layer 的 OData API 调用。直接发起 HTTP 请求并返回响应数据。" +
+      "执行对 SAP B1 Service Layer 的 OData API 调用。" +
       `当前 Base URL: ${BASE_URL}。` +
-      "GET 请求通常无需认证，POST/PATCH/DELETE 需设置环境变量 SAP_B1SESSION。",
+      "GET 查询会自动注入 $select(精简字段) 和 $top=20(分页)，" +
+      "如需全部字段或更多数据请手动传 $select/$top 覆盖。$expand 也会自动加子 $select 限制嵌套数据量。" +
+      "POST/PATCH/DELETE 需设置环境变量 SAP_B1SESSION。",
     needUserApprove: false,
     schema: z.object({
       entitySet: z
@@ -733,7 +784,8 @@ registerToolLattice(
     }),
   },
   async (input) => {
-    const url = buildUrl(input.entitySet, input.method, input.id, input.queryOptions);
+    const queryOptions = applyDefaultSelect(input.entitySet, input.method, input.id, input.queryOptions);
+    const url = buildUrl(input.entitySet, input.method, input.id, queryOptions);
     const method = input.method;
 
     const headers: Record<string, string> = {
@@ -757,6 +809,8 @@ registerToolLattice(
       } catch {
         data = text;
       }
+
+      cleanODataNoise(data);
 
       const result: Record<string, unknown> = {
         ok: res.ok,
@@ -791,6 +845,81 @@ registerToolLattice(
 // ============================================================
 // Helpers
 // ============================================================
+
+function applyDefaultSelect(entitySet: string, method: string, id?: string, queryOptions?: string): string | undefined {
+  if (method !== "GET") return queryOptions;
+
+  const parts: string[] = [];
+
+  if (!id && (!queryOptions || !/\$top\s*=/.test(queryOptions))) {
+    parts.push("$top=20");
+  }
+
+  if (!queryOptions || !/\$select\s*=/.test(queryOptions)) {
+    const entry = API_LIST.find(
+      (e) => e.kind === "EntitySet" && e.name === entitySet
+    );
+    if (entry && entry.fields.length > 0) {
+      parts.push(`$select=${entry.fields.join(",")}`);
+    }
+  }
+
+  if (queryOptions) {
+    parts.push(queryOptions);
+  }
+
+  return parts.length > 0 ? injectExpandSelects(parts.join("&")) : undefined;
+}
+
+function injectExpandSelects(query: string): string {
+  return query.replace(/\$expand=([^&]*)/g, (_match, val: string) => {
+    const rewritten = val.split(",").map((target: string) => {
+      const targetTrimmed = target.trim();
+      const nameMatch = targetTrimmed.match(/^([^(]+)/);
+      if (!nameMatch) return targetTrimmed;
+
+      const name = nameMatch[1].trim();
+      const fields = EXPAND_FIELDS[name];
+      if (!fields) return targetTrimmed;
+
+      if (/\$select\s*=/.test(targetTrimmed)) return targetTrimmed;
+
+      const subSelect = `$select=${fields.join(",")}`;
+
+      if (targetTrimmed.includes("(")) {
+        return targetTrimmed.replace(/\)$/, `;${subSelect})`);
+      }
+      return `${targetTrimmed}(${subSelect})`;
+    });
+    return `$expand=${rewritten}`;
+  });
+}
+
+function cleanODataNoise(data: unknown): void {
+  if (!data || typeof data !== "object") return;
+  if (Array.isArray(data)) {
+    for (const item of data) cleanODataNoise(item);
+    return;
+  }
+  const obj = data as Record<string, unknown>;
+
+  delete obj["odata.metadata"];
+  delete obj["odata.etag"];
+  delete obj["odata.nextLink"];
+
+  if (Array.isArray(obj.value)) {
+    for (const item of obj.value) {
+      if (item && typeof item === "object") {
+        const record = item as Record<string, unknown>;
+        delete record["odata.etag"];
+      }
+    }
+  }
+
+  for (const v of Object.values(obj)) {
+    if (v && typeof v === "object") cleanODataNoise(v);
+  }
+}
 
 function buildUrl(
   entitySet: string,
