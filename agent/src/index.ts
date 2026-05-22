@@ -3,7 +3,8 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
-import { PostgreSQLAssistantStore, PostgreSQLThreadStore, PostgreSQLDatabaseConfigStore, PostgreSQLWorkspaceStore, PostgreSQLProjectStore, PostgreSQLUserStore, PostgreSQLTenantStore, PostgreSQLUserTenantLinkStore, PostgreSQLMetricsServerConfigStore, PostgreSQLMcpServerConfigStore, PostgreSQLScheduleStorage, PostgreSQLWorkflowTrackingStore } from "@axiom-lattice/pg-stores";
+import { PostgreSQLAssistantStore, PostgreSQLThreadStore, PostgreSQLDatabaseConfigStore, PostgreSQLWorkspaceStore, PostgreSQLProjectStore, PostgreSQLUserStore, PostgreSQLTenantStore, PostgreSQLUserTenantLinkStore, PostgreSQLMetricsServerConfigStore, PostgreSQLMcpServerConfigStore, PostgreSQLScheduleStorage, PostgreSQLWorkflowTrackingStore, ThreadMessageQueueStore } from "@axiom-lattice/pg-stores";
+import { Pool } from "pg";
 import {
   ScheduleType,
 } from "@axiom-lattice/protocols";
@@ -321,6 +322,16 @@ const workflowTrackingStore = new PostgreSQLWorkflowTrackingStore({
 storeLatticeManager.removeLattice("default", "workflowTracking");
 registerStoreLattice("default", "workflowTracking", workflowTrackingStore);
 console.log("PostgreSQL WorkflowTrackingStore initialized with auto-migration");
+
+// Initialize and register PostgreSQL ThreadMessageQueueStore
+const messageQueueStore = ThreadMessageQueueStore.getInstance();
+const messageQueuePool = new Pool({ connectionString: process.env.DATABASE_URL });
+(async () => {
+  await messageQueueStore.initialize(messageQueuePool, true);
+  storeLatticeManager.removeLattice("default", "threadMessageQueue");
+  registerStoreLattice("default", "threadMessageQueue", messageQueueStore);
+  console.log("PostgreSQL ThreadMessageQueueStore initialized with auto-migration");
+})();
 
 // Auth configuration
 const AUTH_CONFIG = {
