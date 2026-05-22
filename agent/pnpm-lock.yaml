@@ -18,8 +18,8 @@ importers:
         specifier: ^2.1.62
         version: 2.1.62(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-s3@3.1052.0)(@aws-sdk/credential-provider-node@3.972.44)(@browserbasehq/sdk@2.12.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.39.0(ws@8.20.1)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.207.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(crypto-js@4.2.0)(fast-xml-parser@5.7.3)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.39.0(ws@8.20.1)(zod@3.25.76))(playwright@1.58.2)(redis@5.12.1(@opentelemetry/api@1.9.1))(weaviate-client@3.13.0)(ws@8.20.1)
       '@axiom-lattice/gateway':
-        specifier: ^2.1.70
-        version: 2.1.70(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-s3@3.1052.0)(@aws-sdk/credential-provider-node@3.972.44)(@browserbasehq/sdk@2.12.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.39.0(ws@8.20.1)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.207.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(crypto-js@4.2.0)(fast-xml-parser@5.7.3)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.39.0(ws@8.20.1)(zod@3.25.76))(playwright@1.58.2)(weaviate-client@3.13.0)(ws@8.20.1)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76)
+        specifier: ^2.1.71
+        version: 2.1.71(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-s3@3.1052.0)(@aws-sdk/credential-provider-node@3.972.44)(@browserbasehq/sdk@2.12.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.39.0(ws@8.20.1)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.207.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(crypto-js@4.2.0)(fast-xml-parser@5.7.3)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.39.0(ws@8.20.1)(zod@3.25.76))(playwright@1.58.2)(weaviate-client@3.13.0)(ws@8.20.1)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76)
       '@axiom-lattice/pg-stores':
         specifier: ^1.0.52
         version: 1.0.52(07a3e3774f9304dc054c68e68fbfd9ca)
@@ -282,8 +282,8 @@ packages:
   '@axiom-lattice/core@2.1.62':
     resolution: {integrity: sha512-QAQ5CNX+veTOjm5tyRWYo7ed8/VDAYb9BH1uuMQVdUf/Fy0uFKEdMW6YiEGDO3Xh1fBBotp3Mx1KIrM2/dO6tA==}
 
-  '@axiom-lattice/gateway@2.1.70':
-    resolution: {integrity: sha512-QVAazytatFOxcz/XU8bBFo2BCye+Hlj5ACg/PGA3KN1kVHqgnOFwJQAQ3t5yBeo8jXPQ2dyW2/C/SdlKDHaWhA==}
+  '@axiom-lattice/gateway@2.1.71':
+    resolution: {integrity: sha512-cghUhPL0QJwNUK7ZlP66+eKEZrdM1clRvLFDLtnUsIu2TTiHi18mYrJxYhwmzAH2G+MjETGHUOshE5CspVxyDw==}
 
   '@axiom-lattice/pg-stores@1.0.52':
     resolution: {integrity: sha512-RKQAeiLpvXKIHXYW4g3UGvuXyST2VRNa5Tt1aJpk9QTCiyGZDX5UCx0BxK5uQlE+qbuPnQUZ2tXciAYUf7jNBA==}
@@ -2949,8 +2949,8 @@ packages:
   duplexify@4.1.3:
     resolution: {integrity: sha512-M3BmBhwJRZsSx38lZyhE53Csddgzl5R7xGJNk7CVddZD6CcmwMCH8J+7AprIrQKH7TonKxaCjcv27Qmf+sQ+oA==}
 
-  e2b@2.22.0:
-    resolution: {integrity: sha512-Yo4bAYOyqzLQ8hci75JIK/AQEVo2yVJPuErVxzUIvEvTQJ0K6pj5McfbOcmhcfAP3scKQkyO9OLC6QY3qoA7hQ==}
+  e2b@2.23.0:
+    resolution: {integrity: sha512-LjeZvucZjY4L1pRawWe3hwwLh4dW1kWOoEXpL+kPd8xDX+9zTE4ksKse/QR3Si+tPOmocow4FStDmoG4cSbLvw==}
     engines: {node: '>=20.18.1'}
 
   ecdsa-sig-formatter@1.0.11:
@@ -3399,8 +3399,8 @@ packages:
     resolution: {integrity: sha512-eSmmWE5bZTK2Nou4g0AI3zZ9rswp7GRKoKXS1BLUkvPviOqs4YTN1djQIqrXy9k5gEtdLPy86JjRwsNM9tnDcA==}
     engines: {node: '>=0.10.0'}
 
-  hono@4.12.21:
-    resolution: {integrity: sha512-uV63apnb0kyPtAUwoWgaGh9HyIFcv8lgmzPZSiTBQAFOFGIzka5EZ1dZocmGnn0XdX0+XTqJ6Tqv7selMuGLRQ==}
+  hono@4.12.22:
+    resolution: {integrity: sha512-7fvVPbB92zNRsQke+uiRGwtTuef0tB2Dg4hWxYfFNvkQhIltWoyi0ONReM5LWA+jJWS3nfT5lTq+qbsIpX0IQw==}
     engines: {node: '>=16.9.0'}
 
   html-escaper@2.0.2:
@@ -4584,8 +4584,8 @@ packages:
     resolution: {integrity: sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==}
     engines: {node: '>=8'}
 
-  shell-quote@1.8.3:
-    resolution: {integrity: sha512-ObmnIF4hXNg1BqhnHmgbDETF8dLPCggZWBjkQfhZpbszZnYur5DUljTcCHii5LC3J5E0yeO/1LIMyH+UvHQgyw==}
+  shell-quote@1.8.4:
+    resolution: {integrity: sha512-VsC6n6vz1ihYYyZZwX7YZSF5l5x36ca17OC+a69h94YqB7X6XLwf+5MOgynYir2SLFUbl8gIYvBo8K8RoNQ6bQ==}
     engines: {node: '>= 0.4'}
 
   side-channel-list@1.0.1:
@@ -5413,7 +5413,7 @@ snapshots:
       '@types/micromatch': 4.0.10
       angular-expressions: 1.5.5
       dotenv: 16.6.1
-      e2b: 2.22.0
+      e2b: 2.23.0
       fast-glob: 3.3.3
       langchain: 1.0.6(@langchain/core@1.1.30(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.207.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@6.39.0(ws@8.20.1)(zod@3.25.76)))(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.207.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@6.39.0(ws@8.20.1)(zod@3.25.76))(zod-to-json-schema@3.25.1(zod@3.25.76))
       lodash: 4.18.1
@@ -5563,7 +5563,7 @@ snapshots:
       - ws
       - youtubei.js
 
-  '@axiom-lattice/gateway@2.1.70(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-s3@3.1052.0)(@aws-sdk/credential-provider-node@3.972.44)(@browserbasehq/sdk@2.12.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.39.0(ws@8.20.1)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.207.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(crypto-js@4.2.0)(fast-xml-parser@5.7.3)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.39.0(ws@8.20.1)(zod@3.25.76))(playwright@1.58.2)(weaviate-client@3.13.0)(ws@8.20.1)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76)':
+  '@axiom-lattice/gateway@2.1.71(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-s3@3.1052.0)(@aws-sdk/credential-provider-node@3.972.44)(@browserbasehq/sdk@2.12.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.39.0(ws@8.20.1)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.207.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(crypto-js@4.2.0)(fast-xml-parser@5.7.3)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.39.0(ws@8.20.1)(zod@3.25.76))(playwright@1.58.2)(weaviate-client@3.13.0)(ws@8.20.1)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76)':
     dependencies:
       '@axiom-lattice/core': 2.1.62(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-s3@3.1052.0)(@aws-sdk/credential-provider-node@3.972.44)(@browserbasehq/sdk@2.12.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.39.0(ws@8.20.1)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.8)(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.207.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(crypto-js@4.2.0)(fast-xml-parser@5.7.3)(ibm-cloud-sdk-core@5.4.8)(jsonwebtoken@9.0.3)(openai@6.39.0(ws@8.20.1)(zod@3.25.76))(playwright@1.58.2)(redis@5.12.1(@opentelemetry/api@1.9.1))(weaviate-client@3.13.0)(ws@8.20.1)
       '@axiom-lattice/pg-stores': 1.0.52(07a3e3774f9304dc054c68e68fbfd9ca)
@@ -6164,7 +6164,7 @@ snapshots:
       form-data: 4.0.5
       isomorphic-ws: 5.0.0(ws@8.20.1)
       pathe: 2.0.3
-      shell-quote: 1.8.3
+      shell-quote: 1.8.4
       tar: 7.5.15
     transitivePeerDependencies:
       - debug
@@ -6427,9 +6427,9 @@ snapshots:
       protobufjs: 7.6.1
       yargs: 17.7.2
 
-  '@hono/node-server@1.19.14(hono@4.12.21)':
+  '@hono/node-server@1.19.14(hono@4.12.22)':
     dependencies:
-      hono: 4.12.21
+      hono: 4.12.22
 
   '@humanwhocodes/config-array@0.13.0':
     dependencies:
@@ -6901,7 +6901,7 @@ snapshots:
 
   '@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76)':
     dependencies:
-      '@hono/node-server': 1.19.14(hono@4.12.21)
+      '@hono/node-server': 1.19.14(hono@4.12.22)
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)
       content-type: 1.0.5
@@ -6911,7 +6911,7 @@ snapshots:
       eventsource-parser: 3.0.8
       express: 5.2.1
       express-rate-limit: 8.5.2(express@5.2.1)
-      hono: 4.12.21
+      hono: 4.12.22
       jose: 6.2.3
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
@@ -8135,7 +8135,7 @@ snapshots:
       readable-stream: 3.6.2
       stream-shift: 1.0.3
 
-  e2b@2.22.0:
+  e2b@2.23.0:
     dependencies:
       '@bufbuild/protobuf': 2.12.0
       '@connectrpc/connect': 2.0.0-rc.3(@bufbuild/protobuf@2.12.0)
@@ -8692,7 +8692,7 @@ snapshots:
     dependencies:
       parse-passwd: 1.0.0
 
-  hono@4.12.21: {}
+  hono@4.12.22: {}
 
   html-escaper@2.0.2: {}
 
@@ -10045,7 +10045,7 @@ snapshots:
 
   shebang-regex@3.0.0: {}
 
-  shell-quote@1.8.3: {}
+  shell-quote@1.8.4: {}
 
   side-channel-list@1.0.1:
     dependencies:
