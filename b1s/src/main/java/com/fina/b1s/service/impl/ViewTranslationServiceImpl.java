@@ -70,7 +70,7 @@ public class ViewTranslationServiceImpl implements ViewTranslationService {
 
     private static String lineView(String alias, String headerTable, String lineTable) {
         return "(SELECT h.[DocEntry], h.[DocNum], h.[DocDate], h.[CardCode], h.[CardName], h.[SlpCode], "
-                + "h.[U_YWLX], l.[LineNum], l.[ItemCode], l.[Dscription], l.[Quantity], "
+                + "CAST(NULL AS nvarchar(100)) AS [U_YWLX], l.[LineNum], l.[ItemCode], l.[Dscription], l.[Quantity], "
                 + "l.[WhsCode] AS [WarehouseCode], l.[LineTotal] AS [GTotal], l.[DiscPrcnt], l.[Price], "
                 + "l.[Currency], l.[UomEntry] AS [UoMEntry], l.[UomCode], "
                 + "s.[SlpName], bg.[GroupName], ig.[ItmsGrpNam], wh.[WhsName], "
