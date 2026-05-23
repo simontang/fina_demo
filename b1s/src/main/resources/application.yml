@@ -66,8 +66,8 @@ mail:
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
     folder: ${MAIL_FOLDER:INBOX}
-    poll-interval: ${MAIL_POLL_INTERVAL:60s}
-    poll-interval-ms: ${MAIL_POLL_INTERVAL_MS:60000}
+    poll-interval: ${MAIL_POLL_INTERVAL:10s}
+    poll-interval-ms: ${MAIL_POLL_INTERVAL_MS:10000}
     batch-size: ${MAIL_BATCH_SIZE:20}
     mark-seen: ${MAIL_MARK_SEEN:true}
 

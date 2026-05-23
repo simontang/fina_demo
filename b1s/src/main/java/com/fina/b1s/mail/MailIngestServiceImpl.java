@@ -17,6 +17,9 @@ import jakarta.mail.Part;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
 import jakarta.mail.UIDFolder;
+import jakarta.mail.search.FlagTerm;
+import jakarta.mail.search.SearchTerm;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -80,11 +83,14 @@ public class MailIngestServiceImpl implements MailIngestService {
     }
 
     private int ingestFolder(Folder folder) throws Exception {
-        Message[] messages = folder.getMessages();
+        Message[] messages = selectMessages(folder);
+        if (messages == null || messages.length == 0) {
+            log.info("Mail polling completed mailbox={} folder={} processed={}",
+                    properties.username(), properties.folder(), 0);
+            return 0;
+        }
         int processed = 0;
-        int start = Math.max(0, messages.length - Math.max(properties.batchSize(), 1));
-        for (int i = start; i < messages.length; i++) {
-            Message message = messages[i];
+        for (Message message : messages) {
             long uid = resolveUid(folder, message);
             if (exists(uid, message)) {
                 continue;
@@ -99,6 +105,27 @@ public class MailIngestServiceImpl implements MailIngestService {
         log.info("Mail polling completed mailbox={} folder={} processed={}",
                 properties.username(), properties.folder(), processed);
         return processed;
+    }
+
+    private Message[] selectMessages(Folder folder) throws Exception {
+        int batchSize = Math.max(properties.batchSize(), 1);
+        if (folder instanceof UIDFolder uidFolder) {
+            long maxUid = findMaxUid();
+            long uidStart = Math.max(1L, maxUid + 1L);
+            long uidEnd = UIDFolder.LASTUID;
+            Message[] messages = uidFolder.getMessagesByUID(uidStart, uidEnd);
+            if (messages == null || messages.length == 0) {
+                return new Message[0];
+            }
+            return trimToLast(messages, batchSize);
+        }
+
+        SearchTerm unseenOnly = new FlagTerm(new Flags(Flags.Flag.SEEN), false);
+        Message[] messages = folder.search(unseenOnly);
+        if (messages == null || messages.length == 0) {
+            return new Message[0];
+        }
+        return trimToLast(messages, batchSize);
     }
 
     private MailMessage saveMessage(Folder folder, long uid, Message message) throws Exception {
@@ -147,11 +174,30 @@ public class MailIngestServiceImpl implements MailIngestService {
         return messageMapper.selectCount(wrapper) > 0;
     }
 
+    private long findMaxUid() {
+        QueryWrapper<MailMessage> wrapper = new QueryWrapper<>();
+        wrapper.select("MAX(uid) AS uid")
+                .eq("mailbox", properties.username())
+                .eq("folder_name", properties.folder())
+                .isNotNull("uid");
+        MailMessage row = messageMapper.selectOne(wrapper);
+        return row != null && row.getUid() != null ? row.getUid() : 0L;
+    }
+
     private long resolveUid(Folder folder, Message message) throws MessagingException {
         if (folder instanceof UIDFolder uidFolder) {
             return uidFolder.getUID(message);
         }
         return -1;
+    }
+
+    private static Message[] trimToLast(Message[] messages, int batchSize) {
+        if (messages.length <= batchSize) {
+            return messages;
+        }
+        Message[] trimmed = new Message[batchSize];
+        System.arraycopy(messages, messages.length - batchSize, trimmed, 0, batchSize);
+        return trimmed;
     }
 
     private void saveAttachment(Long mailMessageId, AttachmentPayload payload) {
