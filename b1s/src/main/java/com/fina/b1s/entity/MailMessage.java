@@ -42,6 +42,14 @@ public class MailMessage {
 
     private String bodyText;
 
+    private String attachmentSummary;
+
+    private String attachmentText;
+
+    private String purchaseOrderSummary;
+
+    private String agentMessage;
+
     private String snippet;
 
     private Boolean orderIntent;

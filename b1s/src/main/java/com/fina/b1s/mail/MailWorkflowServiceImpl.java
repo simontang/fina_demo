@@ -7,16 +7,21 @@ import com.fina.b1s.agent.AgentRunProperties;
 import com.fina.b1s.agent.AgentRunRequest;
 import com.fina.b1s.agent.AgentRunResult;
 import com.fina.b1s.entity.MailMessage;
+import com.fina.b1s.entity.MailAttachment;
+import com.fina.b1s.mapper.MailAttachmentMapper;
 import com.fina.b1s.mapper.MailMessageMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.Executor;
 
 @Slf4j
 @Service
@@ -27,7 +32,10 @@ public class MailWorkflowServiceImpl implements MailWorkflowService {
     private final AgentRunClient agentRunClient;
     private final AgentRunProperties agentRunProperties;
     private final MailMessageMapper messageMapper;
+    private final MailAttachmentMapper attachmentMapper;
     private final ObjectMapper objectMapper;
+    @Qualifier("mailDispatchExecutor")
+    private final Executor mailDispatchExecutor;
 
     @Override
     public AgentRunResult dispatchIfOrderIntent(MailMessage mailMessage) {
@@ -39,6 +47,32 @@ public class MailWorkflowServiceImpl implements MailWorkflowService {
     }
 
     @Override
+    public void dispatchAsyncIfOrderIntent(MailMessage mailMessage) {
+        if (!mailIntentService.isOrderIntent(mailMessage)) {
+            updateWorkflow(mailMessage, "NOT_ORDER_INTENT", null, null, null, null, null);
+            return;
+        }
+        updateWorkflow(mailMessage, "QUEUED", null, null, null, null, null);
+        mailDispatchExecutor.execute(() -> {
+            try {
+                MailMessage fresh = messageMapper.selectById(mailMessage.getId());
+                if (fresh == null) {
+                    log.warn("Mail message disappeared before async dispatch id={}", mailMessage.getId());
+                    return;
+                }
+                dispatch(fresh);
+            } catch (Exception e) {
+                log.warn("Async mail dispatch failed id={}: {}", mailMessage.getId(), e.getMessage(), e);
+                MailMessage fresh = messageMapper.selectById(mailMessage.getId());
+                if (fresh != null) {
+                    updateWorkflow(fresh, "ERROR", fresh.getWorkflowThreadId(), fresh.getWorkflowRunId(),
+                            fresh.getWorkflowRequest(), fresh.getWorkflowResponse(), e.getMessage());
+                }
+            }
+        });
+    }
+
+    @Override
     public AgentRunResult dispatch(MailMessage mailMessage) {
         if (!StringUtils.hasText(agentRunProperties.assistantId())) {
             AgentRunResult result = new AgentRunResult(false, "DISABLED", null, null, "assistant_id is missing");
@@ -46,9 +80,7 @@ public class MailWorkflowServiceImpl implements MailWorkflowService {
             return result;
         }
 
-        String body = StringUtils.hasText(mailMessage.getBodyText())
-                ? mailMessage.getBodyText()
-                : mailMessage.getSnippet();
+        String body = buildAgentMessage(mailMessage);
         if (!StringUtils.hasText(body)) {
             AgentRunResult result = new AgentRunResult(false, "NO_BODY", null, null, "mail body is empty");
             updateWorkflow(mailMessage, "NO_BODY", null, null, null, null, result.errorMessage());
@@ -63,14 +95,16 @@ public class MailWorkflowServiceImpl implements MailWorkflowService {
         custom.put("mail_from", mailMessage.getFromAddress());
         custom.put("mail_to", mailMessage.getToAddresses());
         custom.put("mail_provider", mailMessage.getProvider());
+        custom.put("purchase_order_summary", mailMessage.getPurchaseOrderSummary());
+        custom.put("attachment_summary", mailMessage.getAttachmentSummary());
 
         AgentRunRequest request = AgentRunRequest.builder()
                 .assistantId(agentRunProperties.assistantId())
                 .threadId(threadId)
                 .message(body)
                 .streaming(agentRunProperties.streaming())
-                .background(agentRunProperties.background())
-                .mode(agentRunProperties.mode())
+                .background(agentRunProperties.streaming() ? null : agentRunProperties.background())
+                .mode(StringUtils.hasText(agentRunProperties.mode()) ? agentRunProperties.mode() : null)
                 .customRunConfig(custom)
                 .build();
 
@@ -122,5 +156,50 @@ public class MailWorkflowServiceImpl implements MailWorkflowService {
         } catch (JsonProcessingException e) {
             return null;
         }
+    }
+
+    private String buildAgentMessage(MailMessage mailMessage) {
+        if (StringUtils.hasText(mailMessage.getAgentMessage())) {
+            return mailMessage.getAgentMessage();
+        }
+        StringBuilder sb = new StringBuilder();
+        appendSection(sb, "Mail Subject", mailMessage.getSubject());
+        appendSection(sb, "Mail Body", mailMessage.getBodyText());
+        appendSection(sb, "Purchase Order Summary", mailMessage.getPurchaseOrderSummary());
+        appendSection(sb, "Attachment Summary", mailMessage.getAttachmentSummary());
+        String attachmentText = mailMessage.getAttachmentText();
+        if (!StringUtils.hasText(attachmentText) && mailMessage.getId() != null) {
+            attachmentText = loadAttachmentText(mailMessage.getId());
+        }
+        appendSection(sb, "Attachment Extracted Text", attachmentText);
+        String result = sb.toString().trim();
+        return StringUtils.hasText(result) ? result : null;
+    }
+
+    private String loadAttachmentText(Long mailMessageId) {
+        List<MailAttachment> attachments = attachmentMapper.selectList(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<MailAttachment>()
+                        .eq(MailAttachment::getMailMessageId, mailMessageId)
+                        .orderByAsc(MailAttachment::getId)
+        );
+        StringBuilder sb = new StringBuilder();
+        for (MailAttachment attachment : attachments) {
+            if (!StringUtils.hasText(attachment.getExtractedText())) {
+                continue;
+            }
+            appendSection(sb, "Attachment " + attachment.getFileName(), attachment.getExtractedText());
+        }
+        String result = sb.toString().trim();
+        return StringUtils.hasText(result) ? result : null;
+    }
+
+    private void appendSection(StringBuilder sb, String title, String value) {
+        if (!StringUtils.hasText(value)) {
+            return;
+        }
+        if (!sb.isEmpty()) {
+            sb.append("\n\n");
+        }
+        sb.append(title).append(":\n").append(value.trim());
     }
 }

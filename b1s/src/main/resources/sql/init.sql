@@ -64,6 +64,10 @@ CREATE TABLE IF NOT EXISTS t_mail_message (
     has_attachments  BOOLEAN       NOT NULL DEFAULT FALSE,
     attachment_count INTEGER       NOT NULL DEFAULT 0,
     body_text        TEXT,
+    attachment_summary TEXT,
+    attachment_text  TEXT,
+    purchase_order_summary TEXT,
+    agent_message    TEXT,
     snippet          TEXT,
     order_intent     BOOLEAN       NOT NULL DEFAULT FALSE,
     workflow_status  VARCHAR(50),
@@ -87,6 +91,14 @@ CREATE INDEX IF NOT EXISTS idx_mail_message_created_at ON t_mail_message (create
 
 ALTER TABLE t_mail_message
     ADD COLUMN IF NOT EXISTS body_text TEXT;
+ALTER TABLE t_mail_message
+    ADD COLUMN IF NOT EXISTS attachment_summary TEXT;
+ALTER TABLE t_mail_message
+    ADD COLUMN IF NOT EXISTS attachment_text TEXT;
+ALTER TABLE t_mail_message
+    ADD COLUMN IF NOT EXISTS purchase_order_summary TEXT;
+ALTER TABLE t_mail_message
+    ADD COLUMN IF NOT EXISTS agent_message TEXT;
 ALTER TABLE t_mail_message
     ADD COLUMN IF NOT EXISTS order_intent BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE t_mail_message
@@ -117,13 +129,24 @@ CREATE TABLE IF NOT EXISTS t_mail_attachment (
     tos_bucket       VARCHAR(200),
     tos_key          TEXT,
     tos_url          TEXT,
+    extracted_text   TEXT,
+    extraction_status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    extraction_error TEXT,
     upload_status    VARCHAR(50)   NOT NULL DEFAULT 'PENDING',
     error_message    TEXT,
     created_at       TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE t_mail_attachment
+    ADD COLUMN IF NOT EXISTS extracted_text TEXT;
+ALTER TABLE t_mail_attachment
+    ADD COLUMN IF NOT EXISTS extraction_status VARCHAR(50) NOT NULL DEFAULT 'PENDING';
+ALTER TABLE t_mail_attachment
+    ADD COLUMN IF NOT EXISTS extraction_error TEXT;
+
 CREATE INDEX IF NOT EXISTS idx_mail_attachment_message_id ON t_mail_attachment (mail_message_id);
 CREATE INDEX IF NOT EXISTS idx_mail_attachment_upload_status ON t_mail_attachment (upload_status);
+CREATE INDEX IF NOT EXISTS idx_mail_attachment_extraction_status ON t_mail_attachment (extraction_status);
 
 -- ============================================================
 -- Sample seed data (adjust to your environment)

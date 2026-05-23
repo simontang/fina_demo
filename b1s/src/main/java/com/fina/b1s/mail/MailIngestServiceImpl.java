@@ -1,6 +1,8 @@
 package com.fina.b1s.mail;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fina.b1s.entity.MailAttachment;
 import com.fina.b1s.entity.MailMessage;
 import com.fina.b1s.mapper.MailAttachmentMapper;
@@ -17,8 +19,7 @@ import jakarta.mail.Part;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
 import jakarta.mail.UIDFolder;
-import jakarta.mail.search.FlagTerm;
-import jakarta.mail.search.SearchTerm;
+import jakarta.mail.internet.MimeMessage;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,12 +28,14 @@ import org.springframework.util.StringUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Base64;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
@@ -42,6 +45,59 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class MailIngestServiceImpl implements MailIngestService {
 
+    private static final String PYTHON_IMAP_FETCH_SCRIPT = """
+import base64
+import imaplib
+import json
+import sys
+
+host = sys.argv[1]
+port = int(sys.argv[2])
+username = sys.argv[3]
+password = sys.argv[4]
+folder = sys.argv[5]
+min_uid = int(sys.argv[6])
+mark_seen = sys.argv[7] == "1"
+
+mail = imaplib.IMAP4_SSL(host, port)
+mail.login(username, password)
+mail.select(folder, readonly=not mark_seen)
+_, search_data = mail.uid("search", None, "ALL")
+uids = []
+if search_data and search_data[0]:
+    for token in search_data[0].split():
+        try:
+            uid = int(token)
+        except ValueError:
+            continue
+        if uid > min_uid:
+            uids.append(uid)
+
+out = []
+for uid in uids:
+    _, fetch_data = mail.uid("fetch", str(uid), "(RFC822)")
+    raw = b""
+    if fetch_data:
+        for part in fetch_data:
+            if isinstance(part, tuple) and len(part) > 1 and part[1]:
+                raw = part[1]
+                break
+    if not raw:
+        continue
+    out.append({
+        "uid": uid,
+        "raw": base64.b64encode(raw).decode("ascii"),
+    })
+    if mark_seen:
+        try:
+            mail.uid("store", str(uid), "+FLAGS", r"(\\\\Seen)")
+        except Exception:
+            pass
+
+print(json.dumps(out))
+mail.logout()
+""";
+
     private static final ZoneId ZONE_ID = ZoneId.of("Asia/Shanghai");
     private static final int SNIPPET_LIMIT = 1000;
 
@@ -50,8 +106,11 @@ public class MailIngestServiceImpl implements MailIngestService {
     private final MailAttachmentMapper attachmentMapper;
     private final TosStorageService tosStorageService;
     private final com.fina.b1s.tos.TosProperties tosProperties;
+    private final MailAttachmentTextExtractor attachmentTextExtractor;
+    private final PurchaseOrderSummaryService purchaseOrderSummaryService;
     private final MailIntentService mailIntentService;
     private final MailWorkflowService mailWorkflowService;
+    private final ObjectMapper objectMapper;
 
     @Override
     public int pollInbox() {
@@ -59,10 +118,124 @@ public class MailIngestServiceImpl implements MailIngestService {
             return 0;
         }
         validateConfig();
+        try {
+            return pollInboxViaPython();
+        } catch (Exception pythonError) {
+            log.warn("Python IMAP polling failed: {}", pythonError.getMessage(), pythonError);
+            try {
+                return pollInboxViaJavaMail();
+            } catch (Exception javaMailError) {
+                log.warn("Mail polling failed: {}", javaMailError.getMessage(), javaMailError);
+                return 0;
+            }
+        }
+    }
 
+    private int pollInboxViaPython() throws Exception {
+        long maxUid = findMaxUid();
+        List<PythonEnvelope> envelopes = fetchPythonEnvelopes(maxUid);
+        if (envelopes.isEmpty()) {
+            log.info("Mail polling completed mailbox={} folder={} processed={}",
+                    properties.username(), properties.folder(), 0);
+            return 0;
+        }
+        int processed = 0;
+        Session messageSession = Session.getInstance(new Properties());
+        for (PythonEnvelope envelope : envelopes) {
+            if (envelope.uid() <= maxUid) {
+                continue;
+            }
+            MimeMessage message = new MimeMessage(messageSession, new ByteArrayInputStream(envelope.rawBytes()));
+            if (exists(envelope.uid(), message)) {
+                continue;
+            }
+            MailMessage saved = saveMessage(properties.folder(), envelope.uid(), message);
+            mailWorkflowService.dispatchAsyncIfOrderIntent(saved);
+            processed++;
+        }
+        log.info("Mail polling completed mailbox={} folder={} processed={}",
+                properties.username(), properties.folder(), processed);
+        return processed;
+    }
+
+    private List<PythonEnvelope> fetchPythonEnvelopes(long minUid) throws IOException, InterruptedException {
+        ProcessBuilder builder = new ProcessBuilder(
+                "python3",
+                "-c",
+                PYTHON_IMAP_FETCH_SCRIPT,
+                properties.imapHost(),
+                String.valueOf(properties.imapPort()),
+                properties.username(),
+                properties.password(),
+                properties.folder(),
+                String.valueOf(minUid),
+                properties.markSeen() ? "1" : "0"
+        );
+        builder.redirectErrorStream(true);
+        Process process = builder.start();
+        String output;
+        try (InputStream in = process.getInputStream()) {
+            output = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        }
+        int exitCode = process.waitFor();
+        if (exitCode != 0) {
+            throw new IOException("Python IMAP poll exited with code " + exitCode + ": " + trim(output, 2000));
+        }
+        if (!StringUtils.hasText(output)) {
+            return List.of();
+        }
+        List<PythonEnvelope> envelopes = objectMapper.readValue(output, new TypeReference<List<PythonEnvelope>>() {});
+        List<PythonEnvelope> out = new ArrayList<>(envelopes.size());
+        for (PythonEnvelope envelope : envelopes) {
+            if (envelope == null || envelope.raw() == null) {
+                continue;
+            }
+            out.add(envelope);
+        }
+        return out;
+    }
+
+    private MailMessage saveMessage(String folderName, long uid, Message message) throws Exception {
+        MailMessage entity = new MailMessage();
+        entity.setProvider("larksuite");
+        entity.setMailbox(properties.username());
+        entity.setFolderName(folderName);
+        entity.setUid(uid);
+        entity.setMessageId(firstHeader(message, "Message-ID"));
+        entity.setSubject(message.getSubject());
+        entity.setFromAddress(addressesToString(message.getFrom()));
+        entity.setToAddresses(addressesToString(message.getRecipients(Message.RecipientType.TO)));
+        entity.setCcAddresses(addressesToString(message.getRecipients(Message.RecipientType.CC)));
+        entity.setSentAt(formatDate(message.getSentDate()));
+        entity.setReceivedAt(formatDate(message.getReceivedDate()));
+        String bodyText = extractBodyText(message);
+        entity.setBodyText(bodyText);
+
+        List<AttachmentPayload> attachments = collectAttachments(message);
+        entity.setAttachmentCount(attachments.size());
+        entity.setHasAttachments(!attachments.isEmpty());
+        entity.setCreatedAt(LocalDateTime.now());
+        entity.setUpdatedAt(LocalDateTime.now());
+        messageMapper.insert(entity);
+
+        List<MailAttachment> savedAttachments = new ArrayList<>();
+        for (AttachmentPayload attachment : attachments) {
+            savedAttachments.add(saveAttachment(entity.getId(), attachment));
+        }
+        enrichMessage(entity, savedAttachments);
+        return entity;
+    }
+
+    private int pollInboxViaJavaMail() {
         Properties props = new Properties();
         props.put("mail.store.protocol", "imaps");
         props.put("mail.imaps.ssl.enable", "true");
+        props.put("mail.imaps.connectionpoolsize", "0");
+        props.put("mail.imap.connectionpoolsize", "0");
+        props.put("mail.imaps.connectionpooltimeout", "1000");
+        props.put("mail.imap.connectionpooltimeout", "1000");
+        props.put("mail.imaps.statuscachetimeout", "0");
+        props.put("mail.imap.statuscachetimeout", "0");
         props.put("mail.imaps.host", properties.imapHost());
         props.put("mail.imaps.port", String.valueOf(properties.imapPort()));
 
@@ -77,8 +250,7 @@ public class MailIngestServiceImpl implements MailIngestService {
                 folder.close(false);
             }
         } catch (Exception e) {
-            log.warn("Mail polling failed: {}", e.getMessage(), e);
-            return 0;
+            throw new RuntimeException(e);
         }
     }
 
@@ -96,7 +268,7 @@ public class MailIngestServiceImpl implements MailIngestService {
                 continue;
             }
             MailMessage saved = saveMessage(folder, uid, message);
-            mailWorkflowService.dispatchIfOrderIntent(saved);
+            mailWorkflowService.dispatchAsyncIfOrderIntent(saved);
             if (properties.markSeen()) {
                 message.setFlag(Flags.Flag.SEEN, true);
             }
@@ -109,55 +281,45 @@ public class MailIngestServiceImpl implements MailIngestService {
 
     private Message[] selectMessages(Folder folder) throws Exception {
         int batchSize = Math.max(properties.batchSize(), 1);
+        int windowSize = Math.max(batchSize * 5, 50);
+        log.info("Mail poll inspect mailbox={} folder={} folderClass={} uidFolder={} batchSize={} windowSize={} messageCount={}",
+                properties.username(),
+                properties.folder(),
+                folder.getClass().getName(),
+                folder instanceof UIDFolder,
+                batchSize,
+                windowSize,
+                folder.getMessageCount());
         if (folder instanceof UIDFolder uidFolder) {
             long maxUid = findMaxUid();
-            long uidStart = Math.max(1L, maxUid + 1L);
-            long uidEnd = UIDFolder.LASTUID;
-            Message[] messages = uidFolder.getMessagesByUID(uidStart, uidEnd);
-            if (messages == null || messages.length == 0) {
-                return new Message[0];
+            Message[] uidMessages = compactMessages(uidFolder.getMessagesByUID(1L, UIDFolder.LASTUID));
+            if (uidMessages.length > 0) {
+                Message[] trimmed = trimToLast(uidMessages, batchSize);
+                log.info("Mail poll selected {} message(s) by uid mailbox={} folder={} maxUid={} firstSubject={}",
+                        trimmed.length,
+                        properties.username(),
+                        properties.folder(),
+                        maxUid,
+                        trimmed[0] != null ? trimmed[0].getSubject() : null);
+                return trimmed;
             }
-            return trimToLast(messages, batchSize);
         }
 
-        SearchTerm unseenOnly = new FlagTerm(new Flags(Flags.Flag.SEEN), false);
-        Message[] messages = folder.search(unseenOnly);
-        if (messages == null || messages.length == 0) {
+        Message[] recent = recentMessages(folder, windowSize);
+        if (recent.length == 0) {
+            log.info("Mail poll selected no messages mailbox={} folder={}", properties.username(), properties.folder());
             return new Message[0];
         }
-        return trimToLast(messages, batchSize);
+        log.info("Mail poll selected {} message(s) by recent window mailbox={} folder={} firstSubject={}",
+                recent.length,
+                properties.username(),
+                properties.folder(),
+                recent[0] != null ? recent[0].getSubject() : null);
+        return recent;
     }
 
     private MailMessage saveMessage(Folder folder, long uid, Message message) throws Exception {
-        MailMessage entity = new MailMessage();
-        entity.setProvider("larksuite");
-        entity.setMailbox(properties.username());
-        entity.setFolderName(folder.getFullName());
-        entity.setUid(uid);
-        entity.setMessageId(firstHeader(message, "Message-ID"));
-        entity.setSubject(message.getSubject());
-        entity.setFromAddress(addressesToString(message.getFrom()));
-        entity.setToAddresses(addressesToString(message.getRecipients(Message.RecipientType.TO)));
-        entity.setCcAddresses(addressesToString(message.getRecipients(Message.RecipientType.CC)));
-        entity.setSentAt(formatDate(message.getSentDate()));
-        entity.setReceivedAt(formatDate(message.getReceivedDate()));
-        String bodyText = extractBodyText(message);
-        entity.setBodyText(bodyText);
-        entity.setSnippet(trim(bodyText, SNIPPET_LIMIT));
-        entity.setOrderIntent(mailIntentService.isOrderIntent(entity));
-        entity.setWorkflowStatus(entity.getOrderIntent() ? "PENDING" : "NOT_ORDER_INTENT");
-
-        List<AttachmentPayload> attachments = collectAttachments(message);
-        entity.setAttachmentCount(attachments.size());
-        entity.setHasAttachments(!attachments.isEmpty());
-        entity.setCreatedAt(LocalDateTime.now());
-        entity.setUpdatedAt(LocalDateTime.now());
-        messageMapper.insert(entity);
-
-        for (AttachmentPayload attachment : attachments) {
-            saveAttachment(entity.getId(), attachment);
-        }
-        return entity;
+        return saveMessage(folder.getFullName(), uid, message);
     }
 
     private boolean exists(long uid, Message message) throws MessagingException {
@@ -200,13 +362,42 @@ public class MailIngestServiceImpl implements MailIngestService {
         return trimmed;
     }
 
-    private void saveAttachment(Long mailMessageId, AttachmentPayload payload) {
+    private static Message[] compactMessages(Message[] messages) {
+        if (messages == null || messages.length == 0) {
+            return new Message[0];
+        }
+        List<Message> out = new ArrayList<>(messages.length);
+        for (Message message : messages) {
+            if (message != null) {
+                out.add(message);
+            }
+        }
+        return out.toArray(Message[]::new);
+    }
+
+    private Message[] recentMessages(Folder folder, int windowSize) throws MessagingException {
+        int messageCount = folder.getMessageCount();
+        if (messageCount <= 0) {
+            return new Message[0];
+        }
+        int safeWindow = Math.max(1, windowSize);
+        int start = Math.max(1, messageCount - safeWindow + 1);
+        return compactMessages(folder.getMessages(start, messageCount));
+    }
+
+    private MailAttachment saveAttachment(Long mailMessageId, AttachmentPayload payload) {
         MailAttachment attachment = new MailAttachment();
         attachment.setMailMessageId(mailMessageId);
         attachment.setFileName(payload.fileName());
         attachment.setContentType(payload.contentType());
         attachment.setSizeBytes((long) payload.bytes().length);
         attachment.setCreatedAt(LocalDateTime.now());
+
+        MailAttachmentTextExtractor.ExtractionResult extraction =
+                attachmentTextExtractor.extract(payload.fileName(), payload.contentType(), payload.bytes());
+        attachment.setExtractedText(trim(extraction.text(), 40000));
+        attachment.setExtractionStatus(extraction.status());
+        attachment.setExtractionError(trim(extraction.errorMessage(), 1000));
 
         String key = buildTosKey(mailMessageId, payload.fileName());
         try (InputStream inputStream = new ByteArrayInputStream(payload.bytes())) {
@@ -224,6 +415,61 @@ public class MailIngestServiceImpl implements MailIngestService {
                     mailMessageId, payload.fileName(), e.getMessage());
         }
         attachmentMapper.insert(attachment);
+        return attachment;
+    }
+
+    private void enrichMessage(MailMessage entity, List<MailAttachment> attachments) {
+        String attachmentSummary = summarizeAttachments(attachments);
+        String attachmentText = joinAttachmentText(attachments);
+        PurchaseOrderSummaryService.PurchaseOrderSummary poSummary =
+                purchaseOrderSummaryService.summarize(entity.getSubject(), entity.getBodyText(), attachmentText);
+
+        entity.setAttachmentSummary(attachmentSummary);
+        entity.setAttachmentText(attachmentText);
+        entity.setPurchaseOrderSummary(poSummary.summaryText());
+        entity.setAgentMessage(poSummary.agentMessage());
+        entity.setSnippet(trim(firstNonBlank(poSummary.summaryText(), entity.getBodyText(), attachmentText), SNIPPET_LIMIT));
+        entity.setOrderIntent(mailIntentService.isOrderIntent(entity));
+        entity.setWorkflowStatus(entity.getOrderIntent() ? "PENDING" : "NOT_ORDER_INTENT");
+        entity.setUpdatedAt(LocalDateTime.now());
+        messageMapper.updateById(entity);
+    }
+
+    private String summarizeAttachments(List<MailAttachment> attachments) {
+        if (attachments == null || attachments.isEmpty()) {
+            return null;
+        }
+        List<String> parts = new ArrayList<>();
+        for (MailAttachment attachment : attachments) {
+            StringBuilder line = new StringBuilder();
+            line.append(attachment.getFileName());
+            if (attachment.getSizeBytes() != null) {
+                line.append(" (").append(attachment.getSizeBytes()).append(" bytes)");
+            }
+            if (StringUtils.hasText(attachment.getExtractionStatus())) {
+                line.append(" [").append(attachment.getExtractionStatus()).append("]");
+            }
+            parts.add(line.toString());
+        }
+        return trim(String.join("\n", parts), 4000);
+    }
+
+    private String joinAttachmentText(List<MailAttachment> attachments) {
+        if (attachments == null || attachments.isEmpty()) {
+            return null;
+        }
+        List<String> chunks = new ArrayList<>();
+        for (MailAttachment attachment : attachments) {
+            if (!StringUtils.hasText(attachment.getExtractedText())) {
+                continue;
+            }
+            chunks.add("Attachment: " + firstNonBlank(attachment.getFileName(), "unnamed"));
+            chunks.add(attachment.getExtractedText());
+        }
+        if (chunks.isEmpty()) {
+            return null;
+        }
+        return trim(String.join("\n\n", chunks), 40000);
     }
 
     private List<AttachmentPayload> collectAttachments(Part part) throws Exception {
@@ -341,6 +587,15 @@ public class MailIngestServiceImpl implements MailIngestService {
         return normalized.substring(0, limit);
     }
 
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (StringUtils.hasText(value)) {
+                return value;
+            }
+        }
+        return null;
+    }
+
     private void validateConfig() {
         if (!StringUtils.hasText(properties.username()) || !StringUtils.hasText(properties.password())) {
             throw new IllegalStateException("Mail listener username/password are required");
@@ -348,5 +603,11 @@ public class MailIngestServiceImpl implements MailIngestService {
     }
 
     private record AttachmentPayload(String fileName, String contentType, byte[] bytes) {
+    }
+
+    private record PythonEnvelope(long uid, String raw) {
+        private byte[] rawBytes() {
+            return raw == null ? new byte[0] : Base64.getDecoder().decode(raw);
+        }
     }
 }

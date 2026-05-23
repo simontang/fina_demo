@@ -14,6 +14,8 @@ public record MailListenerProperties(
         String folder,
         Duration pollInterval,
         int batchSize,
-        boolean markSeen
+        boolean markSeen,
+        int dispatchThreadPoolSize,
+        int dispatchQueueCapacity
 ) {
 }

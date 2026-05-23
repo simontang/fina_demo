@@ -28,6 +28,12 @@ public class MailAttachment {
 
     private String tosUrl;
 
+    private String extractedText;
+
+    private String extractionStatus;
+
+    private String extractionError;
+
     private String uploadStatus;
 
     private String errorMessage;

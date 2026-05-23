@@ -15,6 +15,9 @@ public class MailAttachmentVO {
     private String tosBucket;
     private String tosKey;
     private String tosUrl;
+    private String extractedText;
+    private String extractionStatus;
+    private String extractionError;
     private String uploadStatus;
     private String errorMessage;
     private LocalDateTime createdAt;

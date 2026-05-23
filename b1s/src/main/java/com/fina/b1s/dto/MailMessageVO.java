@@ -23,6 +23,10 @@ public class MailMessageVO {
     private Boolean hasAttachments;
     private Integer attachmentCount;
     private String bodyText;
+    private String attachmentSummary;
+    private String attachmentText;
+    private String purchaseOrderSummary;
+    private String agentMessage;
     private String snippet;
     private Boolean orderIntent;
     private String workflowStatus;

@@ -16,13 +16,19 @@ public class MailIntentServiceImpl implements MailIntentService {
 
     private static final List<String> ORDER_KEYWORDS = List.of(
             "订购", "采购", "下单", "购买", "要订", "请发货", "按之前的价格", "按照之前的价格",
-            "报价", "订单", "下单意向", "采购意向", "要货", "要买");
+            "报价", "订单", "下单意向", "采购意向", "要货", "要买",
+            "purchase order", "po", "order", "wants to order", "would like to order",
+            "previous price", "at the previous price");
 
     private final LlmIntentClassifier llmIntentClassifier;
 
     @Override
     public boolean isOrderIntent(MailMessage mailMessage) {
-        String text = normalize(mailMessage.getSubject()) + "\n" + normalize(mailMessage.getBodyText());
+        String text = String.join("\n",
+                normalize(mailMessage.getSubject()),
+                normalize(mailMessage.getBodyText()),
+                normalize(mailMessage.getPurchaseOrderSummary()),
+                normalize(mailMessage.getAttachmentText()));
         if (!StringUtils.hasText(text)) {
             return false;
         }
@@ -36,13 +42,27 @@ public class MailIntentServiceImpl implements MailIntentService {
         if (quantityIntent) {
             return true;
         }
+        boolean englishQuantityIntent = text.matches("(?is).*(\\d+\\s*(unit|units|pcs|pieces)).*")
+                && text.matches("(?is).*(order|purchase|buy|need|want).*");
+        if (englishQuantityIntent) {
+            return true;
+        }
 
         LlmIntentClassifier.Classification classification =
-                llmIntentClassifier.classify(mailMessage.getSubject(), mailMessage.getBodyText());
+                llmIntentClassifier.classify(
+                        mailMessage.getSubject(),
+                        mergeBodyForClassification(mailMessage));
         if (classification.decisive()) {
             return classification.orderIntent();
         }
         return false;
+    }
+
+    private String mergeBodyForClassification(MailMessage mailMessage) {
+        return String.join("\n\n",
+                normalize(mailMessage.getBodyText()),
+                normalize(mailMessage.getPurchaseOrderSummary()),
+                normalize(mailMessage.getAttachmentText()));
     }
 
     private String normalize(String text) {

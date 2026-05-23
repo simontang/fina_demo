@@ -1,11 +1,10 @@
 package com.fina.b1s.agent;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.client.RestTemplate;
 
+import java.net.http.HttpClient;
 import java.time.Duration;
 
 @Configuration
@@ -13,10 +12,11 @@ import java.time.Duration;
 public class AgentRunConfig {
 
     @Bean
-    public RestTemplate agentRunRestTemplate(RestTemplateBuilder builder, AgentRunProperties properties) {
-        return builder
-                .setConnectTimeout(Duration.ofMillis(timeoutOrDefault(properties.connectTimeoutMs(), 15_000)))
-                .setReadTimeout(Duration.ofMillis(timeoutOrDefault(properties.readTimeoutMs(), 600_000)))
+    public HttpClient agentRunHttpClient(AgentRunProperties properties) {
+        return HttpClient.newBuilder()
+                .connectTimeout(Duration.ofMillis(timeoutOrDefault(properties.connectTimeoutMs(), 15_000)))
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .version(HttpClient.Version.HTTP_1_1)
                 .build();
     }
 

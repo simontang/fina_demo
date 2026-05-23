@@ -8,4 +8,6 @@ public interface MailWorkflowService {
     AgentRunResult dispatchIfOrderIntent(MailMessage mailMessage);
 
     AgentRunResult dispatch(MailMessage mailMessage);
+
+    void dispatchAsyncIfOrderIntent(MailMessage mailMessage);
 }
