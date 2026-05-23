@@ -627,6 +627,7 @@ function mapResult(e: ApiEntry): Record<string, unknown> {
   };
   if (ENTITIES_WITH_LINES.has(e.name)) {
     r.expand = ["DocumentLines", "DocumentAdditionalExpenses"];
+    r.lineFields = ["LineNum", "ItemCode", "ItemDescription", "Quantity", "UnitPrice", "Price", "WarehouseCode", "UoMEntry", "UoMCode", "VatGroup", "Currency", "TaxCode", "PriceAfterVAT"];
   }
   if (e.name === "Items") {
     r.expand = ["ItemPrices", "ItemWarehouseInfoCollection"];
@@ -686,6 +687,8 @@ registerToolLattice(
       "交货": "Document",
       "报价": "Document",
       "草稿": "Document",
+      "draft": "Document",
+      "暂存": "Document",
       "库存": "Inventory / Warehouse",
       "仓库": "Inventory / Warehouse",
       "库位": "Inventory / Warehouse",
@@ -782,6 +785,8 @@ registerToolLattice(
       "执行 SAP B1 Service Layer 的 OData API 查询/创建/更新/删除。" +
       `Base: ${BASE_URL}。` +
       "⚠️ 先确认是否已通过 sap_api_search 查过字段列表，勿凭记忆编字段名。\n" +
+      "⚠️ 草稿/draft/暂存 → 用 Drafts 接口，不是 Orders/Invoices 等正式单据。" +
+      "Drafts 通过 DocObjectCode 区分单据类型(17=订单,13=发票,16=交货单,23=采购订单)。\n" +
       "$filter 操作符: eq/ne/gt/lt/ge/le/contains(f,'v')/startswith(f,'v')/endswith(f,'v')，多条件用 and/or。" +
       "字符串值必须单引号包裹。$orderby=Field desc 排序。\n\n" +
       "⚠️ SAP B1 实战经验:\n" +
@@ -790,8 +795,11 @@ registerToolLattice(
       "2. 不要用主键路径 /Orders('1173')，易 500。用 $filter=DocEntry eq 1173 代替。\n" +
       "3. 查单条记录时优先 $filter，而非传 id 参数。\n" +
       "400 多为特殊字符未编码(引号用 %27)；500 多为字段不存在或用错了 $expand；无结果则放宽 filter。\n" +
-      "POST 创建: body 必含必要字段(DocDate,CardCode 等)；PATCH: 只传变更字段；DELETE: 需传 id。\n" +
-      "GET 自动注入 $select+$top=20，手动传入可覆盖。认证需 SAP_B1SESSION 环境变量。",
+      "POST 创建: sap_api_search 返回的 lineFields 是 DocumentLines 子字段。" +
+      "body 必含 DocObjectCode(DocType)、CardCode、DocDate；DocumentLines 为数组，每项必含 ItemCode、Quantity。" +
+      "PATCH 只传变更字段；DELETE 需传 id。\n" +
+      "GET 自动注入 $select+$top=20，手动传入可覆盖。嵌套集合(DocumentLines等)自动裁剪只保留常用字段，防 token 爆炸。" +
+      "认证需 SAP_B1SESSION 环境变量。",
     needUserApprove: false,
     schema: z.object({
       entitySet: z
@@ -833,7 +841,8 @@ registerToolLattice(
 
     try {
       const res = await fetch(url, fetchOptions);
-      const text = await res.text();
+      const buffer = await res.arrayBuffer();
+      const text = new TextDecoder("utf-8", { fatal: false }).decode(buffer);
 
       let data: unknown;
       try {
@@ -916,16 +925,33 @@ function cleanODataNoise(data: unknown): void {
   delete obj["odata.nextLink"];
 
   if (Array.isArray(obj.value)) {
-    for (const item of obj.value) {
-      if (item && typeof item === "object") {
-        const record = item as Record<string, unknown>;
-        delete record["odata.etag"];
+    for (const record of obj.value) {
+      if (record && typeof record === "object") {
+        trimNestedCollections(record as Record<string, unknown>);
+        delete (record as Record<string, unknown>)["odata.etag"];
       }
     }
   }
 
   for (const v of Object.values(obj)) {
     if (v && typeof v === "object") cleanODataNoise(v);
+  }
+}
+
+function trimNestedCollections(obj: Record<string, unknown>): void {
+  for (const [key, val] of Object.entries(obj)) {
+    if (Array.isArray(val) && EXPAND_FIELDS[key]) {
+      const keep = new Set(EXPAND_FIELDS[key]);
+      for (const item of val) {
+        if (item && typeof item === "object") {
+          const record = item as Record<string, unknown>;
+          for (const k of Object.keys(record)) {
+            if (!keep.has(k)) delete record[k];
+          }
+          cleanODataNoise(item);
+        }
+      }
+    }
   }
 }
 
