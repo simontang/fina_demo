@@ -105,7 +105,7 @@ function AppContent() {
         background: "#ffffff"
       }}>
         <AxiomLoginPage
-          title="Alpha Fina"
+          title="evario.ai"
           logo={<Logo />}
           footer={
             <p style={{ textAlign: "center", marginTop: "20px" }}>

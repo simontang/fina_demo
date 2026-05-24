@@ -41,7 +41,7 @@ export const DataAgentList = () => {
               sidebarDefaultExpanded: true,
               sidebarShowToggle: true,
               sidebarShowNewAnalysis: false,
-              sidebarLogoText: "AlphaFina",
+              sidebarLogoText: "evario.ai",
               sidebarLogoIcon: <Logo width={28} height={28} />,
               assistantId: "new-data-agent",
               showSideMenu: false,

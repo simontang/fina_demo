@@ -95,7 +95,7 @@ function AppContent() {
         background: "#ffffff"
       }}>
         <LoginPage
-          title="Alpha Fina"
+          title="evario.ai"
           logo={<Logo />}
           footer={
             <p style={{ textAlign: "center", marginTop: "20px" }}>
@@ -212,7 +212,7 @@ function AppContent() {
             sidebarDefaultExpanded: true,
             sidebarShowToggle: true,
             sidebarShowNewAnalysis: false,
-            sidebarLogoText: "AlphaFina",
+            sidebarLogoText: "evario.ai",
             sidebarLogoIcon: <Logo width={28} height={28} />,
             // Default agent
             assistantId: "new-data-agent",
