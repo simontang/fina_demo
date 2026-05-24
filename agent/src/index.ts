@@ -79,7 +79,7 @@ import "./agents";
 //   }
 // );
 registerModelLattice(
-  "default",
+  "kimi-k2.6",
 
   {
     model: "kimi-k2.6",
@@ -151,7 +151,7 @@ registerModelLattice(
   }
 );
 registerModelLattice(
-  "qwen3.6-plus",
+  "default",
 
   {
     model: "qwen3.6-plus",
