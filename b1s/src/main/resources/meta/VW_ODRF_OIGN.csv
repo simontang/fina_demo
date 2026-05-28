@@ -1,34 +1,25 @@
 Field ID	Field Name	Description	Type
+generated-VW_ODRF_OIGN-DocEntry	DocEntry	DocEntry	NVARCHAR
 dbf62945-a206-4775-998e-fb38c591a21d	DocNum	Document no. e.g. 1029	INTEGER
 c0f982b1-d22b-4db8-8200-e9c9038de78d	DocDate	Document date e.g. 2025-09-26	TIMESTAMP
-41d6ccb5-ea8c-4908-ad80-3d80ffbe28a6	Comments	Remarks e.g. Sample	NVARCHAR
-99f23750-26a4-47ef-b5cc-e1eb23f6dec5	Ref2	Ref2	NVARCHAR
-ba3974b9-59dc-41ad-954d-49b5a98ad70a	BaseType	Base object type code	INTEGER
-18417550-c1c7-4314-bd90-c1c0140871cc	BaseEntry	Base document internal ID	INTEGER
-56d9fb63-fe49-46dd-8cdd-2a11fb0bdd48	BaseLine	Base line no.	INTEGER
+generated-VW_ODRF_OIGN-CardCode	CardCode	CardCode	NVARCHAR
+generated-VW_ODRF_OIGN-CardName	CardName	CardName	NVARCHAR
+generated-VW_ODRF_OIGN-SlpCode	SlpCode	SlpCode	NVARCHAR
+generated-VW_ODRF_OIGN-U_YWLX	U_YWLX	U_YWLX	NVARCHAR
+generated-VW_ODRF_OIGN-LineNum	LineNum	LineNum	NVARCHAR
 06808dd3-7234-4977-8f12-638fe76da961	ItemCode	Item code e.g. LM4029PS	NVARCHAR
 c987be99-f8aa-4a78-a733-232d24e28d1b	Dscription	Item name e.g. Inkjet Printer	NVARCHAR
-ce250117-d37a-4033-b0a0-517b5c4178ff	ItmsGrpNam	Item group e.g. 203-Printer	NVARCHAR
-152f14ab-3209-44ab-95ea-9e34e9f7c0ba	WhsCode	Warehouse code e.g. 01	NVARCHAR
-88e0e354-700b-41d7-ae22-7fe68e1ea11c	WhsName	Warehouse name e.g. Main WH	NVARCHAR
 217cf994-f66b-45b4-a273-cc0bae004bd9	Quantity	Quantity e.g. 1;2	DECIMAL
+generated-VW_ODRF_OIGN-WarehouseCode	WarehouseCode	WarehouseCode	NVARCHAR
+generated-VW_ODRF_OIGN-GTotal	GTotal	GTotal	NVARCHAR
+generated-VW_ODRF_OIGN-DiscPrcnt	DiscPrcnt	DiscPrcnt	NVARCHAR
 bbaf0144-8cdb-4893-a8ef-e4853a1ae080	Price	Unit price (excl. tax) e.g. 2310.00	DECIMAL
-8ce6d18a-8b0c-4902-85b9-608188e068f9	LineTotal	Amount (excl. tax) e.g. 2702.70	DECIMAL
 b411dc9a-23d7-4301-b667-be85119d7478	Currency	Currency e.g.:RMB	NVARCHAR
-00f91c19-8212-4ea7-9fcc-c91d6063b5e8	IsLocCurrency	Is local currency e.g. Y-Yes; N-No	VARCHAR
-1b7a8ebc-8178-46b5-9939-af5c2e504083	Project	Project code	NVARCHAR
-8341fb81-f8b4-454e-b008-aa54eb4b91aa	PrjName	Project name e.g. Acme Ltd	NVARCHAR
-4867088b-b789-4224-9086-73aa3f070aa8	OcrCode	Profit center 1 code e.g. A01;A02	NVARCHAR
-1c1d68cc-8a17-49fa-af6a-bafd1bf6c486	CostCenterName1	Profit center 1 name e.g. Sample	NVARCHAR
-5f8b1a05-fb81-4ca9-8cbc-7ade28dafc0c	OcrCode2	Profit center 2 code e.g. D001;D002	NVARCHAR
-c35d4529-86d0-4cf5-9ec9-5bf45a984352	CostCenterName2	Profit center 2 name e.g. Sample	NVARCHAR
-7c6875e4-91de-4137-9814-933166aefbea	OcrCode3	Profit center 3 code e.g. E001;E002	NVARCHAR
-fe622017-6e12-4057-a8d3-14a2e5128ec8	CostCenterName3	Profit center 3 name e.g. Sample	NVARCHAR
-db1adab1-379e-40ce-a765-16008b5e8db5	OcrCode4	Profit center 4 code e.g. B01;B02	NVARCHAR
-41683a5c-f7b2-4973-99a8-c0b8213c3000	CostCenterName4	Profit center 4 name e.g. Sample	NVARCHAR
-795fb869-928d-4471-9ea1-8b60abf61a39	OcrCode5	Profit center 5 code e.g. C19001	NVARCHAR
-d2910a78-d8fb-406d-bdca-2ea2c06bfa4d	CostCenterName5	Profit center 5 name e.g. Sample	NVARCHAR
-2a8ac195-4ad4-4f9d-82ef-d20f082b47c1	Code	Code	NVARCHAR
-0f13b47a-dc06-4784-8d7a-2b954eabc5cd	Category	Category	NVARCHAR
-9045aa0e-68d0-4aae-8e21-8a7d43a2124a	BPLId	BPLId	INTEGER
-c5ba2fe6-1d26-41f3-9d60-ee07a83e409b	BPLName	BPLName	NVARCHAR
+generated-VW_ODRF_OIGN-UoMEntry	UoMEntry	UoMEntry	NVARCHAR
+generated-VW_ODRF_OIGN-UomCode	UomCode	UomCode	NVARCHAR
+generated-VW_ODRF_OIGN-SlpName	SlpName	SlpName	NVARCHAR
+generated-VW_ODRF_OIGN-GroupName	GroupName	GroupName	NVARCHAR
+ce250117-d37a-4033-b0a0-517b5c4178ff	ItmsGrpNam	Item group e.g. 203-Printer	NVARCHAR
+88e0e354-700b-41d7-ae22-7fe68e1ea11c	WhsName	Warehouse name e.g. Main WH	NVARCHAR
+generated-VW_ODRF_OIGN-Region	Region	Region	NVARCHAR
+generated-VW_ODRF_OIGN-Reason	Reason	Reason	NVARCHAR

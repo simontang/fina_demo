@@ -6,65 +6,105 @@
     "description": "Total tax-inclusive amount at the sales order stage. A leading indicator of sales team pipeline and market demand, used to predict future revenue conversion.",
     "data_type": "currency",
     "format": "¥0,0.00",
-
     "default_time_context": {
       "time_dimension": "DocDate",
       "label": "Document Date",
       "granularity": "month",
       "window": "current_month",
-      "supported_grains": ["day", "week", "month", "year"]
+      "supported_grains": [
+        "day",
+        "week",
+        "month",
+        "year"
+      ]
     },
-
     "calculation": {
       "type": "base",
       "sql_expression": "SUM(\"GTotal\")",
       "dependencies": []
     },
-
     "source": {
       "table_view": "VW_ORDR",
       "base_filters": []
     },
-
     "supported_dimensions": [
-      { "dim_id": "org_region",       "field_name": "Region",     "type": "categorical" },
-      { "dim_id": "product_category", "field_name": "ItmsGrpNam", "type": "categorical" },
-      { "dim_id": "sales_person",     "field_name": "SlpName",    "type": "categorical" },
-      { "dim_id": "customer_group",   "field_name": "GroupName",  "type": "categorical" }
+      {
+        "dim_id": "product_category",
+        "field_name": "ItmsGrpNam",
+        "type": "categorical"
+      },
+      {
+        "dim_id": "sales_person",
+        "field_name": "SlpName",
+        "type": "categorical"
+      },
+      {
+        "dim_id": "customer_group",
+        "field_name": "GroupName",
+        "type": "categorical"
+      }
     ],
-
     "behavior_profile": {
       "role": "leading_indicator",
       "analysis_priority": 1
     },
-
     "ai_agent_context": {
-      "synonyms": ["Booking Amount", "Order Value", "Contract Amount", "Tax-inclusive Booking"],
-      "polarity": "positive",
-
-      "thresholds": [
-        { "metric": "mom_growth", "operator": "<", "value": 0,    "level": "warning"  },
-        { "metric": "yoy_growth", "operator": "<", "value": -0.1, "level": "critical" }
+      "synonyms": [
+        "Booking Amount",
+        "Order Value",
+        "Contract Amount",
+        "Tax-inclusive Booking"
       ],
-
+      "polarity": "positive",
+      "thresholds": [
+        {
+          "metric": "mom_growth",
+          "operator": "<",
+          "value": 0,
+          "level": "warning"
+        },
+        {
+          "metric": "yoy_growth",
+          "operator": "<",
+          "value": -0.1,
+          "level": "critical"
+        }
+      ],
       "diagnostic_workflow": {
         "trigger": {
           "any_of": [
-            { "metric": "mom_growth", "operator": "<", "value": 0    },
-            { "metric": "yoy_growth", "operator": "<", "value": -0.1 }
+            {
+              "metric": "mom_growth",
+              "operator": "<",
+              "value": 0
+            },
+            {
+              "metric": "yoy_growth",
+              "operator": "<",
+              "value": -0.1
+            }
           ]
         },
         "actions": [
-          { "type": "compare_metric", "metric": "net_sales_amt",                        "intent": "check_revenue_conversion"           },
-          { "type": "drill_down",     "dimensions": ["org_region", "sales_person"],     "intent": "identify_underperforming_segments"  }
+          {
+            "type": "compare_metric",
+            "metric": "net_sales_amt",
+            "intent": "check_revenue_conversion"
+          },
+          {
+            "type": "drill_down",
+            "dimensions": [
+              "org_region",
+              "sales_person"
+            ],
+            "intent": "identify_underperforming_segments"
+          }
         ],
         "analysis_logic": "backlog_vs_real_decline"
       },
-
       "human_readable_explanation": "When order amount declines, the system automatically compares with Net Sales. If billing is flat but orders drop, backlog is being consumed; if both drop, the system drills down by region and salesperson to locate the loss."
     }
   },
-
   {
     "metric_name": "net_sales_amt",
     "display_name": "Net Sales (Tax Inclusive)",
@@ -72,62 +112,91 @@
     "description": "Total tax-inclusive amount of issued AR invoices; represents recognized book revenue. Compare with order amount to assess backlog consumption.",
     "data_type": "currency",
     "format": "¥0,0.00",
-
     "default_time_context": {
       "time_dimension": "DocDate",
       "label": "Document Date",
       "granularity": "month",
       "window": "current_month",
-      "supported_grains": ["day", "week", "month", "year"]
+      "supported_grains": [
+        "day",
+        "week",
+        "month",
+        "year"
+      ]
     },
-
     "calculation": {
       "type": "base",
       "sql_expression": "SUM(\"GTotal\")",
       "dependencies": []
     },
-
     "source": {
       "table_view": "VW_OINV",
       "base_filters": []
     },
-
     "supported_dimensions": [
-      { "dim_id": "org_region",       "field_name": "Region",     "type": "categorical" },
-      { "dim_id": "sales_person",     "field_name": "SlpName",    "type": "categorical" },
-      { "dim_id": "product_category", "field_name": "ItmsGrpNam", "type": "categorical" },
-      { "dim_id": "customer_group",   "field_name": "GroupName",  "type": "categorical" }
+      {
+        "dim_id": "org_region",
+        "field_name": "Region",
+        "type": "categorical"
+      },
+      {
+        "dim_id": "sales_person",
+        "field_name": "SlpName",
+        "type": "categorical"
+      },
+      {
+        "dim_id": "product_category",
+        "field_name": "ItmsGrpNam",
+        "type": "categorical"
+      },
+      {
+        "dim_id": "customer_group",
+        "field_name": "GroupName",
+        "type": "categorical"
+      }
     ],
-
     "behavior_profile": {
       "role": "lagging_indicator",
       "analysis_priority": 1
     },
-
     "ai_agent_context": {
-      "synonyms": ["Billing Amount", "Invoice Amount", "Net Revenue", "Revenue"],
-      "polarity": "positive",
-
-      "thresholds": [
-        { "metric": "mom_growth", "operator": "<", "value": -0.1, "level": "critical" }
+      "synonyms": [
+        "Billing Amount",
+        "Invoice Amount",
+        "Net Revenue",
+        "Revenue"
       ],
-
+      "polarity": "positive",
+      "thresholds": [
+        {
+          "metric": "mom_growth",
+          "operator": "<",
+          "value": -0.1,
+          "level": "critical"
+        }
+      ],
       "diagnostic_workflow": {
         "trigger": {
           "any_of": [
-            { "metric": "mom_growth", "operator": "<", "value": -0.1 }
+            {
+              "metric": "mom_growth",
+              "operator": "<",
+              "value": -0.1
+            }
           ]
         },
         "actions": [
-          { "type": "compare_metric", "metric": "order_amt_tax_inc", "intent": "check_backlog_vs_real_decline" }
+          {
+            "type": "compare_metric",
+            "metric": "order_amt_tax_inc",
+            "intent": "check_backlog_vs_real_decline"
+          }
         ],
         "analysis_logic": "billing_vs_booking_gap"
       },
-
       "human_readable_explanation": "When net sales drop, the system compares with order amount: if orders are stable but billing drops, delivery or invoicing is delayed; if both drop, demand is declining."
     }
   },
-
   {
     "metric_name": "delivery_qty",
     "display_name": "Delivery Quantity",
@@ -135,61 +204,84 @@
     "description": "Total units shipped via delivery documents (goods issue). Measures supply chain fulfillment throughput and warehouse load.",
     "data_type": "number",
     "format": "0,0",
-
     "default_time_context": {
       "time_dimension": "DocDate",
       "label": "Delivery Date",
       "granularity": "day",
       "window": "last_7_days",
-      "supported_grains": ["day", "week", "month", "year"]
+      "supported_grains": [
+        "day",
+        "week",
+        "month",
+        "year"
+      ]
     },
-
     "calculation": {
       "type": "base",
       "sql_expression": "SUM(\"Quantity\")",
       "dependencies": []
     },
-
     "source": {
       "table_view": "VW_ODLN",
       "base_filters": []
     },
-
     "supported_dimensions": [
-      { "dim_id": "ship_date",        "field_name": "ShipDate",   "type": "datetime"    },
-      { "dim_id": "warehouse",        "field_name": "WhsName",    "type": "categorical" },
-      { "dim_id": "product_category", "field_name": "ItmsGrpNam", "type": "categorical" }
+      {
+        "dim_id": "warehouse",
+        "field_name": "WhsName",
+        "type": "categorical"
+      },
+      {
+        "dim_id": "product_category",
+        "field_name": "ItmsGrpNam",
+        "type": "categorical"
+      }
     ],
-
     "behavior_profile": {
       "role": "operational_throughput",
       "analysis_priority": 3
     },
-
     "ai_agent_context": {
-      "synonyms": ["Shipped Units", "Shipment Qty", "Goods Issue Qty", "Delivery Volume"],
-      "polarity": "positive",
-
-      "thresholds": [
-        { "metric": "mom_growth", "operator": "<", "value": -0.1, "level": "warning" }
+      "synonyms": [
+        "Shipped Units",
+        "Shipment Qty",
+        "Goods Issue Qty",
+        "Delivery Volume"
       ],
-
+      "polarity": "positive",
+      "thresholds": [
+        {
+          "metric": "mom_growth",
+          "operator": "<",
+          "value": -0.1,
+          "level": "warning"
+        }
+      ],
       "diagnostic_workflow": {
         "trigger": {
           "any_of": [
-            { "metric": "mom_growth", "operator": "<", "value": -0.1 }
+            {
+              "metric": "mom_growth",
+              "operator": "<",
+              "value": -0.1
+            }
           ]
         },
         "actions": [
-          { "type": "drill_down", "dimensions": ["warehouse", "product_category"], "intent": "identify_bottleneck_warehouse_or_category" }
+          {
+            "type": "drill_down",
+            "dimensions": [
+              "warehouse",
+              "product_category"
+            ],
+            "intent": "identify_bottleneck_warehouse_or_category"
+          }
         ],
         "analysis_logic": "fulfillment_bottleneck_check"
       },
-
       "human_readable_explanation": "When delivery quantity drops abnormally, the system drills down by warehouse and category to find whether a single warehouse is overloaded or a key product is out of stock."
     }
   },
-
   {
     "metric_name": "return_amt",
     "display_name": "Return Amount",
@@ -197,62 +289,94 @@
     "description": "Tax-inclusive amount of customer return documents. High values indicate product quality issues, over-commitment, or logistics damage.",
     "data_type": "currency",
     "format": "¥0,0.00",
-
     "default_time_context": {
       "time_dimension": "DocDate",
       "label": "Return Date",
       "granularity": "month",
       "window": "current_month",
-      "supported_grains": ["day", "week", "month", "year"]
+      "supported_grains": [
+        "day",
+        "week",
+        "month",
+        "year"
+      ]
     },
-
     "calculation": {
       "type": "base",
       "sql_expression": "SUM(\"GTotal\")",
       "dependencies": []
     },
-
     "source": {
       "table_view": "VW_ORDN",
       "base_filters": []
     },
-
     "supported_dimensions": [
-      { "dim_id": "return_reason",    "field_name": "Reason",     "type": "categorical" },
-      { "dim_id": "customer_name",    "field_name": "CardName",   "type": "categorical" },
-      { "dim_id": "product_category", "field_name": "ItmsGrpNam", "type": "categorical" }
+      {
+        "dim_id": "return_reason",
+        "field_name": "Reason",
+        "type": "categorical"
+      },
+      {
+        "dim_id": "customer_name",
+        "field_name": "CardName",
+        "type": "categorical"
+      },
+      {
+        "dim_id": "product_category",
+        "field_name": "ItmsGrpNam",
+        "type": "categorical"
+      }
     ],
-
     "behavior_profile": {
       "role": "risk_indicator",
       "analysis_priority": 1
     },
-
     "ai_agent_context": {
-      "synonyms": ["Return Value", "Refund Amount", "Returned Amount"],
-      "polarity": "negative",
-
-      "thresholds": [
-        { "metric": "mom_growth", "operator": ">", "value": 0.2, "level": "critical" }
+      "synonyms": [
+        "Return Value",
+        "Refund Amount",
+        "Returned Amount"
       ],
-
+      "polarity": "negative",
+      "thresholds": [
+        {
+          "metric": "mom_growth",
+          "operator": ">",
+          "value": 0.2,
+          "level": "critical"
+        }
+      ],
       "diagnostic_workflow": {
         "trigger": {
           "any_of": [
-            { "metric": "mom_growth", "operator": ">", "value": 0.2 }
+            {
+              "metric": "mom_growth",
+              "operator": ">",
+              "value": 0.2
+            }
           ]
         },
         "actions": [
-          { "type": "drill_down", "dimensions": ["return_reason"], "intent": "find_root_cause_of_returns"   },
-          { "type": "drill_down", "dimensions": ["customer_name"], "intent": "check_customer_churn_risk"    }
+          {
+            "type": "drill_down",
+            "dimensions": [
+              "return_reason"
+            ],
+            "intent": "find_root_cause_of_returns"
+          },
+          {
+            "type": "drill_down",
+            "dimensions": [
+              "customer_name"
+            ],
+            "intent": "check_customer_churn_risk"
+          }
         ],
         "analysis_logic": "quality_vs_expectation_gap"
       },
-
       "human_readable_explanation": "A sharp rise in return amount is a serious risk event. The system prioritizes return-reason analysis and cross-checks by customer to prevent churn due to poor experience."
     }
   },
-
   {
     "metric_name": "avg_ticket_size_per_customer",
     "display_name": "Average Ticket Size per Customer",
@@ -260,61 +384,82 @@
     "description": "Average tax-inclusive order total per distinct customer in a period. Measures customer purchasing power and cross-sell effectiveness.",
     "data_type": "currency",
     "format": "¥0,0.00",
-
     "default_time_context": {
       "time_dimension": "DocDate",
       "label": "Document Date",
       "granularity": "month",
       "window": "current_quarter",
-      "supported_grains": ["day", "week", "month", "year"]
+      "supported_grains": [
+        "day",
+        "week",
+        "month",
+        "year"
+      ]
     },
-
     "calculation": {
       "type": "derived",
       "sql_expression": "SUM(\"GTotal\") / COUNT(DISTINCT \"CardCode\")",
       "dependencies": []
     },
-
     "source": {
       "table_view": "VW_ORDR",
       "base_filters": []
     },
-
     "supported_dimensions": [
-      { "dim_id": "customer_group", "field_name": "GroupName", "type": "categorical" },
-      { "dim_id": "sales_person",   "field_name": "SlpName",   "type": "categorical" },
-      { "dim_id": "org_region",     "field_name": "Region",    "type": "categorical" }
+      {
+        "dim_id": "customer_group",
+        "field_name": "GroupName",
+        "type": "categorical"
+      },
+      {
+        "dim_id": "sales_person",
+        "field_name": "SlpName",
+        "type": "categorical"
+      }
     ],
-
     "behavior_profile": {
       "role": "efficiency_indicator",
       "analysis_priority": 2
     },
-
     "ai_agent_context": {
-      "synonyms": ["ARPU", "Ticket Size", "Avg Spend per Customer"],
-      "polarity": "positive",
-
-      "thresholds": [
-        { "metric": "yoy_growth", "operator": "<", "value": -0.05, "level": "warning" }
+      "synonyms": [
+        "ARPU",
+        "Ticket Size",
+        "Avg Spend per Customer"
       ],
-
+      "polarity": "positive",
+      "thresholds": [
+        {
+          "metric": "yoy_growth",
+          "operator": "<",
+          "value": -0.05,
+          "level": "warning"
+        }
+      ],
       "diagnostic_workflow": {
         "trigger": {
           "any_of": [
-            { "metric": "yoy_growth", "operator": "<", "value": -0.05 }
+            {
+              "metric": "yoy_growth",
+              "operator": "<",
+              "value": -0.05
+            }
           ]
         },
         "actions": [
-          { "type": "drill_down", "dimensions": ["customer_group"], "intent": "analyze_purchasing_power_shift" }
+          {
+            "type": "drill_down",
+            "dimensions": [
+              "customer_group"
+            ],
+            "intent": "analyze_purchasing_power_shift"
+          }
         ],
         "analysis_logic": "customer_wallet_share_analysis"
       },
-
       "human_readable_explanation": "A drop in ticket size may mean customer downgrade or budget shift to competitors. The system drills down by customer group (e.g. key accounts vs. standard) to see if new low-value customers dilute the average or core customers are buying less."
     }
   },
-
   {
     "metric_name": "avg_selling_price",
     "display_name": "Average Selling Price (ASP)",
@@ -322,60 +467,83 @@
     "description": "Average tax-inclusive price per unit sold. Used to monitor price discipline and product premium capability.",
     "data_type": "currency",
     "format": "¥0,0.00",
-
     "default_time_context": {
       "time_dimension": "DocDate",
       "label": "Document Date",
       "granularity": "month",
       "window": "current_month",
-      "supported_grains": ["day", "week", "month", "year"]
+      "supported_grains": [
+        "day",
+        "week",
+        "month",
+        "year"
+      ]
     },
-
     "calculation": {
       "type": "derived",
       "sql_expression": "SUM(\"GTotal\") / NULLIF(SUM(\"Quantity\"), 0)",
       "dependencies": []
     },
-
     "source": {
       "table_view": "VW_ORDR",
       "base_filters": []
     },
-
     "supported_dimensions": [
-      { "dim_id": "product_category", "field_name": "ItmsGrpNam", "type": "categorical" },
-      { "dim_id": "product_item",     "field_name": "Dscription", "type": "categorical" }
+      {
+        "dim_id": "product_category",
+        "field_name": "ItmsGrpNam",
+        "type": "categorical"
+      },
+      {
+        "dim_id": "product_item",
+        "field_name": "Dscription",
+        "type": "categorical"
+      }
     ],
-
     "behavior_profile": {
       "role": "profitability_driver",
       "analysis_priority": 2
     },
-
     "ai_agent_context": {
-      "synonyms": ["ASP", "Unit Price", "Avg Price", "Price per Unit"],
-      "polarity": "positive",
-
-      "thresholds": [
-        { "metric": "mom_growth", "operator": "<", "value": -0.08, "level": "warning" }
+      "synonyms": [
+        "ASP",
+        "Unit Price",
+        "Avg Price",
+        "Price per Unit"
       ],
-
+      "polarity": "positive",
+      "thresholds": [
+        {
+          "metric": "mom_growth",
+          "operator": "<",
+          "value": -0.08,
+          "level": "warning"
+        }
+      ],
       "diagnostic_workflow": {
         "trigger": {
           "any_of": [
-            { "metric": "mom_growth", "operator": "<", "value": -0.08 }
+            {
+              "metric": "mom_growth",
+              "operator": "<",
+              "value": -0.08
+            }
           ]
         },
         "actions": [
-          { "type": "drill_down", "dimensions": ["product_category"], "intent": "check_sales_mix_variance" }
+          {
+            "type": "drill_down",
+            "dimensions": [
+              "product_category"
+            ],
+            "intent": "check_sales_mix_variance"
+          }
         ],
         "analysis_logic": "price_drop_vs_mix_shift"
       },
-
       "human_readable_explanation": "When ASP drops, the system drills down by category to distinguish proactive price promotion from mix shift (low-price lines selling more and pulling down the average)."
     }
   },
-
   {
     "metric_name": "avg_discount_rate",
     "display_name": "Discount Rate",
@@ -383,75 +551,117 @@
     "description": "Average discount given at order close. Monitoring this helps prevent excessive discounting and margin leakage.",
     "data_type": "percentage",
     "format": "0.00%",
-
     "default_time_context": {
       "time_dimension": "DocDate",
       "label": "Document Date",
       "granularity": "month",
       "window": "current_month",
-      "supported_grains": ["day", "week", "month", "year"]
+      "supported_grains": [
+        "day",
+        "week",
+        "month",
+        "year"
+      ]
     },
-
     "calculation": {
       "type": "base",
       "sql_expression": "AVG(\"DiscPrcnt\") / 100",
       "dependencies": []
     },
-
     "source": {
       "table_view": "VW_ORDR",
       "base_filters": [
-        { "field": "DiscPrcnt", "operator": "not_null" }
+        {
+          "field": "DiscPrcnt",
+          "operator": "not_null"
+        }
       ]
     },
-
     "supported_dimensions": [
       {
-        "dim_id": "sales_person", "field_name": "SlpName", "type": "categorical",
-        "filter_operators": ["IN", "EQ", "NEQ"],
-        "filter_example": { "dimension": "sales_person", "operator": "EQ", "values": ["John Smith"] },
+        "dim_id": "sales_person",
+        "field_name": "SlpName",
+        "type": "categorical",
+        "filter_operators": [
+          "IN",
+          "EQ",
+          "NEQ"
+        ],
+        "filter_example": {
+          "dimension": "sales_person",
+          "operator": "EQ",
+          "values": [
+            "John Smith"
+          ]
+        },
         "group_by_example": "sales_person"
       },
       {
-        "dim_id": "customer_group", "field_name": "GroupName", "type": "categorical",
-        "filter_operators": ["IN", "EQ", "NEQ"],
-        "filter_example": { "dimension": "customer_group", "operator": "IN", "values": ["VIP Customer"] },
+        "dim_id": "customer_group",
+        "field_name": "GroupName",
+        "type": "categorical",
+        "filter_operators": [
+          "IN",
+          "EQ",
+          "NEQ"
+        ],
+        "filter_example": {
+          "dimension": "customer_group",
+          "operator": "IN",
+          "values": [
+            "VIP Customer"
+          ]
+        },
         "group_by_example": "customer_group"
-      },
-      {
-        "dim_id": "org_region", "field_name": "Region", "type": "categorical",
-        "filter_operators": ["IN", "EQ", "NEQ"],
-        "filter_example": { "dimension": "org_region", "operator": "IN", "values": ["East China", "South China"] },
-        "group_by_example": "org_region"
       }
     ],
-
     "behavior_profile": {
       "role": "margin_leakage_detector",
       "analysis_priority": 1
     },
-
     "ai_agent_context": {
-      "synonyms": ["Discount %", "Concession Rate", "Discount Level"],
-      "polarity": "negative",
-
-      "thresholds": [
-        { "metric": "absolute_value", "operator": ">", "value": 0.15, "level": "warning"  },
-        { "metric": "absolute_value", "operator": ">", "value": 0.25, "level": "critical" }
+      "synonyms": [
+        "Discount %",
+        "Concession Rate",
+        "Discount Level"
       ],
-
+      "polarity": "negative",
+      "thresholds": [
+        {
+          "metric": "absolute_value",
+          "operator": ">",
+          "value": 0.15,
+          "level": "warning"
+        },
+        {
+          "metric": "absolute_value",
+          "operator": ">",
+          "value": 0.25,
+          "level": "critical"
+        }
+      ],
       "diagnostic_workflow": {
         "trigger": {
           "any_of": [
-            { "metric": "absolute_value", "operator": ">", "value": 0.15 }
+            {
+              "metric": "absolute_value",
+              "operator": ">",
+              "value": 0.15
+            }
           ]
         },
         "actions": [
-          { "type": "drill_down", "dimensions": ["sales_person", "org_region"], "intent": "identify_rogue_discounting" }
+          {
+            "type": "drill_down",
+            "dimensions": [
+              "sales_person",
+              "org_region"
+            ],
+            "intent": "identify_rogue_discounting"
+          }
         ],
         "analysis_logic": "discount_ROI_evaluation"
       },
-
       "human_readable_explanation": "An abnormal rise in discount rate is a margin alert. The system drills down by region and salesperson to find where discounting is heaviest for management to evaluate volume-vs-price trade-off."
     }
   }

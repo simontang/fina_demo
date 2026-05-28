@@ -1,61 +1,25 @@
 Field ID	Field Name	Description	Type
-ca9808e4-b88c-44aa-b898-9e1ea8173fe0	DocNum	Return doc no. e.g. 1029	INTEGER
 9f645a52-90c4-4ca1-a0b1-19109f777276	DocEntry	Internal ID e.g. 1029	INTEGER
+ca9808e4-b88c-44aa-b898-9e1ea8173fe0	DocNum	Return doc no. e.g. 1029	INTEGER
 17c120c5-f9a3-4d62-8aaa-1dba4ce13f1f	DocDate	Document date e.g. 2024-05-30	TIMESTAMP
-1ea425ef-5d2f-4978-8d8a-ad61243a7b82	DocStatus	Document status e.g. O-Open; C-Closed	NVARCHAR
-4f82b733-551f-42e9-902b-24bc6980ed92	DocType	Document type e.g. I-Item; S-Service	NVARCHAR
-0a3625d1-81cb-42e2-98a4-8bdbeb2fa9af	ObjType	Object type e.g. 16-Sales Return	NVARCHAR
 2951c369-f880-4704-b3f4-6b9a47baf99b	CardCode	Customer code e.g. C19001	NVARCHAR
 0cf8c87b-3b6c-4bc9-9540-c61064484ec7	CardName	Customer name e.g. Acme Ltd	NVARCHAR
-13baf555-ccea-4d83-9a2f-d4cc410033df	GroupName	Customer group e.g. Key Account; SMB; Standard	NVARCHAR
-61201fe6-8a58-413c-91be-831576ea81e5	Province	Province e.g. Guangdong	NVARCHAR
-d405552f-225c-4c0d-9bdf-268a3dbd029b	Region	Region e.g. South China	NVARCHAR
-d56ddde6-ba94-43aa-9a7f-255299890f65	DocCur	Currency e.g. RMB; USD; EUR	NVARCHAR
-4db58f07-095e-4c17-bae6-a2f5c82e0926	IsLocCurrency	Is local currency e.g. Y-Yes; N-No	VARCHAR
-494eda63-8ae8-4975-87cd-4767bedf6cb6	DocRate	Exchange rate e.g. 7.9076; 1.0000	DECIMAL
-48eea274-8f0c-46c3-b358-f1e3b1cbea2a	DiscPrcnt	Document discount e.g. 2	DECIMAL
-d5e31cd5-cff5-4741-908a-48ab332de706	SlpName	Salesperson e.g. John Smith	NVARCHAR
+generated-VW_ORDN-SlpCode	SlpCode	SlpCode	NVARCHAR
+generated-VW_ORDN-U_YWLX	U_YWLX	U_YWLX	NVARCHAR
 29aa8250-2036-4be2-a625-2cb6e333b960	LineNum	Line no. e.g. 0; 1; 2	INTEGER
-73d033cb-e7f3-4bf4-84ed-b3d0baf4c264	LineStatus	Line status e.g. O-Open; C-Closed	NVARCHAR
-d3e6c014-9752-4f8f-9974-c9a83795b890	BaseType	Base object type e.g. 15-Delivery; 234000031-Return request	INTEGER
-02458b26-0db9-4c87-9862-99f3abad8747	BaseEntry	Base doc no. e.g. 1034	INTEGER
-63c6ed55-7373-44b0-8fc3-289db79b2bff	BaseLine	Base line no. e.g. 0; 1; 2	INTEGER
 3d417f0f-e476-46f1-9065-76c87a274be5	ItemCode	Item code e.g. A00002；C00005	NVARCHAR
-1faf1afe-ef43-4108-a27e-af7daf810fbd	SubCatNum	BP catalog no. e.g. 10080910	NVARCHAR
 634b7455-7182-4360-aef0-eb2ee38e5eab	Dscription	Item description e.g. IBM Infoprint 1222 Inkjet Printer	NVARCHAR
-8d78bdf1-c4fe-4526-80e0-b7ead56f2d82	AcctCode	Account code e.g. 55020408	NVARCHAR
-090f0048-113e-4177-9a77-a889b64572dd	AcctName	Account name e.g. Admin-Office-Other	NVARCHAR
-6d18231f-1b03-4dfb-b994-2c306af950c3	ItmsGrpNam	Item group e.g. 203-Printer; 202-Standard	NVARCHAR
 99a576be-2a65-4b13-bd69-f5d103843dc8	Quantity	Return quantity e.g. -12	DECIMAL
-835887d0-1f68-421e-aa1b-c2c69afce432	OpenCreQty	Open quantity e.g. 2	DECIMAL
-8de81310-d8a7-4bea-8fcf-42fee3698a39	WhsCode	Warehouse code e.g. 01	NVARCHAR
-6fafc882-8db7-4e98-9977-4ea2b505b431	WhsName	Warehouse name e.g. Main WH; Aux WH	NVARCHAR
-a46c7803-c139-4492-80bd-a3488f83133e	ShipDate	Delivery date e.g. 2024-05-30	TIMESTAMP
-321ae914-9268-410c-974a-4d9772acad10	VatGroup	Tax code e.g. X1; X2	NVARCHAR
-95baf646-ab18-4a00-8b77-04babd76e9ed	VatPrcnt	VAT rate e.g. 13.0000; 6.0000	DECIMAL
-f2d73f30-9e3d-40f7-8375-4a0fd2db4052	Currency	Line currency e.g. RMB; USD; EUR	NVARCHAR
-60db6e9d-8e1f-4e4a-ba79-16f3ec1a5d05	LineIsLocCurrency	Is local currency e.g. Y-Yes; N-No	VARCHAR
-555db99d-1f5e-4f87-a3ee-ea6482649ddc	Rate	Line exchange rate e.g. 7.9076; 1.0000	DECIMAL
-7ee7fee8-29a8-4485-8a39-4f394b6f5797	Price	Price excl. VAT e.g. 2310.00	DECIMAL
-03e4c713-30c6-45e3-9f07-6a266ca2d9c9	PriceAfVAT	Price incl. VAT e.g. 2310.00	DECIMAL
-75386391-ace8-42fe-9beb-10d9ff1a6056	LineTotal	Amount excl. VAT e.g. -2702.70	DECIMAL
+generated-VW_ORDN-WarehouseCode	WarehouseCode	WarehouseCode	NVARCHAR
 ebdad91a-832c-4d18-b1da-e232cd128084	GTotal	Amount incl. VAT e.g. -23100.00	DECIMAL
-fee251cb-a846-44a1-b93f-f9ba99c104bd	TotalFrgn	Amount FC excl. VAT e.g. -3281.25	DECIMAL
-0a8b64fb-7602-465d-8c4e-5a99aa29d7a8	GTotalFC	Amount FC incl. VAT e.g. -3281.25	DECIMAL
+48eea274-8f0c-46c3-b358-f1e3b1cbea2a	DiscPrcnt	Document discount e.g. 2	DECIMAL
+7ee7fee8-29a8-4485-8a39-4f394b6f5797	Price	Price excl. VAT e.g. 2310.00	DECIMAL
+f2d73f30-9e3d-40f7-8375-4a0fd2db4052	Currency	Line currency e.g. RMB; USD; EUR	NVARCHAR
+generated-VW_ORDN-UoMEntry	UoMEntry	UoMEntry	NVARCHAR
+generated-VW_ORDN-UomCode	UomCode	UomCode	NVARCHAR
+d5e31cd5-cff5-4741-908a-48ab332de706	SlpName	Salesperson e.g. John Smith	NVARCHAR
+13baf555-ccea-4d83-9a2f-d4cc410033df	GroupName	Customer group e.g. Key Account; SMB; Standard	NVARCHAR
+6d18231f-1b03-4dfb-b994-2c306af950c3	ItmsGrpNam	Item group e.g. 203-Printer; 202-Standard	NVARCHAR
+6fafc882-8db7-4e98-9977-4ea2b505b431	WhsName	Warehouse name e.g. Main WH; Aux WH	NVARCHAR
+d405552f-225c-4c0d-9bdf-268a3dbd029b	Region	Region e.g. South China	NVARCHAR
 be71624f-acf8-46c3-879b-d46f325d2ba9	Reason	Return reason e.g. Quality out of spec	NVARCHAR
-98e1dcab-4ede-466d-9815-5164110b5410	Project	Project code e.g. SPI-C23900	NVARCHAR
-f91712e6-b51a-420c-80a3-d94efd8b8631	PrjName	Project name e.g. Maxi-Teq Server Install	NVARCHAR
-a2e31ffb-7342-4bcf-ab31-ca378a9e533a	OcrCode	Cost center 1 code e.g. A01；A02	NVARCHAR
-ea0c2a3a-1648-4c4f-a0b1-a17233e9b668	CostCenterName1	Cost center 1 name e.g. Region 1; Region 2	NVARCHAR
-771f1546-ea54-43a8-8dca-756052cecd47	OcrCode2	Cost center 2 code e.g. D001; D002	NVARCHAR
-7ae16157-ad59-4f4f-8e13-6a32a91202f2	CostCenterName2	Cost center 2 name e.g. Finance; Sales	NVARCHAR
-faac258a-5b96-41a3-befc-5d8e0b671348	OcrCode3	Cost center 3 code e.g. E001; E002	NVARCHAR
-2fb3262a-13d2-440f-aa19-91b13d629568	CostCenterName3	Cost center 3 name e.g. Team A; Team B	NVARCHAR
-6a9938f6-a17b-41f5-ac5a-9b41f9e9d544	OcrCode4	Cost center 4 code e.g. B01; B02	NVARCHAR
-ab554c35-d56d-4db9-907c-3e048e1a6edf	CostCenterName4	Cost center 4 name e.g. Product Line 1; 2	NVARCHAR
-9d18daf7-04a0-4257-a8cd-42e88ada3a23	OcrCode5	Cost center 5 code e.g. C19001	NVARCHAR
-3a2bf4b6-abc8-4331-8b19-6d65c7933f04	CostCenterName5	Cost center 5 name e.g. Acme Ltd	NVARCHAR
-3c48deb1-1a45-4640-a8e7-38537864ea50	Code	Period e.g. 2024-05	NVARCHAR
-c6ab093c-6ee2-4ec2-b0d4-2bb0335a5095	Category	Fiscal year e.g. 2024	NVARCHAR
-653fc464-95dc-4929-9f69-dabadbf380b1	BPLId	Branch code e.g. 3; 4	INTEGER
-e9a947cf-edaa-4b7f-b550-6f2cc6a2d8f0	BPLName	Branch name e.g. Branch A; Branch B	NVARCHAR

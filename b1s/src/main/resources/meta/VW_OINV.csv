@@ -1,61 +1,25 @@
 Field ID	Field Name	Description	Type
-e3e1f7cc-5b47-4c8f-8052-5036f5a034fc	DocNum	AR invoice no. e.g. 1029	INTEGER
 840dbecd-59bd-42c5-9327-2d8727dee78f	DocEntry	Internal ID e.g. 1029	INTEGER
+e3e1f7cc-5b47-4c8f-8052-5036f5a034fc	DocNum	AR invoice no. e.g. 1029	INTEGER
 7fa748af-6c2a-431a-be13-ef62a1950bd4	DocDate	Document date e.g. 2024-05-30	TIMESTAMP
-ee922e6f-ccd8-40f9-a1cc-831328b2bfb4	DocStatus	Document status e.g. O-Open; C-Closed	NVARCHAR
-4bb06953-0dc3-48cb-8364-3361b63fc949	DocType	Document type e.g. I-Item; S-Service	NVARCHAR
-e5c9556b-66a1-4439-bbeb-b0a763857c74	ObjType	Object type e.g. 13-AR Invoice	NVARCHAR
-5ccc8d3b-86ef-4c3b-8bec-cfeaa505c764	NumAtCard	BP reference e.g. 3893791879123523	NVARCHAR
 16868aa4-eaa9-4038-a589-ed12702dcc9b	CardCode	Customer code e.g. C19001	NVARCHAR
 61759ad0-1af8-4867-9b6d-01230d737b1b	CardName	Customer name e.g. Acme Ltd	NVARCHAR
-c65f55e4-b85b-4dc0-878e-7990ac7b9792	GroupName	Customer group e.g. Key Account; SMB; Standard	NVARCHAR
-fde5e547-3af8-4c8b-a665-6f94668166aa	Province	Province e.g. Guangdong	NVARCHAR
-8763cdd3-0676-4ee9-8ba6-299564a5e129	Region	Region e.g. South China	NVARCHAR
-ee22a406-304f-41a6-9045-40cdcd9ee174	DocCur	Document currency e.g. RMB; USD; EUR	NVARCHAR
-08f0e739-5d60-418b-88eb-00ae4dbf4389	IsLocCurrency	Is local currency e.g. Y-Yes; N-No	VARCHAR
-759a0282-00d8-491d-bd34-7c6364b7ef27	DocRate	Exchange rate e.g. 7.9076; 1.0000	DECIMAL
-dfe4aeaa-13bf-4acc-8d5a-381f7bc846ce	DiscPrcnt	Document discount e.g. 2	DECIMAL
-714ef98c-8ffb-4451-af91-0a10c6d72cc7	SlpName	Salesperson e.g. John Smith	NVARCHAR
+generated-VW_OINV-SlpCode	SlpCode	SlpCode	NVARCHAR
+generated-VW_OINV-U_YWLX	U_YWLX	U_YWLX	NVARCHAR
 b6c497ec-9f9b-4b74-b5b6-cfcd0b2b4947	LineNum	Line no. e.g. 0; 1; 2	INTEGER
-c250a5e4-e895-4bc5-b513-8e008eeec17b	LineStatus	Line status e.g. O-Open; C-Closed	NVARCHAR
-3846417c-0f06-42ce-bec9-b7612d522229	BaseType	Base object type e.g. 23-Quotation; 17-Order; 15-Delivery; -1-None	INTEGER
-b5d8ddf9-5a4c-48b6-9ed4-4c4e521301a9	BaseEntry	Base doc no. e.g. 1034	INTEGER
-eeac5cd2-7c6d-460f-9e14-1a1f6fbc6a8d	BaseLine	Base line no. e.g. 0; 1; 2	INTEGER
 2c53baea-5737-4731-9cef-73b7de21b6fa	ItemCode	Item code e.g. A00002；C00005	NVARCHAR
-269c1135-05aa-4dde-9f60-309de0417616	SubCatNum	BP catalog no. e.g. 10080910	NVARCHAR
 af129677-807e-4c0e-ae51-97648ba5ae67	Dscription	Item description e.g. IBM Infoprint 1222 Inkjet Printer	NVARCHAR
-1675ba55-20a0-469a-a21c-27834d1c03eb	AcctCode	Account code e.g. 55020408	NVARCHAR
-7a6c6437-b86f-4ffc-81b0-2e4c503fc883	AcctName	Account name e.g. Admin-Office-Other	NVARCHAR
-5e16ef9e-e854-40a3-adc7-e8da86abf8a9	ItmsGrpNam	Item group e.g. 203-Printer; 202-Standard	NVARCHAR
 2d342de6-b7a8-4282-b815-8f7d0480aeb9	Quantity	Invoice quantity e.g. 12	DECIMAL
-77b4fdf7-a66b-42b3-a90a-33b7a81bec7e	OpenCreQty	Open quantity e.g. 2	DECIMAL
-6e4fa000-4a5d-4649-a811-2c079aa5d9f5	WhsCode	Warehouse code e.g. 01	NVARCHAR
-6a32f0e0-9055-427b-9a14-c609899a4e8c	WhsName	Warehouse name e.g. Main WH; Aux WH	NVARCHAR
-926dfc60-31de-4e78-827c-70ed7eb7b7bc	ShipDate	Delivery date e.g. 2024-05-30	TIMESTAMP
-e7b4eba5-9cf6-4b74-a3f5-2a89663f2758	VatGroup	Tax code e.g. X1; X2	NVARCHAR
-35da91ef-8f9f-426f-85a3-f06d677221e6	VatPrcnt	VAT rate e.g. 13.0000; 6.0000	DECIMAL
-1b8d51b2-857b-4299-bdd5-df6fac8bef5c	Currency	Line currency e.g. RMB; USD; EUR	NVARCHAR
-5c410b48-2f6c-4e03-a209-6e26d88adb94	LineIsLocCurrency	Is local currency e.g. Y-Yes; N-No	VARCHAR
-692b7f15-7798-4aea-9ed6-0d6176713c26	Rate	Line exchange rate e.g. 7.9076; 1.0000	DECIMAL
-80d5a713-b181-4801-8a86-4bf09f841b3c	Price	Price excl. VAT e.g. 2310.00	DECIMAL
-467385de-f156-4c2f-a563-ed3266a16a0f	PriceAfVAT	Price incl. VAT e.g. 2310.00	DECIMAL
-0f6d3346-be9f-48a1-95f6-c65b0b98c8fc	LineTotal	Amount excl. VAT e.g. 2702.70	DECIMAL
+generated-VW_OINV-WarehouseCode	WarehouseCode	WarehouseCode	NVARCHAR
 5a4fbced-d289-4cd8-b47b-ea993a1b4287	GTotal	Amount incl. VAT e.g. 23100.00	DECIMAL
-a28e1ede-e3cd-4eb8-b4df-aa15271d56a4	TotalFrgn	Amount FC excl. VAT e.g. 3281.25	DECIMAL
-a9a2c3f2-203b-414d-ab89-39c061d32973	GTotalFC	Amount FC incl. VAT e.g. 3281.25	DECIMAL
-3be6e9ab-0df5-4fd5-a668-43b64922aade	Project	Project code e.g. SPI-C23900	NVARCHAR
-f31aa5a0-e37b-43a7-8d69-74bd4a287616	PrjName	Project name e.g. Maxi-Teq Server Install	NVARCHAR
-eb28965d-768f-49ea-b579-088d407ea414	OcrCode	Cost center 1 code e.g. A01；A02	NVARCHAR
-7f0e2aa5-886e-4eed-82ee-1d3e1c82ee64	CostCenterName1	Cost center 1 name e.g. Region 1; Region 2	NVARCHAR
-8cefa73d-e72a-4459-8612-e751660037e4	OcrCode2	Cost center 2 code e.g. D001; D002	NVARCHAR
-23432841-66b2-47a7-b1b6-64ca2c5b583f	CostCenterName2	Cost center 2 name e.g. Finance; Sales	NVARCHAR
-22b6dde6-f5b5-47e0-a693-92d484b555a7	OcrCode3	Cost center 3 code e.g. E001; E002	NVARCHAR
-d132b2fb-e983-4cda-8f3c-6a9f072d3ffd	CostCenterName3	Cost center 3 name e.g. Team A; Team B	NVARCHAR
-7780d6b1-e250-4ff3-921a-43e2e3b5e1f2	OcrCode4	Cost center 4 code e.g. B01; B02	NVARCHAR
-ab164522-8c0c-4e20-822d-e904097703fd	CostCenterName4	Cost center 4 name e.g. Product Line 1; 2	NVARCHAR
-b48afb38-c51c-4dde-816a-046d676046d4	OcrCode5	Cost center 5 code e.g. C19001	NVARCHAR
-5e753a67-e5b1-4aaa-93bf-3e083c46703a	CostCenterName5	Cost center 5 name e.g. Acme Ltd	NVARCHAR
-181295e3-001d-4593-a4c3-9788b5cbb59f	Code	Period e.g. 2024-05	NVARCHAR
-3adf5a6b-0945-40c5-b4cf-8a91bf0030c5	Category	Fiscal year e.g. 2024	NVARCHAR
-3d62801b-8368-4285-ba3a-e165bcacaeea	BPLId	Branch code e.g. 3; 4	INTEGER
-11408a3a-e7d9-4b55-91c4-eba0ec387939	BPLName	Branch name e.g. Branch A; Branch B	NVARCHAR
+dfe4aeaa-13bf-4acc-8d5a-381f7bc846ce	DiscPrcnt	Document discount e.g. 2	DECIMAL
+80d5a713-b181-4801-8a86-4bf09f841b3c	Price	Price excl. VAT e.g. 2310.00	DECIMAL
+1b8d51b2-857b-4299-bdd5-df6fac8bef5c	Currency	Line currency e.g. RMB; USD; EUR	NVARCHAR
+generated-VW_OINV-UoMEntry	UoMEntry	UoMEntry	NVARCHAR
+generated-VW_OINV-UomCode	UomCode	UomCode	NVARCHAR
+714ef98c-8ffb-4451-af91-0a10c6d72cc7	SlpName	Salesperson e.g. John Smith	NVARCHAR
+c65f55e4-b85b-4dc0-878e-7990ac7b9792	GroupName	Customer group e.g. Key Account; SMB; Standard	NVARCHAR
+5e16ef9e-e854-40a3-adc7-e8da86abf8a9	ItmsGrpNam	Item group e.g. 203-Printer; 202-Standard	NVARCHAR
+6a32f0e0-9055-427b-9a14-c609899a4e8c	WhsName	Warehouse name e.g. Main WH; Aux WH	NVARCHAR
+8763cdd3-0676-4ee9-8ba6-299564a5e129	Region	Region e.g. South China	NVARCHAR
+generated-VW_OINV-Reason	Reason	Reason	NVARCHAR

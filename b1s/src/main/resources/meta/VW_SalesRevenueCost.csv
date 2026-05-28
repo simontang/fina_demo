@@ -1,39 +1,25 @@
-Field ID		Field Name	Description	Type
-0a29a647-fbb3-4270-95d1-d51af12246d2		DocType	Document type e.g. I-Item; S-Service	NVARCHAR
-d46186b4-ba6d-4f37-a7e9-4ee688472cf5		DocNum	Document number e.g. 89	INTEGER
-ff487a51-7a24-455e-bb0f-b13ceb857b89		CardCode	Customer code e.g. C19001	NVARCHAR
-0d0bdd5d-49b9-4576-97f2-e42b3bfd7fbf		CardName	Customer name e.g. Acme Ltd	NVARCHAR
-3b42d02f-a7e6-4bc3-af85-c3778b958cd1		GroupName	Customer group e.g. Key Account; SMB; Standard	NVARCHAR
-24e5b570-bc26-41d1-8ab6-9151c2c2e4af		Province	Province e.g. Guangdong	NVARCHAR
-c4df7815-738f-4d25-a405-76b0302634d9		Region	Region e.g. South China	NVARCHAR
-fcadfa2b-ec54-4baf-bfc4-f3235df9fe05		NumAtCard	BP reference e.g. 2025102308092	NVARCHAR
-d6529cb6-6a9d-4365-9288-b79369b537f4		SlpName	Salesperson e.g. John Smith	NVARCHAR
-7bf12e5a-3ce9-4ca9-8be0-181d9903d7e6		Comments	Comments e.g. Based On Sales Quotations 1. Based On Sales Orders 1. Based On Deliveries 1.	NVARCHAR
-f1e893ef-358e-41ea-b456-8f554c01fa05		BaseType	Base object type e.g. 23-Quotation; 17-Order; 15-Delivery; -1-None	INTEGER
-0c50d716-73bd-43b8-93a9-64109c21e8b0		BaseEntry	Base doc no. e.g. 1034	INTEGER
-6d9b4b05-bb9c-45c8-87a1-bab967fbfbe9		BaseLine	Base line no. e.g. 0; 1; 2	INTEGER
-3f91ca31-b171-43be-9ade-eec0c9918f9b		SONumber	Sales order no. e.g. 1290	INTEGER
-fa7ee9f3-af48-416e-aee3-804e4d8cf482		ItemCode	Item code e.g. A00002; C00005	NVARCHAR
-4648ca80-5d93-47cf-8ce1-12ff44f999ad		Dscription	Item description e.g. IBM Infoprint 1222 Inkjet Printer	NVARCHAR
-4f1d6520-17bd-438e-a887-536d866b260b		ItmsGrpNam	Item group e.g. 203-Printer; 202-Standard	NVARCHAR
-832044ec-5e70-4f1e-a6bc-fa6336378d79		LineTotal	Line total excl. VAT e.g. 23100.00	DECIMAL
-1fa939f5-9fdc-46f1-8b2c-53ae2459739f		SalesCost	Cost of goods issued e.g. 16100.00	DECIMAL
-325a5a7f-158e-49a3-a60c-baa7fbbf7d33		Project	Project code e.g. SPI-C23900	NVARCHAR
-f29b042c-df50-4545-a30d-c243531f55d8		PrjName	Project name e.g. Maxi-Teq Server Install	NVARCHAR
-c2979cc2-5861-4016-8810-7c46bb7c2d9d		OcrCode	Cost center 1 code e.g. A01; A02	NVARCHAR
-cf0a86d5-98e9-48f8-85f4-450f55b79bad		CostCenterName1	Cost center 1 name e.g. Region 1; Region 2	NVARCHAR
-b34089e4-4247-482f-b760-113efe0f493c		OcrCode2	Cost center 2 code e.g. D001; D002	NVARCHAR
-378dcdbe-5804-4200-b2d8-b8bd75862eb9		CostCenterName2	Cost center 2 name e.g. Finance; Sales	NVARCHAR
-41eac782-2e11-4031-8ac8-762c36f44788		OcrCode3	Cost center 3 code e.g. E001; E002	NVARCHAR
-4052fed8-73be-4880-a8b5-429a6392ee29		CostCenterName3	Cost center 3 name e.g. Team A; Team B	NVARCHAR
-79c219eb-810a-4da5-90b8-47f1b0b310fd		OcrCode4	Cost center 4 code e.g. B01; B02	NVARCHAR
-610b0f84-fee5-4f78-aa0c-ca4fbfa414c6		CostCenterName4	Cost center 4 name e.g. Product Line 1; 2	NVARCHAR
-3718c9af-6b81-474a-972c-8d2acf300b6a		OcrCode5	Cost center 5 code e.g. C19001	NVARCHAR
-eedf5e35-2f86-416a-ba51-e6b8d210e369		CostCenterName5	Cost center 5 name e.g. Acme Ltd	NVARCHAR
-0db16434-8edd-4945-b319-cf8b9274f39d		Code	Period e.g. 2024-05	NVARCHAR
-84d6786d-8719-4c1c-881b-834089a2494f		Category	Fiscal year e.g. 2024	NVARCHAR
-9c71c443-e0cb-41c7-b47e-ee4dfc2976d6		BPLId	Branch code e.g. 3; 4	INTEGER
-ebe5e239-cf3d-4e88-8f36-bbd1b50d7007		BPLName	Branch name e.g. Branch A; Branch B	NVARCHAR
-6c1fd64a-2a9c-4af0-af31-83ba60baeff0		TransType	Document transaction type e.g. Direct AR invoice entry	NVARCHAR
-be3fe45f-ea22-46b8-8d37-6f672deef9c3		SODocDate	Sales order date	TIMESTAMP
-c5b99c53-224d-4946-ac6f-9c5885c30b50		isIns	Is reserved invoice e.g. Y-Yes; N-No	NVARCHAR
+Field ID	Field Name	Description	Type
+generated-VW_SalesRevenueCost-DocEntry	DocEntry	DocEntry	NVARCHAR
+generated-VW_SalesRevenueCost-DocNum	DocNum	DocNum	NVARCHAR
+generated-VW_SalesRevenueCost-DocDate	DocDate	DocDate	NVARCHAR
+generated-VW_SalesRevenueCost-CardCode	CardCode	CardCode	NVARCHAR
+generated-VW_SalesRevenueCost-CardName	CardName	CardName	NVARCHAR
+generated-VW_SalesRevenueCost-SlpCode	SlpCode	SlpCode	NVARCHAR
+generated-VW_SalesRevenueCost-U_YWLX	U_YWLX	U_YWLX	NVARCHAR
+generated-VW_SalesRevenueCost-LineNum	LineNum	LineNum	NVARCHAR
+generated-VW_SalesRevenueCost-ItemCode	ItemCode	ItemCode	NVARCHAR
+generated-VW_SalesRevenueCost-Dscription	Dscription	Dscription	NVARCHAR
+generated-VW_SalesRevenueCost-Quantity	Quantity	Quantity	NVARCHAR
+generated-VW_SalesRevenueCost-WarehouseCode	WarehouseCode	WarehouseCode	NVARCHAR
+generated-VW_SalesRevenueCost-GTotal	GTotal	GTotal	NVARCHAR
+generated-VW_SalesRevenueCost-DiscPrcnt	DiscPrcnt	DiscPrcnt	NVARCHAR
+generated-VW_SalesRevenueCost-Price	Price	Price	NVARCHAR
+generated-VW_SalesRevenueCost-Currency	Currency	Currency	NVARCHAR
+generated-VW_SalesRevenueCost-UoMEntry	UoMEntry	UoMEntry	NVARCHAR
+generated-VW_SalesRevenueCost-UomCode	UomCode	UomCode	NVARCHAR
+generated-VW_SalesRevenueCost-SlpName	SlpName	SlpName	NVARCHAR
+generated-VW_SalesRevenueCost-GroupName	GroupName	GroupName	NVARCHAR
+generated-VW_SalesRevenueCost-ItmsGrpNam	ItmsGrpNam	ItmsGrpNam	NVARCHAR
+generated-VW_SalesRevenueCost-WhsName	WhsName	WhsName	NVARCHAR
+generated-VW_SalesRevenueCost-Region	Region	Region	NVARCHAR
+generated-VW_SalesRevenueCost-Reason	Reason	Reason	NVARCHAR
