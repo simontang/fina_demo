@@ -49,7 +49,7 @@ public class ViewTranslationServiceImpl implements ViewTranslationService {
     private String replaceLogicalViews(String sql) {
         String translated = sql;
         for (Map.Entry<String, String> entry : translations.entrySet()) {
-            Pattern pattern = Pattern.compile("(?i)\\b(FROM|JOIN)\\s+\\[" + Pattern.quote(entry.getKey()) + "\\](?:\\s+(?:AS\\s+)?([A-Za-z_][A-Za-z0-9_]*|\\[[A-Za-z_][A-Za-z0-9_]*]))?");
+            Pattern pattern = Pattern.compile("(?i)\\b(FROM|JOIN)\\s+\\[" + Pattern.quote(entry.getKey()) + "\\](?:\\s+(?:AS\\s+)?(?!(?:WHERE|GROUP|ORDER|HAVING|LIMIT|JOIN|LEFT|RIGHT|INNER|FULL|CROSS|ON|UNION)\\b)([A-Za-z_][A-Za-z0-9_]*|\\[[A-Za-z_][A-Za-z0-9_]*]))?");
             Matcher matcher = pattern.matcher(translated);
             StringBuffer out = new StringBuffer();
             while (matcher.find()) {
