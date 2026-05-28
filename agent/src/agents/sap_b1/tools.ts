@@ -53,6 +53,7 @@ const API_LIST: ApiEntry[] = [
       "CardCode", "CardName", "CardType", "GroupCode", "Currency",
       "Phone1", "Phone2", "EmailAddress", "Address", "City", "Country",
       "SalesPersonCode", "PriceListNum", "CreditLimit",
+      "CurrentAccountBalance", "OpenOrdersBalance", "OpenDeliveryNotesBalance",
       "PayTermsGrpCode", "VatGroup", "VatLiable", "FederalTaxID",
       "Valid", "Frozen", "CompanyPrivate", "CreateDate", "CreateTime", "UpdateDate", "UpdateTime",
       "BPAddresses", "ContactEmployees",
