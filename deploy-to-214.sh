@@ -173,7 +173,7 @@ get_compose_service_name() {
             echo "prediction_app"
             ;;
         "$SERVICE_3")
-            echo "ai_web"
+            echo "ai_web_fina ai_web_evario"
             ;;
         "$SERVICE_4")
             echo "metrics_server"
@@ -235,6 +235,15 @@ deploy_to_server() {
         log_success "docker-compose.yml 上传成功"
     else
         log_error "docker-compose.yml 上传失败"
+        return 1
+    fi
+
+    log_info "上传 configs/ 目录到服务器..."
+    ssh $DEPLOY_USER@$DEPLOY_HOST "mkdir -p $DEPLOY_PATH/configs"
+    if scp -r configs/* $DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/configs/; then
+        log_success "configs/ 目录上传成功"
+    else
+        log_error "configs/ 目录上传失败"
         return 1
     fi
 
