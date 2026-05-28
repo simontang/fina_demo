@@ -49,12 +49,17 @@ public class ViewTranslationServiceImpl implements ViewTranslationService {
     private String replaceLogicalViews(String sql) {
         String translated = sql;
         for (Map.Entry<String, String> entry : translations.entrySet()) {
-            Pattern pattern = Pattern.compile("(?i)\\b(FROM|JOIN)\\s+\\[" + Pattern.quote(entry.getKey()) + "\\]");
+            Pattern pattern = Pattern.compile("(?i)\\b(FROM|JOIN)\\s+\\[" + Pattern.quote(entry.getKey()) + "\\](?:\\s+(?:AS\\s+)?([A-Za-z_][A-Za-z0-9_]*|\\[[A-Za-z_][A-Za-z0-9_]*]))?");
             Matcher matcher = pattern.matcher(translated);
             StringBuffer out = new StringBuffer();
             while (matcher.find()) {
                 String clause = matcher.group(1);
-                matcher.appendReplacement(out, Matcher.quoteReplacement(clause + " " + entry.getValue()));
+                String alias = matcher.group(2);
+                String replacement = entry.getValue();
+                if (StringUtils.hasText(alias)) {
+                    replacement = replaceTranslationAlias(replacement, normalizeAlias(alias));
+                }
+                matcher.appendReplacement(out, Matcher.quoteReplacement(clause + " " + replacement));
             }
             matcher.appendTail(out);
             translated = out.toString();
@@ -97,6 +102,17 @@ public class ViewTranslationServiceImpl implements ViewTranslationService {
                 + "LEFT JOIN [OITM] i ON l.[ItemCode] = i.[ItemCode] "
                 + "LEFT JOIN [OITB] ig ON i.[ItmsGrpCod] = ig.[ItmsGrpCod] "
                 + "LEFT JOIN [OWHS] wh ON l.[WhsCode] = wh.[WhsCode]) AS [" + alias + "]";
+    }
+
+    private static String normalizeAlias(String alias) {
+        if (alias.startsWith("[") && alias.endsWith("]")) {
+            return alias.substring(1, alias.length() - 1);
+        }
+        return alias;
+    }
+
+    private static String replaceTranslationAlias(String translation, String alias) {
+        return translation.replaceFirst("(?is)\\)\\s+AS\\s+\\[[A-Za-z_][A-Za-z0-9_]*]\\s*$", ") AS [" + alias + "]");
     }
 
     private static String translateDateFormats(String sql) {
