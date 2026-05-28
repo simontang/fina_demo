@@ -1,4 +1,5 @@
 import React from "react";
+import { getAppConfig } from "../config";
 
 export interface LogoProps {
     width?: number;
@@ -11,6 +12,7 @@ export const Logo: React.FC<LogoProps> = ({
     height = 48,
     className = "",
 }) => {
+    const { logoFilename } = getAppConfig();
     return (
         <div
             style={{
@@ -25,7 +27,7 @@ export const Logo: React.FC<LogoProps> = ({
             }}
         >
             <img
-                src="./logo.png"
+                src={`./${logoFilename}`}
                 alt="Logo"
                 width={width}
                 height={height}

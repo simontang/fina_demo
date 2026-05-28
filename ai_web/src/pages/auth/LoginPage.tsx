@@ -15,6 +15,7 @@ import { getBaseAPIPath } from "../../getBaseAPIPath";
 import Logo from "../../components/Logo";
 import { useNavigate } from "react-router";
 import { setToken, setUser, clearAuth } from "../../utils/sessionStorage";
+import { getAppConfig } from "../../config";
 
 // Create theme with custom primary color
 const customTheme = generateTheme("#5b50c6");
@@ -105,7 +106,7 @@ function AppContent() {
         background: "#ffffff"
       }}>
         <AxiomLoginPage
-          title="evario.ai"
+          title={getAppConfig().appName}
           logo={<Logo />}
           footer={
             <p style={{ textAlign: "center", marginTop: "20px" }}>

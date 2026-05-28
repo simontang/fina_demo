@@ -13,6 +13,7 @@ import { generateTheme } from "./theme";
 import "antd/dist/reset.css";
 import { getBaseAPIPath } from "./getBaseAPIPath";
 import Logo from "./components/Logo";
+import { getAppConfig } from "./config";
 
 // Create theme with custom primary color
 const customTheme = generateTheme("#5b50c6");
@@ -95,7 +96,7 @@ function AppContent() {
         background: "#ffffff"
       }}>
         <LoginPage
-          title="evario.ai"
+          title={getAppConfig().appName}
           logo={<Logo />}
           footer={
             <p style={{ textAlign: "center", marginTop: "20px" }}>
@@ -212,7 +213,7 @@ function AppContent() {
             sidebarDefaultExpanded: true,
             sidebarShowToggle: true,
             sidebarShowNewAnalysis: false,
-            sidebarLogoText: "evario.ai",
+            sidebarLogoText: getAppConfig().appName,
             sidebarLogoIcon: <Logo width={28} height={28} />,
             // Default agent
             assistantId: "new-data-agent",

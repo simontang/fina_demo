@@ -5,6 +5,7 @@ import { TOKEN_KEY } from "../../../authProvider";
 import { getCurrentTenant } from "../../../utils/sessionStorage";
 import Logo from "../../../components/Logo";
 import ProjectTemplatesPortal from "../../../components/agent-templates/ProjectTemplatesPortal";
+import { getAppConfig } from "../../../config";
 
 const baseURL = getBaseAPIPath();
 
@@ -41,7 +42,7 @@ export const DataAgentList = () => {
               sidebarDefaultExpanded: true,
               sidebarShowToggle: true,
               sidebarShowNewAnalysis: false,
-              sidebarLogoText: "evario.ai",
+              sidebarLogoText: getAppConfig().appName,
               sidebarLogoIcon: <Logo width={28} height={28} />,
               assistantId: "new-data-agent",
               showSideMenu: false,

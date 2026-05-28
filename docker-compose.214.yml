@@ -89,10 +89,24 @@ services:
       - "127.0.0.1:5704:5704"
     restart: unless-stopped
 
-  ai_web:
+  ai_web_fina:
     image: ${VOLCANO_REGISTRY:-finai-cn-shanghai.cr.volces.com}/default/fina-demo-ai-web:latest
     depends_on:
       - agent
+    volumes:
+      - ./configs/fina/config.json:/usr/share/nginx/html/config.json
+      - ./configs/fina/logo.png:/usr/share/nginx/html/logo.png
     ports:
       - "127.0.0.1:5701:5701"
+    restart: unless-stopped
+
+  ai_web_evario:
+    image: ${VOLCANO_REGISTRY:-finai-cn-shanghai.cr.volces.com}/default/fina-demo-ai-web:latest
+    depends_on:
+      - agent
+    volumes:
+      - ./configs/evario/config.json:/usr/share/nginx/html/config.json
+      - ./configs/evario/logo.png:/usr/share/nginx/html/logo.png
+    ports:
+      - "127.0.0.1:5711:5701"
     restart: unless-stopped

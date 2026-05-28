@@ -101,12 +101,28 @@ services:
       - "5705:5705"
     restart: unless-stopped
 
-  ai_web:
+  ai_web_fina:
     build:
       context: ./ai_web
       dockerfile: Dockerfile
     depends_on:
       - agent
+    volumes:
+      - ./configs/fina/config.json:/usr/share/nginx/html/config.json
+      - ./configs/fina/logo.png:/usr/share/nginx/html/logo.png
     ports:
       - "5701:5701"
+    restart: unless-stopped
+
+  ai_web_evario:
+    build:
+      context: ./ai_web
+      dockerfile: Dockerfile
+    depends_on:
+      - agent
+    volumes:
+      - ./configs/evario/config.json:/usr/share/nginx/html/config.json
+      - ./configs/evario/logo.png:/usr/share/nginx/html/logo.png
+    ports:
+      - "5711:5701"
     restart: unless-stopped
