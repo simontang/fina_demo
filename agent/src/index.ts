@@ -3,7 +3,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
-import { PostgreSQLAssistantStore, PostgreSQLThreadStore, PostgreSQLDatabaseConfigStore, PostgreSQLWorkspaceStore, PostgreSQLProjectStore, PostgreSQLUserStore, PostgreSQLTenantStore, PostgreSQLUserTenantLinkStore, PostgreSQLMetricsServerConfigStore, PostgreSQLMcpServerConfigStore, PostgreSQLScheduleStorage, PostgreSQLWorkflowTrackingStore, ThreadMessageQueueStore } from "@axiom-lattice/pg-stores";
+import { PostgreSQLAssistantStore, PostgreSQLThreadStore, PostgreSQLDatabaseConfigStore, PostgreSQLWorkspaceStore, PostgreSQLProjectStore, PostgreSQLUserStore, PostgreSQLTenantStore, PostgreSQLUserTenantLinkStore, PostgreSQLMetricsServerConfigStore, PostgreSQLMcpServerConfigStore, PostgreSQLScheduleStorage, PostgreSQLWorkflowTrackingStore, ThreadMessageQueueStore, PostgreSQLEvalStore } from "@axiom-lattice/pg-stores";
 import { Pool } from "pg";
 import {
   ScheduleType,
@@ -325,6 +325,15 @@ const workflowTrackingStore = new PostgreSQLWorkflowTrackingStore({
 storeLatticeManager.removeLattice("default", "workflowTracking");
 registerStoreLattice("default", "workflowTracking", workflowTrackingStore);
 console.log("PostgreSQL WorkflowTrackingStore initialized with auto-migration");
+
+// Initialize and register PostgreSQL EvalStore
+const evalStore = new PostgreSQLEvalStore({
+  poolConfig: process.env.DATABASE_URL || "",
+  autoMigrate: true,
+});
+storeLatticeManager.removeLattice("default", "eval");
+registerStoreLattice("default", "eval", evalStore);
+console.log("PostgreSQL EvalStore initialized with auto-migration");
 
 // Initialize and register PostgreSQL ThreadMessageQueueStore
 const messageQueueStore = ThreadMessageQueueStore.getInstance();
