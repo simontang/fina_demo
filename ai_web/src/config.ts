@@ -7,7 +7,7 @@ let _config: AppConfig = { appName: "evario.ai", logoFilename: "logo.png" };
 
 export async function loadAppConfig(): Promise<AppConfig> {
   try {
-    const res = await fetch("/config.json");
+    const res = await fetch("/admin/config.json");
     if (res.ok) {
       _config = await res.json();
     }
