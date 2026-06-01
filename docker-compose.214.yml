@@ -62,6 +62,7 @@ services:
       MICROSANDBOX_SERVICE_BASE_URL: ${MICROSANDBOX_SERVICE_BASE_URL:-http://38.76.211.27:4002}
       MICROSANDBOX_API_KEY: ${MICROSANDBOX_API_KEY:-qwertyuiop1234567890}
       MICROSANDBOX_MEMORY: ${MICROSANDBOX_MEMORY:-1024}
+      MICROSANDBOX_IMAGE: ${MICROSANDBOX_IMAGE:-kioko12520/sandbox:0.1.0}
     volumes:
       - ./uploads:/app/uploads
       - ./lattice_store:/app/lattice_store
