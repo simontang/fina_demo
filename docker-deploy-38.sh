@@ -85,6 +85,16 @@ deploy() {
         return 1
     fi
 
+    # 1.5. 上传 configs 目录
+    if [[ -d configs ]]; then
+        log_info "上传 configs 目录到服务器..."
+        if scp -r configs "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"; then
+            log_success "configs 目录上传成功"
+        else
+            log_warning "configs 目录上传失败，使用服务器现有配置"
+        fi
+    fi
+
     # 2. 上传 .env 文件
     local env_file_to_upload=""
     if [[ -n "$ENV_FILE" ]]; then
