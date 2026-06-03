@@ -163,6 +163,8 @@ public class MailWorkflowServiceImpl implements MailWorkflowService {
             return mailMessage.getAgentMessage();
         }
         StringBuilder sb = new StringBuilder();
+        appendSection(sb, "Mail From", mailMessage.getFromAddress());
+        appendSection(sb, "Mail To", mailMessage.getToAddresses());
         appendSection(sb, "Mail Subject", mailMessage.getSubject());
         appendSection(sb, "Mail Body", mailMessage.getBodyText());
         appendSection(sb, "Purchase Order Summary", mailMessage.getPurchaseOrderSummary());
