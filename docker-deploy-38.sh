@@ -225,7 +225,11 @@ main() {
         exit 0
     fi
 
-    deploy "${services[@]}"
+    if [[ ${#services[@]} -gt 0 ]]; then
+        deploy "${services[@]}"
+    else
+        deploy
+    fi
 
     echo
     log_success "所有操作完成！"
