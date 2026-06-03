@@ -3,7 +3,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
-import { PostgreSQLAssistantStore, PostgreSQLThreadStore, PostgreSQLDatabaseConfigStore, PostgreSQLWorkspaceStore, PostgreSQLProjectStore, PostgreSQLUserStore, PostgreSQLTenantStore, PostgreSQLUserTenantLinkStore, PostgreSQLMetricsServerConfigStore, PostgreSQLMcpServerConfigStore, PostgreSQLScheduleStorage, PostgreSQLWorkflowTrackingStore, ThreadMessageQueueStore, PostgreSQLEvalStore } from "@axiom-lattice/pg-stores";
+import { PostgreSQLAssistantStore, PostgreSQLThreadStore, PostgreSQLDatabaseConfigStore, PostgreSQLWorkspaceStore, PostgreSQLProjectStore, PostgreSQLUserStore, PostgreSQLTenantStore, PostgreSQLUserTenantLinkStore, PostgreSQLMetricsServerConfigStore, PostgreSQLMcpServerConfigStore, PostgreSQLScheduleStorage, PostgreSQLWorkflowTrackingStore, ThreadMessageQueueStore, PostgreSQLEvalStore, PostgreSQLChannelInstallationStore, ChannelBindingStore } from "@axiom-lattice/pg-stores";
 import { Pool } from "pg";
 import {
   ScheduleType,
@@ -344,6 +344,24 @@ const messageQueuePool = new Pool({ connectionString: process.env.DATABASE_URL }
   registerStoreLattice("default", "threadMessageQueue", messageQueueStore);
   console.log("PostgreSQL ThreadMessageQueueStore initialized with auto-migration");
 })();
+
+// Initialize and register PostgreSQL ChannelInstallationStore
+const channelInstallationStore = new PostgreSQLChannelInstallationStore({
+  poolConfig: process.env.DATABASE_URL || "",
+  autoMigrate: true,
+});
+storeLatticeManager.removeLattice("default", "channelInstallation");
+registerStoreLattice("default", "channelInstallation", channelInstallationStore);
+console.log("PostgreSQL ChannelInstallationStore initialized with auto-migration");
+
+// Initialize and register ChannelBindingStore
+const channelBindingStore = new ChannelBindingStore({
+  poolConfig: process.env.DATABASE_URL || "",
+  autoMigrate: true,
+});
+storeLatticeManager.removeLattice("default", "channelBinding");
+registerStoreLattice("default", "channelBinding", channelBindingStore);
+console.log("ChannelBindingStore initialized with auto-migration");
 
 // Auth configuration
 const AUTH_CONFIG = {
