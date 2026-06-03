@@ -13,14 +13,13 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AgentRunClientImplTest {
@@ -41,61 +40,18 @@ class AgentRunClientImplTest {
     }
 
     @Test
-    void runStreamingReturnsAfterHeadersWithoutWaitingForSseBody() throws Exception {
+    void runPostsInboundPayloadWithBearerAuth() throws Exception {
         AtomicReference<String> requestBody = new AtomicReference<>();
         AtomicReference<String> authorization = new AtomicReference<>();
+        AtomicReference<String> tenantHeader = new AtomicReference<>();
         startServer(exchange -> {
             requestBody.set(readRequestBody(exchange));
             authorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
-            exchange.getResponseHeaders().add("Content-Type", "text/event-stream");
-            exchange.sendResponseHeaders(200, 0);
-            try (OutputStream out = exchange.getResponseBody()) {
-                out.write("data: started\n\n".getBytes(StandardCharsets.UTF_8));
-                out.flush();
-                try {
-                    Thread.sleep(1500);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-        });
-
-        AgentRunClientImpl client = new AgentRunClientImpl(
-                HttpClient.newHttpClient(),
-                properties("http://127.0.0.1:" + server.getAddress().getPort(), true),
-                new ObjectMapper());
-
-        AgentRunRequest request = AgentRunRequest.builder()
-                .assistantId("assistant-1")
-                .threadId("thread-1")
-                .message("hello")
-                .streaming(true)
-                .background(null)
-                .build();
-
-        long start = System.nanoTime();
-        AgentRunResult result = client.run(request);
-        long elapsedMs = Duration.ofNanos(System.nanoTime() - start).toMillis();
-
-        assertTrue(result.sent());
-        assertEquals("200", result.status());
-        assertNotNull(result.rawResponse());
-        assertTrue(result.rawResponse().contains("\"contentType\":\"text/event-stream\""));
-        assertTrue(elapsedMs < 1000, "streaming call should return after headers");
-        assertNotNull(requestBody.get());
-        assertNotNull(authorization.get());
-        assertTrue(requestBody.get().contains("\"assistant_id\":\"assistant-1\""));
-        assertTrue(requestBody.get().contains("\"streaming\":true"));
-        assertEquals("Bearer test-token", authorization.get());
-    }
-
-    @Test
-    void runNonStreamingExtractsRunIdFromJsonBody() throws Exception {
-        startServer(exchange -> {
-            String body = "{\"id\":\"run-123\",\"status\":\"queued\"}";
+            tenantHeader.set(exchange.getRequestHeaders().getFirst("x-tenant-id"));
+            String body = "{\"accepted\":true}";
             exchange.getResponseHeaders().add("Content-Type", "application/json");
             byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-            exchange.sendResponseHeaders(200, bytes.length);
+            exchange.sendResponseHeaders(202, bytes.length);
             try (OutputStream out = exchange.getResponseBody()) {
                 out.write(bytes);
             }
@@ -103,23 +59,62 @@ class AgentRunClientImplTest {
 
         AgentRunClientImpl client = new AgentRunClientImpl(
                 HttpClient.newHttpClient(),
-                properties("http://127.0.0.1:" + server.getAddress().getPort(), false),
+                properties("http://127.0.0.1:" + server.getAddress().getPort()),
                 new ObjectMapper());
 
-        AgentRunRequest request = AgentRunRequest.builder()
-                .assistantId("assistant-1")
-                .threadId("thread-1")
-                .message("hello")
-                .streaming(false)
-                .background(false)
+        AgentInboundRequest request = AgentInboundRequest.builder()
+                .channel("email")
+                .channelInstallationId("0f13c809-86bb-410b-ac8e-946be7772ba6")
+                .tenantId("tenant_2")
+                .sender(new AgentInboundRequest.Sender("sender@example.com"))
+                .content(new AgentInboundRequest.Content("hello"))
                 .build();
 
         AgentRunResult result = client.run(request);
 
         assertTrue(result.sent());
-        assertEquals("200", result.status());
-        assertEquals("run-123", result.runId());
-        assertTrue(result.rawResponse().contains("\"status\":\"queued\""));
+        assertEquals("202", result.status());
+        assertTrue(result.rawResponse().contains("\"accepted\":true"));
+        assertTrue(requestBody.get().contains("\"channel\":\"email\""));
+        assertTrue(requestBody.get().contains("\"channelInstallationId\":\"0f13c809-86bb-410b-ac8e-946be7772ba6\""));
+        assertTrue(requestBody.get().contains("\"tenantId\":\"tenant_2\""));
+        assertTrue(requestBody.get().contains("\"sender\":{\"id\":\"sender@example.com\"}"));
+        assertTrue(requestBody.get().contains("\"content\":{\"text\":\"hello\"}"));
+        assertEquals("Bearer test-token", authorization.get());
+        assertNull(tenantHeader.get());
+    }
+
+    @Test
+    void runReturnsFailureForNon2xxResponse() throws Exception {
+        startServer(exchange -> {
+            String body = "{\"error\":\"upstream failed\"}";
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(504, bytes.length);
+            try (OutputStream out = exchange.getResponseBody()) {
+                out.write(bytes);
+            }
+        });
+
+        AgentRunClientImpl client = new AgentRunClientImpl(
+                HttpClient.newHttpClient(),
+                properties("http://127.0.0.1:" + server.getAddress().getPort()),
+                new ObjectMapper());
+
+        AgentInboundRequest request = AgentInboundRequest.builder()
+                .channel("email")
+                .channelInstallationId("0f13c809-86bb-410b-ac8e-946be7772ba6")
+                .tenantId("tenant_2")
+                .sender(new AgentInboundRequest.Sender("sender@example.com"))
+                .content(new AgentInboundRequest.Content("hello"))
+                .build();
+
+        AgentRunResult result = client.run(request);
+
+        assertFalse(result.sent());
+        assertEquals("504", result.status());
+        assertNull(result.runId());
+        assertTrue(result.rawResponse().contains("\"error\":\"upstream failed\""));
         assertFalse(result.rawResponse().isBlank());
     }
 
@@ -132,7 +127,7 @@ class AgentRunClientImplTest {
             return thread;
         });
         server.setExecutor(executor);
-        server.createContext("/api/runs", handler);
+        server.createContext("/api/channels/inbound", handler);
         server.start();
     }
 
@@ -140,18 +135,13 @@ class AgentRunClientImplTest {
         return new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
     }
 
-    private AgentRunProperties properties(String baseUrl, boolean streaming) {
+    private AgentRunProperties properties(String baseUrl) {
         return new AgentRunProperties(
                 true,
                 baseUrl,
                 "Bearer test-token",
                 "tenant_2",
-                "workspace_1",
-                "project_1",
-                "assistant-1",
-                "demo",
-                streaming,
-                false,
+                "0f13c809-86bb-410b-ac8e-946be7772ba6",
                 1000,
                 5000
         );

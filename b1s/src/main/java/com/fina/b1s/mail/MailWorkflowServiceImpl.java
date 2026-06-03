@@ -2,14 +2,15 @@ package com.fina.b1s.mail;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fina.b1s.agent.AgentInboundRequest;
 import com.fina.b1s.agent.AgentRunClient;
 import com.fina.b1s.agent.AgentRunProperties;
-import com.fina.b1s.agent.AgentRunRequest;
 import com.fina.b1s.agent.AgentRunResult;
 import com.fina.b1s.entity.MailMessage;
 import com.fina.b1s.entity.MailAttachment;
 import com.fina.b1s.mapper.MailAttachmentMapper;
 import com.fina.b1s.mapper.MailMessageMapper;
+import jakarta.mail.internet.InternetAddress;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -19,8 +20,6 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.concurrent.Executor;
 
 @Slf4j
@@ -74,8 +73,8 @@ public class MailWorkflowServiceImpl implements MailWorkflowService {
 
     @Override
     public AgentRunResult dispatch(MailMessage mailMessage) {
-        if (!StringUtils.hasText(agentRunProperties.assistantId())) {
-            AgentRunResult result = new AgentRunResult(false, "DISABLED", null, null, "assistant_id is missing");
+        if (!agentRunProperties.isConfigured()) {
+            AgentRunResult result = new AgentRunResult(false, "DISABLED", null, null, "agent inbound dispatch is not configured");
             updateWorkflow(mailMessage, "DISABLED", null, null, null, null, result.errorMessage());
             return result;
         }
@@ -88,24 +87,12 @@ public class MailWorkflowServiceImpl implements MailWorkflowService {
         }
 
         String threadId = buildThreadId(mailMessage);
-        Map<String, Object> custom = new LinkedHashMap<>();
-        custom.put("mail_message_id", mailMessage.getId());
-        custom.put("mail_uid", mailMessage.getUid());
-        custom.put("mail_subject", mailMessage.getSubject());
-        custom.put("mail_from", mailMessage.getFromAddress());
-        custom.put("mail_to", mailMessage.getToAddresses());
-        custom.put("mail_provider", mailMessage.getProvider());
-        custom.put("purchase_order_summary", mailMessage.getPurchaseOrderSummary());
-        custom.put("attachment_summary", mailMessage.getAttachmentSummary());
-
-        AgentRunRequest request = AgentRunRequest.builder()
-                .assistantId(agentRunProperties.assistantId())
-                .threadId(threadId)
-                .message(body)
-                .streaming(agentRunProperties.streaming())
-                .background(agentRunProperties.streaming() ? null : agentRunProperties.background())
-                .mode(StringUtils.hasText(agentRunProperties.mode()) ? agentRunProperties.mode() : null)
-                .customRunConfig(custom)
+        AgentInboundRequest request = AgentInboundRequest.builder()
+                .channel("email")
+                .channelInstallationId(agentRunProperties.channelInstallationId())
+                .tenantId(agentRunProperties.tenantId())
+                .sender(new AgentInboundRequest.Sender(resolveSenderId(mailMessage)))
+                .content(new AgentInboundRequest.Content(body))
                 .build();
 
         AgentRunResult result = agentRunClient.run(request);
@@ -150,7 +137,7 @@ public class MailWorkflowServiceImpl implements MailWorkflowService {
         return "mail:" + mailMessage.getId();
     }
 
-    private String serialize(AgentRunRequest request) {
+    private String serialize(AgentInboundRequest request) {
         try {
             return objectMapper.writeValueAsString(request);
         } catch (JsonProcessingException e) {
@@ -176,6 +163,22 @@ public class MailWorkflowServiceImpl implements MailWorkflowService {
         appendSection(sb, "Attachment Extracted Text", attachmentText);
         String result = sb.toString().trim();
         return StringUtils.hasText(result) ? result : null;
+    }
+
+    private String resolveSenderId(MailMessage mailMessage) {
+        String fromAddress = mailMessage.getFromAddress();
+        if (!StringUtils.hasText(fromAddress)) {
+            return null;
+        }
+        try {
+            InternetAddress[] addresses = InternetAddress.parse(fromAddress, false);
+            if (addresses.length > 0 && StringUtils.hasText(addresses[0].getAddress())) {
+                return addresses[0].getAddress().trim();
+            }
+        } catch (Exception e) {
+            log.debug("Failed to parse sender address '{}': {}", fromAddress, e.getMessage());
+        }
+        return fromAddress.trim();
     }
 
     private String loadAttachmentText(Long mailMessageId) {

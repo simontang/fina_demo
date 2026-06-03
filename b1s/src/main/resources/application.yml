@@ -97,12 +97,7 @@ agent:
     base-url: ${AGENT_RUN_BASE_URL:https://ada.alphafina.cn}
     bearer-token: ${AGENT_RUN_BEARER_TOKEN:}
     tenant-id: ${AGENT_RUN_TENANT_ID:tenant_2}
-    workspace-id: ${AGENT_RUN_WORKSPACE_ID:}
-    project-id: ${AGENT_RUN_PROJECT_ID:}
-    assistant-id: ${AGENT_RUN_ASSISTANT_ID:v2-sales-order-orchestrator}
-    mode: ${AGENT_RUN_MODE:}
-    streaming: ${AGENT_RUN_STREAMING:true}
-    background: ${AGENT_RUN_BACKGROUND:true}
+    channel-installation-id: ${AGENT_RUN_CHANNEL_INSTALLATION_ID:0f13c809-86bb-410b-ac8e-946be7772ba6}
     connect-timeout-ms: ${AGENT_RUN_CONNECT_TIMEOUT_MS:15000}
     read-timeout-ms: ${AGENT_RUN_READ_TIMEOUT_MS:600000}
 
