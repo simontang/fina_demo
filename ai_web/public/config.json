@@ -1,4 +1,5 @@
 {
   "appName": "evario.ai",
-  "logoFilename": "logo.png"
+  "logoFilename": "logo.png",
+  "faviconFilename": "favicon.ico"
 }

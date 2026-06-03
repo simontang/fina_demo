@@ -112,6 +112,7 @@ services:
     volumes:
       - ./configs/fina/config.json:/usr/share/nginx/html/config.json
       - ./configs/fina/logo.png:/usr/share/nginx/html/logo.png
+      - ./configs/fina/favicon.ico:/usr/share/nginx/html/favicon.ico
     ports:
       - "127.0.0.1:5701:5701"
     restart: unless-stopped
@@ -123,6 +124,7 @@ services:
     volumes:
       - ./configs/evario/config.json:/usr/share/nginx/html/config.json
       - ./configs/evario/logo.png:/usr/share/nginx/html/logo.png
+      - ./configs/evario/favicon.ico:/usr/share/nginx/html/favicon.ico
     ports:
       - "127.0.0.1:5711:5701"
     restart: unless-stopped
