@@ -40,7 +40,7 @@ services:
       DEFAULT_MODEL: ${DEFAULT_MODEL:-qwen3.6-27b}
       # Sandbox configuration (local all-in-one-sandbox)
       SANDBOX_PROVIDER_TYPE: remote
-      REMOTE_BASE_URL: http://sandbox:8080
+      SANDBOX_BASE_URL: http://sandbox:8080
     volumes:
       - ./uploads:/app/uploads
       - ./lattice_store:/app/lattice_store

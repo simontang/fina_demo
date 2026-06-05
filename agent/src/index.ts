@@ -415,10 +415,16 @@ console.log(`  - Allow Tenant Registration: ${AUTH_CONFIG.allowTenantRegistratio
 console.log(`  - Token Expiration: ${AUTH_CONFIG.tokenExpiration}s`);
 
 //Register Sandbox Manager Lattice
-const sandboxProvider = createSandboxProvider({
-  type: (process.env.SANDBOX_PROVIDER_TYPE as "microsandbox-remote") || "microsandbox-remote",
-  microsandboxServiceBaseURL: process.env.MICROSANDBOX_SERVICE_BASE_URL!,
-});
+const sandboxType = process.env.SANDBOX_PROVIDER_TYPE || "microsandbox-remote";
+const sandboxProvider = sandboxType === "remote"
+  ? createSandboxProvider({
+      type: "remote",
+      remoteBaseURL: process.env.SANDBOX_BASE_URL!,
+    })
+  : createSandboxProvider({
+      type: sandboxType as "microsandbox-remote",
+      microsandboxServiceBaseURL: process.env.MICROSANDBOX_SERVICE_BASE_URL!,
+    });
 sandboxLatticeManager.registerLattice("default", sandboxProvider)
 
 
