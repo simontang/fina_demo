@@ -27,3 +27,123 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO lattice_user_tenant_links (user_id, tenant_id, role, metadata)
 VALUES ('admin', 'default', 'admin', '{}')
 ON CONFLICT (user_id, tenant_id) DO NOTHING;
+
+-- ============================================
+-- 初始化 Data Agent
+-- ============================================
+INSERT INTO lattice_assistants (id, tenant_id, name, description, graph_definition)
+VALUES (
+  'new-data-agent',
+  'default',
+  'Data Agent',
+  'Data Agent',
+  '{
+    "key": "new-data-agent",
+    "name": "Data Agent",
+    "type": "deep_agent",
+    "tools": [],
+    "prompt": "\nYou are a Business Data Analysis Expert.\n\n\n\n",
+    "skills": [],
+    "subAgents": [],
+    "middleware": [
+      {
+        "id": "filesystem-1",
+        "name": "Filesystem",
+        "type": "filesystem",
+        "config": {"vmIsolation": "global"},
+        "enabled": true,
+        "description": "Provides file system operations for reading, writing, and managing files"
+      },
+      {
+        "id": "code_eval-2",
+        "name": "Code Evaluation",
+        "type": "code_eval",
+        "config": {},
+        "enabled": false,
+        "description": "Enables safe code execution"
+      },
+      {
+        "id": "browser-3",
+        "name": "Browser",
+        "type": "browser",
+        "config": {},
+        "enabled": false,
+        "description": "Provides browser automation capabilities"
+      },
+      {
+        "id": "sql-4",
+        "name": "SQL Database",
+        "type": "sql",
+        "config": {"databaseKeys": []},
+        "enabled": false,
+        "description": "Provides SQL database query capabilities"
+      },
+      {
+        "id": "skill-5",
+        "name": "Skills",
+        "type": "skill",
+        "config": {"skills": [], "readAll": true},
+        "enabled": true,
+        "description": "Provides skill loading capabilities for the agent"
+      },
+      {
+        "id": "metrics-6",
+        "name": "Metrics",
+        "type": "metrics",
+        "config": {},
+        "enabled": false,
+        "description": "Provides metrics querying capabilities for monitoring and observability"
+      },
+      {
+        "id": "ask_user_to_clarify-7",
+        "name": "Ask User To Clarify",
+        "type": "ask_user_to_clarify",
+        "config": {},
+        "enabled": false,
+        "description": "Enables the agent to ask users clarifying questions with predefined options and free-text input"
+      },
+      {
+        "id": "widget-8",
+        "name": "Widget",
+        "type": "widget",
+        "config": {},
+        "enabled": false,
+        "description": "Enables the agent to render interactive HTML widgets and visualizations"
+      },
+      {
+        "id": "claw-9",
+        "name": "Memory",
+        "type": "claw",
+        "config": {"injectBootstrapFiles": true},
+        "enabled": true,
+        "description": "Injects and manages memory/bootstrap files (such as AGENTS.md and USER.md) in the runtime workspace"
+      },
+      {
+        "id": "date-10",
+        "name": "Current Date",
+        "type": "date",
+        "config": {"timezone": "Asia/Shanghai"},
+        "enabled": true,
+        "description": "Injects the current date into the agent''s system prompt for time awareness"
+      },
+      {
+        "id": "scheduler-11",
+        "name": "Scheduler",
+        "type": "scheduler",
+        "config": {},
+        "enabled": false,
+        "description": "Enables the agent to schedule future work that re-enters through addMessage"
+      },
+      {
+        "id": "topology-12",
+        "name": "Topology",
+        "type": "topology",
+        "config": {},
+        "enabled": false,
+        "description": "Restricts which agents can delegate to which other agents. Define edges with purpose descriptions for non-technical readability."
+      }
+    ],
+    "description": "Data Agent"
+  }'
+)
+ON CONFLICT (id) DO NOTHING;

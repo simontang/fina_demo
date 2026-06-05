@@ -78,6 +78,9 @@ import "./agents";
 //     // enableThinking: true,
 //   }
 // );
+
+// 如果设置了 MODEL_LIST 环境变量，则跳过所有代码注册
+if (!process.env.MODEL_LIST) {
 registerModelLattice(
   "kimi-k2.6",
 
@@ -181,6 +184,41 @@ registerModelLattice(
   }
 );
 
+}  // end of env var guard: only register hardcoded models if MODEL_LIST is not set
+
+
+// 环境变量注册模型（优先级高于代码注册）
+const extraModels = process.env.MODEL_LIST;
+if (extraModels) {
+  const modelNames = extraModels.split(",").map(s => s.trim()).filter(Boolean);
+  for (const modelName of modelNames) {
+    registerModelLattice(modelName, {
+      model: modelName,
+      displayName: modelName,
+      provider: "openai",
+      streaming: true,
+      apiKeyEnvName: "API_KEY3",
+      baseURL: baseURL,
+    });
+  }
+  console.log(`[env] Registered ${modelNames.length} model(s) from MODEL_LIST: ${modelNames.join(", ")}`);
+}
+
+const defaultModel = process.env.DEFAULT_MODEL;
+if (defaultModel) {
+  registerModelLattice("default", {
+    model: defaultModel,
+    displayName: defaultModel,
+    provider: "openai",
+    streaming: true,
+    apiKeyEnvName: "API_KEY3",
+    baseURL: baseURL,
+    modelKwargs: {
+      "enable_thinking": false
+    }
+  });
+  console.log(`[env] Default model set to: ${defaultModel}`);
+}
 
 // registerModelLattice("default", {
 //   model: "qwen-plus",

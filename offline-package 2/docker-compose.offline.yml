@@ -35,6 +35,9 @@ services:
       # LLM configuration (required)
       LLM_BASE_URL: ${LLM_BASE_URL:?LLM_BASE_URL is required}
       API_KEY3: ${API_KEY3:?API_KEY3 is required}
+      # 模型列表（离线场景默认使用通义千问，设置后将替换代码硬编码注册）
+      MODEL_LIST: ${MODEL_LIST:-qwen3.6-27b,qwen3.6-35b-a3b}
+      DEFAULT_MODEL: ${DEFAULT_MODEL:-qwen3.6-27b}
       # Sandbox configuration (local all-in-one-sandbox)
       SANDBOX_PROVIDER_TYPE: remote
       REMOTE_BASE_URL: http://sandbox:8080
