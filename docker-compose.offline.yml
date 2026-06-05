@@ -1,0 +1,114 @@
+services:
+  prediction_app:
+    image: finai-cn-shanghai.cr.volces.com/default/fina-demo-prediction-app:latest
+    environment:
+      PORT: "5703"
+      DB_HOST: ${DB_HOST:-pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-postgres}
+      DB_USER: ${DB_USER:-postgres_fuli}
+      DB_PASSWORD: ${DB_PASSWORD:-jfd4whz@GPF2nqx7zhm}
+      VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2:-a0533576-d6ed-4ca4-a308-473cbf7ebd10}
+      VOLCENGINE_API_URL: ${VOLCENGINE_API_URL:-https://ark.cn-beijing.volces.com/api/v3}
+      VOLCENGINE_MODEL: ${VOLCENGINE_MODEL:-kimi-k2-250905}
+      RFM_AI_TIMEOUT_SECONDS: ${RFM_AI_TIMEOUT_SECONDS:-300}
+      SEGMENTATION_AI_TIMEOUT_SECONDS: ${SEGMENTATION_AI_TIMEOUT_SECONDS:-300}
+      STOCK_ALLOC_AI_TIMEOUT_SECONDS: ${STOCK_ALLOC_AI_TIMEOUT_SECONDS:-300}
+    volumes:
+      - ./uploads:/app/uploads
+    ports:
+      - "127.0.0.1:5703:5703"
+    restart: unless-stopped
+
+  agent:
+    image: finai-cn-shanghai.cr.volces.com/default/fina-demo-agent:latest
+    environment:
+      TZ: Asia/Shanghai
+      NODE_ENV: production
+      PORT: "5702"
+      PYTHON_API_URL: http://prediction_app:5703
+      UPLOAD_DIR: /app/uploads
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres_fuli:jfd4whz@GPF2nqx7zhm@pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com:5432/postgres}
+      DB_HOST: ${DB_HOST:-pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-postgres}
+      DB_USER: ${DB_USER:-postgres_fuli}
+      DB_PASSWORD: ${DB_PASSWORD:-jfd4whz@GPF2nqx7zhm}
+      VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2:-a0533576-d6ed-4ca4-a308-473cbf7ebd10}
+      VOLCENGINE_API_URL: ${VOLCENGINE_API_URL:-https://ark.cn-beijing.volces.com/api/v3}
+      VOLCENGINE_MODEL: ${VOLCENGINE_MODEL:-kimi-k2-250905}
+      API_KEY3: ${API_KEY3:-sk-l965HUcG2en0awTue114GfWeTGJBggRReESgeeWND3rHfpvQ}
+      OPEN_API: ${OPEN_API:-sk-t9V3yMUWsMJt6yVLCyPHDJ8FhXiUliiUYIzZxZCmTMEsToU7}
+      VOLCENGINE_APP_ID: ${VOLCENGINE_APP_ID:-691afa7690b35401752447aa}
+      VOLCENGINE_APP_KEY: ${VOLCENGINE_APP_KEY:-183a248afa964e3e97487bae14e506d2}
+      VOLC_RTC_API_URL: ${VOLC_RTC_API_URL:-https://rtc.volcengineapi.com}
+      VOLC_REGION: ${VOLC_REGION:-cn-north-1}
+      VOLC_ACCESSKEY: ${VOLC_ACCESSKEY:-AKLTOTY3ZmIyNzJlY2ExNGM0NzllNTc5NmEyMmVjMzNiYzM}
+      VOLC_SECRETKEY: ${VOLC_SECRETKEY:-TlRsaU5EVTNZV1U1WkRSbE5HSXhOamcyT1RnM1lqWTNZVEEzTmpBME5XTQ==}
+      VOLC_SPEECH_APP_ID: ${VOLC_SPEECH_APP_ID:-4989755477}
+      VOLC_SPEECH_ACCESS_TOKEN: ${VOLC_SPEECH_ACCESS_TOKEN:-xBwUO8jqYz4rnhiHqK7H70dM6UbOHef5}
+      VOLC_SPEECH_SECRET_KEY: ${VOLC_SPEECH_SECRET_KEY:-pKwgSeDlNCJ63EGHAbbay9XJny8OoQtp}
+      VOLC_TTS_CLUSTER: ${VOLC_TTS_CLUSTER:-volcano_tts}
+      VOLC_TTS_VOICE_TYPE: ${VOLC_TTS_VOICE_TYPE:-zh_male_xudong_conversation_wvae_bigtts}
+      COZEBOT_APIKEY: ${COZEBOT_APIKEY:-sat_0FzxnRegEwyTUTt4rd7DzLioyys5NKYTNNsy1tptNblbfE9kZxSY4VPDrucMhNEK}
+      COZEBOT_BOT_ID: ${COZEBOT_BOT_ID:-7597420991484379170}
+      VOICE_WELCOME_MESSAGE: ${VOICE_WELCOME_MESSAGE:-Hello! I'm here to help with B2B order status, credit limits, and stock transfers—let's optimize your operations!}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-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}
+      LATTICE_ENCRYPTION_KEY: ${LATTICE_ENCRYPTION_KEY:-deep-research-encryption-key-change-in-production!}
+      JWT_SECRET: ${JWT_SECRET:-fuli-agent-secret-key-change-in-production-environment}
+      AUTH_REQUIRED: ${AUTH_REQUIRED:-false}
+      SANDBOX_PROVIDER_TYPE: ${SANDBOX_PROVIDER_TYPE:-microsandbox-remote}
+      MICROSANDBOX_SERVICE_BASE_URL: ${MICROSANDBOX_SERVICE_BASE_URL:-http://38.76.211.27:4002}
+      MICROSANDBOX_API_KEY: ${MICROSANDBOX_API_KEY:-qwertyuiop1234567890}
+      MICROSANDBOX_MEMORY: ${MICROSANDBOX_MEMORY:-1024}
+      MICROSANDBOX_IMAGE: ${MICROSANDBOX_IMAGE:-kioko12520/sandbox:0.1.0}
+    volumes:
+      - ./uploads:/app/uploads
+      - ./lattice_store:/app/lattice_store
+      - ./prediction_app/config:/app/prediction_app/config:ro
+    depends_on:
+      - prediction_app
+    ports:
+      - "127.0.0.1:5702:5702"
+    restart: unless-stopped
+
+  metrics_server:
+    image: finai-cn-shanghai.cr.volces.com/default/fina-demo-metrics-server:latest
+    environment:
+      SERVER_PORT: "5704"
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com:5432/postgres}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-postgres_fuli}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-jfd4whz@GPF2nqx7zhm}
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-fina-metrics-2024!}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SKIP_INIT: ${SKIP_INIT:-false}
+    volumes:
+      - ./logs/metrics-server:/app/logs
+    ports:
+      - "127.0.0.1:5704:5704"
+    restart: unless-stopped
+
+  ai_web_fina:
+    image: finai-cn-shanghai.cr.volces.com/default/fina-demo-ai-web:latest
+    depends_on:
+      - agent
+    volumes:
+      - ./configs/fina/config.json:/usr/share/nginx/html/config.json
+      - ./configs/fina/logo.png:/usr/share/nginx/html/logo.png
+      - ./configs/fina/favicon.ico:/usr/share/nginx/html/favicon.ico
+    ports:
+      - "127.0.0.1:5701:5701"
+    restart: unless-stopped
+
+  ai_web_evario:
+    image: finai-cn-shanghai.cr.volces.com/default/fina-demo-ai-web:latest
+    depends_on:
+      - agent
+    volumes:
+      - ./configs/evario/config.json:/usr/share/nginx/html/config.json
+      - ./configs/evario/logo.png:/usr/share/nginx/html/logo.png
+      - ./configs/evario/favicon.ico:/usr/share/nginx/html/favicon.ico
+    ports:
+      - "127.0.0.1:5711:5701"
+    restart: unless-stopped
