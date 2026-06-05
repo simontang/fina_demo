@@ -147,13 +147,13 @@ echo ""
 echo "🚀 启动服务..."
 echo ""
 
-if docker compose version &> /dev/null; then
-    COMPOSE_CMD="docker compose"
-else
-    COMPOSE_CMD="docker-compose"
+if ! docker compose version &> /dev/null; then
+    echo "❌ 错误：未检测到 docker compose 插件，请先安装"
+    echo "   Ubuntu/Debian: apt install docker-compose-plugin"
+    exit 1
 fi
 
-$COMPOSE_CMD -f docker-compose.offline.yml --env-file .env.offline up -d
+docker compose -f docker-compose.offline.yml --env-file .env.offline up -d
 
 # ============================================
 # 等待 Agent 就绪并初始化默认数据
@@ -262,8 +262,8 @@ echo "  📦 Sandbox:     http://localhost:8080"
 echo "  🐘 PostgreSQL:  localhost:5432"
 echo ""
 echo "查看日志："
-echo "  $COMPOSE_CMD -f docker-compose.offline.yml logs -f"
+echo "  docker compose -f docker-compose.offline.yml logs -f"
 echo ""
 echo "停止服务："
-echo "  $COMPOSE_CMD -f docker-compose.offline.yml down"
+echo "  docker compose -f docker-compose.offline.yml down"
 echo ""
