@@ -1,61 +1,61 @@
 services:
-  postgres:
-    image: fina-offline/postgres:15-alpine
-    container_name: fina-postgres
-    environment:
-      POSTGRES_USER: fina
-      POSTGRES_PASSWORD: fina_local_2024
-      POSTGRES_DB: fina_db
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fina -d fina_db"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
   agent:
     image: fina-offline/agent:latest
     container_name: fina-agent
     environment:
       TZ: Asia/Shanghai
       NODE_ENV: production
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_LEVEL: INFO
       PORT: "5702"
       UPLOAD_DIR: /app/uploads
-      DATABASE_URL: postgresql://fina:fina_local_2024@postgres:5432/fina_db
-      DB_HOST: postgres
+      DATABASE_URL: postgresql://postgres_fuli:jfd4whz@GPF2nqx7zhm@pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com:5432/postgres
+      DB_HOST: pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com
       DB_PORT: "5432"
-      DB_NAME: fina_db
-      DB_USER: fina
-      DB_PASSWORD: fina_local_2024
-      # LLM configuration (required)
-      LLM_BASE_URL: ${LLM_BASE_URL:?LLM_BASE_URL is required}
-      API_KEY3: ${API_KEY3:?API_KEY3 is required}
-      # 模型列表（离线场景默认使用通义千问，设置后将替换代码硬编码注册）
-      MODEL_LIST: ${MODEL_LIST:-qwen3.6-27b,qwen3.6-35b-a3b}
-      DEFAULT_MODEL: ${DEFAULT_MODEL:-qwen3.6-27b}
-      # Sandbox configuration (local all-in-one-sandbox)
-      SANDBOX_PROVIDER_TYPE: remote
-      SANDBOX_BASE_URL: http://sandbox:8080
+      DB_NAME: postgres
+      DB_USER: postgres_fuli
+      DB_PASSWORD: jfd4whz@GPF2nqx7zhm
+      # LLM configuration
+      LLM_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
+      API_KEY3: sk-l965HUcG2en0awTue114GfWeTGJBggRReESgeeWND3rHfpvQ
+      OPEN_API: sk-t9V3yMUWsMJt6yVLCyPHDJ8FhXiUliiUYIzZxZCmTMEsToU7
+      # 模型列表
+      MODEL_LIST: qwen3.6-27b,qwen3.6-35b-a3b
+      DEFAULT_MODEL: qwen3.6-27b
+      # Volcano Engine
+      VOLCENGINE_API_KEY2: a0533576-d6ed-4ca4-a308-473cbf7ebd10
+      VOLCENGINE_API_URL: https://ark.cn-beijing.volces.com/api/v3
+      VOLCENGINE_MODEL: kimi-k2-250905
+      VOLCENGINE_APP_ID: 691afa7690b35401752447aa
+      VOLCENGINE_APP_KEY: 183a248afa964e3e97487bae14e506d2
+      VOLC_RTC_API_URL: https://rtc.volcengineapi.com
+      VOLC_REGION: cn-north-1
+      VOLC_ACCESSKEY: AKLTOTY3ZmIyNzJlY2ExNGM0NzllNTc5NmEyMmVjMzNiYzM
+      VOLC_SECRETKEY: TlRsaU5EVTNZV1U1WkRSbE5HSXhOamcyT1RnM1lqWTNZVEEzTmpBME5XTQ==
+      VOLC_SPEECH_APP_ID: 4989755477
+      VOLC_SPEECH_ACCESS_TOKEN: xBwUO8jqYz4rnhiHqK7H70dM6UbOHef5
+      VOLC_SPEECH_SECRET_KEY: pKwgSeDlNCJ63EGHAbbay9XJny8OoQtp
+      VOLC_TTS_CLUSTER: volcano_tts
+      VOLC_TTS_VOICE_TYPE: zh_male_xudong_conversation_wvae_bigtts
+      # Sandbox configuration
+      SANDBOX_PROVIDER_TYPE: microsandbox-remote
+      MICROSANDBOX_SERVICE_BASE_URL: http://38.76.211.27:4002
+      MICROSANDBOX_API_KEY: qwertyuiop1234567890
+      MICROSANDBOX_MEMORY: "1024"
+      MICROSANDBOX_IMAGE: kioko12520/sandbox:0.1.0
+      # CozeBot
+      COZEBOT_APIKEY: sat_0FzxnRegEwyTUTt4rd7DzLioyys5NKYTNNsy1tptNblbfE9kZxSY4VPDrucMhNEK
+      COZEBOT_BOT_ID: "7597420991484379170"
+      # Other
+      TAVILY_API_KEY: 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
+      VOICE_WELCOME_MESSAGE: "Hello! I'm here to help with B2B order status, credit limits, and stock transfers—let's optimize your operations!"
+      AUTH_REQUIRED: "false"
+      LATTICE_ENCRYPTION_KEY: deep-research-encryption-key-change-in-production!
+      JWT_SECRET: fuli-agent-secret-key-change-in-production-environment
     volumes:
       - ./uploads:/app/uploads
       - ./logs:/app/agent/logs
     ports:
       - "5702:5702"
-    restart: unless-stopped
-
-  sandbox:
-    image: fina-offline/all-in-one-sandbox:latest
-    container_name: fina-sandbox
-    ports:
-      - "8080:8080"
-    security_opt:
-      - seccomp:unconfined
     restart: unless-stopped
 
   ai_web_fina:
@@ -71,5 +71,3 @@ services:
       - "5701:5701"
     restart: unless-stopped
 
-volumes:
-  postgres_data:
