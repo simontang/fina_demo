@@ -93,9 +93,13 @@ cd "$PROJECT_ROOT"
 zip -r "$ZIP_NAME" offline-package/ \
   -x "offline-package/build-offline-package.sh" \
   -x "offline-package/*.md" \
+  -x "offline-package/.env" \
+  -x "offline-package/.env.offline" \
   2>/dev/null || {
     echo "   使用 tar.gz 替代..."
-    tar -czf "${ZIP_NAME%.zip}.tar.gz" offline-package/
+    tar -czf "${ZIP_NAME%.zip}.tar.gz" offline-package/ \
+      --exclude='offline-package/.env' \
+      --exclude='offline-package/.env.offline'
     ZIP_NAME="${ZIP_NAME%.zip}.tar.gz"
   }
 

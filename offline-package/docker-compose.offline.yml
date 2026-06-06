@@ -42,11 +42,6 @@ services:
       # Sandbox configuration
       SANDBOX_PROVIDER_TYPE: remote
       SANDBOX_BASE_URL: http://sandbox:8080
-      # CozeBot
-      COZEBOT_APIKEY: sat_0FzxnRegEwyTUTt4rd7DzLioyys5NKYTNNsy1tptNblbfE9kZxSY4VPDrucMhNEK
-      COZEBOT_BOT_ID: "7597420991484379170"
-      # Other
-      TAVILY_API_KEY: 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
       VOICE_WELCOME_MESSAGE: "Hello! I'm here to help with B2B order status, credit limits, and stock transfers—let's optimize your operations!"
       AUTH_REQUIRED: "false"
       LATTICE_ENCRYPTION_KEY: deep-research-encryption-key-change-in-production!
