@@ -146,4 +146,4 @@ VALUES (
     "description": "Data Agent"
   }'
 )
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT ON CONSTRAINT lattice_assistants_pkey DO NOTHING;
