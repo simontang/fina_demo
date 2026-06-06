@@ -66,81 +66,9 @@ fi
 # 交互式配置大模型参数
 # ============================================
 
-# 读取当前 .env.offline 中的值（如果存在）
-CURRENT_LLM_URL=""
-CURRENT_API_KEY=""
-if [ -f ".env.offline" ]; then
-    CURRENT_LLM_URL=$(grep "^LLM_BASE_URL=" .env.offline | cut -d '=' -f2- | tr -d '"' || true)
-    CURRENT_API_KEY=$(grep "^API_KEY3=" .env.offline | cut -d '=' -f2- | tr -d '"' || true)
-fi
-
-# 使用环境变量或交互式输入
-if [ -n "$LLM_BASE_URL" ]; then
-    NEW_LLM_URL="$LLM_BASE_URL"
-else
-    echo ""
-    echo "🔧 大模型配置（必填）"
-    echo ""
-    echo "   示例 LLM Base URL："
-    echo "     • 火山方舟: https://ark.cn-beijing.volces.com/api/v3"
-    echo "     • Moonshot: https://api.moonshot.cn/v1"
-    echo "     • 深度求索: https://api.deepseek.com/v1"
-    echo "     • OpenAI:   https://api.openai.com/v1"
-    echo ""
-
-    # LLM Base URL
-    while true; do
-        if [ -n "$CURRENT_LLM_URL" ]; then
-            read -rp "   LLM Base URL [当前: $CURRENT_LLM_URL]: " input_url
-            NEW_LLM_URL="${input_url:-$CURRENT_LLM_URL}"
-        else
-            read -rp "   LLM Base URL: " NEW_LLM_URL
-        fi
-
-        if [ -n "$NEW_LLM_URL" ]; then
-            break
-        fi
-        echo "   ❌ LLM Base URL 不能为空，请重新输入"
-    done
-fi
-
-if [ -n "$API_KEY3" ]; then
-    NEW_API_KEY="$API_KEY3"
-else
-    # API Key
-    while true; do
-        if [ -n "$CURRENT_API_KEY" ]; then
-            read -rsp "   API Key [当前已设置，按回车保留，或输入新值]: " input_key
-            echo ""
-            NEW_API_KEY="${input_key:-$CURRENT_API_KEY}"
-        else
-            read -rsp "   API Key: " NEW_API_KEY
-            echo ""
-        fi
-
-        if [ -n "$NEW_API_KEY" ]; then
-            break
-        fi
-        echo "   ❌ API Key 不能为空，请重新输入"
-    done
-fi
-
-# 更新 .env.offline
-if [ -n "$NEW_LLM_URL" ]; then
-    if grep -q "^LLM_BASE_URL=" .env.offline 2>/dev/null; then
-        sed -i.bak "s|^LLM_BASE_URL=.*|LLM_BASE_URL=$NEW_LLM_URL|" .env.offline && rm -f .env.offline.bak
-    else
-        echo "LLM_BASE_URL=$NEW_LLM_URL" >> .env.offline
-    fi
-fi
-
-if [ -n "$NEW_API_KEY" ]; then
-    if grep -q "^API_KEY3=" .env.offline 2>/dev/null; then
-        sed -i.bak "s|^API_KEY3=.*|API_KEY3=$NEW_API_KEY|" .env.offline && rm -f .env.offline.bak
-    else
-        echo "API_KEY3=$NEW_API_KEY" >> .env.offline
-    fi
-fi
+echo ""
+echo "📋 使用 .env.offline 中的配置启动服务"
+echo "   （如需修改配置，请直接编辑 .env.offline 文件）"
 
 # 启动服务
 echo ""
