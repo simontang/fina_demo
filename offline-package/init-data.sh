@@ -117,7 +117,7 @@ if [ $SAND_WAITED -ge $SAND_MAX_WAIT ]; then
 fi
 
 # 创建 chart-markdown skill
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "http://localhost:5702/api/skills/chart-markdown" \
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "http://localhost:5702/api/skills" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -H "x-tenant-id: default" \
