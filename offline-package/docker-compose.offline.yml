@@ -1,4 +1,23 @@
 services:
+  postgres:
+    image: fina-offline/postgres:15-alpine
+    container_name: fina-postgres
+    environment:
+      POSTGRES_USER: fina
+      POSTGRES_PASSWORD: fina_local_2024
+      POSTGRES_DB: fina_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fina -d fina_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   agent:
     image: fina-offline/agent:latest
     container_name: fina-agent
@@ -8,12 +27,12 @@ services:
       LOG_LEVEL: INFO
       PORT: "5702"
       UPLOAD_DIR: /app/uploads
-      DATABASE_URL: postgresql://postgres_fuli:jfd4whz@GPF2nqx7zhm@pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com:5432/postgres
-      DB_HOST: pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com
+      DATABASE_URL: postgresql://fina:fina_local_2024@postgres:5432/fina_db
+      DB_HOST: postgres
       DB_PORT: "5432"
-      DB_NAME: postgres
-      DB_USER: postgres_fuli
-      DB_PASSWORD: jfd4whz@GPF2nqx7zhm
+      DB_NAME: fina_db
+      DB_USER: fina
+      DB_PASSWORD: fina_local_2024
       # LLM configuration (loaded from .env file)
       LLM_BASE_URL: ${LLM_BASE_URL}
       API_KEY3: ${API_KEY3}
@@ -21,11 +40,8 @@ services:
       MODEL_LIST: qwen3.6-27b,qwen3.6-35b-a3b
       DEFAULT_MODEL: qwen3.6-27b
       # Sandbox configuration
-      SANDBOX_PROVIDER_TYPE: microsandbox-remote
-      MICROSANDBOX_SERVICE_BASE_URL: http://38.76.211.27:4002
-      MICROSANDBOX_API_KEY: qwertyuiop1234567890
-      MICROSANDBOX_MEMORY: "1024"
-      MICROSANDBOX_IMAGE: kioko12520/sandbox:0.1.0
+      SANDBOX_PROVIDER_TYPE: remote
+      SANDBOX_BASE_URL: http://sandbox:8080
       # CozeBot
       COZEBOT_APIKEY: sat_0FzxnRegEwyTUTt4rd7DzLioyys5NKYTNNsy1tptNblbfE9kZxSY4VPDrucMhNEK
       COZEBOT_BOT_ID: "7597420991484379170"
@@ -42,6 +58,15 @@ services:
       - "5702:5702"
     restart: unless-stopped
 
+  sandbox:
+    image: fina-offline/all-in-one-sandbox:latest
+    container_name: fina-sandbox
+    ports:
+      - "8080:8080"
+    security_opt:
+      - seccomp:unconfined
+    restart: unless-stopped
+
   ai_web_fina:
     image: fina-offline/ai-web:latest
     container_name: fina-web
@@ -55,3 +80,5 @@ services:
       - "5701:5701"
     restart: unless-stopped
 
+volumes:
+  postgres_data:
