@@ -92,7 +92,6 @@ echo "📦 打包为 zip..."
 cd "$PROJECT_ROOT"
 zip -r "$ZIP_NAME" offline-package/ \
   -x "offline-package/build-offline-package.sh" \
-  -x "offline-package/*.md" \
   -x "offline-package/.env" \
   -x "offline-package/.env.offline" \
   2>/dev/null || {
