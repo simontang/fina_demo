@@ -47,7 +47,7 @@ echo ""
 echo "   默认账户："
 echo "     租户: default"
 echo "     工作区: default"
-echo "     用户: admin@localhost"
+echo "     用户: admin@fina.ai"
 echo "     密码: admin"
 
 # 等待 Agent 就绪
@@ -80,7 +80,7 @@ TOKEN=""
 while [ $SKILL_WAITED -lt $SKILL_MAX_WAIT ]; do
     LOGIN_RESP=$(curl -sf -X POST http://localhost:5702/api/auth/login \
       -H "Content-Type: application/json" \
-      -d '{"email":"admin@localhost","password":"admin"}')
+      -d '{"email":"admin@fina.ai","password":"admin"}')
     
     TOKEN=$(echo "$LOGIN_RESP" | grep -o '"token":"[^"]*"' | head -1 | sed 's/"token":"//;s/"//')
 
@@ -102,7 +102,7 @@ fi
 SAND_MAX_WAIT=60
 SAND_WAITED=0
 while [ $SAND_WAITED -lt $SAND_MAX_WAIT ]; do
-    if curl -sf http://localhost:8080/health &> /dev/null; then
+    if curl -sf -o /dev/null http://localhost:8080/; then
         echo "   ✅ 沙盒就绪"
         break
     fi

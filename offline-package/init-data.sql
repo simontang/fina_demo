@@ -20,7 +20,7 @@ ON CONFLICT (id, tenant_id) DO NOTHING;
 
 -- 默认管理员用户（密码: admin）
 INSERT INTO lattice_users (id, email, name, status, metadata)
-VALUES ('admin', 'admin@localhost', 'Administrator', 'active', '{"isAdmin": true, "passwordHash": "f9a81477552594c79f2abc3fc099daa896a6e3a3590a55ffa392b6000412e80b"}')
+VALUES ('admin', 'admin@fina.ai', 'Administrator', 'active', '{"isAdmin": true, "passwordHash": "f9a81477552594c79f2abc3fc099daa896a6e3a3590a55ffa392b6000412e80b"}')
 ON CONFLICT (id) DO NOTHING;
 
 -- 绑定管理员到默认租户
