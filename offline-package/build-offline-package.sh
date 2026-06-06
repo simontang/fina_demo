@@ -97,9 +97,9 @@ zip -r "$ZIP_NAME" offline-package/ \
   -x "offline-package/.env.offline" \
   2>/dev/null || {
     echo "   使用 tar.gz 替代..."
-    tar -czf "${ZIP_NAME%.zip}.tar.gz" offline-package/ \
-      --exclude='offline-package/.env' \
-      --exclude='offline-package/.env.offline'
+    tar --exclude='offline-package/.env' \
+      --exclude='offline-package/.env.offline' \
+      -czf "${ZIP_NAME%.zip}.tar.gz" offline-package/
     ZIP_NAME="${ZIP_NAME%.zip}.tar.gz"
   }
 
