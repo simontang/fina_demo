@@ -14,9 +14,9 @@ services:
       DB_NAME: postgres
       DB_USER: postgres_fuli
       DB_PASSWORD: jfd4whz@GPF2nqx7zhm
-      # LLM configuration
-      LLM_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
-      API_KEY3: sk-l965HUcG2en0awTue114GfWeTGJBggRReESgeeWND3rHfpvQ
+      # LLM configuration (loaded from .env file)
+      LLM_BASE_URL: ${LLM_BASE_URL}
+      API_KEY3: ${API_KEY3}
       OPEN_API: sk-t9V3yMUWsMJt6yVLCyPHDJ8FhXiUliiUYIzZxZCmTMEsToU7
       # 模型列表
       MODEL_LIST: qwen3.6-27b,qwen3.6-35b-a3b
