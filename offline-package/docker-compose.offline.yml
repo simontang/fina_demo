@@ -17,25 +17,9 @@ services:
       # LLM configuration (loaded from .env file)
       LLM_BASE_URL: ${LLM_BASE_URL}
       API_KEY3: ${API_KEY3}
-      OPEN_API: sk-t9V3yMUWsMJt6yVLCyPHDJ8FhXiUliiUYIzZxZCmTMEsToU7
       # 模型列表
       MODEL_LIST: qwen3.6-27b,qwen3.6-35b-a3b
       DEFAULT_MODEL: qwen3.6-27b
-      # Volcano Engine
-      VOLCENGINE_API_KEY2: a0533576-d6ed-4ca4-a308-473cbf7ebd10
-      VOLCENGINE_API_URL: https://ark.cn-beijing.volces.com/api/v3
-      VOLCENGINE_MODEL: kimi-k2-250905
-      VOLCENGINE_APP_ID: 691afa7690b35401752447aa
-      VOLCENGINE_APP_KEY: 183a248afa964e3e97487bae14e506d2
-      VOLC_RTC_API_URL: https://rtc.volcengineapi.com
-      VOLC_REGION: cn-north-1
-      VOLC_ACCESSKEY: AKLTOTY3ZmIyNzJlY2ExNGM0NzllNTc5NmEyMmVjMzNiYzM
-      VOLC_SECRETKEY: TlRsaU5EVTNZV1U1WkRSbE5HSXhOamcyT1RnM1lqWTNZVEEzTmpBME5XTQ==
-      VOLC_SPEECH_APP_ID: 4989755477
-      VOLC_SPEECH_ACCESS_TOKEN: xBwUO8jqYz4rnhiHqK7H70dM6UbOHef5
-      VOLC_SPEECH_SECRET_KEY: pKwgSeDlNCJ63EGHAbbay9XJny8OoQtp
-      VOLC_TTS_CLUSTER: volcano_tts
-      VOLC_TTS_VOICE_TYPE: zh_male_xudong_conversation_wvae_bigtts
       # Sandbox configuration
       SANDBOX_PROVIDER_TYPE: microsandbox-remote
       MICROSANDBOX_SERVICE_BASE_URL: http://38.76.211.27:4002
