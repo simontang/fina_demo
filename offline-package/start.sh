@@ -126,6 +126,30 @@ echo ""
 
 docker compose -f docker-compose.offline.yml --env-file .env up -d
 
+echo ""
+echo "========================================"
+echo "  ✅ 服务已启动！"
+echo "========================================"
+echo ""
+echo "访问地址："
+echo "  🌐 Web 界面:    http://localhost:5701"
+echo "  🤖 Agent API:   http://localhost:5702"
+echo "  📦 Sandbox:     http://localhost:8080"
+echo "  🐘 PostgreSQL:  localhost:5432"
+echo ""
+echo "初始化数据（首次运行需要）："
+echo "  ./init-data.sh"
+echo ""
+echo "查看日志："
+echo "  docker compose -f docker-compose.offline.yml logs -f"
+echo ""
+echo "停止服务："
+echo "  docker compose -f docker-compose.offline.yml down"
+echo ""
+
+
+docker compose -f docker-compose.offline.yml --env-file .env up -d
+
 # ============================================
 # 等待 Agent 就绪并初始化默认数据
 # ============================================
