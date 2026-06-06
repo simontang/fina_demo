@@ -24,6 +24,7 @@ services:
     environment:
       TZ: Asia/Shanghai
       NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
       PORT: "5702"
       UPLOAD_DIR: /app/uploads
       DATABASE_URL: postgresql://fina:fina_local_2024@postgres:5432/fina_db
@@ -43,7 +44,7 @@ services:
       SANDBOX_BASE_URL: http://sandbox:8080
     volumes:
       - ./uploads:/app/uploads
-      - ./lattice_store:/app/lattice_store
+      - ./logs:/app/agent/logs
     ports:
       - "5702:5702"
     restart: unless-stopped

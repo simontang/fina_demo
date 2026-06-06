@@ -193,7 +193,11 @@ main() {
         log_info "未指定服务，将部署所有服务"
     fi
 
-    deploy "${services[@]}"
+    if [[ ${#services[@]} -gt 0 ]]; then
+        deploy "${services[@]}"
+    else
+        deploy
+    fi
 
     echo
     log_success "所有操作完成！"

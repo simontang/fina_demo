@@ -228,7 +228,7 @@ if (defaultModel) {
 
 if (process.env.NODE_ENV === "production") {
   const globalMemory = PostgresSaver.fromConnString(process.env.DATABASE_URL!);
-  //globalMemory.setup();
+  globalMemory.setup();
   MemoryLatticeManager.getInstance().removeCheckpointSaver("default");
   registerCheckpointSaver("default", globalMemory);
 
