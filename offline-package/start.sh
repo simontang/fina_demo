@@ -23,10 +23,8 @@ fi
 
 # 检查镜像是否已加载
 required_images=(
-    "fina-offline/postgres:15-alpine"
     "fina-offline/agent:latest"
     "fina-offline/ai-web:latest"
-    "fina-offline/all-in-one-sandbox:latest"
 )
 
 missing_images=()
@@ -48,7 +46,7 @@ if [ ${#missing_images[@]} -gt 0 ]; then
 fi
 
 # 创建必要目录
-mkdir -p uploads lattice_store configs/fina
+mkdir -p uploads configs/fina
 
 # 复制默认配置文件（如果不存在）
 if [ ! -f "configs/fina/config.json" ]; then
@@ -81,10 +79,54 @@ if ! docker compose version &> /dev/null; then
     exit 1
 fi
 
-docker compose -f docker-compose.offline.yml --env-file .env.offline up -d
+docker compose -f docker-compose.offline.yml up -d
+
+# 等待 Agent 就绪
+echo ""
+echo "⏳ 等待 Agent 服务就绪..."
+MAX_WAIT=90
+WAITED=0
+while [ $WAITED -lt $MAX_WAIT ]; do
+    if curl -sf http://localhost:5702/health &> /dev/null; then
+        echo "✅ Agent 服务已就绪"
+        break
+    fi
+    sleep 2
+    WAITED=$((WAITED + 2))
+    echo "   已等待 ${WAITED}s..."
+done
+
+if [ $WAITED -ge $MAX_WAIT ]; then
+    echo "⚠️  Agent 服务启动超时"
+fi
+
+echo ""
+echo "========================================"
+echo "  ✅ 服务启动成功！"
+echo "========================================"
+echo ""
+echo "访问地址："
+echo "  🌐 Web 界面:    http://localhost:5701"
+echo "  🤖 Agent API:   http://localhost:5702"
+echo ""
+echo "查看日志："
+echo "  docker compose -f docker-compose.offline.yml logs -f"
+echo ""
+echo "停止服务："
+echo "  docker compose -f docker-compose.offline.yml down"
+echo ""
+
+
+if ! docker compose version &> /dev/null; then
+    echo "❌ 错误：未检测到 docker compose 插件，请先安装"
+    echo "   Ubuntu/Debian: apt install docker-compose-plugin"
+    exit 1
+fi
+
+docker compose -f docker-compose.offline.yml up -d
 
 # ============================================
-# 等待 Agent 就绪并初始化默认数据
+# 等待 Agent 就绪
 # ============================================
 
 echo ""
@@ -96,6 +138,14 @@ while [ $WAITED -lt $MAX_WAIT ]; do
         echo "✅ Agent 服务已就绪"
         break
     fi
+    sleep 2
+    WAITED=$((WAITED + 2))
+    echo "   已等待 ${WAITED}s..."
+done
+
+if [ $WAITED -ge $MAX_WAIT ]; then
+    echo "⚠️  Agent 服务启动超时"
+fi
     sleep 2
     WAITED=$((WAITED + 2))
     echo "   已等待 ${WAITED}s..."

@@ -51,19 +51,6 @@ docker tag \
   fina-offline/agent:latest
 
 echo ""
-echo "📦 步骤 3/4: 拉取 Sandbox 镜像 (x86)..."
-docker pull --platform linux/amd64 \
-  enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
-docker tag \
-  enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest \
-  fina-offline/all-in-one-sandbox:latest
-
-echo ""
-echo "📦 步骤 4/4: 拉取 PostgreSQL 镜像 (x86)..."
-docker pull --platform linux/amd64 postgres:15-alpine
-docker tag postgres:15-alpine fina-offline/postgres:15-alpine
-
-echo ""
 echo "💾 导出镜像为 tar 文件..."
 
 echo "   - ai_web.tar"
@@ -71,12 +58,6 @@ docker save fina-offline/ai-web:latest > "$IMAGES_DIR/ai_web.tar"
 
 echo "   - agent.tar"
 docker save fina-offline/agent:latest > "$IMAGES_DIR/agent.tar"
-
-echo "   - all-in-one-sandbox.tar"
-docker save fina-offline/all-in-one-sandbox:latest > "$IMAGES_DIR/all-in-one-sandbox.tar"
-
-echo "   - postgres-15-alpine.tar"
-docker save fina-offline/postgres:15-alpine > "$IMAGES_DIR/postgres-15-alpine.tar"
 
 # 复制前端静态资源（logo, favicon）
 echo ""
