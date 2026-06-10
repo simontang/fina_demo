@@ -181,6 +181,19 @@ registerModelLattice(
     },
   }
 );
+registerModelLattice(
+  "gpt-5.5",
+
+  {
+    model: "gpt-5.5",
+    displayName: "gpt-5.5",
+    provider: "openai",
+    streaming: true,
+    apiKeyEnvName: "API_KEY3",
+    baseURL: baseURL,
+
+  }
+);
 
 }  // end of env var guard: only register hardcoded models if MODEL_LIST is not set
 
