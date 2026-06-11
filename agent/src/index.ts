@@ -191,7 +191,9 @@ registerModelLattice(
     streaming: true,
     apiKeyEnvName: "API_KEY3",
     baseURL: baseURL,
-
+    modelKwargs: {
+      "thinking_effort": "high"
+    }
   }
 );
 
