@@ -16,6 +16,7 @@ public class DataSourceVO {
     private String url;
     private String username;
     private String schemaName;
+    private String sourceType;
     private String description;
     private Integer status;
     private String statusLabel;

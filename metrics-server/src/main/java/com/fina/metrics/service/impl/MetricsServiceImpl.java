@@ -4,8 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fina.metrics.config.DataSourceType;
 import com.fina.metrics.config.DynamicDataSourceManager;
 import com.fina.metrics.dto.*;
+import com.fina.metrics.entity.DataSourceConfig;
 import com.fina.metrics.entity.MetricsMeta;
 import com.fina.metrics.mapper.DataSourceConfigMapper;
 import com.fina.metrics.mapper.MetricsMetaMapper;
@@ -46,6 +48,8 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public MetricsIndexResponse getMetricsIndex(Long datasourceId) {
         log.debug("getMetricsIndex datasource={}", datasourceId);
+        DataSourceConfig datasource = resolveDatasourceConfig(datasourceId);
+        DataSourceType sourceType = resolveDatasourceType(datasource);
         Set<String> registered = metaMapper.selectList(
                         new LambdaQueryWrapper<MetricsMeta>()
                                 .eq(MetricsMeta::getDatasourceId, datasourceId)
@@ -56,9 +60,10 @@ public class MetricsServiceImpl implements MetricsService {
                 .map(MetricsMeta::getMetricCode)
                 .collect(Collectors.toSet());
 
-        String dsName = resolveDatasourceName(datasourceId);
+        String dsName = datasource != null ? datasource.getName() : null;
 
         List<MetricsIndexResponse.MetricIndexItem> items = catalog.getIndexItems().stream()
+                .filter(node -> isMetricVisibleForSource(node, sourceType))
                 .map(node -> {
                     List<String> keywords = new ArrayList<>();
                     node.path("search_keywords").forEach(k -> keywords.add(k.asText()));
@@ -74,22 +79,31 @@ public class MetricsServiceImpl implements MetricsService {
                 })
                 .collect(Collectors.toList());
 
+        List<TableViewIndexItem> tables = tableViewMetaService.getTableViewsIndex().stream()
+                .filter(item -> isTableVisibleForSource(item.getTableName(), sourceType))
+                .collect(Collectors.toList());
+
         return MetricsIndexResponse.builder()
                 .datasourceId(datasourceId)
                 .datasourceName(dsName)
                 .catalogVersion(catalog.getCatalogVersion())
                 .domainCategories(catalog.getDomainCategories())
                 .metrics(items)
-                .tables(tableViewMetaService.getTableViewsIndex())
+                .tables(tables)
                 .build();
     }
 
     @Override
     public MetricsDetailResponse getMetricDetail(Long datasourceId, String metricName) {
         log.debug("getMetricDetail datasource={} metric={}", datasourceId, metricName);
+        DataSourceType sourceType = resolveDatasourceType(resolveDatasourceConfig(datasourceId));
         JsonNode catalogDetail = catalog.findDetailItem(metricName)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Metric not found in catalog: " + metricName));
+        if (!isMetricVisibleForSource(catalogDetail, sourceType)) {
+            throw new IllegalArgumentException(
+                    "Metric " + metricName + " is not available for datasource type " + sourceType.getCode());
+        }
 
         MetricsMeta dbMeta = metaMapper.selectOne(
                 new LambdaQueryWrapper<MetricsMeta>()
@@ -202,7 +216,10 @@ public class MetricsServiceImpl implements MetricsService {
         return MetricsMetaFullResponse.builder()
                 .index(index)
                 .metricsDetails(metricsDetails)
-                .tablesDetails(tableViewMetaService.getTableViewsDetails())
+                .tablesDetails(tableViewMetaService.getTableViewsDetails().stream()
+                        .filter(item -> isTableVisibleForSource(item.getTableName(),
+                                resolveDatasourceType(resolveDatasourceConfig(datasourceId))))
+                        .collect(Collectors.toList()))
                 .build();
     }
 
@@ -290,6 +307,11 @@ public class MetricsServiceImpl implements MetricsService {
             throw new IllegalArgumentException(
                     "Either 'metrics' (semantic mode) or 'custom_sql' must be provided");
         }
+        DataSourceType sourceType = resolveDatasourceType(resolveDatasourceConfig(request.getDatasourceId()));
+        if (sourceType.isCdp()) {
+            throw new IllegalArgumentException(
+                    "Semantic metrics are not enabled for cdp_postgres yet; use custom_sql for CDP datasource queries");
+        }
 
         List<JsonNode> catalogDetails = new ArrayList<>();
         for (String metricName : metrics) {
@@ -299,7 +321,8 @@ public class MetricsServiceImpl implements MetricsService {
             catalogDetails.add(detail);
         }
 
-        SemanticQueryBuilder.BuildResult built = queryBuilder.buildMulti(metrics, request, catalogDetails);
+        SemanticQueryBuilder.BuildResult built = queryBuilder.buildMulti(
+                metrics, request, catalogDetails, sourceType.getCode());
         QueryResult qr = executeQuery(request.getDatasourceId(), built.sql(), built.params());
 
         String semanticModel = catalogDetails.get(0).path("source").path("table_view").asText("");
@@ -416,13 +439,32 @@ public class MetricsServiceImpl implements MetricsService {
         }
     }
 
-    private String resolveDatasourceName(Long datasourceId) {
+    private DataSourceConfig resolveDatasourceConfig(Long datasourceId) {
         try {
-            var config = dsConfigMapper.selectById(datasourceId);
-            return config != null ? config.getName() : null;
+            return dsConfigMapper.selectById(datasourceId);
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private DataSourceType resolveDatasourceType(DataSourceConfig config) {
+        if (config == null) {
+            return DataSourceType.SAP_B1_HANA;
+        }
+        return DataSourceType.resolve(config.getSourceType(), config.getUrl());
+    }
+
+    private boolean isMetricVisibleForSource(JsonNode node, DataSourceType sourceType) {
+        String itemSourceType = node.path("source_type").asText(null);
+        if (sourceType.isCdp()) {
+            return "cdp_postgres".equals(itemSourceType);
+        }
+        return itemSourceType == null || itemSourceType.isBlank() || "sap_b1_hana".equals(itemSourceType);
+    }
+
+    private boolean isTableVisibleForSource(String tableName, DataSourceType sourceType) {
+        boolean isDemoTable = tableName != null && tableName.startsWith("demo_");
+        return sourceType.isCdp() ? isDemoTable : !isDemoTable;
     }
 
 }

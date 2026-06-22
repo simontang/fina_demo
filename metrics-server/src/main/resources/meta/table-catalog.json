@@ -268,5 +268,149 @@
     "docType": "Inventory Movements",
     "docTypeEn": "Inventory Movements",
     "shortDesc": "Item inventory movements; used to identify inactive/slow-moving items."
+  },
+  {
+    "tableName": "demo_customers",
+    "docType": "CDP Customers",
+    "docTypeEn": "CDP Customers",
+    "shortDesc": "CRM Agent demo customer master data: anonymous customer profile, demographics, membership, marketing consent, lifetime value, skin concern, and serum cohort label."
+  },
+  {
+    "tableName": "demo_products",
+    "docType": "CDP Products",
+    "docTypeEn": "CDP Products",
+    "shortDesc": "CRM Agent demo product catalog with category, series, price, product benefits, usage cycle, contraindications, premium tier, and active flag."
+  },
+  {
+    "tableName": "demo_content_assets",
+    "docType": "CDP Content Assets",
+    "docTypeEn": "CDP Content Assets",
+    "shortDesc": "Marketing and service content assets used by the CRM Agent process recommendations, including topic, channel, brand tone, compliance level, and related products."
+  },
+  {
+    "tableName": "demo_scenario_opportunities",
+    "docType": "CDP Scenario Opportunities",
+    "docTypeEn": "CDP Scenario Opportunities",
+    "shortDesc": "Three CRM Agent opportunity scenarios with trigger signals, affected audiences, evidence events, process actions, content assets, channel recommendations, approval rules, and success metrics."
+  },
+  {
+    "tableName": "demo_web_sessions",
+    "docType": "CDP Web Sessions",
+    "docTypeEn": "CDP Web Sessions",
+    "shortDesc": "Customer web or mini-program sessions with channel, traffic source, device, final intent, confidence, risk flag, recommended action, and golden-session marker."
+  },
+  {
+    "tableName": "demo_orders",
+    "docType": "CDP Orders",
+    "docTypeEn": "CDP Orders",
+    "shortDesc": "CRM Agent demo order facts linking customer and product, with order time, quantity, unit price, amount, channel, status, and serum-order flag."
+  },
+  {
+    "tableName": "demo_marketing_touches",
+    "docType": "CDP Marketing Touches",
+    "docTypeEn": "CDP Marketing Touches",
+    "shortDesc": "Customer marketing touches by campaign, channel, touch type, message theme, delivery, click, conversion, and unsubscribe flags."
+  },
+  {
+    "tableName": "demo_service_cases",
+    "docType": "CDP Service Cases",
+    "docTypeEn": "CDP Service Cases",
+    "shortDesc": "Customer service cases with case type, topic, sentiment, severity, related product, resolution status, marketing protection flag, and protection expiry."
+  },
+  {
+    "tableName": "demo_page_events",
+    "docType": "CDP Page Events",
+    "docTypeEn": "CDP Page Events",
+    "shortDesc": "Page-level behavior events for sessions, including event type, page type, product/content context, dwell time, scroll depth, intent, confidence, process action, risk flag, and opportunity tag."
+  },
+  {
+    "tableName": "demo_golden_replay",
+    "docType": "CDP Golden Replay",
+    "docTypeEn": "CDP Golden Replay",
+    "shortDesc": "Golden replay event sequences for eight curated sessions, including inferred intent, process action, risk flag, and evidence notes."
+  },
+  {
+    "tableName": "demo_expected_labels",
+    "docType": "CDP Expected Labels",
+    "docTypeEn": "CDP Expected Labels",
+    "shortDesc": "Data Agent standard labels for customer and session entities, including scenario, primary label, confidence, risk flag, evidence summary, and golden-case marker."
+  },
+  {
+    "tableName": "demo_expected_actions",
+    "docType": "CDP Expected Actions",
+    "docTypeEn": "CDP Expected Actions",
+    "shortDesc": "Process Agent standard recommended actions for customer, session, and opportunity entities, with channel, timing, frequency control, approval rule, content assets, and reason."
+  },
+  {
+    "tableName": "demo_demo_cases",
+    "docType": "CDP Demo Cases",
+    "docTypeEn": "CDP Demo Cases",
+    "shortDesc": "Curated demo cases for CRM Agent scenarios, including suggested questions, expected Data Agent output, expected Process Agent output, replay instruction, key evidence, and golden-case marker."
+  },
+  {
+    "tableName": "demo_qa_checks",
+    "docType": "CDP QA Checks",
+    "docTypeEn": "CDP QA Checks",
+    "shortDesc": "Quality assurance checks bundled with the CRM Agent demo dataset."
+  },
+  {
+    "tableName": "demo_readme",
+    "docType": "CDP Dataset README",
+    "docTypeEn": "CDP Dataset README",
+    "shortDesc": "Key-value metadata from the CRM Agent demo dataset README."
+  },
+  {
+    "tableName": "demo_scenario_opportunity_audiences",
+    "docType": "CDP Opportunity Audiences",
+    "docTypeEn": "CDP Opportunity Audiences",
+    "shortDesc": "Bridge table normalizing scenario opportunity executable audience customer IDs."
+  },
+  {
+    "tableName": "demo_scenario_opportunity_evidence_events",
+    "docType": "CDP Opportunity Evidence Events",
+    "docTypeEn": "CDP Opportunity Evidence Events",
+    "shortDesc": "Bridge table normalizing scenario opportunity evidence page event IDs."
+  },
+  {
+    "tableName": "demo_scenario_opportunity_assets",
+    "docType": "CDP Opportunity Content Assets",
+    "docTypeEn": "CDP Opportunity Content Assets",
+    "shortDesc": "Bridge table normalizing scenario opportunity recommended content asset IDs."
+  },
+  {
+    "tableName": "demo_expected_action_assets",
+    "docType": "CDP Expected Action Assets",
+    "docTypeEn": "CDP Expected Action Assets",
+    "shortDesc": "Bridge table normalizing content asset IDs referenced by expected Process Agent actions."
+  },
+  {
+    "tableName": "demo_content_asset_products",
+    "docType": "CDP Content Asset Products",
+    "docTypeEn": "CDP Content Asset Products",
+    "shortDesc": "Bridge table normalizing product IDs related to CDP content assets."
+  },
+  {
+    "tableName": "demo_v_customer_360",
+    "docType": "CDP Customer 360 View",
+    "docTypeEn": "CDP Customer 360 View",
+    "shortDesc": "Customer-grain analysis view aggregating orders, sessions, page events, marketing touches, service cases, expected labels, and expected actions."
+  },
+  {
+    "tableName": "demo_v_session_event_wide",
+    "docType": "CDP Session Event Wide View",
+    "docTypeEn": "CDP Session Event Wide View",
+    "shortDesc": "Event-grain wide view joining page events to sessions, customers, products, expected session labels, and expected session actions."
+  },
+  {
+    "tableName": "demo_v_opportunity_wide",
+    "docType": "CDP Opportunity Wide View",
+    "docTypeEn": "CDP Opportunity Wide View",
+    "shortDesc": "Opportunity-grain wide view aggregating normalized audiences, evidence events, content assets, expected actions, and demo questions."
+  },
+  {
+    "tableName": "demo_v_demo_case_answer",
+    "docType": "CDP Demo Case Answer View",
+    "docTypeEn": "CDP Demo Case Answer View",
+    "shortDesc": "Demo-case-grain answer view combining curated questions, expected Data Agent answers, expected Process Agent actions, and linked entity context."
   }
 ]

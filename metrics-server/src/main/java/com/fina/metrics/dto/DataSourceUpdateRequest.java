@@ -30,6 +30,9 @@ public class DataSourceUpdateRequest {
 
     private String schemaName;
 
+    /** Optional. When absent, inferred from url for backward compatibility. */
+    private String sourceType;
+
     private String description;
 
     @NotNull(message = "status is required (1=active, 0=inactive)")

@@ -1,18 +1,19 @@
 -- ============================================================
 -- Metrics Server — Master Schema DDL (PostgreSQL)
--- Master DB stores datasource configs (pointing to SAP B1 HANA)
+-- Master DB stores datasource configs and metric definitions.
 -- and metric definitions. Run once on a fresh PostgreSQL database.
 -- ============================================================
 
--- SAP B1 HANA datasource configurations
--- Each row represents one dynamic HANA connection available for metric queries.
+-- Dynamic datasource configurations.
+-- Each row represents one external connection available for metric queries.
 CREATE TABLE IF NOT EXISTS t_datasource_config (
     id          BIGSERIAL       PRIMARY KEY,
     name        VARCHAR(200)    NOT NULL,
-    url         VARCHAR(500)    NOT NULL,       -- jdbc:sap://host:port?currentSchema=SCHEMA
+    url         VARCHAR(500)    NOT NULL,       -- jdbc:sap://..., jdbc:postgresql://...
     username    VARCHAR(200)    NOT NULL,
-    password    VARCHAR(500)    NOT NULL,       -- AES-encrypted HANA password
-    schema_name VARCHAR(128),                  -- optional default schema for SET SCHEMA
+    password    VARCHAR(500)    NOT NULL,       -- AES-encrypted datasource password
+    schema_name VARCHAR(128),                  -- optional default schema/search_path
+    source_type VARCHAR(64)     NOT NULL DEFAULT 'sap_b1_hana',
     description VARCHAR(1000),
     status      SMALLINT        NOT NULL DEFAULT 1,  -- 1=active 0=inactive
     created_at  TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -22,6 +23,7 @@ CREATE TABLE IF NOT EXISTS t_datasource_config (
 
 CREATE INDEX IF NOT EXISTS idx_ds_status ON t_datasource_config (status, deleted);
 CREATE INDEX IF NOT EXISTS idx_ds_name   ON t_datasource_config (name);
+CREATE INDEX IF NOT EXISTS idx_ds_source_type ON t_datasource_config (source_type, status, deleted);
 
 -- Metric definitions bound to a SAP B1 HANA datasource
 -- Each row describes a named, parameterised SQL query executed on the target HANA.
