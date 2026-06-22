@@ -2,6 +2,7 @@ package com.fina.metrics.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fina.metrics.config.DynamicDataSourceManager;
+import com.fina.metrics.config.DataSourceType;
 import com.fina.metrics.dto.DataSourceRequest;
 import com.fina.metrics.dto.DataSourceUpdateRequest;
 import com.fina.metrics.dto.DataSourceVO;
@@ -67,6 +68,7 @@ public class DataSourceServiceImpl implements DataSourceService {
     public DataSourceVO create(DataSourceRequest request) {
         DataSourceConfig config = new DataSourceConfig();
         BeanUtils.copyProperties(request, config);
+        config.setSourceType(DataSourceType.resolve(request.getSourceType(), request.getUrl()).getCode());
         config.setPassword(EncryptUtil.encrypt(request.getPassword(), encryptKey));
         config.setDeleted(0);
 
@@ -89,6 +91,7 @@ public class DataSourceServiceImpl implements DataSourceService {
         config.setUrl(request.getUrl());
         config.setUsername(request.getUsername());
         config.setSchemaName(request.getSchemaName());
+        config.setSourceType(DataSourceType.resolve(request.getSourceType(), request.getUrl()).getCode());
         config.setDescription(request.getDescription());
         config.setStatus(request.getStatus());
 
@@ -156,6 +159,7 @@ public class DataSourceServiceImpl implements DataSourceService {
     public boolean testConnection(DataSourceRequest request) {
         DataSourceConfig config = new DataSourceConfig();
         BeanUtils.copyProperties(request, config);
+        config.setSourceType(DataSourceType.resolve(request.getSourceType(), request.getUrl()).getCode());
         // Caller supplies plain-text password; encrypt so DynamicDataSourceManager
         // can decrypt it consistently (same path as persisted configs).
         config.setPassword(EncryptUtil.encrypt(request.getPassword(), encryptKey));

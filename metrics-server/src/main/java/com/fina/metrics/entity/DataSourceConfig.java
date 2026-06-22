@@ -31,6 +31,9 @@ public class DataSourceConfig {
     /** Optional default schema to set on every new connection */
     private String schemaName;
 
+    /** Runtime datasource type, e.g. sap_b1_hana or cdp_postgres */
+    private String sourceType;
+
     private String description;
 
     /** 1 = active, 0 = inactive */

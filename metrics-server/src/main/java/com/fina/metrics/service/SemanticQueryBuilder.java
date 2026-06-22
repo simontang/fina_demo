@@ -25,7 +25,14 @@ public interface SemanticQueryBuilder {
      */
     BuildResult build(String metricName,
                       SemanticQueryRequest request,
-                      JsonNode catalogDetail);
+                      JsonNode catalogDetail,
+                      String sourceType);
+
+    default BuildResult build(String metricName,
+                              SemanticQueryRequest request,
+                              JsonNode catalogDetail) {
+        return build(metricName, request, catalogDetail, "sap_b1_hana");
+    }
 
     /**
      * Build a single HANA SQL for multiple metrics (one result set).
@@ -38,7 +45,14 @@ public interface SemanticQueryBuilder {
      */
     BuildResult buildMulti(List<String> metricNames,
                            SemanticQueryRequest request,
-                           List<JsonNode> catalogDetails);
+                           List<JsonNode> catalogDetails,
+                           String sourceType);
+
+    default BuildResult buildMulti(List<String> metricNames,
+                                   SemanticQueryRequest request,
+                                   List<JsonNode> catalogDetails) {
+        return buildMulti(metricNames, request, catalogDetails, "sap_b1_hana");
+    }
 
     /**
      * Holds the generated SQL, its named parameters, and the ordered column name list

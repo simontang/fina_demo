@@ -22,11 +22,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Manages a runtime pool of SAP B1 HANA datasources loaded from t_datasource_config
+ * Manages a runtime pool of datasources loaded from t_datasource_config
  * (stored in the master PostgreSQL database).
  *
- * Each B1 HANA datasource gets its own HikariCP connection pool, keyed by datasource ID.
- * Use getNamedJdbcTemplate(id) to execute queries against a specific HANA instance.
+ * Each datasource gets its own HikariCP connection pool, keyed by datasource ID.
+ * Use getNamedJdbcTemplate(id) to execute queries against a specific datasource.
  */
 @Slf4j
 @Component
@@ -41,16 +41,16 @@ public class DynamicDataSourceManager {
     @Value("${metrics.skip-init:false}")
     private boolean skipInit;
 
-    /** id → live HikariCP pool for each active SAP B1 HANA datasource */
+    /** id → live HikariCP pool for each active datasource */
     private final ConcurrentHashMap<Long, HikariDataSource> poolMap = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void init() {
         if (skipInit) {
-            log.warn("DynamicDataSourceManager: skip-init=true, no B1 HANA datasources loaded");
+            log.warn("DynamicDataSourceManager: skip-init=true, no dynamic datasources loaded");
             return;
         }
-        log.info("Loading active B1 HANA datasources from master PostgreSQL DB...");
+        log.info("Loading active dynamic datasources from master PostgreSQL DB...");
         try {
             List<DataSourceConfig> configs = configMapper.selectList(
                     new LambdaQueryWrapper<DataSourceConfig>()
@@ -71,15 +71,16 @@ public class DynamicDataSourceManager {
     }
 
     /**
-     * Register (or replace) a SAP B1 HANA datasource by its config.
+     * Register (or replace) a datasource by its config.
      * Called on startup and whenever a datasource is created/updated via API.
      */
     public void registerDataSource(DataSourceConfig config) {
         closeExisting(config.getId());
+        DataSourceType type = DataSourceType.resolve(config.getSourceType(), config.getUrl());
 
         HikariConfig hc = new HikariConfig();
-        hc.setPoolName("b1-hana-pool-" + config.getId());
-        hc.setDriverClassName("com.sap.db.jdbc.Driver");  // SAP HANA JDBC driver (ngdbc)
+        hc.setPoolName(type.getPoolNamePrefix() + "-" + config.getId());
+        hc.setDriverClassName(type.getDriverClassName());
         hc.setJdbcUrl(config.getUrl());
         hc.setUsername(config.getUsername());
         hc.setPassword(decryptPassword(config.getPassword()));
@@ -90,14 +91,15 @@ public class DynamicDataSourceManager {
         hc.setMaxLifetime(1_800_000);
         hc.setInitializationFailTimeout(-1); // don't fail fast on startup
 
-        if (StringUtils.hasText(config.getSchemaName())) {
-            // HANA-specific schema switch syntax
-            hc.setConnectionInitSql("SET SCHEMA \"" + config.getSchemaName() + "\"");
+        String initSql = type.buildConnectionInitSql(config.getSchemaName());
+        if (StringUtils.hasText(initSql)) {
+            hc.setConnectionInitSql(initSql);
         }
 
         HikariDataSource ds = new HikariDataSource(hc);
         poolMap.put(config.getId(), ds);
-        log.info("Registered datasource id={} name={}", config.getId(), config.getName());
+        log.info("Registered datasource id={} name={} sourceType={}",
+                config.getId(), config.getName(), type.getCode());
     }
 
     /**
@@ -109,13 +111,14 @@ public class DynamicDataSourceManager {
     }
 
     /**
-     * Test SAP B1 HANA connectivity for a datasource config (without persisting it).
+     * Test connectivity for a datasource config (without persisting it).
      * Returns true if a connection can be obtained within timeout.
      */
     public boolean testConnection(DataSourceConfig config) {
+        DataSourceType type = DataSourceType.resolve(config.getSourceType(), config.getUrl());
         HikariConfig hc = new HikariConfig();
-        hc.setPoolName("b1-hana-test-" + System.currentTimeMillis());
-        hc.setDriverClassName("com.sap.db.jdbc.Driver");  // SAP HANA JDBC driver (ngdbc)
+        hc.setPoolName(type.getTestPoolNamePrefix() + "-" + System.currentTimeMillis());
+        hc.setDriverClassName(type.getDriverClassName());
         hc.setJdbcUrl(config.getUrl());
         hc.setUsername(config.getUsername());
         hc.setPassword(decryptPassword(config.getPassword()));
@@ -123,6 +126,10 @@ public class DynamicDataSourceManager {
         hc.setMinimumIdle(0);
         hc.setConnectionTimeout(10_000);
         hc.setInitializationFailTimeout(10_000);
+        String initSql = type.buildConnectionInitSql(config.getSchemaName());
+        if (StringUtils.hasText(initSql)) {
+            hc.setConnectionInitSql(initSql);
+        }
 
         try (HikariDataSource testDs = new HikariDataSource(hc);
              Connection conn = testDs.getConnection()) {

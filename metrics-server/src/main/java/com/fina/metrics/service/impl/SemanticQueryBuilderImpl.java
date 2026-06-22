@@ -1,6 +1,7 @@
 package com.fina.metrics.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fina.metrics.config.DataSourceType;
 import com.fina.metrics.dto.SemanticQueryRequest;
 import com.fina.metrics.service.SemanticQueryBuilder;
 import lombok.extern.slf4j.Slf4j;
@@ -36,17 +37,26 @@ import java.util.*;
 @Service
 public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
 
-    private static final Map<String, String> GRAIN_FORMAT = Map.of(
+    private static final Map<String, String> HANA_GRAIN_FORMAT = Map.of(
             "year",  "'YYYY'",
             "month", "'YYYY-MM'",
             "week",  "'YYYY-IW'",
             "day",   "'YYYY-MM-DD'"
     );
 
+    private static final Map<String, String> POSTGRES_GRAIN_FORMAT = Map.of(
+            "year",  "'YYYY'",
+            "month", "'YYYY-MM'",
+            "week",  "'IYYY-IW'",
+            "day",   "'YYYY-MM-DD'"
+    );
+
     @Override
     public BuildResult build(String metricName,
                              SemanticQueryRequest request,
-                             JsonNode catalogDetail) {
+                             JsonNode catalogDetail,
+                             String sourceType) {
+        DataSourceType dataSourceType = DataSourceType.resolve(sourceType, null);
 
         String tableView     = catalogDetail.path("source").path("table_view").asText("");
         String sqlExpr       = catalogDetail.path("calculation").path("sql_expression").asText("");
@@ -79,7 +89,7 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
 
         // ── SELECT + GROUP BY for each group_by item ─────────────────────────
         for (String gbItem : groupByItems) {
-            DimRef ref = resolveGroupByItem(gbItem, dimMap);
+            DimRef ref = resolveGroupByItem(gbItem, dimMap, dataSourceType);
             selectExprs.add(ref.selectExpr + " AS \"" + gbItem + "\"");
             groupByClauses.add(ref.groupByExpr);
             columnLabels.add(gbItem);
@@ -205,7 +215,9 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
     @Override
     public BuildResult buildMulti(List<String> metricNames,
                                   SemanticQueryRequest request,
-                                  List<JsonNode> catalogDetails) {
+                                  List<JsonNode> catalogDetails,
+                                  String sourceType) {
+        DataSourceType dataSourceType = DataSourceType.resolve(sourceType, null);
         if (metricNames == null || metricNames.isEmpty() || catalogDetails == null
                 || catalogDetails.size() != metricNames.size()) {
             throw new IllegalArgumentException("metricNames and catalogDetails must be non-empty and same size");
@@ -237,7 +249,7 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
         List<String> columnLabels = new ArrayList<>();
 
         for (String gbItem : groupByItems) {
-            DimRef ref = resolveGroupByItem(gbItem, dimMap);
+            DimRef ref = resolveGroupByItem(gbItem, dimMap, dataSourceType);
             selectExprs.add(ref.selectExpr + " AS \"" + gbItem + "\"");
             groupByClauses.add(ref.groupByExpr);
             columnLabels.add(gbItem);
@@ -390,17 +402,21 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
      * Resolve a group_by item to SELECT and GROUP BY expressions.
      * Handles "field__grain" notation for time truncation.
      */
-    private DimRef resolveGroupByItem(String gbItem, Map<String, String> dimMap) {
+    private DimRef resolveGroupByItem(String gbItem, Map<String, String> dimMap, DataSourceType sourceType) {
         // Check for time granularity suffix: "DocDate__month"
         int dunder = gbItem.lastIndexOf("__");
         if (dunder > 0) {
             String dimPart   = gbItem.substring(0, dunder);
             String grainPart = gbItem.substring(dunder + 2).toLowerCase();
-            String fmt = GRAIN_FORMAT.get(grainPart);
+            String fmt = sourceType == DataSourceType.CDP_POSTGRES
+                    ? POSTGRES_GRAIN_FORMAT.get(grainPart)
+                    : HANA_GRAIN_FORMAT.get(grainPart);
             if (fmt != null) {
                 // Resolve the dim part to a field name
                 String fieldName = dimMap.getOrDefault(dimPart, dimPart);
-                String expr = "TO_NVARCHAR(\"" + fieldName + "\", " + fmt + ")";
+                String expr = sourceType == DataSourceType.CDP_POSTGRES
+                        ? "to_char(\"" + fieldName + "\", " + fmt + ")"
+                        : "TO_NVARCHAR(\"" + fieldName + "\", " + fmt + ")";
                 return new DimRef(expr, expr);
             }
         }
