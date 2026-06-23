@@ -25,6 +25,8 @@ import {
   metricsServerManager,
   registerScheduleLattice,
   configureStores,
+  sandboxLatticeManager,
+  createSandboxProvider,
 } from "@axiom-lattice/core";
 
 import "./agents";
@@ -281,6 +283,37 @@ async function main() {
 await initializePgStores();
 
 // Sandbox provider 由 gateway 框架自动根据环境变量注册，无需在此手动配置
+
+  // Register Sandbox Manager Lattice
+  const sandboxProviderType = process.env.SANDBOX_PROVIDER_TYPE || "microsandbox";
+  const sandboxBaseURL = process.env.SANDBOX_BASE_URL;
+  const microsandboxServiceBaseURL = process.env.MICROSANDBOX_SERVICE_BASE_URL;
+  const e2bApiKey = process.env.E2B_API_KEY;
+  const daytonaApiKey = process.env.DAYTONA_API_KEY;
+  const daytonaApiUrl = process.env.DAYTONA_API_URL;
+  const daytonaTarget = process.env.DAYTONA_TARGET;
+
+  const sandboxProvider = createSandboxProvider({
+    type: sandboxProviderType as any,
+    remoteBaseURL: sandboxBaseURL,
+    microsandboxServiceBaseURL,
+    e2bApiKey,
+    e2bTemplate: process.env.E2B_TEMPLATE,
+    e2bTimeoutMs: process.env.E2B_TIMEOUT_MS
+      ? parseInt(process.env.E2B_TIMEOUT_MS, 10)
+      : undefined,
+    daytonaApiKey,
+    daytonaApiUrl,
+    daytonaTarget,
+    daytonaTimeout: process.env.DAYTONA_TIMEOUT
+      ? parseInt(process.env.DAYTONA_TIMEOUT, 10)
+      : undefined,
+    daytonaVolumeName: process.env.DAYTONA_VOLUME_NAME,
+  });
+
+  sandboxLatticeManager.registerLattice("default", sandboxProvider);
+
+  console.log(`✓ Sandbox provider registered: ${sandboxProviderType}`);
 
 //migrateVectorStoreToPGVectorStore();
 
