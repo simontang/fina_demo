@@ -2,9 +2,7 @@ import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
-import { PostgreSQLAssistantStore, PostgreSQLThreadStore, PostgreSQLDatabaseConfigStore, PostgreSQLWorkspaceStore, PostgreSQLProjectStore, PostgreSQLUserStore, PostgreSQLTenantStore, PostgreSQLUserTenantLinkStore, PostgreSQLMetricsServerConfigStore, PostgreSQLMcpServerConfigStore, PostgreSQLScheduleStorage, PostgreSQLWorkflowTrackingStore, ThreadMessageQueueStore, PostgreSQLEvalStore, PostgreSQLChannelInstallationStore, ChannelBindingStore } from "@axiom-lattice/pg-stores";
-import { Pool } from "pg";
+import { createPgStoreConfig } from "@axiom-lattice/pg-stores";
 import {
   ScheduleType,
 } from "@axiom-lattice/protocols";
@@ -26,6 +24,7 @@ import {
   sqlDatabaseManager,
   metricsServerManager,
   registerScheduleLattice,
+  configureStores,
 } from "@axiom-lattice/core";
 
 import "./agents";
@@ -241,178 +240,30 @@ if (defaultModel) {
 //   baseURL: "https://llm.alphafina.cn/v1/chat/completions",
 // });
 
-if (process.env.NODE_ENV === "production") {
-  const globalMemory = PostgresSaver.fromConnString(process.env.DATABASE_URL!);
-  globalMemory.setup();
-  MemoryLatticeManager.getInstance().removeCheckpointSaver("default");
-  registerCheckpointSaver("default", globalMemory);
+async function initializePgStores(): Promise<void> {
+  const connectionString = process.env.DATABASE_URL || "";
 
+  if (!connectionString) {
+    console.error("ERROR: DATABASE_URL environment variable is not set");
+    process.exit(1);
+  }
 
-  // Create and initialize PostgreSQL ThreadStore
-  const threadStore = new PostgreSQLThreadStore({
-    poolConfig: process.env.DATABASE_URL || "",
+  console.log("\n🔌 Initializing PostgreSQL stores...\n");
+
+  const stores = createPgStoreConfig(connectionString);
+
+  await configureStores({
+    ...stores,
   });
 
-  // Initialize (runs migrations automatically)
-  //threadStore.initialize();
-  storeLatticeManager.removeLattice("default", "thread");
-  registerStoreLattice("default", "thread", threadStore);
+  // Additional config loading after stores are registered
+  sqlDatabaseManager.loadAllConfigsFromStore(stores.database);
+  metricsServerManager.loadConfigsFromStore(stores.metrics, "default");
 
+  console.log("\n✓ All PostgreSQL stores initialized\n");
 }
 
-
-// Create and initialize AssistantStore with connection string
-const assistantStore = new PostgreSQLAssistantStore({
-  poolConfig: process.env.DATABASE_URL || "",
-});
-
-// Ensure initialization (migrations run automatically)
-// assistantStore.initialize();
-
-// Register to StoreLatticeManager
-storeLatticeManager.removeLattice("default", "assistant");
-
-registerStoreLattice("default", "assistant", assistantStore);
-
-
-
-// Initialize and register PostgreSQL DatabaseConfigStore
-// This stores database connection configurations with encryption
-const databaseConfigStore = new PostgreSQLDatabaseConfigStore({
-  poolConfig: process.env.DATABASE_URL || "",
-  autoMigrate: true,
-});
-
-// Register databaseConfigStore to replace the default in-memory store
-storeLatticeManager.removeLattice("default", "database");
-registerStoreLattice("default", "database", databaseConfigStore);
-sqlDatabaseManager.loadAllConfigsFromStore(databaseConfigStore)
-console.log("PostgreSQL DatabaseConfigStore initialized with auto-migration");
-
-
-
-// Initialize and register PostgreSQL MetricsServerConfigStore
-// This stores metrics server configurations with apiKey and password encryption
-const metricsConfigStore = new PostgreSQLMetricsServerConfigStore({
-  poolConfig: process.env.DATABASE_URL || "",
-  autoMigrate: true,
-});
-
-// Register metricsConfigStore to replace the default in-memory store
-storeLatticeManager.removeLattice("default", "metrics");
-registerStoreLattice("default", "metrics", metricsConfigStore);
-metricsServerManager.loadAllConfigsFromStore(metricsConfigStore)
-console.log("PostgreSQL MetricsServerConfigStore initialized with auto-migration");
-
-
-
-// Initialize and register PostgreSQL McpServerConfigStore
-// This stores MCP server configurations with env encryption
-const mcpConfigStore = new PostgreSQLMcpServerConfigStore({
-  poolConfig: process.env.DATABASE_URL || "",
-  autoMigrate: true,
-});
-
-// Register mcpConfigStore to replace the default in-memory store
-storeLatticeManager.removeLattice("default", "mcp");
-registerStoreLattice("default", "mcp", mcpConfigStore);
-console.log("PostgreSQL McpServerConfigStore initialized with auto-migration");
-
-
-// Initialize and register PostgreSQL WorkspaceStore
-const workspaceStore = new PostgreSQLWorkspaceStore({
-  poolConfig: process.env.DATABASE_URL || "",
-  autoMigrate: true,
-});
-
-// Register workspaceStore to replace the default in-memory store
-storeLatticeManager.removeLattice("default", "workspace");
-registerStoreLattice("default", "workspace", workspaceStore);
-console.log("PostgreSQL WorkspaceStore initialized with auto-migration");
-
-// Initialize and register PostgreSQL ProjectStore
-const projectStore = new PostgreSQLProjectStore({
-  poolConfig: process.env.DATABASE_URL || "",
-  autoMigrate: true,
-});
-
-// Register projectStore to replace the default in-memory store
-storeLatticeManager.removeLattice("default", "project");
-registerStoreLattice("default", "project", projectStore);
-console.log("PostgreSQL ProjectStore initialized with auto-migration");
-
-// Initialize and register PostgreSQL UserStore (for authentication)
-const userStore = new PostgreSQLUserStore({
-  poolConfig: process.env.DATABASE_URL || "",
-  autoMigrate: true,
-});
-storeLatticeManager.removeLattice("default", "user");
-registerStoreLattice("default", "user", userStore);
-console.log("PostgreSQL UserStore initialized with auto-migration");
-
-// Initialize and register PostgreSQL TenantStore (for multi-tenancy)
-const tenantStore = new PostgreSQLTenantStore({
-  poolConfig: process.env.DATABASE_URL || "",
-  autoMigrate: true,
-});
-storeLatticeManager.removeLattice("default", "tenant");
-registerStoreLattice("default", "tenant", tenantStore);
-console.log("PostgreSQL TenantStore initialized with auto-migration");
-
-// Initialize and register PostgreSQL UserTenantLinkStore (for user-tenant relationships)
-const userTenantLinkStore = new PostgreSQLUserTenantLinkStore({
-  poolConfig: process.env.DATABASE_URL || "",
-  autoMigrate: true,
-});
-storeLatticeManager.removeLattice("default", "userTenantLink");
-registerStoreLattice("default", "userTenantLink", userTenantLinkStore);
-console.log("PostgreSQL UserTenantLinkStore initialized with auto-migration");
-
-// Initialize and register PostgreSQL WorkflowTrackingStore
-const workflowTrackingStore = new PostgreSQLWorkflowTrackingStore({
-  poolConfig: process.env.DATABASE_URL || "",
-  autoMigrate: true,
-});
-storeLatticeManager.removeLattice("default", "workflowTracking");
-registerStoreLattice("default", "workflowTracking", workflowTrackingStore);
-console.log("PostgreSQL WorkflowTrackingStore initialized with auto-migration");
-
-// Initialize and register PostgreSQL EvalStore
-const evalStore = new PostgreSQLEvalStore({
-  poolConfig: process.env.DATABASE_URL || "",
-  autoMigrate: true,
-});
-storeLatticeManager.removeLattice("default", "eval");
-registerStoreLattice("default", "eval", evalStore);
-console.log("PostgreSQL EvalStore initialized with auto-migration");
-
-// Initialize and register PostgreSQL ThreadMessageQueueStore
-const messageQueueStore = ThreadMessageQueueStore.getInstance();
-const messageQueuePool = new Pool({ connectionString: process.env.DATABASE_URL });
-(async () => {
-  await messageQueueStore.initialize(messageQueuePool, true);
-  storeLatticeManager.removeLattice("default", "threadMessageQueue");
-  registerStoreLattice("default", "threadMessageQueue", messageQueueStore);
-  console.log("PostgreSQL ThreadMessageQueueStore initialized with auto-migration");
-})();
-
-// Initialize and register PostgreSQL ChannelInstallationStore
-const channelInstallationStore = new PostgreSQLChannelInstallationStore({
-  poolConfig: process.env.DATABASE_URL || "",
-  autoMigrate: true,
-});
-storeLatticeManager.removeLattice("default", "channelInstallation");
-registerStoreLattice("default", "channelInstallation", channelInstallationStore);
-console.log("PostgreSQL ChannelInstallationStore initialized with auto-migration");
-
-// Initialize and register ChannelBindingStore
-const channelBindingStore = new ChannelBindingStore({
-  poolConfig: process.env.DATABASE_URL || "",
-  autoMigrate: true,
-});
-storeLatticeManager.removeLattice("default", "channelBinding");
-registerStoreLattice("default", "channelBinding", channelBindingStore);
-console.log("ChannelBindingStore initialized with auto-migration");
+initializePgStores();
 
 // Auth configuration
 const AUTH_CONFIG = {
@@ -428,19 +279,6 @@ console.log(`  - Allow Tenant Registration: ${AUTH_CONFIG.allowTenantRegistratio
 console.log(`  - Token Expiration: ${AUTH_CONFIG.tokenExpiration}s`);
 
 // Sandbox provider 由 gateway 框架自动根据环境变量注册，无需在此手动配置
-
-  // Initialize and register PostgreSQL ScheduleStorage for scheduled tasks
-  const scheduleStorage = new PostgreSQLScheduleStorage({
-    poolConfig: process.env.DATABASE_URL || "",
-    autoMigrate: false,
-  });
-  //await scheduleStorage.initialize();
-  registerScheduleLattice("default", {
-    name: "Default Scheduler",
-    description: "Production scheduler with PostgreSQL persistence",
-    type: ScheduleType.POSTGRES,
-    storage: scheduleStorage,
-  });
 
 //migrateVectorStoreToPGVectorStore();
 
