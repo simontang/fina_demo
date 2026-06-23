@@ -240,6 +240,19 @@ if (defaultModel) {
 //   baseURL: "https://llm.alphafina.cn/v1/chat/completions",
 // });
 
+// Auth configuration
+const AUTH_CONFIG = {
+  autoApproveUsers: process.env.AUTO_APPROVE_USERS !== "false",
+  allowTenantRegistration: process.env.ALLOW_TENANT_REGISTRATION !== "false",
+  jwtSecret: process.env.JWT_SECRET || "your-secret-key-change-in-production",
+  tokenExpiration: parseInt(process.env.TOKEN_EXPIRATION || "86400", 10),
+};
+
+console.log("Auth Configuration:");
+console.log(`  - Auto Approve Users: ${AUTH_CONFIG.autoApproveUsers}`);
+console.log(`  - Allow Tenant Registration: ${AUTH_CONFIG.allowTenantRegistration}`);
+console.log(`  - Token Expiration: ${AUTH_CONFIG.tokenExpiration}s`);
+
 async function initializePgStores(): Promise<void> {
   const connectionString = process.env.DATABASE_URL || "";
 
@@ -262,21 +275,8 @@ async function initializePgStores(): Promise<void> {
 
   console.log("\n✓ All PostgreSQL stores initialized\n");
 }
-
-initializePgStores();
-
-// Auth configuration
-const AUTH_CONFIG = {
-  autoApproveUsers: process.env.AUTO_APPROVE_USERS !== "false",
-  allowTenantRegistration: process.env.ALLOW_TENANT_REGISTRATION !== "false",
-  jwtSecret: process.env.JWT_SECRET || "your-secret-key-change-in-production",
-  tokenExpiration: parseInt(process.env.TOKEN_EXPIRATION || "86400", 10),
-};
-
-console.log("Auth Configuration:");
-console.log(`  - Auto Approve Users: ${AUTH_CONFIG.autoApproveUsers}`);
-console.log(`  - Allow Tenant Registration: ${AUTH_CONFIG.allowTenantRegistration}`);
-console.log(`  - Token Expiration: ${AUTH_CONFIG.tokenExpiration}s`);
+async function main() {
+await initializePgStores();
 
 // Sandbox provider 由 gateway 框架自动根据环境变量注册，无需在此手动配置
 
@@ -285,3 +285,10 @@ console.log(`  - Token Expiration: ${AUTH_CONFIG.tokenExpiration}s`);
 // 启动fastify服务器
 const port = process.env.PORT ? parseInt(process.env.PORT) : 5702;
 startServer(port);
+}
+
+// Run main function
+main().catch((error) => {
+  console.error("Failed to start server:", error);
+  process.exit(1);
+});
