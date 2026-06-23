@@ -272,6 +272,8 @@ async function initializePgStores(): Promise<void> {
   // Additional config loading after stores are registered
   sqlDatabaseManager.loadAllConfigsFromStore(stores.database);
   metricsServerManager.loadConfigsFromStore(stores.metrics, "default");
+  metricsServerManager.loadConfigsFromStore(stores.metrics, "tenant_3");
+
 
   console.log("\n✓ All PostgreSQL stores initialized\n");
 }
