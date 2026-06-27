@@ -23,9 +23,9 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "@axiom-lattice/core": "^2.1.86",
-    "@axiom-lattice/gateway": "^2.1.98",
-    "@axiom-lattice/pg-stores": "^1.0.77",
+    "@axiom-lattice/core": "^2.1.88",
+    "@axiom-lattice/gateway": "^2.1.100",
+    "@axiom-lattice/pg-stores": "^1.0.79",
     "@axiom-lattice/protocols": "^2.1.44",
     "@fastify/cors": "^11.1.0",
     "@fastify/multipart": "^9.3.0",
