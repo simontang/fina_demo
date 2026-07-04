@@ -265,7 +265,7 @@ async function initializePgStores(): Promise<void> {
 
   console.log("\n🔌 Initializing PostgreSQL stores...\n");
 
-  const stores = createPgStoreConfig(connectionString);
+  const stores = await createPgStoreConfig(connectionString);
 
   await configureStores({
     ...stores,
