@@ -19,8 +19,8 @@ importers:
         specifier: ^2.1.94
         version: 2.1.94(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-s3@3.1079.0)(@aws-sdk/credential-provider-node@3.972.62)(@browserbasehq/sdk@2.15.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.61.0)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.45.0(@aws-sdk/credential-provider-node@3.972.62)(@smithy/signature-v4@5.6.2)(ws@8.21.0)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.14)(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.207.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.9.0(@opentelemetry/api@1.9.1))(@smithy/signature-v4@5.6.2)(@types/node@20.19.43)(crypto-js@4.2.0)(ibm-cloud-sdk-core@5.5.0)(jsonwebtoken@9.0.3)(openai@6.45.0(@aws-sdk/credential-provider-node@3.972.62)(@smithy/signature-v4@5.6.2)(ws@8.21.0)(zod@3.25.76))(playwright@1.61.0)(redis@5.12.1(@opentelemetry/api@1.9.1))(weaviate-client@3.13.1)(ws@8.21.0)
       '@axiom-lattice/gateway':
-        specifier: ^2.1.106
-        version: 2.1.106(9ccae100e13e6802418583a2f6c105c9)
+        specifier: ^2.1.107
+        version: 2.1.107(9ccae100e13e6802418583a2f6c105c9)
       '@axiom-lattice/pg-stores':
         specifier: ^1.0.85
         version: 1.0.85(8b6a4c3e7799bec236299d11e9e38916)
@@ -250,8 +250,8 @@ packages:
   '@axiom-lattice/core@2.1.94':
     resolution: {integrity: sha512-qZoCFD+NtPsRWNYZkz404hmm8pgOCNG1SYaQEfOFIluoFtmfV8842rsfel/IgeGmISZv0Q+gZ2dhKjbff0NoKw==}
 
-  '@axiom-lattice/gateway@2.1.106':
-    resolution: {integrity: sha512-OqCiNy+j5Hvb5DQqGgoizxFDMsS3LVp1QbVK6L+Yrvmca0r5O39W9uVQvENYKM3CXAv0XsGiPy1TeE/myA6ccw==}
+  '@axiom-lattice/gateway@2.1.107':
+    resolution: {integrity: sha512-N/Df/APS4qKuc/nsrD2PbqnxOq4GN0EWQ6UacMX6U6jEwdL3nyZsRRC82RJBEILmRLrkTk8JtE9lY981L1B0iw==}
 
   '@axiom-lattice/pg-stores@1.0.85':
     resolution: {integrity: sha512-gJks4rdwccW/+djACS7kQwaLNUI0Q6sAQXfmPrLEk+Y91DUWqkXiQhBp4mHweolRY2RJUcz6DMklfhQtGWA9oA==}
@@ -1978,6 +1978,9 @@ packages:
 
   '@protobufjs/utf8@1.1.1':
     resolution: {integrity: sha512-oOAWABowe8EAbMyWKM0tYDKi8Yaox52D+HWZhAIJqQXbqe0xI/GV7FhLWqlEKreMkfDjshR5FKgi3mnle0h6Eg==}
+
+  '@protobufjs/utf8@1.1.2':
+    resolution: {integrity: sha512-b1UQwcEZ4yCnMCD8DAL1VlbvBJE9/IX4FTIp7BG1xYpf29SLazLSrqUkj4w7Y5y7cCVP6E5tcqqcI0xemPkHug==}
 
   '@redis/bloom@5.12.1':
     resolution: {integrity: sha512-PUUfv+ms7jgPSBVoo/DN4AkPHj4D5TZSd6SbJX7egzBplkYUcKmHRE8RKia7UtZ8bSQbLguLvxVO+asKtQfZWA==}
@@ -5580,7 +5583,7 @@ snapshots:
       - ws
       - youtubei.js
 
-  '@axiom-lattice/gateway@2.1.106(9ccae100e13e6802418583a2f6c105c9)':
+  '@axiom-lattice/gateway@2.1.107(9ccae100e13e6802418583a2f6c105c9)':
     dependencies:
       '@axiom-lattice/agent-eval': 2.1.88(d586a345b4a9f63ebf02b9d24db01486)
       '@axiom-lattice/core': 2.1.94(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-s3@3.1079.0)(@aws-sdk/credential-provider-node@3.972.62)(@browserbasehq/sdk@2.15.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.61.0)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.45.0(@aws-sdk/credential-provider-node@3.972.62)(@smithy/signature-v4@5.6.2)(ws@8.21.0)(zod@3.25.76))(zod@3.25.76))(@cfworker/json-schema@4.1.1)(@ibm-cloud/watsonx-ai@1.7.14)(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.207.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.9.0(@opentelemetry/api@1.9.1))(@smithy/signature-v4@5.6.2)(@types/node@20.19.43)(crypto-js@4.2.0)(ibm-cloud-sdk-core@5.5.0)(jsonwebtoken@9.0.3)(openai@6.45.0(@aws-sdk/credential-provider-node@3.972.62)(@smithy/signature-v4@5.6.2)(ws@8.21.0)(zod@3.25.76))(playwright@1.61.0)(redis@5.12.1(@opentelemetry/api@1.9.1))(weaviate-client@3.13.1)(ws@8.21.0)
@@ -7238,6 +7241,8 @@ snapshots:
   '@protobufjs/pool@1.1.0': {}
 
   '@protobufjs/utf8@1.1.1': {}
+
+  '@protobufjs/utf8@1.1.2': {}
 
   '@redis/bloom@5.12.1(@redis/client@5.12.1(@opentelemetry/api@1.9.1))':
     dependencies:
@@ -9823,7 +9828,7 @@ snapshots:
       '@protobufjs/float': 1.0.2
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
-      '@protobufjs/utf8': 1.1.1
+      '@protobufjs/utf8': 1.1.2
       '@types/node': 20.19.43
       long: 5.3.2
 
