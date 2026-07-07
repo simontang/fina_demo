@@ -1,0 +1,50 @@
+{
+  "viewName": "retailcdp_consents",
+  "docType": "Retail CDP Consents",
+  "docTypeEn": "Retail CDP Consents",
+  "selectSql": "SELECT * FROM retailcdp_consents",
+  "columns": [
+    {
+      "name": "customer_id",
+      "label": "Customer Id",
+      "type": "VARCHAR(16)",
+      "example": "CUST00001"
+    },
+    {
+      "name": "marketing_consent",
+      "label": "Marketing Consent",
+      "type": "CHAR(1)",
+      "example": "Y"
+    },
+    {
+      "name": "sms_consent",
+      "label": "Sms Consent",
+      "type": "CHAR(1)",
+      "example": "N"
+    },
+    {
+      "name": "wechat_consent",
+      "label": "Wechat Consent",
+      "type": "CHAR(1)",
+      "example": "Y"
+    },
+    {
+      "name": "email_consent",
+      "label": "Email Consent",
+      "type": "CHAR(1)",
+      "example": "Y"
+    },
+    {
+      "name": "consent_source",
+      "label": "Consent Source",
+      "type": "VARCHAR(64)",
+      "example": "CRM Import"
+    },
+    {
+      "name": "updated_at",
+      "label": "Updated At",
+      "type": "TIMESTAMP",
+      "example": "2025-10-07 12:00:00"
+    }
+  ]
+}

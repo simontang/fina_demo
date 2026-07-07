@@ -1,0 +1,200 @@
+{
+  "viewName": "retailcdp_v_customer_360",
+  "docType": "Retail CDP Customer 360 View",
+  "docTypeEn": "Retail CDP Customer 360 View",
+  "selectSql": "SELECT * FROM retailcdp_v_customer_360",
+  "columns": [
+    {
+      "name": "customer_id",
+      "label": "Customer Id"
+    },
+    {
+      "name": "name",
+      "label": "Name"
+    },
+    {
+      "name": "gender",
+      "label": "Gender"
+    },
+    {
+      "name": "age",
+      "label": "Age"
+    },
+    {
+      "name": "city",
+      "label": "City"
+    },
+    {
+      "name": "province",
+      "label": "Province"
+    },
+    {
+      "name": "region",
+      "label": "Region"
+    },
+    {
+      "name": "city_tier",
+      "label": "City Tier"
+    },
+    {
+      "name": "member_level",
+      "label": "Member Level"
+    },
+    {
+      "name": "lifecycle_stage",
+      "label": "Lifecycle Stage"
+    },
+    {
+      "name": "preferred_channel",
+      "label": "Preferred Channel"
+    },
+    {
+      "name": "category_affinity",
+      "label": "Category Affinity"
+    },
+    {
+      "name": "price_sensitivity",
+      "label": "Price Sensitivity"
+    },
+    {
+      "name": "discount_affinity",
+      "label": "Discount Affinity"
+    },
+    {
+      "name": "private_domain_status",
+      "label": "Private Domain Status"
+    },
+    {
+      "name": "acquisition_channel",
+      "label": "Acquisition Channel"
+    },
+    {
+      "name": "last_purchase_date",
+      "label": "Last Purchase Date"
+    },
+    {
+      "name": "days_since_purchase",
+      "label": "Days Since Purchase"
+    },
+    {
+      "name": "orders_365",
+      "label": "Orders 365"
+    },
+    {
+      "name": "total_spend_365",
+      "label": "Total Spend 365"
+    },
+    {
+      "name": "avg_order_value",
+      "label": "Avg Order Value"
+    },
+    {
+      "name": "rfm_segment",
+      "label": "Rfm Segment"
+    },
+    {
+      "name": "churn_risk_score",
+      "label": "Churn Risk Score"
+    },
+    {
+      "name": "replenishment_due_score",
+      "label": "Replenishment Due Score"
+    },
+    {
+      "name": "vip_score",
+      "label": "Vip Score"
+    },
+    {
+      "name": "return_rate",
+      "label": "Return Rate"
+    },
+    {
+      "name": "complaint_count",
+      "label": "Complaint Count"
+    },
+    {
+      "name": "home_store_name",
+      "label": "Home Store Name"
+    },
+    {
+      "name": "home_store_region",
+      "label": "Home Store Region"
+    },
+    {
+      "name": "loyalty_tier",
+      "label": "Loyalty Tier"
+    },
+    {
+      "name": "points_balance",
+      "label": "Points Balance"
+    },
+    {
+      "name": "points_expiring_90d",
+      "label": "Points Expiring 90D"
+    },
+    {
+      "name": "marketing_consent",
+      "label": "Marketing Consent"
+    },
+    {
+      "name": "sms_consent",
+      "label": "Sms Consent"
+    },
+    {
+      "name": "wechat_consent",
+      "label": "Wechat Consent"
+    },
+    {
+      "name": "email_consent",
+      "label": "Email Consent"
+    },
+    {
+      "name": "transaction_count",
+      "label": "Transaction Count"
+    },
+    {
+      "name": "transaction_revenue",
+      "label": "Transaction Revenue"
+    },
+    {
+      "name": "transaction_discount_amount",
+      "label": "Transaction Discount Amount"
+    },
+    {
+      "name": "first_transaction_date",
+      "label": "First Transaction Date"
+    },
+    {
+      "name": "last_transaction_date",
+      "label": "Last Transaction Date"
+    },
+    {
+      "name": "behavior_event_count",
+      "label": "Behavior Event Count"
+    },
+    {
+      "name": "last_behavior_at",
+      "label": "Last Behavior At"
+    },
+    {
+      "name": "campaign_touch_count",
+      "label": "Campaign Touch Count"
+    },
+    {
+      "name": "campaign_revenue_attributed",
+      "label": "Campaign Revenue Attributed"
+    },
+    {
+      "name": "service_ticket_count",
+      "label": "Service Ticket Count"
+    },
+    {
+      "name": "open_or_escalated_ticket_count",
+      "label": "Open Or Escalated Ticket Count"
+    },
+    {
+      "name": "compensation_amount",
+      "label": "Compensation Amount"
+    }
+  ]
+}

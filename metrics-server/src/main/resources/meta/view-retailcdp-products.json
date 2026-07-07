@@ -1,0 +1,80 @@
+{
+  "viewName": "retailcdp_products",
+  "docType": "Retail CDP Products",
+  "docTypeEn": "Retail CDP Products",
+  "selectSql": "SELECT * FROM retailcdp_products",
+  "columns": [
+    {
+      "name": "product_id",
+      "label": "Product Id",
+      "type": "VARCHAR(16)",
+      "example": "PRD0001"
+    },
+    {
+      "name": "sku",
+      "label": "Sku",
+      "type": "VARCHAR(32)",
+      "example": "FOO-SNE-001"
+    },
+    {
+      "name": "product_name",
+      "label": "Product Name",
+      "type": "VARCHAR(128)",
+      "example": "城市轻跑鞋1代"
+    },
+    {
+      "name": "category",
+      "label": "Category",
+      "type": "VARCHAR(64)",
+      "example": "Footwear"
+    },
+    {
+      "name": "subcategory",
+      "label": "Subcategory",
+      "type": "VARCHAR(64)",
+      "example": "Sneaker"
+    },
+    {
+      "name": "brand_line",
+      "label": "Brand Line",
+      "type": "VARCHAR(64)",
+      "example": "Urban"
+    },
+    {
+      "name": "gender",
+      "label": "Gender",
+      "type": "VARCHAR(16)",
+      "example": "Female"
+    },
+    {
+      "name": "season",
+      "label": "Season",
+      "type": "VARCHAR(16)",
+      "example": "SS26"
+    },
+    {
+      "name": "unit_price",
+      "label": "Unit Price",
+      "type": "NUMERIC(14,2)",
+      "example": "864.11"
+    },
+    {
+      "name": "replenishment_cycle_days",
+      "label": "Replenishment Cycle Days",
+      "type": "INTEGER",
+      "example": "95"
+    },
+    {
+      "name": "launch_date",
+      "label": "Launch Date",
+      "type": "DATE",
+      "example": "2025-01-18"
+    },
+    {
+      "name": "is_hero_sku",
+      "label": "Is Hero Sku",
+      "type": "CHAR(1)",
+      "example": "N"
+    }
+  ]
+}

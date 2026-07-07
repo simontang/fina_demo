@@ -1,0 +1,80 @@
+{
+  "viewName": "retailcdp_agent_runs",
+  "docType": "Retail CDP Agent Runs",
+  "docTypeEn": "Retail CDP Agent Runs",
+  "selectSql": "SELECT * FROM retailcdp_agent_runs",
+  "columns": [
+    {
+      "name": "run_id",
+      "label": "Run Id",
+      "type": "VARCHAR(16)",
+      "example": "RUN0000001"
+    },
+    {
+      "name": "timestamp",
+      "label": "Timestamp",
+      "type": "TIMESTAMP",
+      "example": "2026-06-01 14:20:00"
+    },
+    {
+      "name": "agent_id",
+      "label": "Agent Id",
+      "type": "VARCHAR(64)",
+      "example": "TASK_EFFECT_MEASUREMENT"
+    },
+    {
+      "name": "scenario_id",
+      "label": "Scenario Id",
+      "type": "VARCHAR(64)",
+      "example": "SCN_DORMANT_REACTIVATION"
+    },
+    {
+      "name": "status",
+      "label": "Status",
+      "type": "VARCHAR(32)",
+      "example": "success"
+    },
+    {
+      "name": "latency_ms",
+      "label": "Latency Ms",
+      "type": "INTEGER",
+      "example": "7906"
+    },
+    {
+      "name": "input_tokens",
+      "label": "Input Tokens",
+      "type": "INTEGER",
+      "example": "4182"
+    },
+    {
+      "name": "output_tokens",
+      "label": "Output Tokens",
+      "type": "INTEGER",
+      "example": "780"
+    },
+    {
+      "name": "tool_calls",
+      "label": "Tool Calls",
+      "type": "INTEGER",
+      "example": "8"
+    },
+    {
+      "name": "estimated_cost_usd",
+      "label": "Estimated Cost Usd",
+      "type": "NUMERIC(12,4)",
+      "example": "0.573"
+    },
+    {
+      "name": "eval_score",
+      "label": "Eval Score",
+      "type": "NUMERIC(8,4)",
+      "example": "0.854"
+    },
+    {
+      "name": "human_approval_required",
+      "label": "Human Approval Required",
+      "type": "CHAR(1)",
+      "example": "N"
+    }
+  ]
+}

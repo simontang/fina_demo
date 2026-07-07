@@ -1,0 +1,76 @@
+{
+  "viewName": "retailcdp_v_inventory_health",
+  "docType": "Retail CDP Inventory Health View",
+  "docTypeEn": "Retail CDP Inventory Health View",
+  "selectSql": "SELECT * FROM retailcdp_v_inventory_health",
+  "columns": [
+    {
+      "name": "inventory_id",
+      "label": "Inventory Id"
+    },
+    {
+      "name": "store_id",
+      "label": "Store Id"
+    },
+    {
+      "name": "store_name",
+      "label": "Store Name"
+    },
+    {
+      "name": "city",
+      "label": "City"
+    },
+    {
+      "name": "region",
+      "label": "Region"
+    },
+    {
+      "name": "product_id",
+      "label": "Product Id"
+    },
+    {
+      "name": "sku",
+      "label": "Sku"
+    },
+    {
+      "name": "product_name",
+      "label": "Product Name"
+    },
+    {
+      "name": "category",
+      "label": "Category"
+    },
+    {
+      "name": "subcategory",
+      "label": "Subcategory"
+    },
+    {
+      "name": "brand_line",
+      "label": "Brand Line"
+    },
+    {
+      "name": "stock_on_hand",
+      "label": "Stock On Hand"
+    },
+    {
+      "name": "reserved_qty",
+      "label": "Reserved Qty"
+    },
+    {
+      "name": "available_qty",
+      "label": "Available Qty"
+    },
+    {
+      "name": "reorder_point",
+      "label": "Reorder Point"
+    },
+    {
+      "name": "below_reorder_point",
+      "label": "Below Reorder Point"
+    },
+    {
+      "name": "last_stocktake_date",
+      "label": "Last Stocktake Date"
+    }
+  ]
+}

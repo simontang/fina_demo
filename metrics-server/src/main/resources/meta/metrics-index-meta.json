@@ -50,6 +50,46 @@
         "domain": "pricing_and_margin",
         "short_desc": "Average discount given at order close. Monitors discount behavior and margin leakage.",
         "search_keywords": ["Concession", "Discount", "Price Cut", "Discount %", "Discount Level"]
+      },
+      {
+        "metric_name": "retailcdp_total_revenue",
+        "display_name": "Retail CDP Total Revenue",
+        "domain": "revenue_and_growth",
+        "short_desc": "Total completed retail transaction amount across channels.",
+        "search_keywords": ["Retail Revenue", "GMV", "Sales Amount", "Transaction Revenue"],
+        "source_type": "cdp_postgres"
+      },
+      {
+        "metric_name": "retailcdp_active_customers",
+        "display_name": "Retail CDP Active Customers",
+        "domain": "customer_value",
+        "short_desc": "Distinct customers with completed transactions.",
+        "search_keywords": ["Active Customers", "Buying Customers", "Purchasers"],
+        "source_type": "cdp_postgres"
+      },
+      {
+        "metric_name": "retailcdp_campaign_revenue",
+        "display_name": "Retail CDP Campaign Revenue",
+        "domain": "sales_performance",
+        "short_desc": "Revenue attributed to marketing campaign interactions.",
+        "search_keywords": ["Campaign Revenue", "Attributed Revenue", "Marketing ROI"],
+        "source_type": "cdp_postgres"
+      },
+      {
+        "metric_name": "retailcdp_high_churn_customers",
+        "display_name": "Retail CDP High Churn Risk Customers",
+        "domain": "quality_and_risk",
+        "short_desc": "Customers whose churn risk score is at least 0.7.",
+        "search_keywords": ["Churn Risk", "At Risk Customers", "Retention Risk"],
+        "source_type": "cdp_postgres"
+      },
+      {
+        "metric_name": "retailcdp_low_stock_positions",
+        "display_name": "Retail CDP Low Stock Positions",
+        "domain": "fulfillment_and_logistics",
+        "short_desc": "Store-product inventory positions at or below reorder point.",
+        "search_keywords": ["Low Stock", "Reorder Risk", "Inventory Alert", "Out of Stock Risk"],
+        "source_type": "cdp_postgres"
       }
     ]
   }

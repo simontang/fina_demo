@@ -412,5 +412,113 @@
     "docType": "CDP Demo Case Answer View",
     "docTypeEn": "CDP Demo Case Answer View",
     "shortDesc": "Demo-case-grain answer view combining curated questions, expected Data Agent answers, expected Process Agent actions, and linked entity context."
+  },
+  {
+    "tableName": "retailcdp_agent_runs",
+    "docType": "Retail CDP Agent Runs",
+    "docTypeEn": "Retail CDP Agent Runs",
+    "shortDesc": "Agent execution logs for CDP scenarios, including latency, token usage, tool calls, cost, evaluation score, and approval requirement."
+  },
+  {
+    "tableName": "retailcdp_behavior_events",
+    "docType": "Retail CDP Behavior Events",
+    "docTypeEn": "Retail CDP Behavior Events",
+    "shortDesc": "Customer behavior events from app, WeChat, mini-program, and other channels with product/session context and event value."
+  },
+  {
+    "tableName": "retailcdp_campaign_interactions",
+    "docType": "Retail CDP Campaign Interactions",
+    "docTypeEn": "Retail CDP Campaign Interactions",
+    "shortDesc": "Customer-level campaign touches with channel, event status, attributed revenue, and suppression reason."
+  },
+  {
+    "tableName": "retailcdp_campaigns",
+    "docType": "Retail CDP Campaigns",
+    "docTypeEn": "Retail CDP Campaigns",
+    "shortDesc": "Campaign master data with scenario, objective, channel mix, schedule, budget, and status."
+  },
+  {
+    "tableName": "retailcdp_consents",
+    "docType": "Retail CDP Consents",
+    "docTypeEn": "Retail CDP Consents",
+    "shortDesc": "Customer consent records for marketing, SMS, WeChat, and email permissions."
+  },
+  {
+    "tableName": "retailcdp_customers",
+    "docType": "Retail CDP Customers",
+    "docTypeEn": "Retail CDP Customers",
+    "shortDesc": "Retail customer profile, demographics, lifecycle, channel preference, consent flags, RFM, churn risk, replenishment, VIP, and purchase summary attributes."
+  },
+  {
+    "tableName": "retailcdp_inventory",
+    "docType": "Retail CDP Inventory",
+    "docTypeEn": "Retail CDP Inventory",
+    "shortDesc": "Store-product inventory positions with stock, reservations, available quantity, reorder point, and stocktake date."
+  },
+  {
+    "tableName": "retailcdp_loyalty_accounts",
+    "docType": "Retail CDP Loyalty Accounts",
+    "docTypeEn": "Retail CDP Loyalty Accounts",
+    "shortDesc": "Customer loyalty account tier, points balance, expiring points, anniversary month, and next-tier gap amount."
+  },
+  {
+    "tableName": "retailcdp_products",
+    "docType": "Retail CDP Products",
+    "docTypeEn": "Retail CDP Products",
+    "shortDesc": "Product catalog with SKU, category, brand line, gender, season, unit price, replenishment cycle, launch date, and hero-SKU flag."
+  },
+  {
+    "tableName": "retailcdp_service_tickets",
+    "docType": "Retail CDP Service Tickets",
+    "docTypeEn": "Retail CDP Service Tickets",
+    "shortDesc": "Customer service cases with issue type, sentiment, SLA, resolution status, and compensation amount."
+  },
+  {
+    "tableName": "retailcdp_stores",
+    "docType": "Retail CDP Stores",
+    "docTypeEn": "Retail CDP Stores",
+    "shortDesc": "Retail store master data with city, province, region, tier, type, manager, and opening date."
+  },
+  {
+    "tableName": "retailcdp_transaction_items",
+    "docType": "Retail CDP Transaction Items",
+    "docTypeEn": "Retail CDP Transaction Items",
+    "shortDesc": "Transaction line items with product, quantity, unit price, discount rate, and net amount."
+  },
+  {
+    "tableName": "retailcdp_transactions",
+    "docType": "Retail CDP Transactions",
+    "docTypeEn": "Retail CDP Transactions",
+    "shortDesc": "Retail transaction headers with customer, date, channel, store, amounts, payment, status, and campaign attribution."
+  },
+  {
+    "tableName": "retailcdp_v_customer_360",
+    "docType": "Retail CDP Customer 360 View",
+    "docTypeEn": "Retail CDP Customer 360 View",
+    "shortDesc": "Customer-grain view combining profile, loyalty, consent, home store, purchase, campaign, behavior, and service aggregates."
+  },
+  {
+    "tableName": "retailcdp_v_transaction_wide",
+    "docType": "Retail CDP Transaction Wide View",
+    "docTypeEn": "Retail CDP Transaction Wide View",
+    "shortDesc": "Line-grain transaction view joining transaction headers, line items, products, customers, stores, and campaigns."
+  },
+  {
+    "tableName": "retailcdp_v_campaign_performance",
+    "docType": "Retail CDP Campaign Performance View",
+    "docTypeEn": "Retail CDP Campaign Performance View",
+    "shortDesc": "Campaign-grain performance view aggregating reach, opens, clicks, conversions, attributed revenue, and budget efficiency."
+  },
+  {
+    "tableName": "retailcdp_v_inventory_health",
+    "docType": "Retail CDP Inventory Health View",
+    "docTypeEn": "Retail CDP Inventory Health View",
+    "shortDesc": "Store-product inventory health view enriched with store and product details plus below-reorder-point flag."
+  },
+  {
+    "tableName": "retailcdp_v_agent_run_summary",
+    "docType": "Retail CDP Agent Run Summary View",
+    "docTypeEn": "Retail CDP Agent Run Summary View",
+    "shortDesc": "Daily agent/scenario/status run summary with latency, token, tool-call, cost, approval, and evaluation metrics."
   }
 ]

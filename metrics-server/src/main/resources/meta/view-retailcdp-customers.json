@@ -1,0 +1,236 @@
+{
+  "viewName": "retailcdp_customers",
+  "docType": "Retail CDP Customers",
+  "docTypeEn": "Retail CDP Customers",
+  "selectSql": "SELECT * FROM retailcdp_customers",
+  "columns": [
+    {
+      "name": "customer_id",
+      "label": "Customer Id",
+      "type": "VARCHAR(16)",
+      "example": "CUST00001"
+    },
+    {
+      "name": "name",
+      "label": "Name",
+      "type": "VARCHAR(64)",
+      "example": "褚铭轩"
+    },
+    {
+      "name": "gender",
+      "label": "Gender",
+      "type": "VARCHAR(16)",
+      "example": "Male"
+    },
+    {
+      "name": "age",
+      "label": "Age",
+      "type": "INTEGER",
+      "example": "31"
+    },
+    {
+      "name": "city",
+      "label": "City",
+      "type": "VARCHAR(64)",
+      "example": "广州"
+    },
+    {
+      "name": "province",
+      "label": "Province",
+      "type": "VARCHAR(64)",
+      "example": "广东"
+    },
+    {
+      "name": "region",
+      "label": "Region",
+      "type": "VARCHAR(64)",
+      "example": "华南"
+    },
+    {
+      "name": "city_tier",
+      "label": "City Tier",
+      "type": "VARCHAR(32)",
+      "example": "一线"
+    },
+    {
+      "name": "join_date",
+      "label": "Join Date",
+      "type": "DATE",
+      "example": "2026-03-09"
+    },
+    {
+      "name": "member_level",
+      "label": "Member Level",
+      "type": "VARCHAR(32)",
+      "example": "Silver"
+    },
+    {
+      "name": "lifecycle_stage",
+      "label": "Lifecycle Stage",
+      "type": "VARCHAR(64)",
+      "example": "Active"
+    },
+    {
+      "name": "preferred_channel",
+      "label": "Preferred Channel",
+      "type": "VARCHAR(32)",
+      "example": "POS"
+    },
+    {
+      "name": "home_store_id",
+      "label": "Home Store Id",
+      "type": "VARCHAR(16)",
+      "example": "ST003"
+    },
+    {
+      "name": "category_affinity",
+      "label": "Category Affinity",
+      "type": "VARCHAR(64)",
+      "example": "Footwear"
+    },
+    {
+      "name": "size_profile",
+      "label": "Size Profile",
+      "type": "VARCHAR(16)",
+      "example": "S"
+    },
+    {
+      "name": "price_sensitivity",
+      "label": "Price Sensitivity",
+      "type": "VARCHAR(32)",
+      "example": "High"
+    },
+    {
+      "name": "discount_affinity",
+      "label": "Discount Affinity",
+      "type": "VARCHAR(32)",
+      "example": "High"
+    },
+    {
+      "name": "private_domain_status",
+      "label": "Private Domain Status",
+      "type": "VARCHAR(64)",
+      "example": "In WeCom"
+    },
+    {
+      "name": "acquisition_channel",
+      "label": "Acquisition Channel",
+      "type": "VARCHAR(64)",
+      "example": "WeChat Referral"
+    },
+    {
+      "name": "mobile_hash",
+      "label": "Mobile Hash",
+      "type": "VARCHAR(64)",
+      "example": "fd7a34ac62b97cd31d"
+    },
+    {
+      "name": "email_hash",
+      "label": "Email Hash",
+      "type": "VARCHAR(64)",
+      "example": "00f6a5aae0beb1dba8"
+    },
+    {
+      "name": "wechat_openid_hash",
+      "label": "Wechat Openid Hash",
+      "type": "VARCHAR(64)",
+      "example": "3b318d93eb8631f24a"
+    },
+    {
+      "name": "consent_marketing",
+      "label": "Consent Marketing",
+      "type": "CHAR(1)",
+      "example": "Y"
+    },
+    {
+      "name": "consent_sms",
+      "label": "Consent Sms",
+      "type": "CHAR(1)",
+      "example": "N"
+    },
+    {
+      "name": "consent_wechat",
+      "label": "Consent Wechat",
+      "type": "CHAR(1)",
+      "example": "Y"
+    },
+    {
+      "name": "consent_email",
+      "label": "Consent Email",
+      "type": "CHAR(1)",
+      "example": "Y"
+    },
+    {
+      "name": "last_purchase_date",
+      "label": "Last Purchase Date",
+      "type": "DATE",
+      "example": "2026-05-24"
+    },
+    {
+      "name": "days_since_purchase",
+      "label": "Days Since Purchase",
+      "type": "INTEGER",
+      "example": "38"
+    },
+    {
+      "name": "orders_365",
+      "label": "Orders 365",
+      "type": "INTEGER",
+      "example": "3"
+    },
+    {
+      "name": "total_spend_365",
+      "label": "Total Spend 365",
+      "type": "NUMERIC(14,2)",
+      "example": "3025.88"
+    },
+    {
+      "name": "avg_order_value",
+      "label": "Avg Order Value",
+      "type": "NUMERIC(14,2)",
+      "example": "1008.63"
+    },
+    {
+      "name": "rfm_segment",
+      "label": "Rfm Segment",
+      "type": "VARCHAR(64)",
+      "example": "Potential Loyalist"
+    },
+    {
+      "name": "churn_risk_score",
+      "label": "Churn Risk Score",
+      "type": "NUMERIC(8,4)",
+      "example": "0.196"
+    },
+    {
+      "name": "replenishment_due_score",
+      "label": "Replenishment Due Score",
+      "type": "NUMERIC(8,4)",
+      "example": "0.2"
+    },
+    {
+      "name": "vip_score",
+      "label": "Vip Score",
+      "type": "NUMERIC(8,4)",
+      "example": "0.327"
+    },
+    {
+      "name": "return_rate",
+      "label": "Return Rate",
+      "type": "NUMERIC(8,4)",
+      "example": "0.0"
+    },
+    {
+      "name": "complaint_count",
+      "label": "Complaint Count",
+      "type": "INTEGER",
+      "example": "0"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "type": "TIMESTAMP",
+      "example": "2026-07-01 09:00:00"
+    }
+  ]
+}

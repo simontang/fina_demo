@@ -1,0 +1,62 @@
+{
+  "viewName": "retailcdp_campaigns",
+  "docType": "Retail CDP Campaigns",
+  "docTypeEn": "Retail CDP Campaigns",
+  "selectSql": "SELECT * FROM retailcdp_campaigns",
+  "columns": [
+    {
+      "name": "campaign_id",
+      "label": "Campaign Id",
+      "type": "VARCHAR(16)",
+      "example": "CMP001"
+    },
+    {
+      "name": "scenario_id",
+      "label": "Scenario Id",
+      "type": "VARCHAR(64)",
+      "example": "SCN_DORMANT_REACTIVATION"
+    },
+    {
+      "name": "campaign_name",
+      "label": "Campaign Name",
+      "type": "VARCHAR(128)",
+      "example": "沉睡会员夏季唤醒"
+    },
+    {
+      "name": "objective",
+      "label": "Objective",
+      "type": "TEXT",
+      "example": "召回120天以上未购会员并提升复购"
+    },
+    {
+      "name": "channel_mix",
+      "label": "Channel Mix",
+      "type": "VARCHAR(128)",
+      "example": "WeCom, SMS, MiniProgram"
+    },
+    {
+      "name": "start_date",
+      "label": "Start Date",
+      "type": "DATE",
+      "example": "2026-06-10"
+    },
+    {
+      "name": "end_date",
+      "label": "End Date",
+      "type": "DATE",
+      "example": "2026-07-15"
+    },
+    {
+      "name": "budget",
+      "label": "Budget",
+      "type": "NUMERIC(14,2)",
+      "example": "120000"
+    },
+    {
+      "name": "status",
+      "label": "Status",
+      "type": "VARCHAR(32)",
+      "example": "Draft"
+    }
+  ]
+}

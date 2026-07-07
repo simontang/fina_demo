@@ -463,8 +463,9 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     private boolean isTableVisibleForSource(String tableName, DataSourceType sourceType) {
-        boolean isDemoTable = tableName != null && tableName.startsWith("demo_");
-        return sourceType.isCdp() ? isDemoTable : !isDemoTable;
+        boolean isCdpTable = tableName != null
+                && (tableName.startsWith("demo_") || tableName.startsWith("retailcdp_"));
+        return sourceType.isCdp() ? isCdpTable : !isCdpTable;
     }
 
 }

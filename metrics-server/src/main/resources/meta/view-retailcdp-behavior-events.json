@@ -1,0 +1,56 @@
+{
+  "viewName": "retailcdp_behavior_events",
+  "docType": "Retail CDP Behavior Events",
+  "docTypeEn": "Retail CDP Behavior Events",
+  "selectSql": "SELECT * FROM retailcdp_behavior_events",
+  "columns": [
+    {
+      "name": "event_id",
+      "label": "Event Id",
+      "type": "VARCHAR(16)",
+      "example": "EVT0000001"
+    },
+    {
+      "name": "customer_id",
+      "label": "Customer Id",
+      "type": "VARCHAR(16)",
+      "example": "CUST00001"
+    },
+    {
+      "name": "event_timestamp",
+      "label": "Event Timestamp",
+      "type": "TIMESTAMP",
+      "example": "2026-01-11 22:24:00"
+    },
+    {
+      "name": "event_type",
+      "label": "Event Type",
+      "type": "VARCHAR(64)",
+      "example": "product_view"
+    },
+    {
+      "name": "channel",
+      "label": "Channel",
+      "type": "VARCHAR(32)",
+      "example": "App"
+    },
+    {
+      "name": "product_id",
+      "label": "Product Id",
+      "type": "VARCHAR(16)",
+      "example": "PRD0011"
+    },
+    {
+      "name": "session_id",
+      "label": "Session Id",
+      "type": "VARCHAR(32)",
+      "example": "5924360c6d8bbc"
+    },
+    {
+      "name": "value",
+      "label": "Value",
+      "type": "NUMERIC(12,4)",
+      "example": "0.506"
+    }
+  ]
+}

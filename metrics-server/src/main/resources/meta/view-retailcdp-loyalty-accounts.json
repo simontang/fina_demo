@@ -1,0 +1,50 @@
+{
+  "viewName": "retailcdp_loyalty_accounts",
+  "docType": "Retail CDP Loyalty Accounts",
+  "docTypeEn": "Retail CDP Loyalty Accounts",
+  "selectSql": "SELECT * FROM retailcdp_loyalty_accounts",
+  "columns": [
+    {
+      "name": "customer_id",
+      "label": "Customer Id",
+      "type": "VARCHAR(16)",
+      "example": "CUST00001"
+    },
+    {
+      "name": "loyalty_id",
+      "label": "Loyalty Id",
+      "type": "VARCHAR(16)",
+      "example": "LOY000001"
+    },
+    {
+      "name": "tier",
+      "label": "Tier",
+      "type": "VARCHAR(32)",
+      "example": "Gold"
+    },
+    {
+      "name": "points_balance",
+      "label": "Points Balance",
+      "type": "INTEGER",
+      "example": "42886"
+    },
+    {
+      "name": "points_expiring_90d",
+      "label": "Points Expiring 90D",
+      "type": "INTEGER",
+      "example": "190"
+    },
+    {
+      "name": "anniversary_month",
+      "label": "Anniversary Month",
+      "type": "INTEGER",
+      "example": "9"
+    },
+    {
+      "name": "next_tier_gap_amount",
+      "label": "Next Tier Gap Amount",
+      "type": "NUMERIC(14,2)",
+      "example": "3999.0"
+    }
+  ]
+}

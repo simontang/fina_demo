@@ -1,0 +1,62 @@
+{
+  "viewName": "retailcdp_service_tickets",
+  "docType": "Retail CDP Service Tickets",
+  "docTypeEn": "Retail CDP Service Tickets",
+  "selectSql": "SELECT * FROM retailcdp_service_tickets",
+  "columns": [
+    {
+      "name": "ticket_id",
+      "label": "Ticket Id",
+      "type": "VARCHAR(16)",
+      "example": "TCK000001"
+    },
+    {
+      "name": "customer_id",
+      "label": "Customer Id",
+      "type": "VARCHAR(16)",
+      "example": "CUST00005"
+    },
+    {
+      "name": "created_date",
+      "label": "Created Date",
+      "type": "DATE",
+      "example": "2026-04-11"
+    },
+    {
+      "name": "channel",
+      "label": "Channel",
+      "type": "VARCHAR(32)",
+      "example": "Store"
+    },
+    {
+      "name": "issue_type",
+      "label": "Issue Type",
+      "type": "VARCHAR(64)",
+      "example": "Product Quality"
+    },
+    {
+      "name": "sentiment",
+      "label": "Sentiment",
+      "type": "VARCHAR(32)",
+      "example": "Neutral"
+    },
+    {
+      "name": "sla_hours",
+      "label": "Sla Hours",
+      "type": "INTEGER",
+      "example": "8"
+    },
+    {
+      "name": "resolution_status",
+      "label": "Resolution Status",
+      "type": "VARCHAR(32)",
+      "example": "Resolved"
+    },
+    {
+      "name": "compensation_amount",
+      "label": "Compensation Amount",
+      "type": "NUMERIC(12,2)",
+      "example": "200.0"
+    }
+  ]
+}

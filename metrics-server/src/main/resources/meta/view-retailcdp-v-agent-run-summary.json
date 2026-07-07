@@ -1,0 +1,56 @@
+{
+  "viewName": "retailcdp_v_agent_run_summary",
+  "docType": "Retail CDP Agent Run Summary View",
+  "docTypeEn": "Retail CDP Agent Run Summary View",
+  "selectSql": "SELECT * FROM retailcdp_v_agent_run_summary",
+  "columns": [
+    {
+      "name": "run_date",
+      "label": "Run Date"
+    },
+    {
+      "name": "agent_id",
+      "label": "Agent Id"
+    },
+    {
+      "name": "scenario_id",
+      "label": "Scenario Id"
+    },
+    {
+      "name": "status",
+      "label": "Status"
+    },
+    {
+      "name": "run_count",
+      "label": "Run Count"
+    },
+    {
+      "name": "avg_latency_ms",
+      "label": "Avg Latency Ms"
+    },
+    {
+      "name": "input_tokens",
+      "label": "Input Tokens"
+    },
+    {
+      "name": "output_tokens",
+      "label": "Output Tokens"
+    },
+    {
+      "name": "tool_calls",
+      "label": "Tool Calls"
+    },
+    {
+      "name": "estimated_cost_usd",
+      "label": "Estimated Cost Usd"
+    },
+    {
+      "name": "avg_eval_score",
+      "label": "Avg Eval Score"
+    },
+    {
+      "name": "human_approval_required_count",
+      "label": "Human Approval Required Count"
+    }
+  ]
+}

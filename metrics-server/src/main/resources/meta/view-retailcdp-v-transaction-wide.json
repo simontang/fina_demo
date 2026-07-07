@@ -1,0 +1,128 @@
+{
+  "viewName": "retailcdp_v_transaction_wide",
+  "docType": "Retail CDP Transaction Wide View",
+  "docTypeEn": "Retail CDP Transaction Wide View",
+  "selectSql": "SELECT * FROM retailcdp_v_transaction_wide",
+  "columns": [
+    {
+      "name": "transaction_id",
+      "label": "Transaction Id"
+    },
+    {
+      "name": "transaction_date",
+      "label": "Transaction Date"
+    },
+    {
+      "name": "customer_id",
+      "label": "Customer Id"
+    },
+    {
+      "name": "customer_name",
+      "label": "Customer Name"
+    },
+    {
+      "name": "customer_region",
+      "label": "Customer Region"
+    },
+    {
+      "name": "customer_city",
+      "label": "Customer City"
+    },
+    {
+      "name": "member_level",
+      "label": "Member Level"
+    },
+    {
+      "name": "lifecycle_stage",
+      "label": "Lifecycle Stage"
+    },
+    {
+      "name": "channel",
+      "label": "Channel"
+    },
+    {
+      "name": "store_id",
+      "label": "Store Id"
+    },
+    {
+      "name": "store_name",
+      "label": "Store Name"
+    },
+    {
+      "name": "store_region",
+      "label": "Store Region"
+    },
+    {
+      "name": "payment_method",
+      "label": "Payment Method"
+    },
+    {
+      "name": "order_status",
+      "label": "Order Status"
+    },
+    {
+      "name": "campaign_id",
+      "label": "Campaign Id"
+    },
+    {
+      "name": "campaign_name",
+      "label": "Campaign Name"
+    },
+    {
+      "name": "item_id",
+      "label": "Item Id"
+    },
+    {
+      "name": "product_id",
+      "label": "Product Id"
+    },
+    {
+      "name": "sku",
+      "label": "Sku"
+    },
+    {
+      "name": "product_name",
+      "label": "Product Name"
+    },
+    {
+      "name": "category",
+      "label": "Category"
+    },
+    {
+      "name": "subcategory",
+      "label": "Subcategory"
+    },
+    {
+      "name": "brand_line",
+      "label": "Brand Line"
+    },
+    {
+      "name": "season",
+      "label": "Season"
+    },
+    {
+      "name": "quantity",
+      "label": "Quantity"
+    },
+    {
+      "name": "unit_price",
+      "label": "Unit Price"
+    },
+    {
+      "name": "discount_rate",
+      "label": "Discount Rate"
+    },
+    {
+      "name": "net_amount",
+      "label": "Net Amount"
+    },
+    {
+      "name": "total_amount",
+      "label": "Total Amount"
+    },
+    {
+      "name": "discount_amount",
+      "label": "Discount Amount"
+    }
+  ]
+}

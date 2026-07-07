@@ -1,0 +1,56 @@
+{
+  "viewName": "retailcdp_campaign_interactions",
+  "docType": "Retail CDP Campaign Interactions",
+  "docTypeEn": "Retail CDP Campaign Interactions",
+  "selectSql": "SELECT * FROM retailcdp_campaign_interactions",
+  "columns": [
+    {
+      "name": "interaction_id",
+      "label": "Interaction Id",
+      "type": "VARCHAR(16)",
+      "example": "INT0000001"
+    },
+    {
+      "name": "campaign_id",
+      "label": "Campaign Id",
+      "type": "VARCHAR(16)",
+      "example": "CMP001"
+    },
+    {
+      "name": "customer_id",
+      "label": "Customer Id",
+      "type": "VARCHAR(16)",
+      "example": "CUST00002"
+    },
+    {
+      "name": "sent_date",
+      "label": "Sent Date",
+      "type": "DATE",
+      "example": "2026-06-29"
+    },
+    {
+      "name": "channel",
+      "label": "Channel",
+      "type": "VARCHAR(32)",
+      "example": "MiniProgram"
+    },
+    {
+      "name": "event_status",
+      "label": "Event Status",
+      "type": "VARCHAR(32)",
+      "example": "sent"
+    },
+    {
+      "name": "revenue_attributed",
+      "label": "Revenue Attributed",
+      "type": "NUMERIC(12,2)",
+      "example": "0.0"
+    },
+    {
+      "name": "suppression_reason",
+      "label": "Suppression Reason",
+      "type": "VARCHAR(128)",
+      "example": "No marketing consent"
+    }
+  ]
+}

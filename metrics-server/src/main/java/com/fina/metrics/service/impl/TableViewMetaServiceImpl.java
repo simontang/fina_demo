@@ -156,6 +156,8 @@ public class TableViewMetaServiceImpl implements TableViewMetaService {
                             columns.add(TableViewDetailResponse.ColumnMeta.builder()
                                     .name(col.path("name").asText(null))
                                     .label(col.path("label").asText(null))
+                                    .description(col.path("description").asText(null))
+                                    .type(col.path("type").asText(null))
                                     .example(col.path("example").asText(null))
                                     .build());
                         }

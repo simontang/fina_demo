@@ -1,0 +1,62 @@
+{
+  "viewName": "retailcdp_stores",
+  "docType": "Retail CDP Stores",
+  "docTypeEn": "Retail CDP Stores",
+  "selectSql": "SELECT * FROM retailcdp_stores",
+  "columns": [
+    {
+      "name": "store_id",
+      "label": "Store Id",
+      "type": "VARCHAR(16)",
+      "example": "ST001"
+    },
+    {
+      "name": "store_name",
+      "label": "Store Name",
+      "type": "VARCHAR(128)",
+      "example": "上海天街店"
+    },
+    {
+      "name": "city",
+      "label": "City",
+      "type": "VARCHAR(64)",
+      "example": "上海"
+    },
+    {
+      "name": "province",
+      "label": "Province",
+      "type": "VARCHAR(64)",
+      "example": "上海"
+    },
+    {
+      "name": "region",
+      "label": "Region",
+      "type": "VARCHAR(64)",
+      "example": "华东"
+    },
+    {
+      "name": "city_tier",
+      "label": "City Tier",
+      "type": "VARCHAR(32)",
+      "example": "一线"
+    },
+    {
+      "name": "store_type",
+      "label": "Store Type",
+      "type": "VARCHAR(32)",
+      "example": "旗舰店"
+    },
+    {
+      "name": "manager",
+      "label": "Manager",
+      "type": "VARCHAR(64)",
+      "example": "李娜"
+    },
+    {
+      "name": "opening_date",
+      "label": "Opening Date",
+      "type": "DATE",
+      "example": "2025-01-04"
+    }
+  ]
+}

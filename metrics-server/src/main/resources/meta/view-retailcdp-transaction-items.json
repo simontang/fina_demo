@@ -1,0 +1,50 @@
+{
+  "viewName": "retailcdp_transaction_items",
+  "docType": "Retail CDP Transaction Items",
+  "docTypeEn": "Retail CDP Transaction Items",
+  "selectSql": "SELECT * FROM retailcdp_transaction_items",
+  "columns": [
+    {
+      "name": "item_id",
+      "label": "Item Id",
+      "type": "VARCHAR(16)",
+      "example": "ITEM0000001"
+    },
+    {
+      "name": "transaction_id",
+      "label": "Transaction Id",
+      "type": "VARCHAR(16)",
+      "example": "TXN000001"
+    },
+    {
+      "name": "product_id",
+      "label": "Product Id",
+      "type": "VARCHAR(16)",
+      "example": "PRD0004"
+    },
+    {
+      "name": "quantity",
+      "label": "Quantity",
+      "type": "INTEGER",
+      "example": "1"
+    },
+    {
+      "name": "unit_price",
+      "label": "Unit Price",
+      "type": "NUMERIC(14,2)",
+      "example": "895.9"
+    },
+    {
+      "name": "discount_rate",
+      "label": "Discount Rate",
+      "type": "NUMERIC(8,4)",
+      "example": "0"
+    },
+    {
+      "name": "net_amount",
+      "label": "Net Amount",
+      "type": "NUMERIC(14,2)",
+      "example": "895.9"
+    }
+  ]
+}

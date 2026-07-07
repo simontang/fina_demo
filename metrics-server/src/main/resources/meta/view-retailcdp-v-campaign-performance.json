@@ -1,0 +1,72 @@
+{
+  "viewName": "retailcdp_v_campaign_performance",
+  "docType": "Retail CDP Campaign Performance View",
+  "docTypeEn": "Retail CDP Campaign Performance View",
+  "selectSql": "SELECT * FROM retailcdp_v_campaign_performance",
+  "columns": [
+    {
+      "name": "campaign_id",
+      "label": "Campaign Id"
+    },
+    {
+      "name": "scenario_id",
+      "label": "Scenario Id"
+    },
+    {
+      "name": "campaign_name",
+      "label": "Campaign Name"
+    },
+    {
+      "name": "objective",
+      "label": "Objective"
+    },
+    {
+      "name": "channel_mix",
+      "label": "Channel Mix"
+    },
+    {
+      "name": "start_date",
+      "label": "Start Date"
+    },
+    {
+      "name": "end_date",
+      "label": "End Date"
+    },
+    {
+      "name": "budget",
+      "label": "Budget"
+    },
+    {
+      "name": "status",
+      "label": "Status"
+    },
+    {
+      "name": "touch_count",
+      "label": "Touch Count"
+    },
+    {
+      "name": "reached_customers",
+      "label": "Reached Customers"
+    },
+    {
+      "name": "opened_count",
+      "label": "Opened Count"
+    },
+    {
+      "name": "clicked_count",
+      "label": "Clicked Count"
+    },
+    {
+      "name": "converted_count",
+      "label": "Converted Count"
+    },
+    {
+      "name": "revenue_attributed",
+      "label": "Revenue Attributed"
+    },
+    {
+      "name": "revenue_to_budget_ratio",
+      "label": "Revenue To Budget Ratio"
+    }
+  ]
+}

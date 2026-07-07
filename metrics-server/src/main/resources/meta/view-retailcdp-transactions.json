@@ -1,0 +1,68 @@
+{
+  "viewName": "retailcdp_transactions",
+  "docType": "Retail CDP Transactions",
+  "docTypeEn": "Retail CDP Transactions",
+  "selectSql": "SELECT * FROM retailcdp_transactions",
+  "columns": [
+    {
+      "name": "transaction_id",
+      "label": "Transaction Id",
+      "type": "VARCHAR(16)",
+      "example": "TXN000001"
+    },
+    {
+      "name": "customer_id",
+      "label": "Customer Id",
+      "type": "VARCHAR(16)",
+      "example": "CUST00001"
+    },
+    {
+      "name": "transaction_date",
+      "label": "Transaction Date",
+      "type": "DATE",
+      "example": "2026-03-21"
+    },
+    {
+      "name": "channel",
+      "label": "Channel",
+      "type": "VARCHAR(32)",
+      "example": "POS"
+    },
+    {
+      "name": "store_id",
+      "label": "Store Id",
+      "type": "VARCHAR(16)",
+      "example": "ST003"
+    },
+    {
+      "name": "total_amount",
+      "label": "Total Amount",
+      "type": "NUMERIC(14,2)",
+      "example": "2377.4"
+    },
+    {
+      "name": "discount_amount",
+      "label": "Discount Amount",
+      "type": "NUMERIC(14,2)",
+      "example": "100.54"
+    },
+    {
+      "name": "payment_method",
+      "label": "Payment Method",
+      "type": "VARCHAR(32)",
+      "example": "StoreValueCard"
+    },
+    {
+      "name": "order_status",
+      "label": "Order Status",
+      "type": "VARCHAR(32)",
+      "example": "Completed"
+    },
+    {
+      "name": "campaign_id",
+      "label": "Campaign Id",
+      "type": "VARCHAR(16)",
+      "example": "CMP002"
+    }
+  ]
+}

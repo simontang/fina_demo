@@ -454,5 +454,503 @@
 
       "human_readable_explanation": "An abnormal rise in discount rate is a margin alert. The system drills down by region and salesperson to find where discounting is heaviest for management to evaluate volume-vs-price trade-off."
     }
+  },
+{
+  "metric_name": "retailcdp_total_revenue",
+  "display_name": "Retail CDP Total Revenue",
+  "domain": "revenue_and_growth",
+  "source_type": "cdp_postgres",
+  "description": "Total transaction header amount for completed retail transactions. Use this as the top-line sales measure for the Retail CDP dataset.",
+  "data_type": "currency",
+  "format": "¥0,0.00",
+  "default_time_context": {
+    "time_dimension": "transaction_date",
+    "label": "Transaction Date",
+    "granularity": "month",
+    "window": "current_month",
+    "supported_grains": [
+      "day",
+      "week",
+      "month",
+      "year"
+    ],
+    "query_usage": {
+      "filter": {
+        "dimension_key": "transaction_date",
+        "supported_operators": [
+          "between",
+          ">=",
+          "<=",
+          "="
+        ],
+        "value_format": "yyyy-MM-dd",
+        "example": {
+          "operator": "between",
+          "values": [
+            "2026-01-01",
+            "2026-12-31"
+          ]
+        }
+      },
+      "group_by": {
+        "pattern": "date_trunc('{grain}', transaction_date)",
+        "examples": [
+          "day",
+          "month"
+        ]
+      }
+    }
+  },
+  "calculation": {
+    "type": "base",
+    "sql_expression": "SUM(total_amount)",
+    "dependencies": []
+  },
+  "source": {
+    "table_view": "retailcdp_transactions",
+    "base_filters": []
+  },
+  "supported_dimensions": [
+    {
+      "dim_id": "channel",
+      "field_name": "channel",
+      "type": "categorical"
+    },
+    {
+      "dim_id": "store_id",
+      "field_name": "store_id",
+      "type": "categorical"
+    },
+    {
+      "dim_id": "campaign_id",
+      "field_name": "campaign_id",
+      "type": "categorical"
+    }
+  ],
+  "behavior_profile": {
+    "role": "business_indicator",
+    "analysis_priority": 2
+  },
+  "ai_agent_context": {
+    "synonyms": [
+      "Retail Revenue",
+      "GMV",
+      "Sales Amount",
+      "Transaction Revenue"
+    ],
+    "polarity": "positive",
+    "thresholds": [],
+    "diagnostic_workflow": {
+      "actions": [
+        {
+          "type": "drill_down",
+          "dimensions": [
+            "channel",
+            "store_id"
+          ],
+          "intent": "identify_contributing_segments"
+        }
+      ],
+      "analysis_logic": "retail_cdp_metric_drilldown"
+    },
+    "human_readable_explanation": "Total transaction header amount for completed retail transactions. Use this as the top-line sales measure for the Retail CDP dataset."
   }
+},
+{
+  "metric_name": "retailcdp_active_customers",
+  "display_name": "Retail CDP Active Customers",
+  "domain": "customer_value",
+  "source_type": "cdp_postgres",
+  "description": "Distinct customers who placed completed transactions in the Retail CDP dataset.",
+  "data_type": "integer",
+  "format": "0,0",
+  "default_time_context": {
+    "time_dimension": "transaction_date",
+    "label": "Transaction Date",
+    "granularity": "month",
+    "window": "current_month",
+    "supported_grains": [
+      "day",
+      "week",
+      "month",
+      "year"
+    ],
+    "query_usage": {
+      "filter": {
+        "dimension_key": "transaction_date",
+        "supported_operators": [
+          "between",
+          ">=",
+          "<=",
+          "="
+        ],
+        "value_format": "yyyy-MM-dd",
+        "example": {
+          "operator": "between",
+          "values": [
+            "2026-01-01",
+            "2026-12-31"
+          ]
+        }
+      },
+      "group_by": {
+        "pattern": "date_trunc('{grain}', transaction_date)",
+        "examples": [
+          "day",
+          "month"
+        ]
+      }
+    }
+  },
+  "calculation": {
+    "type": "base",
+    "sql_expression": "COUNT(DISTINCT customer_id)",
+    "dependencies": []
+  },
+  "source": {
+    "table_view": "retailcdp_transactions",
+    "base_filters": []
+  },
+  "supported_dimensions": [
+    {
+      "dim_id": "channel",
+      "field_name": "channel",
+      "type": "categorical"
+    },
+    {
+      "dim_id": "store_id",
+      "field_name": "store_id",
+      "type": "categorical"
+    }
+  ],
+  "behavior_profile": {
+    "role": "business_indicator",
+    "analysis_priority": 2
+  },
+  "ai_agent_context": {
+    "synonyms": [
+      "Active Customers",
+      "Buying Customers",
+      "Purchasers"
+    ],
+    "polarity": "positive",
+    "thresholds": [],
+    "diagnostic_workflow": {
+      "actions": [
+        {
+          "type": "drill_down",
+          "dimensions": [
+            "channel",
+            "store_id"
+          ],
+          "intent": "identify_contributing_segments"
+        }
+      ],
+      "analysis_logic": "retail_cdp_metric_drilldown"
+    },
+    "human_readable_explanation": "Distinct customers who placed completed transactions in the Retail CDP dataset."
+  }
+},
+{
+  "metric_name": "retailcdp_campaign_revenue",
+  "display_name": "Retail CDP Campaign Revenue",
+  "domain": "sales_performance",
+  "source_type": "cdp_postgres",
+  "description": "Sum of campaign interaction revenue attribution, useful for campaign effectiveness and ROI analysis.",
+  "data_type": "currency",
+  "format": "¥0,0.00",
+  "default_time_context": {
+    "time_dimension": "sent_date",
+    "label": "Sent Date",
+    "granularity": "month",
+    "window": "current_month",
+    "supported_grains": [
+      "day",
+      "week",
+      "month",
+      "year"
+    ],
+    "query_usage": {
+      "filter": {
+        "dimension_key": "sent_date",
+        "supported_operators": [
+          "between",
+          ">=",
+          "<=",
+          "="
+        ],
+        "value_format": "yyyy-MM-dd",
+        "example": {
+          "operator": "between",
+          "values": [
+            "2026-01-01",
+            "2026-12-31"
+          ]
+        }
+      },
+      "group_by": {
+        "pattern": "date_trunc('{grain}', sent_date)",
+        "examples": [
+          "day",
+          "month"
+        ]
+      }
+    }
+  },
+  "calculation": {
+    "type": "base",
+    "sql_expression": "SUM(revenue_attributed)",
+    "dependencies": []
+  },
+  "source": {
+    "table_view": "retailcdp_campaign_interactions",
+    "base_filters": []
+  },
+  "supported_dimensions": [
+    {
+      "dim_id": "campaign_id",
+      "field_name": "campaign_id",
+      "type": "categorical"
+    },
+    {
+      "dim_id": "channel",
+      "field_name": "channel",
+      "type": "categorical"
+    },
+    {
+      "dim_id": "event_status",
+      "field_name": "event_status",
+      "type": "categorical"
+    }
+  ],
+  "behavior_profile": {
+    "role": "business_indicator",
+    "analysis_priority": 2
+  },
+  "ai_agent_context": {
+    "synonyms": [
+      "Campaign Revenue",
+      "Attributed Revenue",
+      "Marketing ROI"
+    ],
+    "polarity": "positive",
+    "thresholds": [],
+    "diagnostic_workflow": {
+      "actions": [
+        {
+          "type": "drill_down",
+          "dimensions": [
+            "campaign_id",
+            "channel"
+          ],
+          "intent": "identify_contributing_segments"
+        }
+      ],
+      "analysis_logic": "retail_cdp_metric_drilldown"
+    },
+    "human_readable_explanation": "Sum of campaign interaction revenue attribution, useful for campaign effectiveness and ROI analysis."
+  }
+},
+{
+  "metric_name": "retailcdp_high_churn_customers",
+  "display_name": "Retail CDP High Churn Risk Customers",
+  "domain": "quality_and_risk",
+  "source_type": "cdp_postgres",
+  "description": "Count of customer profiles with churn_risk_score >= 0.7. Lower is better; use for retention prioritization.",
+  "data_type": "integer",
+  "format": "0,0",
+  "default_time_context": {
+    "time_dimension": "created_at",
+    "label": "Created At",
+    "granularity": "month",
+    "window": "current_month",
+    "supported_grains": [
+      "day",
+      "week",
+      "month",
+      "year"
+    ],
+    "query_usage": {
+      "filter": {
+        "dimension_key": "created_at",
+        "supported_operators": [
+          "between",
+          ">=",
+          "<=",
+          "="
+        ],
+        "value_format": "yyyy-MM-dd",
+        "example": {
+          "operator": "between",
+          "values": [
+            "2026-01-01",
+            "2026-12-31"
+          ]
+        }
+      },
+      "group_by": {
+        "pattern": "date_trunc('{grain}', created_at)",
+        "examples": [
+          "day",
+          "month"
+        ]
+      }
+    }
+  },
+  "calculation": {
+    "type": "base",
+    "sql_expression": "COUNT(*) FILTER (WHERE churn_risk_score >= 0.7)",
+    "dependencies": []
+  },
+  "source": {
+    "table_view": "retailcdp_customers",
+    "base_filters": []
+  },
+  "supported_dimensions": [
+    {
+      "dim_id": "region",
+      "field_name": "region",
+      "type": "categorical"
+    },
+    {
+      "dim_id": "member_level",
+      "field_name": "member_level",
+      "type": "categorical"
+    },
+    {
+      "dim_id": "lifecycle_stage",
+      "field_name": "lifecycle_stage",
+      "type": "categorical"
+    }
+  ],
+  "behavior_profile": {
+    "role": "business_indicator",
+    "analysis_priority": 2
+  },
+  "ai_agent_context": {
+    "synonyms": [
+      "Churn Risk",
+      "At Risk Customers",
+      "Retention Risk"
+    ],
+    "polarity": "negative",
+    "thresholds": [],
+    "diagnostic_workflow": {
+      "actions": [
+        {
+          "type": "drill_down",
+          "dimensions": [
+            "region",
+            "member_level"
+          ],
+          "intent": "identify_contributing_segments"
+        }
+      ],
+      "analysis_logic": "retail_cdp_metric_drilldown"
+    },
+    "human_readable_explanation": "Count of customer profiles with churn_risk_score >= 0.7. Lower is better; use for retention prioritization."
+  }
+},
+{
+  "metric_name": "retailcdp_low_stock_positions",
+  "display_name": "Retail CDP Low Stock Positions",
+  "domain": "fulfillment_and_logistics",
+  "source_type": "cdp_postgres",
+  "description": "Count of store-product inventory positions where available quantity is at or below the reorder point. Lower is better.",
+  "data_type": "integer",
+  "format": "0,0",
+  "default_time_context": {
+    "time_dimension": "last_stocktake_date",
+    "label": "Last Stocktake Date",
+    "granularity": "month",
+    "window": "current_month",
+    "supported_grains": [
+      "day",
+      "week",
+      "month",
+      "year"
+    ],
+    "query_usage": {
+      "filter": {
+        "dimension_key": "last_stocktake_date",
+        "supported_operators": [
+          "between",
+          ">=",
+          "<=",
+          "="
+        ],
+        "value_format": "yyyy-MM-dd",
+        "example": {
+          "operator": "between",
+          "values": [
+            "2026-01-01",
+            "2026-12-31"
+          ]
+        }
+      },
+      "group_by": {
+        "pattern": "date_trunc('{grain}', last_stocktake_date)",
+        "examples": [
+          "day",
+          "month"
+        ]
+      }
+    }
+  },
+  "calculation": {
+    "type": "base",
+    "sql_expression": "COUNT(*) FILTER (WHERE below_reorder_point)",
+    "dependencies": []
+  },
+  "source": {
+    "table_view": "retailcdp_v_inventory_health",
+    "base_filters": []
+  },
+  "supported_dimensions": [
+    {
+      "dim_id": "region",
+      "field_name": "region",
+      "type": "categorical"
+    },
+    {
+      "dim_id": "store_id",
+      "field_name": "store_id",
+      "type": "categorical"
+    },
+    {
+      "dim_id": "category",
+      "field_name": "category",
+      "type": "categorical"
+    }
+  ],
+  "behavior_profile": {
+    "role": "business_indicator",
+    "analysis_priority": 2
+  },
+  "ai_agent_context": {
+    "synonyms": [
+      "Low Stock",
+      "Reorder Risk",
+      "Inventory Alert",
+      "Out of Stock Risk"
+    ],
+    "polarity": "negative",
+    "thresholds": [],
+    "diagnostic_workflow": {
+      "actions": [
+        {
+          "type": "drill_down",
+          "dimensions": [
+            "region",
+            "store_id"
+          ],
+          "intent": "identify_contributing_segments"
+        }
+      ],
+      "analysis_logic": "retail_cdp_metric_drilldown"
+    },
+    "human_readable_explanation": "Count of store-product inventory positions where available quantity is at or below the reorder point. Lower is better."
+  }
+}
+
 ]

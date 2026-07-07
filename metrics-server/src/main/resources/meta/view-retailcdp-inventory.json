@@ -1,0 +1,56 @@
+{
+  "viewName": "retailcdp_inventory",
+  "docType": "Retail CDP Inventory",
+  "docTypeEn": "Retail CDP Inventory",
+  "selectSql": "SELECT * FROM retailcdp_inventory",
+  "columns": [
+    {
+      "name": "inventory_id",
+      "label": "Inventory Id",
+      "type": "VARCHAR(16)",
+      "example": "INV0000001"
+    },
+    {
+      "name": "store_id",
+      "label": "Store Id",
+      "type": "VARCHAR(16)",
+      "example": "ST001"
+    },
+    {
+      "name": "product_id",
+      "label": "Product Id",
+      "type": "VARCHAR(16)",
+      "example": "PRD0001"
+    },
+    {
+      "name": "stock_on_hand",
+      "label": "Stock On Hand",
+      "type": "INTEGER",
+      "example": "66"
+    },
+    {
+      "name": "reserved_qty",
+      "label": "Reserved Qty",
+      "type": "INTEGER",
+      "example": "3"
+    },
+    {
+      "name": "available_qty",
+      "label": "Available Qty",
+      "type": "INTEGER",
+      "example": "63"
+    },
+    {
+      "name": "reorder_point",
+      "label": "Reorder Point",
+      "type": "INTEGER",
+      "example": "8"
+    },
+    {
+      "name": "last_stocktake_date",
+      "label": "Last Stocktake Date",
+      "type": "DATE",
+      "example": "2026-06-27"
+    }
+  ]
+}
