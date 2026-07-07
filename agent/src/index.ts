@@ -275,6 +275,7 @@ async function initializePgStores(): Promise<void> {
   sqlDatabaseManager.loadAllConfigsFromStore(stores.database);
   metricsServerManager.loadConfigsFromStore(stores.metrics, "default");
   metricsServerManager.loadConfigsFromStore(stores.metrics, "tenant_3");
+  metricsServerManager.loadConfigsFromStore(stores.metrics, "retail_cdp");
 
 
   console.log("\n✓ All PostgreSQL stores initialized\n");

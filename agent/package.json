@@ -7,7 +7,7 @@
   "description": "Research POC Agent",
   "main": "index.js",
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean --sourcemap",
+    "build": "tsup src/index.ts --format esm --clean --sourcemap",
     "start": "node dist/index.js",
     "dev": "tsup src/index.ts --format esm --dts --sourcemap --watch --onSuccess \"node dist/index.js\"",
     "lint": "echo 'Linting API...'",
