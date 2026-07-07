@@ -50,6 +50,7 @@ public class MetricsServiceImpl implements MetricsService {
         log.debug("getMetricsIndex datasource={}", datasourceId);
         DataSourceConfig datasource = resolveDatasourceConfig(datasourceId);
         DataSourceType sourceType = resolveDatasourceType(datasource);
+        CdpCatalogScope cdpScope = resolveCdpCatalogScope(datasource, sourceType);
         Set<String> registered = metaMapper.selectList(
                         new LambdaQueryWrapper<MetricsMeta>()
                                 .eq(MetricsMeta::getDatasourceId, datasourceId)
@@ -63,7 +64,7 @@ public class MetricsServiceImpl implements MetricsService {
         String dsName = datasource != null ? datasource.getName() : null;
 
         List<MetricsIndexResponse.MetricIndexItem> items = catalog.getIndexItems().stream()
-                .filter(node -> isMetricVisibleForSource(node, sourceType))
+                .filter(node -> isMetricVisibleForSource(node, sourceType, cdpScope))
                 .map(node -> {
                     List<String> keywords = new ArrayList<>();
                     node.path("search_keywords").forEach(k -> keywords.add(k.asText()));
@@ -80,7 +81,7 @@ public class MetricsServiceImpl implements MetricsService {
                 .collect(Collectors.toList());
 
         List<TableViewIndexItem> tables = tableViewMetaService.getTableViewsIndex().stream()
-                .filter(item -> isTableVisibleForSource(item.getTableName(), sourceType))
+                .filter(item -> isTableVisibleForSource(item.getTableName(), sourceType, cdpScope))
                 .collect(Collectors.toList());
 
         return MetricsIndexResponse.builder()
@@ -96,11 +97,13 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public MetricsDetailResponse getMetricDetail(Long datasourceId, String metricName) {
         log.debug("getMetricDetail datasource={} metric={}", datasourceId, metricName);
-        DataSourceType sourceType = resolveDatasourceType(resolveDatasourceConfig(datasourceId));
+        DataSourceConfig datasource = resolveDatasourceConfig(datasourceId);
+        DataSourceType sourceType = resolveDatasourceType(datasource);
+        CdpCatalogScope cdpScope = resolveCdpCatalogScope(datasource, sourceType);
         JsonNode catalogDetail = catalog.findDetailItem(metricName)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Metric not found in catalog: " + metricName));
-        if (!isMetricVisibleForSource(catalogDetail, sourceType)) {
+        if (!isMetricVisibleForSource(catalogDetail, sourceType, cdpScope)) {
             throw new IllegalArgumentException(
                     "Metric " + metricName + " is not available for datasource type " + sourceType.getCode());
         }
@@ -209,6 +212,9 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public MetricsMetaFullResponse getMetricsMeta(Long datasourceId) {
         // index already carries tables[] via getMetricsIndex
+        DataSourceConfig datasource = resolveDatasourceConfig(datasourceId);
+        DataSourceType sourceType = resolveDatasourceType(datasource);
+        CdpCatalogScope cdpScope = resolveCdpCatalogScope(datasource, sourceType);
         MetricsIndexResponse index = getMetricsIndex(datasourceId);
         List<MetricsDetailResponse> metricsDetails = index.getMetrics().stream()
                 .map(item -> getMetricDetail(datasourceId, item.getMetricName()))
@@ -217,8 +223,7 @@ public class MetricsServiceImpl implements MetricsService {
                 .index(index)
                 .metricsDetails(metricsDetails)
                 .tablesDetails(tableViewMetaService.getTableViewsDetails().stream()
-                        .filter(item -> isTableVisibleForSource(item.getTableName(),
-                                resolveDatasourceType(resolveDatasourceConfig(datasourceId))))
+                        .filter(item -> isTableVisibleForSource(item.getTableName(), sourceType, cdpScope))
                         .collect(Collectors.toList()))
                 .build();
     }
@@ -454,18 +459,73 @@ public class MetricsServiceImpl implements MetricsService {
         return DataSourceType.resolve(config.getSourceType(), config.getUrl());
     }
 
-    private boolean isMetricVisibleForSource(JsonNode node, DataSourceType sourceType) {
+    private boolean isMetricVisibleForSource(JsonNode node, DataSourceType sourceType, CdpCatalogScope cdpScope) {
         String itemSourceType = node.path("source_type").asText(null);
         if (sourceType.isCdp()) {
-            return "cdp_postgres".equals(itemSourceType);
+            return "cdp_postgres".equals(itemSourceType)
+                    && cdpScope.matches(metricCatalogName(node));
         }
         return itemSourceType == null || itemSourceType.isBlank() || "sap_b1_hana".equals(itemSourceType);
     }
 
-    private boolean isTableVisibleForSource(String tableName, DataSourceType sourceType) {
+    private boolean isTableVisibleForSource(String tableName, DataSourceType sourceType, CdpCatalogScope cdpScope) {
         boolean isCdpTable = tableName != null
                 && (tableName.startsWith("demo_") || tableName.startsWith("retailcdp_"));
-        return sourceType.isCdp() ? isCdpTable : !isCdpTable;
+        return sourceType.isCdp() ? isCdpTable && cdpScope.matches(tableName) : !isCdpTable;
+    }
+
+    private String metricCatalogName(JsonNode node) {
+        String tableView = node.path("source").path("table_view").asText("");
+        if (StringUtils.hasText(tableView)) {
+            return tableView;
+        }
+        return node.path("metric_name").asText("");
+    }
+
+    private CdpCatalogScope resolveCdpCatalogScope(DataSourceConfig datasource, DataSourceType sourceType) {
+        if (!sourceType.isCdp()) {
+            return CdpCatalogScope.ALL;
+        }
+        if (datasource == null) {
+            return CdpCatalogScope.ALL;
+        }
+        String descriptor = String.join(" ",
+                String.valueOf(datasource.getId()),
+                nullToEmpty(datasource.getName()),
+                nullToEmpty(datasource.getDescription()),
+                nullToEmpty(datasource.getUrl()),
+                nullToEmpty(datasource.getSchemaName()))
+                .toLowerCase(Locale.ROOT);
+        if (descriptor.contains("retailcdp") || descriptor.contains("retail cdp")) {
+            return CdpCatalogScope.RETAIL_CDP;
+        }
+        if (descriptor.contains("demo_") || descriptor.contains("cdp demo") || descriptor.contains("crm agent cdp")) {
+            return CdpCatalogScope.DEMO_CDP;
+        }
+        return CdpCatalogScope.ALL;
+    }
+
+    private String nullToEmpty(String value) {
+        return value == null ? "" : value;
+    }
+
+    private enum CdpCatalogScope {
+        DEMO_CDP("demo_"),
+        RETAIL_CDP("retailcdp_"),
+        ALL("");
+
+        private final String prefix;
+
+        CdpCatalogScope(String prefix) {
+            this.prefix = prefix;
+        }
+
+        private boolean matches(String name) {
+            if (!StringUtils.hasText(name) || this == ALL) {
+                return true;
+            }
+            return name.startsWith(prefix);
+        }
     }
 
 }
