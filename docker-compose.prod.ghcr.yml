@@ -92,6 +92,23 @@ services:
       - "127.0.0.1:5704:5704"
     restart: unless-stopped
 
+  cdp_service:
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_USERNAME:-409zhangshu}/fina-demo-cdp-service:latest
+    environment:
+      SERVER_PORT: "5706"
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com:5432/postgres}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-postgres_fuli}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-jfd4whz@GPF2nqx7zhm}
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-fina-metrics-2024!}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SKIP_INIT: ${SKIP_INIT:-false}
+    volumes:
+      - ./logs/cdp-service:/app/logs
+    ports:
+      - "127.0.0.1:5706:5706"
+    restart: unless-stopped
+
   ai_web_fina:
     image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_USERNAME:-409zhangshu}/fina-demo-ai-web:latest
     depends_on:

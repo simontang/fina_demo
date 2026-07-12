@@ -10,6 +10,7 @@ SERVICE_2="fina-demo-prediction-app"
 SERVICE_3="fina-demo-ai-web"
 SERVICE_4="fina-demo-metrics-server"
 SERVICE_5="fina-demo-b1s"
+SERVICE_6="fina-demo-cdp-service"
 
 # GitHub Container Registry 配置
 # NOTE: Do NOT hardcode credentials in git history. Provide them via environment variables.
@@ -121,6 +122,7 @@ usage() {
     echo "    3 - $SERVICE_3"
     echo "    4 - $SERVICE_4"
     echo "    5 - $SERVICE_5"
+    echo "    6 - $SERVICE_6"
     echo ""
     echo "选项:"
     echo "    --help, -h          显示此帮助信息"
@@ -200,6 +202,9 @@ get_compose_service_name() {
             ;;
         "$SERVICE_5")
             echo "b1s"
+            ;;
+        "$SERVICE_6")
+            echo "cdp_service"
             ;;
         *)
             echo ""
@@ -380,6 +385,10 @@ main() {
                 services_to_transfer+=("$SERVICE_5")
                 shift
                 ;;
+            6)
+                services_to_transfer+=("$SERVICE_6")
+                shift
+                ;;
             *)
                 log_error "无效的服务编号: $1"
                 usage
@@ -390,7 +399,7 @@ main() {
     # 如果没有指定服务，则传输所有服务
     if [[ ${#services_to_transfer[@]} -eq 0 ]]; then
         log_info "未指定具体服务，将传输所有服务..."
-        services_to_transfer=("$SERVICE_1" "$SERVICE_2" "$SERVICE_3" "$SERVICE_4" "$SERVICE_5")
+        services_to_transfer=("$SERVICE_1" "$SERVICE_2" "$SERVICE_3" "$SERVICE_4" "$SERVICE_5" "$SERVICE_6")
     fi
     
     # 检查 Docker

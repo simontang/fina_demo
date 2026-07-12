@@ -4,6 +4,7 @@ Demo repository that combines:
 - **agent/**：Node.js (Fastify) 网关与 Agent 编排（含 Data Agent、Research Agent、Voice Agent 等）
 - **prediction_app/**：Python (FastAPI) 数据集与预测 API（销售预测、RFM、库存等）
 - **ai_web/**：React (Refine) 管理端 UI
+- **cdp-service/**：Java (Spring Boot) CDP 分群定义、分群数据与 SQL processing 服务
 
 功能亮点：
 - **Data Agent**：业务数据分析智能体，支持自然语言查数、多步分析与报告生成；详见 [开发 Data Agent 指南](docs/DEVELOPING_A_DATA_AGENT.md)。
@@ -72,6 +73,7 @@ Services:
 - Admin UI: http://localhost:3201/admin/
 - Agent gateway: http://localhost:6203
 - Python API (debug): http://localhost:8000
+- CDP service: http://localhost:5706
 
 Optional (AI insights / explanations):
 - Export `VOLCENGINE_API_KEY2` before running compose, or create a local `.env` file (not committed) at repo root:

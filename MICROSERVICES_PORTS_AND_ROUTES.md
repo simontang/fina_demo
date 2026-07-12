@@ -43,6 +43,20 @@ This doc explains two runtime issues and proposes a clean, consistent URL/API de
   - Host: `5432`
   - Container: `5432`
 
+### 5. `cdp_service` (Spring Boot CDP segment service)
+- Role:
+  - Multi-tenant segment definition CRUD
+  - Multi-tenant segment data CRUD
+  - Processing endpoint that executes a definition SQL against a configured CDP PostgreSQL datasource and stores the result as a JSON snapshot
+- Container/service name: `cdp_service`
+- Current root compose port:
+  - Host: `5706`
+  - Container: `5706`
+- Key APIs:
+  - `GET/POST/PUT/DELETE /api/v1/segment-definitions`
+  - `GET/POST/PUT/DELETE /api/v1/segment-data`
+  - `POST /api/v1/segment-definitions/{id}/process`
+
 ## 2) Issue Analysis
 
 ### Issue A
@@ -168,10 +182,12 @@ Standard: use `/api/bff/*` from the browser.
 - UI: `http://localhost:3201/admin/`
 - Agent (debug): `http://localhost:6203`
 - Python (debug): `http://localhost:8000`
+- CDP service (debug): `http://localhost:5706`
 
 Inside the compose network:
 - `ai_web` → `agent:6203`
 - `agent` → `prediction_app:8000`
+- `cdp_service` → configured CDP PostgreSQL datasource via `t_datasource_config`
 
 ## 5) Configuration Checklist (Minimal)
 
