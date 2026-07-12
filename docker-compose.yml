@@ -1,3 +1,31 @@
+x-document-service-env: &document-service-env
+  DATABASE_URL: ${DOCUMENT_DATABASE_URL:-postgresql+psycopg://document:document@document-postgres:5432/document_service}
+  REDIS_URL: ${DOCUMENT_REDIS_URL:-redis://document-redis:6379/0}
+  OBJECT_STORAGE_ENDPOINT: ${OBJECT_STORAGE_ENDPOINT:-http://document-minio:9000}
+  OBJECT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-us-east-1}
+  OBJECT_STORAGE_BUCKET: ${OBJECT_STORAGE_BUCKET:-documents}
+  OBJECT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY:-minio}
+  OBJECT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY:-minio123}
+  OBJECT_STORAGE_FORCE_PATH_STYLE: ${OBJECT_STORAGE_FORCE_PATH_STYLE:-true}
+  PUBLIC_PRESIGN_BASE_URL: ${PUBLIC_PRESIGN_BASE_URL:-}
+  PRESIGNED_URL_TTL_SECONDS: ${PRESIGNED_URL_TTL_SECONDS:-3600}
+  DATALAB_API_KEY: ${DATALAB_API_KEY:-}
+  DATALAB_BASE_URL: ${DATALAB_BASE_URL:-https://www.datalab.to}
+  MINERU_TOKEN: ${MINERU_TOKEN:-}
+  MINERU_BASE_URL: ${MINERU_BASE_URL:-https://mineru.net}
+  MINERU_MODEL_VERSION: ${MINERU_MODEL_VERSION:-vlm}
+  TEXTIN_APP_ID: ${TEXTIN_APP_ID:-}
+  TEXTIN_SECRET_CODE: ${TEXTIN_SECRET_CODE:-}
+  TEXTIN_BASE_URL: ${TEXTIN_BASE_URL:-https://api.textin.com}
+  QWEN_API_KEY: ${QWEN_API_KEY:-}
+  QWEN_BASE_URL: ${QWEN_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+  QWEN_MODEL: ${QWEN_MODEL:-qwen3.5-ocr}
+  PADDLEOCR_API_URL: ${PADDLEOCR_API_URL:-}
+  PADDLEOCR_TOKEN: ${PADDLEOCR_TOKEN:-}
+  PADDLEOCR_MODEL: ${PADDLEOCR_MODEL:-PaddleOCR-VL-1.6}
+  LOCAL_DOCX_TO_PDF_ENABLED: ${LOCAL_DOCX_TO_PDF_ENABLED:-true}
+  LIBREOFFICE_BINARY: ${LIBREOFFICE_BINARY:-soffice}
+
 services:
   prediction_app:
     build:
@@ -122,6 +150,78 @@ services:
       - "5706:5706"
     restart: unless-stopped
 
+  document-api:
+    build:
+      context: ./document_service
+      dockerfile: Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 5710
+    environment: *document-service-env
+    depends_on:
+      document-postgres:
+        condition: service_started
+      document-redis:
+        condition: service_started
+      document-minio-init:
+        condition: service_completed_successfully
+    ports:
+      - "${DOCUMENT_SERVICE_PORT:-5710}:5710"
+    restart: unless-stopped
+
+  document-worker:
+    build:
+      context: ./document_service
+      dockerfile: Dockerfile
+    command: celery -A app.worker.celery_app worker --loglevel=INFO --concurrency=2
+    environment: *document-service-env
+    depends_on:
+      document-postgres:
+        condition: service_started
+      document-redis:
+        condition: service_started
+      document-minio-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  document-postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: document_service
+      POSTGRES_USER: document
+      POSTGRES_PASSWORD: document
+    volumes:
+      - document_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  document-redis:
+    image: redis:7
+    restart: unless-stopped
+
+  document-minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${OBJECT_STORAGE_ACCESS_KEY:-minio}
+      MINIO_ROOT_PASSWORD: ${OBJECT_STORAGE_SECRET_KEY:-minio123}
+    ports:
+      - "5718:9000"
+      - "5719:9001"
+    volumes:
+      - document_minio:/data
+    restart: unless-stopped
+
+  document-minio-init:
+    image: minio/mc
+    depends_on:
+      - document-minio
+    environment:
+      MINIO_ROOT_USER: ${OBJECT_STORAGE_ACCESS_KEY:-minio}
+      MINIO_ROOT_PASSWORD: ${OBJECT_STORAGE_SECRET_KEY:-minio123}
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://document-minio:9000 \"${OBJECT_STORAGE_ACCESS_KEY:-minio}\" \"${OBJECT_STORAGE_SECRET_KEY:-minio123}\"; do sleep 1; done;
+      mc mb --ignore-existing local/${OBJECT_STORAGE_BUCKET:-documents};
+      "
+
   ai_web_fina:
     build:
       context: ./ai_web
@@ -149,3 +249,7 @@ services:
     ports:
       - "5711:5701"
     restart: unless-stopped
+
+volumes:
+  document_pgdata:
+  document_minio:

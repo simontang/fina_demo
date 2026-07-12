@@ -5,6 +5,7 @@ Demo repository that combines:
 - **prediction_app/**：Python (FastAPI) 数据集与预测 API（销售预测、RFM、库存等）
 - **ai_web/**：React (Refine) 管理端 UI
 - **cdp-service/**：Java (Spring Boot) CDP 分群定义、分群数据与 SQL processing 服务
+- **document_service/**：Python (FastAPI + Celery) 文档解析统一 IO 服务，上传文件后异步分发到 Datalab、MinerU、TextIn、Qwen OCR、PaddleOCR 等远程 engine，并输出 Markdown/JSON。
 
 功能亮点：
 - **Data Agent**：业务数据分析智能体，支持自然语言查数、多步分析与报告生成；详见 [开发 Data Agent 指南](docs/DEVELOPING_A_DATA_AGENT.md)。
@@ -74,6 +75,8 @@ Services:
 - Agent gateway: http://localhost:6203
 - Python API (debug): http://localhost:8000
 - CDP service: http://localhost:5706
+- Document service: http://localhost:5710/docs
+- Document API via nginx: `/api/documents/v1/*`
 
 Optional (AI insights / explanations):
 - Export `VOLCENGINE_API_KEY2` before running compose, or create a local `.env` file (not committed) at repo root:
@@ -82,3 +85,8 @@ Optional (AI insights / explanations):
 export VOLCENGINE_API_KEY2=...
 docker compose up --build
 ```
+
+Document service uses `document_service/.env.example` for engine credentials,
+object storage, Redis, and database settings. The root compose file provides
+local defaults for Postgres, Redis, and MinIO; production compose files expect
+managed database/object storage credentials via environment variables.

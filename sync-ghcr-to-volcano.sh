@@ -10,6 +10,7 @@ SERVICE_2="fina-demo-prediction-app"
 SERVICE_3="fina-demo-ai-web"
 SERVICE_4="fina-demo-metrics-server"
 SERVICE_5="fina-demo-cdp-service"
+SERVICE_6="fina-demo-document-service"
 
 GITHUB_REGISTRY="${GITHUB_REGISTRY:-ghcr.io}"
 GITHUB_USERNAME="${GITHUB_USERNAME:-409zhangshu}"
@@ -109,6 +110,7 @@ usage() {
     echo "  3 - $SERVICE_3"
     echo "  4 - $SERVICE_4"
     echo "  5 - $SERVICE_5"
+    echo "  6 - $SERVICE_6"
     echo ""
     echo "示例:"
     echo "  $0              # 同步所有服务"
@@ -137,6 +139,7 @@ main() {
             3) services+=("$SERVICE_3"); shift ;;
             4) services+=("$SERVICE_4"); shift ;;
             5) services+=("$SERVICE_5"); shift ;;
+            6) services+=("$SERVICE_6"); shift ;;
             *)
                 log_error "无效参数: $1"
                 usage
@@ -146,7 +149,7 @@ main() {
 
     if [[ ${#services[@]} -eq 0 ]]; then
         log_info "未指定服务，将同步所有服务"
-        services=("$SERVICE_1" "$SERVICE_2" "$SERVICE_3" "$SERVICE_4" "$SERVICE_5")
+        services=("$SERVICE_1" "$SERVICE_2" "$SERVICE_3" "$SERVICE_4" "$SERVICE_5" "$SERVICE_6")
     fi
 
     check_docker

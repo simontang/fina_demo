@@ -213,3 +213,30 @@ This matches the frontend’s default `VITE_API_URL=/api` behavior, so nginx/vit
 - This removes the dependency on a local Postgres socket (`/var/run/postgresql/.s.PGSQL.5432`).
 
 Optional: you can still add Postgres later if you want DB-backed tables for very large datasets, but it is not required for this demo stack.
+
+## 7) Document Service
+
+Document parsing is now part of the `fina_demo` compose stack.
+
+- Service: `document-api`
+- Worker: `document-worker`
+- Local API: `http://localhost:5710`
+- Swagger: `http://localhost:5710/docs`
+- Nginx route: `/api/documents/v1/*` → `http://127.0.0.1:5710/v1/*`
+- Internal queue: `document-redis:6379`
+- Local helper services: `document-postgres`, `document-redis`
+- Optional local object storage: `document-minio`, only needed when
+  `document_service/.env` points at the local MinIO endpoint.
+
+Core endpoints:
+
+- `POST /api/documents/v1/assets`
+- `POST /api/documents/v1/runs`
+- `GET /api/documents/v1/runs/{run_id}`
+- `GET /api/documents/v1/runs/{run_id}/outputs/markdown`
+- `GET /api/documents/v1/engines`
+
+The service reads `document_service/.env` for third-party engine credentials,
+object storage, Redis, and database configuration. For production-style runs in
+this project, use Aliyun PostgreSQL and TOS-compatible object storage so
+URL-based engines such as MinerU and Qwen OCR can fetch presigned HTTPS files.
