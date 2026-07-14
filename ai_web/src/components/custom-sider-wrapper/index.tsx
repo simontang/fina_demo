@@ -43,10 +43,7 @@ export const CustomSiderWrapper: React.FC<RefineThemedLayoutSiderProps> = (
 ) => {
   const navigate = useNavigate();
   const location = useLocation();
-  // We don't use useMenu here because we fully customize the menu.
-  // const { menuItems } = useMenu();
 
-  // Build custom menu items
   const customMenuItems: MenuItem[] = [
     getItem("Agent Center", "agent-center", <RobotOutlined />, [
       getItem("Overview", "agent-overview", <DashboardOutlined />),
