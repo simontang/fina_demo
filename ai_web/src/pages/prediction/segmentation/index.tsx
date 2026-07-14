@@ -21,7 +21,7 @@ import type { ColumnsType } from "antd/es/table";
 import MDEditor from "@uiw/react-md-editor/nohighlight";
 
 import type { Dataset } from "../../../types/dataset";
-import { TOKEN_KEY } from "../../../authProvider";
+import { getAuthHeaders } from "../../../utils/getAuthHeaders";
 
 const { Title, Text } = Typography;
 
@@ -109,11 +109,6 @@ type SegmentationResponse = {
   insight_markdown?: string;
   cluster_plot?: ClusterPlot;
 };
-
-function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem(TOKEN_KEY);
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
 
 function formatNumber(n: unknown): string {
   const num = typeof n === "number" ? n : Number(n);

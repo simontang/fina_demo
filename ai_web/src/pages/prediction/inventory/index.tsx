@@ -22,7 +22,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import { PlayCircleOutlined } from "@ant-design/icons";
 import MDEditor from "@uiw/react-md-editor/nohighlight";
-import { TOKEN_KEY } from "../../../authProvider";
+import { getAuthHeaders } from "../../../utils/getAuthHeaders";
 
 const { Title, Text } = Typography;
 
@@ -113,11 +113,6 @@ type StockAllocationResult = {
   };
   cities: AllocationCityRow[];
 };
-
-function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem(TOKEN_KEY);
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
 
 function formatInt(n: number): string {
   if (!Number.isFinite(n)) return "-";

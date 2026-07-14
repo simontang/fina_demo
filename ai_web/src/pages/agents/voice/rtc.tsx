@@ -3,7 +3,7 @@ import VERTC_SDK from "@volcengine/rtc";
 import { Alert, App, Button, Form, Input, Modal, Space, Tag, Typography } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { TOKEN_KEY } from "../../../authProvider";
+import { getAuthHeaders } from "../../../utils/getAuthHeaders";
 
 const { Title, Text } = Typography;
 
@@ -41,11 +41,6 @@ type SessionInfo = {
   taskId: string;
   voiceChatStarted: boolean;
 };
-
-function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem(TOKEN_KEY);
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
 
 async function proxyFetch<T = any>(action: RtcProxyAction, params: Record<string, any>): Promise<RtcProxyResponse<T>> {
   const res = await fetch("/api/rtc/proxyFetch", {

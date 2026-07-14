@@ -21,7 +21,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 
 import type { Dataset } from "../../../types/dataset";
-import { TOKEN_KEY } from "../../../authProvider";
+import { getAuthHeaders } from "../../../utils/getAuthHeaders";
 
 const { Title, Text } = Typography;
 
@@ -114,11 +114,6 @@ type FormValues = {
   promotionIntensity: PromotionIntensity;
   scenarioPromotionFactor: number;
 };
-
-function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem(TOKEN_KEY);
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
 
 function formatNumber(n: unknown): string {
   const num = typeof n === "number" ? n : Number(n);

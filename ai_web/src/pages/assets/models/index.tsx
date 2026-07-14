@@ -3,7 +3,7 @@ import { Alert, Button, Card, Space, Table, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ReloadOutlined } from "@ant-design/icons";
 
-import { TOKEN_KEY } from "../../../authProvider";
+import { getAuthHeaders } from "../../../utils/getAuthHeaders";
 
 const { Title, Text } = Typography;
 
@@ -28,11 +28,6 @@ type ListResponse = {
   detail?: string;
   error?: string;
 };
-
-function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem(TOKEN_KEY);
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
 
 function formatMetric(v: unknown): string {
   const n = typeof v === "number" ? v : Number(v);
