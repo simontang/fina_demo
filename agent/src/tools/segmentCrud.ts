@@ -1,41 +1,8 @@
 import { registerToolLattice } from "@axiom-lattice/core";
 import { z } from "zod";
+import { cdpFetch, getTenantIdFromExecutionConfig } from "./cdpToolClient";
 
-const CDP_BASE =
-  process.env.CDP_API_URL || "http://127.0.0.1:5706";
-
-const DEFAULT_TENANT_ID = process.env.TENANT_ID || "default";
-
-export function getTenantIdFromExecutionConfig(exeConfig?: unknown): string {
-  const tenantId = (exeConfig as {
-    configurable?: { runConfig?: { tenantId?: unknown } };
-  })?.configurable?.runConfig?.tenantId;
-
-  return typeof tenantId === "string" && tenantId.trim()
-    ? tenantId
-    : DEFAULT_TENANT_ID;
-}
-
-async function pyFetch(
-  path: string,
-  options?: RequestInit,
-  tenantId: string = DEFAULT_TENANT_ID,
-): Promise<unknown> {
-  const url = `${CDP_BASE.replace(/\/$/, "")}${path}`;
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-      "X-Tenant-Id": tenantId,
-    },
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText);
-    throw new Error(`CDP API error ${res.status}: ${text}`);
-  }
-  return res.json();
-}
+export { getTenantIdFromExecutionConfig } from "./cdpToolClient";
 
 // ============================================================
 // segment_definition_list
@@ -52,7 +19,7 @@ registerToolLattice(
     schema: z.object({}),
   },
   async (_input, exeConfig) => {
-    const result = await pyFetch(
+    const result = await cdpFetch(
       "/api/v1/segment-definitions",
       undefined,
       getTenantIdFromExecutionConfig(exeConfig),
@@ -83,7 +50,7 @@ registerToolLattice(
     }),
   },
   async (input, exeConfig) => {
-    const result = await pyFetch("/api/v1/segment-definitions", {
+    const result = await cdpFetch("/api/v1/segment-definitions", {
       method: "POST",
       body: JSON.stringify(input),
     }, getTenantIdFromExecutionConfig(exeConfig));
@@ -114,7 +81,7 @@ registerToolLattice(
   },
   async (input, exeConfig) => {
     const { id, ...body } = input;
-    const result = await pyFetch(`/api/v1/segment-definitions/${id}`, {
+    const result = await cdpFetch(`/api/v1/segment-definitions/${id}`, {
       method: "PUT",
       body: JSON.stringify(body),
     }, getTenantIdFromExecutionConfig(exeConfig));
@@ -137,7 +104,7 @@ registerToolLattice(
     }),
   },
   async (input, exeConfig) => {
-    const result = await pyFetch(`/api/v1/segment-definitions/${input.id}`, {
+    const result = await cdpFetch(`/api/v1/segment-definitions/${input.id}`, {
       method: "DELETE",
     }, getTenantIdFromExecutionConfig(exeConfig));
     return JSON.stringify(result);
@@ -162,7 +129,7 @@ registerToolLattice(
     }),
   },
   async (input, exeConfig) => {
-    const result = await pyFetch(`/api/v1/segment-definitions/${input.id}/process`, {
+    const result = await cdpFetch(`/api/v1/segment-definitions/${input.id}/process`, {
       method: "POST",
       body: input.params ? JSON.stringify({ params: input.params }) : "{}",
     }, getTenantIdFromExecutionConfig(exeConfig));
@@ -194,7 +161,7 @@ registerToolLattice(
     params.set("page", String(input.page));
     params.set("pageSize", String(input.pageSize));
     const qs = params.toString();
-    const result = await pyFetch(
+    const result = await cdpFetch(
       `/api/v1/segment-data?${qs}`,
       undefined,
       getTenantIdFromExecutionConfig(exeConfig),

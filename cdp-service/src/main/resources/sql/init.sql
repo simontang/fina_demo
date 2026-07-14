@@ -61,3 +61,35 @@ CREATE INDEX IF NOT EXISTS idx_segment_data_tenant_definition
     ON t_segment_data (tenant_id, definition_id, deleted, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_segment_data_run_id
     ON t_segment_data (tenant_id, run_id);
+
+CREATE TABLE IF NOT EXISTS t_marketing_campaign (
+    id                            BIGSERIAL       PRIMARY KEY,
+    tenant_id                     VARCHAR(128)    NOT NULL DEFAULT 'default',
+    name                          VARCHAR(200)    NOT NULL,
+    description                   VARCHAR(1000),
+    type                          VARCHAR(100)    NOT NULL,
+    status                        VARCHAR(32)     NOT NULL DEFAULT 'draft',
+    goal                          TEXT            NOT NULL,
+    start_time                    TIMESTAMP       NOT NULL,
+    end_time                      TIMESTAMP       NOT NULL,
+    main_segment_data_id          BIGINT,
+    segmentation_strategy_json    TEXT            NOT NULL DEFAULT '{}',
+    control_group_strategy_json   TEXT            NOT NULL DEFAULT '{}',
+    content_channel_strategy_json TEXT            NOT NULL DEFAULT '{}',
+    offer_strategy_json           TEXT            NOT NULL DEFAULT '{}',
+    wave_strategy_json            TEXT            NOT NULL DEFAULT '{}',
+    ab_test_strategy_json         TEXT            NOT NULL DEFAULT '{}',
+    statistics_json               TEXT            NOT NULL DEFAULT '{}',
+    actual_started_at             TIMESTAMP,
+    actual_stopped_at             TIMESTAMP,
+    created_at                    TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at                    TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted                       SMALLINT        NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_marketing_campaign_tenant_status
+    ON t_marketing_campaign (tenant_id, status, deleted);
+CREATE INDEX IF NOT EXISTS idx_marketing_campaign_tenant_type
+    ON t_marketing_campaign (tenant_id, type, deleted);
+CREATE INDEX IF NOT EXISTS idx_marketing_campaign_tenant_time
+    ON t_marketing_campaign (tenant_id, start_time, end_time);

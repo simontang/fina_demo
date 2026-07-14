@@ -32,6 +32,7 @@ import {
 import "./agents";
 import "./tools/taskAgentRuntimeUpdate";
 import "./tools/segmentCrud";
+import "./tools/marketingCampaignCrud";
 
 // 加载环境变量
 

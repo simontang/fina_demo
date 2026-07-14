@@ -39,6 +39,9 @@ cdp:
     key: ${ENCRYPT_KEY:fina-metrics-2024!}
   skip-init: ${SKIP_INIT:false}
   master-schema-init: ${MASTER_SCHEMA_INIT:true}
+  campaign-scheduler:
+    enabled: ${CAMPAIGN_SCHEDULER_ENABLED:true}
+    fixed-delay-ms: ${CAMPAIGN_SCHEDULER_FIXED_DELAY_MS:60000}
 
 management:
   endpoints:

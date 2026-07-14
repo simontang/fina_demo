@@ -1,0 +1,285 @@
+{
+  "name": "沉睡会员唤醒-2026-07",
+  "description": "对 120 天未购会员做两波唤醒，高价值人群测试两种短信文案。",
+  "type": "reactivation",
+  "status": "draft",
+  "goal": "提升沉睡会员 30 天复购率，并评估优惠券增量效果。",
+  "startTime": "2026-07-20 09:00:00",
+  "endTime": "2026-08-03 23:59:59",
+  "mainSegmentDataId": 101,
+  "segmentationStrategy": {
+    "version": "1.0",
+    "audienceKey": "customer_id",
+    "source": {
+      "segmentDataId": 101,
+      "segmentDefinitionId": 21,
+      "runId": "seg_run_dormant_20260719",
+      "description": "120 天未购且允许营销触达的会员"
+    },
+    "subSegments": [
+      {
+        "subSegmentKey": "hv_dormant",
+        "name": "高价值沉睡会员",
+        "priority": 1,
+        "criteria": [
+          {
+            "field": "lifetime_value",
+            "operator": ">=",
+            "value": 10000
+          },
+          {
+            "field": "days_since_last_purchase",
+            "operator": ">=",
+            "value": 120
+          }
+        ],
+        "tags": ["high_value", "dormant"]
+      },
+      {
+        "subSegmentKey": "mv_dormant",
+        "name": "中价值沉睡会员",
+        "priority": 2,
+        "criteria": [
+          {
+            "field": "lifetime_value",
+            "operator": ">=",
+            "value": 3000
+          },
+          {
+            "field": "lifetime_value",
+            "operator": "<",
+            "value": 10000
+          },
+          {
+            "field": "days_since_last_purchase",
+            "operator": ">=",
+            "value": 120
+          }
+        ],
+        "tags": ["medium_value", "dormant"]
+      }
+    ],
+    "assignment": {
+      "mode": "first_match_by_priority",
+      "fallbackSubSegmentKey": "mv_dormant"
+    },
+    "exclusions": [
+      {
+        "field": "consent_marketing",
+        "operator": "=",
+        "value": false
+      },
+      {
+        "field": "unsubscribe_status",
+        "operator": "=",
+        "value": true
+      }
+    ]
+  },
+  "controlGroupStrategy": {
+    "enabled": true,
+    "method": "deterministic_hash_holdout",
+    "unit": "customer",
+    "ratio": 0.1,
+    "seed": "campaign_id",
+    "stratifyBy": ["subSegmentKey"],
+    "excludeFromWaves": true
+  },
+  "contentChannelStrategy": {
+    "version": "1.0",
+    "defaultLocale": "zh-CN",
+    "channels": [
+      {
+        "channelKey": "sms_primary",
+        "channel": "sms",
+        "templateKey": "sms_dormant_coupon_v1",
+        "eligibleSubSegmentKeys": ["hv_dormant", "mv_dormant"],
+        "sendWindow": {
+          "timezone": "Asia/Shanghai",
+          "start": "09:00",
+          "end": "20:00"
+        },
+        "frequencyCap": {
+          "maxMessages": 2,
+          "windowDays": 7
+        },
+        "variables": ["customer_name", "offer_value", "expiry_date"]
+      },
+      {
+        "channelKey": "wechat_fallback",
+        "channel": "wechat",
+        "templateKey": "wechat_dormant_reminder_v1",
+        "eligibleSubSegmentKeys": ["hv_dormant", "mv_dormant"],
+        "fallbackForChannelKeys": ["sms_primary"]
+      }
+    ]
+  },
+  "offerStrategy": {
+    "version": "1.0",
+    "budget": {
+      "currency": "CNY",
+      "maxTotalCost": 50000
+    },
+    "offers": [
+      {
+        "offerCode": "coupon_80_hv",
+        "type": "coupon",
+        "value": 80,
+        "currency": "CNY",
+        "validDays": 7,
+        "eligibleSubSegmentKeys": ["hv_dormant"],
+        "perCustomerLimit": 1
+      },
+      {
+        "offerCode": "coupon_30_mv",
+        "type": "coupon",
+        "value": 30,
+        "currency": "CNY",
+        "validDays": 7,
+        "eligibleSubSegmentKeys": ["mv_dormant"],
+        "perCustomerLimit": 1
+      }
+    ],
+    "allocation": {
+      "method": "by_sub_segment",
+      "rules": [
+        {
+          "subSegmentKey": "hv_dormant",
+          "offerCode": "coupon_80_hv"
+        },
+        {
+          "subSegmentKey": "mv_dormant",
+          "offerCode": "coupon_30_mv"
+        }
+      ]
+    }
+  },
+  "waveStrategy": {
+    "enabled": true,
+    "timezone": "Asia/Shanghai",
+    "waves": [
+      {
+        "waveId": "wave_1",
+        "name": "首轮触达",
+        "scheduledAt": "2026-07-20 10:00:00",
+        "eligibleSubSegmentKeys": ["hv_dormant", "mv_dormant"],
+        "channelKeys": ["sms_primary"],
+        "offerCodes": ["coupon_80_hv", "coupon_30_mv"],
+        "entryRule": {
+          "excludeGroups": ["control"]
+        }
+      },
+      {
+        "waveId": "wave_2",
+        "name": "未响应二次触达",
+        "scheduledAt": "2026-07-27 10:00:00",
+        "eligibleSubSegmentKeys": ["hv_dormant", "mv_dormant"],
+        "channelKeys": ["wechat_fallback"],
+        "offerCodes": ["coupon_80_hv", "coupon_30_mv"],
+        "entryRule": {
+          "fromWaveIds": ["wave_1"],
+          "excludeGroups": ["control"],
+          "includeIf": [
+            {
+              "metric": "purchased",
+              "operator": "=",
+              "value": false
+            },
+            {
+              "metric": "clicked",
+              "operator": "=",
+              "value": false
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "abTestStrategy": {
+    "enabled": true,
+    "scope": {
+      "subSegmentKeys": ["hv_dormant"],
+      "waveIds": ["wave_1"]
+    },
+    "unit": "customer",
+    "primaryMetric": "repurchase_rate_14d",
+    "variants": [
+      {
+        "variantId": "A",
+        "name": "权益优先文案",
+        "trafficRatio": 0.5,
+        "channelKey": "sms_primary",
+        "templateKey": "sms_hv_offer_first_v1",
+        "offerCode": "coupon_80_hv"
+      },
+      {
+        "variantId": "B",
+        "name": "情感唤醒文案",
+        "trafficRatio": 0.5,
+        "channelKey": "sms_primary",
+        "templateKey": "sms_hv_emotional_v1",
+        "offerCode": "coupon_80_hv"
+      }
+    ],
+    "winnerPolicy": {
+      "method": "fixed_horizon",
+      "minSampleSizePerVariant": 1000,
+      "confidence": 0.95
+    }
+  },
+  "statistics": {
+    "version": "1.0",
+    "lastComputedAt": null,
+    "audience": {
+      "targetCount": 0,
+      "controlCount": 0,
+      "treatmentCount": 0,
+      "bySubSegment": {
+        "hv_dormant": {
+          "targetCount": 0,
+          "controlCount": 0,
+          "treatmentCount": 0
+        },
+        "mv_dormant": {
+          "targetCount": 0,
+          "controlCount": 0,
+          "treatmentCount": 0
+        }
+      }
+    },
+    "delivery": {
+      "sent": 0,
+      "delivered": 0,
+      "opened": 0,
+      "clicked": 0,
+      "failed": 0
+    },
+    "conversion": {
+      "converted": 0,
+      "conversionRate": null,
+      "incrementalLift": null
+    },
+    "revenue": {
+      "currency": "CNY",
+      "grossRevenue": 0,
+      "incrementalRevenue": null,
+      "offerCost": 0,
+      "grossMargin": null
+    },
+    "abTest": {
+      "winnerVariantId": null,
+      "variantMetrics": [
+        {
+          "variantId": "A",
+          "sampleSize": 0,
+          "conversionRate": null
+        },
+        {
+          "variantId": "B",
+          "sampleSize": 0,
+          "conversionRate": null
+        }
+      ]
+    }
+  }
+}
