@@ -51,7 +51,7 @@ services:
     environment:
       PORT: "5702"
       PYTHON_API_URL: http://prediction_app:5703
-      CDP_API_URL: http://cdp_service:5706
+      CDP_API_URL: http://cdp-service:5706
       UPLOAD_DIR: /app/uploads
       # Optional (LLM provider for the agent + some Python insight endpoints).
       VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2:-a0533576-d6ed-4ca4-a308-473cbf7ebd10}
@@ -150,6 +150,10 @@ services:
       - ./logs/cdp-service:/app/logs
     ports:
       - "5706:5706"
+    networks:
+      default:
+        aliases:
+          - cdp-service
     restart: unless-stopped
 
   document-api:
