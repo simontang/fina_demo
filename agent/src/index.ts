@@ -200,6 +200,51 @@ registerModelLattice(
     }
   }
 );
+registerModelLattice(
+  "gpt-5.6-sol",
+
+  {
+    model: "gpt-5.6-sol",
+    displayName: "gpt-5.6-sol",
+    provider: "openai",
+    streaming: true,
+    apiKeyEnvName: "API_KEY3",
+    baseURL: baseURL,
+    modelKwargs: {
+      "thinking_effort": "high"
+    }
+  }
+);
+registerModelLattice(
+  "gpt-5.6-terra",
+
+  {
+    model: "gpt-5.6-terra",
+    displayName: "gpt-5.6-terra",
+    provider: "openai",
+    streaming: true,
+    apiKeyEnvName: "API_KEY3",
+    baseURL: baseURL,
+    modelKwargs: {
+      "thinking_effort": "high"
+    }
+  }
+);
+registerModelLattice(
+  "gpt-5.6-luna",
+
+  {
+    model: "gpt-5.6-luna",
+    displayName: "gpt-5.6-luna",
+    provider: "openai",
+    streaming: true,
+    apiKeyEnvName: "API_KEY3",
+    baseURL: baseURL,
+    modelKwargs: {
+      "thinking_effort": "high"
+    }
+  }
+);
 
 }  // end of env var guard: only register hardcoded models if MODEL_LIST is not set
 
