@@ -11,7 +11,9 @@ import {
 } from "./controllers/fileController";
 import { registerDatasetRoutes } from "./routes/datasets";
 import { registerPythonProxyRoutes } from "./routes/pythonProxy";
+import { registerCdpProxyRoutes } from "./routes/cdpProxy";
 import { registerRtcRoutes } from "./routes/rtc";
+import { registerTaskAgentRoutes } from "./routes/taskAgents";
 
 const { app, startAsHttpEndpoint, configureSwagger } = LatticeGateway;
 
@@ -59,11 +61,17 @@ function registerApiRoutes(app: FastifyInstance): void {
 
 // 注册路由
 export const registerRoutes = (app: FastifyInstance): void => {
+  // CDP segment service reverse-proxy (frontend calls /api/cdp/* via this agent).
+  registerCdpProxyRoutes(app);
+
   // Python prediction service reverse-proxy (frontend calls /api/v1/* via this agent).
   registerPythonProxyRoutes(app);
 
   // RTC / Voice Chat APIs (frontend calls /api/rtc/* via this agent).
   registerRtcRoutes(app);
+
+  // Task Agent Runtime APIs
+  registerTaskAgentRoutes(app);
 
   // LatticeGateway routes are registered automatically by startAsHttpEndpoint
 
@@ -76,7 +84,7 @@ export async function startServer(port: number = 5702) {
   try {
 
     // 注册路由
-    // registerRoutes(app);
+    registerRoutes(app);
 
     await startAsHttpEndpoint({
       port,
@@ -84,6 +92,8 @@ export async function startServer(port: number = 5702) {
     });
     console.log(`🚀 Server running on http://localhost:${port}`);
   } catch (err) {
+    console.error("Server start error:", err);
+    console.error("Error stack:", err instanceof Error ? err.stack : "No stack");
     app.log.error(err);
     process.exit(1);
   }

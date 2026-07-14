@@ -30,6 +30,8 @@ import {
 } from "@axiom-lattice/core";
 
 import "./agents";
+import "./tools/taskAgentRuntimeUpdate";
+import "./tools/segmentCrud";
 
 // 加载环境变量
 

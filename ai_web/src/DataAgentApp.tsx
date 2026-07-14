@@ -1,6 +1,9 @@
 import React from "react";
 import { ConfigProvider } from "antd";
 import {
+  UserSwitchOutlined,
+} from "@ant-design/icons";
+import {
   AuthProvider,
   AxiomLatticeProvider,
   LoginPage,
@@ -8,7 +11,7 @@ import {
   TenantSelector,
   useAuth,
 } from "@axiom-lattice/react-sdk";
-import { LatticeChatShell } from "@axiom-lattice/react-sdk";
+import { LatticeChatShell, DEFAULT_WORKSPACE_MENU_ITEMS } from "@axiom-lattice/react-sdk";
 import { generateTheme } from "./theme";
 import "antd/dist/reset.css";
 import { getBaseAPIPath } from "./getBaseAPIPath";
@@ -217,6 +220,18 @@ function AppContent() {
             sidebarLogoIcon: <Logo width={28} height={28} />,
             // Default agent
             assistantId: "new-data-agent",
+            // Workspace menu with Task Agents group
+            workspaceMenuItems: [
+              ...DEFAULT_WORKSPACE_MENU_ITEMS,
+              {
+                id: "task_agent_segment",
+                type: "route" as const,
+                name: "Segment Agent",
+                icon: <UserSwitchOutlined />,
+                order: 30,
+                group: "Task Agents",
+              },
+            ],
           }}
         />
       </div>
