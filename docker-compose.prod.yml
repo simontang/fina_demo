@@ -59,6 +59,7 @@ services:
       NODE_ENV: production
       PORT: "5702"
       PYTHON_API_URL: http://prediction_app:5703
+      CDP_API_URL: http://cdp_service:5706
       UPLOAD_DIR: /app/uploads
       # Database configuration (for dataset queries - Aliyun RDS PostgreSQL)
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres_fuli:jfd4whz@GPF2nqx7zhm@pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com:5432/postgres}
@@ -110,6 +111,7 @@ services:
       - ./prediction_app/config:/app/prediction_app/config:ro
     depends_on:
       - prediction_app
+      - cdp_service
     ports:
       # Only bind to localhost, access via nginx reverse proxy
       - "127.0.0.1:5702:5702"
