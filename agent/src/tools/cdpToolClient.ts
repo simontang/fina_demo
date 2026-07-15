@@ -13,6 +13,13 @@ export function getTenantIdFromExecutionConfig(exeConfig?: unknown): string {
     : DEFAULT_TENANT_ID;
 }
 
+export function getThreadIdFromExecutionConfig(exeConfig?: unknown): string | undefined {
+  const threadId = (exeConfig as {
+    configurable?: { runConfig?: { threadId?: unknown } };
+  })?.configurable?.runConfig?.threadId;
+  return typeof threadId === "string" && threadId.trim() ? threadId : undefined;
+}
+
 export async function cdpFetch(
   path: string,
   options?: RequestInit,
