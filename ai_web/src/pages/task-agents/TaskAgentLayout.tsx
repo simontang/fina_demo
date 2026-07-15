@@ -9,7 +9,6 @@ import {
   useChatUIContext,
   useConversationContext,
   getElement,
-  FilePanelToggle,
 } from "@axiom-lattice/react-sdk";
 
 const { Text } = Typography;
@@ -85,7 +84,6 @@ const TaskAgentInner: React.FC<TaskAgentLayoutProps> = ({ assistantId, tabs }) =
                   {tab.label}
                 </Button>
               ))}
-              <FilePanelToggle />
             </>
           }
         />
