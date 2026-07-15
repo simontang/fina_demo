@@ -47,10 +47,10 @@ function toSegmentArtifact(
 }
 
 function getExistingArtifactLabel(status: ArtifactLoadStatus): string {
-  if (status === "loading") return "Use Existing Segment Artifact (Loading...)";
-  if (status === "error") return "Use Existing Segment Artifact (Unavailable)";
-  if (status === "empty") return "Use Existing Segment Artifact (No Artifacts)";
-  return "Use Existing Segment Artifact";
+  if (status === "loading") return "Select Existing Segment (Loading...)";
+  if (status === "error") return "Select Existing Segment (Unavailable)";
+  if (status === "empty") return "Select Existing Segment (No Segments)";
+  return "Select Existing Segment";
 }
 
 function buildQuickPrompts(
@@ -62,12 +62,12 @@ function buildQuickPrompts(
   const existingArtifactPrompt: QuickPromptItem = {
     key: "dormant_reactivation_existing_artifact",
     label: getExistingArtifactLabel(status),
-    description: "Use the latest materialized result from an existing Segment.",
+    description: "Select an existing Segment and use its latest materialized audience.",
     icon: <FolderOpenOutlined />,
     content: [
       {
         type: "text",
-        value: "Start a Dormant Reactivation analysis using the existing Segment Artifact ",
+        value: "Run Dormant Reactivation using this existing Segment: ",
       },
       {
         type: "select",
@@ -75,7 +75,7 @@ function buildQuickPrompts(
         props: {
           options,
           defaultValue: options[0],
-          placeholder: "Select a Segment Artifact",
+          placeholder: "Select an Existing Segment",
         },
         formatResult: (value: unknown) => {
           const artifact = artifactByOption.get(String(value));
@@ -87,7 +87,7 @@ function buildQuickPrompts(
       {
         type: "text",
         value:
-          ". Treat this exact segment_data snapshot as the fixed main audience. Do not create, replace, or re-materialize the segment. First verify that the selected artifact still exists for the current tenant; if it is unavailable or deleted, stop and ask me to select another artifact instead of silently falling back. Then continue with churn diagnosis, offer, channel and content, approval, execution, and measurement planning.",
+          ".",
       },
     ],
   };
@@ -99,14 +99,24 @@ function buildQuickPrompts(
       items: [
         {
           key: "dormant_reactivation_rebuild_audience",
-          label: "Rebuild Dormant Audience",
-          description: "Create and materialize a new audience from current CDP data.",
+          label: "Describe Target Audience",
+          description: "Describe the dormant audience in natural language and create a new Segment.",
           icon: <UsergroupAddOutlined />,
           content: [
             {
               type: "text",
-              value:
-                "Start a new Dormant Reactivation analysis using current CDP data. For this conversation, do not reuse any existing Segment Artifact. Create a new segment definition, materialize it into a new segment_data snapshot, and report definitionId, segmentDataId, runId, and rowCount before continuing with churn diagnosis, offer, channel and content, approval, execution, and measurement planning.",
+              value: "Run Dormant Reactivation for this audience: ",
+            },
+            {
+              type: "input",
+              key: "audience_description",
+              props: {
+                placeholder: "e.g. high-value members with no purchase in the last 120 days",
+              },
+            },
+            {
+              type: "text",
+              value: ".",
             },
           ],
         },
