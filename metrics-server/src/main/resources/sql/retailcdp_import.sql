@@ -109,10 +109,10 @@ CREATE TABLE retailcdp_customers (
     mobile_hash VARCHAR(64),
     email_hash VARCHAR(64),
     wechat_openid_hash VARCHAR(64),
-    consent_marketing CHAR(1),
-    consent_sms CHAR(1),
-    consent_wechat CHAR(1),
-    consent_email CHAR(1),
+    marketing_consent CHAR(1),
+    sms_consent CHAR(1),
+    wechat_consent CHAR(1),
+    email_consent CHAR(1),
     last_purchase_date DATE,
     days_since_purchase INTEGER,
     orders_365 INTEGER,
@@ -223,7 +223,7 @@ CREATE TABLE retailcdp_transactions (
 \copy retailcdp_campaign_interactions (interaction_id, campaign_id, customer_id, sent_date, channel, event_status, revenue_attributed, suppression_reason) FROM '/Users/cid/Documents/csv/campaign_interactions.csv' WITH (FORMAT csv, HEADER true, NULL '', ENCODING 'UTF8');
 \copy retailcdp_campaigns (campaign_id, scenario_id, campaign_name, objective, channel_mix, start_date, end_date, budget, status) FROM '/Users/cid/Documents/csv/campaigns.csv' WITH (FORMAT csv, HEADER true, NULL '', ENCODING 'UTF8');
 \copy retailcdp_consents (customer_id, marketing_consent, sms_consent, wechat_consent, email_consent, consent_source, updated_at) FROM '/Users/cid/Documents/csv/consents.csv' WITH (FORMAT csv, HEADER true, NULL '', ENCODING 'UTF8');
-\copy retailcdp_customers (customer_id, name, gender, age, city, province, region, city_tier, join_date, member_level, lifecycle_stage, preferred_channel, home_store_id, category_affinity, size_profile, price_sensitivity, discount_affinity, private_domain_status, acquisition_channel, mobile_hash, email_hash, wechat_openid_hash, consent_marketing, consent_sms, consent_wechat, consent_email, last_purchase_date, days_since_purchase, orders_365, total_spend_365, avg_order_value, rfm_segment, churn_risk_score, replenishment_due_score, vip_score, return_rate, complaint_count, created_at) FROM '/Users/cid/Documents/csv/customers.csv' WITH (FORMAT csv, HEADER true, NULL '', ENCODING 'UTF8');
+\copy retailcdp_customers (customer_id, name, gender, age, city, province, region, city_tier, join_date, member_level, lifecycle_stage, preferred_channel, home_store_id, category_affinity, size_profile, price_sensitivity, discount_affinity, private_domain_status, acquisition_channel, mobile_hash, email_hash, wechat_openid_hash, marketing_consent, sms_consent, wechat_consent, email_consent, last_purchase_date, days_since_purchase, orders_365, total_spend_365, avg_order_value, rfm_segment, churn_risk_score, replenishment_due_score, vip_score, return_rate, complaint_count, created_at) FROM '/Users/cid/Documents/csv/customers.csv' WITH (FORMAT csv, HEADER true, NULL '', ENCODING 'UTF8');
 \copy retailcdp_inventory (inventory_id, store_id, product_id, stock_on_hand, reserved_qty, available_qty, reorder_point, last_stocktake_date) FROM '/Users/cid/Documents/csv/inventory.csv' WITH (FORMAT csv, HEADER true, NULL '', ENCODING 'UTF8');
 \copy retailcdp_loyalty_accounts (customer_id, loyalty_id, tier, points_balance, points_expiring_90d, anniversary_month, next_tier_gap_amount) FROM '/Users/cid/Documents/csv/loyalty_accounts.csv' WITH (FORMAT csv, HEADER true, NULL '', ENCODING 'UTF8');
 \copy retailcdp_products (product_id, sku, product_name, category, subcategory, brand_line, gender, season, unit_price, replenishment_cycle_days, launch_date, is_hero_sku) FROM '/Users/cid/Documents/csv/products.csv' WITH (FORMAT csv, HEADER true, NULL '', ENCODING 'UTF8');

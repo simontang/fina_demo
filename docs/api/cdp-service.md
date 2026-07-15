@@ -478,7 +478,7 @@ Content-Type: application/json
       "fallbackSubSegmentKey": "mv_dormant"
     },
     "exclusions": [
-      {"field": "consent_marketing", "operator": "=", "value": false},
+      {"field": "marketing_consent", "operator": "=", "value": false},
       {"field": "unsubscribe_status", "operator": "=", "value": true}
     ]
   },

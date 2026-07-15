@@ -65,7 +65,7 @@
     },
     "exclusions": [
       {
-        "field": "consent_marketing",
+        "field": "marketing_consent",
         "operator": "=",
         "value": false
       },

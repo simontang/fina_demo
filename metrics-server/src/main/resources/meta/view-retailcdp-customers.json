@@ -137,26 +137,26 @@
       "example": "3b318d93eb8631f24a"
     },
     {
-      "name": "consent_marketing",
-      "label": "Consent Marketing",
+      "name": "marketing_consent",
+      "label": "Marketing Consent",
       "type": "CHAR(1)",
       "example": "Y"
     },
     {
-      "name": "consent_sms",
-      "label": "Consent Sms",
+      "name": "sms_consent",
+      "label": "Sms Consent",
       "type": "CHAR(1)",
       "example": "N"
     },
     {
-      "name": "consent_wechat",
-      "label": "Consent Wechat",
+      "name": "wechat_consent",
+      "label": "Wechat Consent",
       "type": "CHAR(1)",
       "example": "Y"
     },
     {
-      "name": "consent_email",
-      "label": "Consent Email",
+      "name": "email_consent",
+      "label": "Email Consent",
       "type": "CHAR(1)",
       "example": "Y"
     },
