@@ -15,8 +15,8 @@ importers:
         specifier: ^1.6.1
         version: 1.6.1(antd@5.28.1(date-fns@2.30.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@axiom-lattice/react-sdk':
-        specifier: ^2.1.105
-        version: 2.1.105(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(@types/react@19.2.4)(date-fns@2.30.0)(i18next@25.6.3(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(zod@3.25.76)
+        specifier: ^2.1.106
+        version: 2.1.106(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(@types/react@19.2.4)(date-fns@2.30.0)(i18next@25.6.3(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(zod@3.25.76)
       '@refinedev/antd':
         specifier: ^6.0.1
         version: 6.0.3(@refinedev/core@5.0.6(@tanstack/react-query@5.90.8(react@19.2.0))(@types/react-dom@19.2.3(@types/react@19.2.4))(@types/react@19.2.4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@types/react-dom@19.2.3(@types/react@19.2.4))(@types/react@19.2.4)(antd@5.28.1(date-fns@2.30.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(dayjs@1.11.21)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -252,18 +252,18 @@ packages:
   '@antv/util@3.3.11':
     resolution: {integrity: sha512-FII08DFM4ABh2q5rPYdr0hMtKXRgeZazvXaFYCs7J7uTcWDHUhczab2qOCJLNDugoj8jFag1djb7wS9ehaRYBg==}
 
-  '@axiom-lattice/client-sdk@2.1.57':
-    resolution: {integrity: sha512-LgI0NTEeml4rkqLpA0yG8xLm1CJUoMEp4x/uC8e0ngMcui38j/CHdctWFfJduedJyNmP/i16WSyPtGc5L8Fwhg==}
+  '@axiom-lattice/client-sdk@2.1.58':
+    resolution: {integrity: sha512-AFLhBiT6JwvvTYa4GAocjlI8g/9QE542zFJwIuWygQ4QiMcAYMMB2q2l1tgWx+CZyd2AVoCFtKdWzmtpTMxZTA==}
 
-  '@axiom-lattice/protocols@2.1.49':
-    resolution: {integrity: sha512-zzT+e69tbieBHg6cjmac4EAO5vZ/YQIKbqVYOBIF0IfcP+pc7fEqH8dZyqfh+8IrLtimyhMnlun1Z+0Cb2ZMGQ==}
+  '@axiom-lattice/protocols@2.1.50':
+    resolution: {integrity: sha512-X0uiCTz7CttaymrpfnXyzbe0HjcKoal1xZ0wgw93duYw64dDsB3Mj7JWLCjHdQGNhR9nei7ZtwRVpQOdFzdESg==}
     peerDependencies:
       '@langchain/core': 1.1.30
       '@langchain/langgraph': 1.0.4
       zod: 3.25.76
 
-  '@axiom-lattice/react-sdk@2.1.105':
-    resolution: {integrity: sha512-3eKkAr064+2TqojvxLhagD+BsoQlKh2dezYLQuCkNsID7vTD7B4tELXpdQxbQKFYcSoskjHILUbh0OkBTww5KA==}
+  '@axiom-lattice/react-sdk@2.1.106':
+    resolution: {integrity: sha512-uN3a7B1lgL+KQmNGVzz62qJAEt0f/tTFwAGJIX2spvoZHYSr81JmMJojeaoXQy3Ncm+82ESxBcb49HUABgTvOQ==}
     peerDependencies:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
@@ -3223,8 +3223,8 @@ packages:
     resolution: {integrity: sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw==}
     engines: {node: '>=0.10.0'}
 
-  langsmith@0.8.2:
-    resolution: {integrity: sha512-WX85yuL9vHAFIXJ4Nde/2VsjZT5o6FzX617uKDGtcgMojPe+IM6lgiZeVagv/egC79bQS9HPKVD/UPe/6zGFPg==}
+  langsmith@0.8.3:
+    resolution: {integrity: sha512-3y1PRTmY24wiN8NiMb0CcNI2LwgovsKAz+ymVmBSmUx4nXL+GlmPY6Ju7FGeaPV1DMfQs9SjceNZHIfY2XYMKQ==}
     peerDependencies:
       '@opentelemetry/api': '*'
       '@opentelemetry/exporter-trace-otlp-proto': '*'
@@ -5438,30 +5438,30 @@ snapshots:
       gl-matrix: 3.4.4
       tslib: 2.8.1
 
-  '@axiom-lattice/client-sdk@2.1.57(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(zod@3.25.76)':
+  '@axiom-lattice/client-sdk@2.1.58(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(zod@3.25.76)':
     dependencies:
-      '@axiom-lattice/protocols': 2.1.49(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(zod@3.25.76)
+      '@axiom-lattice/protocols': 2.1.50(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(zod@3.25.76)
       best-effort-json-parser: 1.5.1
     transitivePeerDependencies:
       - '@langchain/core'
       - '@langchain/langgraph'
       - zod
 
-  '@axiom-lattice/protocols@2.1.49(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(zod@3.25.76)':
+  '@axiom-lattice/protocols@2.1.50(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(zod@3.25.76)':
     dependencies:
       '@langchain/core': 1.1.30(ws@8.18.3)
       '@langchain/langgraph': 1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76)
       zod: 3.25.76
 
-  '@axiom-lattice/react-sdk@2.1.105(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(@types/react@19.2.4)(date-fns@2.30.0)(i18next@25.6.3(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(zod@3.25.76)':
+  '@axiom-lattice/react-sdk@2.1.106(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(@types/react@19.2.4)(date-fns@2.30.0)(i18next@25.6.3(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(zod@3.25.76)':
     dependencies:
       '@alexbruf/react-diff-viewer': 3.1.5(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@ant-design/icons': 6.3.2(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@ant-design/x': 2.8.0(antd@5.28.1(date-fns@2.30.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@ant-design/x-markdown': 2.8.0(@types/react@19.2.4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@antv/infographic': 0.2.19
-      '@axiom-lattice/client-sdk': 2.1.57(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(zod@3.25.76)
-      '@axiom-lattice/protocols': 2.1.49(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(zod@3.25.76)
+      '@axiom-lattice/client-sdk': 2.1.58(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(zod@3.25.76)
+      '@axiom-lattice/protocols': 2.1.50(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(zod@3.25.76)
       '@types/dagre': 0.7.54
       '@xyflow/react': 12.10.0(@types/react@19.2.4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       antd: 5.28.1(date-fns@2.30.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -6107,7 +6107,7 @@ snapshots:
       camelcase: 6.3.0
       decamelize: 1.2.0
       js-tiktoken: 1.0.21
-      langsmith: 0.8.2(ws@8.18.3)
+      langsmith: 0.8.3(ws@8.18.3)
       mustache: 4.2.0
       p-queue: 6.6.2
       uuid: 11.1.1
@@ -8904,7 +8904,7 @@ snapshots:
 
   kind-of@6.0.3: {}
 
-  langsmith@0.8.2(ws@8.18.3):
+  langsmith@0.8.3(ws@8.18.3):
     dependencies:
       p-queue: 6.6.2
     optionalDependencies:
