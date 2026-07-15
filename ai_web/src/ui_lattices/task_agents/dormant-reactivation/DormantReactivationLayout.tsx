@@ -64,7 +64,6 @@ function buildQuickPrompts(
     label: getExistingArtifactLabel(status),
     description: "Use the latest materialized result from an existing Segment.",
     icon: <FolderOpenOutlined />,
-    disabled: status !== "ready",
     content: [
       {
         type: "text",
