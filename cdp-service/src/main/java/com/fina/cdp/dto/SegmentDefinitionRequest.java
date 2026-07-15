@@ -7,6 +7,8 @@ import lombok.Data;
 @Data
 public class SegmentDefinitionRequest {
 
+    private String threadId;
+
     @NotBlank(message = "name is required")
     private String name;
 

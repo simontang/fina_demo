@@ -45,6 +45,9 @@ CREATE INDEX IF NOT EXISTS idx_segment_definition_datasource
 CREATE INDEX IF NOT EXISTS idx_segment_definition_name
     ON t_segment_definition (tenant_id, name);
 
+ALTER TABLE t_segment_definition
+    ADD COLUMN IF NOT EXISTS thread_id VARCHAR(128);
+
 CREATE TABLE IF NOT EXISTS t_segment_data (
     id            BIGSERIAL       PRIMARY KEY,
     tenant_id     VARCHAR(128)    NOT NULL DEFAULT 'default',

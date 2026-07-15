@@ -43,6 +43,7 @@ public class SegmentDefinitionServiceImpl implements SegmentDefinitionService {
         definition.setDescription(request.getDescription());
         definition.setDatasourceId(request.getDatasourceId());
         definition.setQuerySql(request.getQuerySql());
+        definition.setThreadId(request.getThreadId());
         definition.setStatus(request.getStatus() != null ? request.getStatus() : 1);
         definition.setDeleted(0);
         mapper.insert(definition);
@@ -59,6 +60,7 @@ public class SegmentDefinitionServiceImpl implements SegmentDefinitionService {
         definition.setDescription(request.getDescription());
         definition.setDatasourceId(request.getDatasourceId());
         definition.setQuerySql(request.getQuerySql());
+        definition.setThreadId(request.getThreadId());
         if (request.getStatus() != null) {
             definition.setStatus(request.getStatus());
         }
@@ -90,6 +92,7 @@ public class SegmentDefinitionServiceImpl implements SegmentDefinitionService {
         SegmentDefinitionVO vo = new SegmentDefinitionVO();
         vo.setId(definition.getId());
         vo.setTenantId(definition.getTenantId());
+        vo.setThreadId(definition.getThreadId());
         vo.setName(definition.getName());
         vo.setDescription(definition.getDescription());
         vo.setDatasourceId(definition.getDatasourceId());
