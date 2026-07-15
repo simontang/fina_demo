@@ -1,8 +1,8 @@
 package com.fina.b1s.agent;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -15,12 +15,19 @@ import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class AgentRunClientImpl implements AgentRunClient {
 
     private final HttpClient agentRunHttpClient;
     private final AgentRunProperties properties;
     private final ObjectMapper objectMapper;
+
+    public AgentRunClientImpl(@Qualifier("agentRunHttpClient") HttpClient agentRunHttpClient,
+                              AgentRunProperties properties,
+                              ObjectMapper objectMapper) {
+        this.agentRunHttpClient = agentRunHttpClient;
+        this.properties = properties;
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public AgentRunResult run(AgentInboundRequest request) {

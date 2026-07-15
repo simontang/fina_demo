@@ -5,6 +5,7 @@ import com.fina.b1s.agent.AgentInboundRequest;
 import com.fina.b1s.agent.AgentRunClient;
 import com.fina.b1s.agent.AgentRunProperties;
 import com.fina.b1s.agent.AgentRunResult;
+import com.fina.b1s.entity.MailAttachment;
 import com.fina.b1s.entity.MailMessage;
 import com.fina.b1s.mapper.MailAttachmentMapper;
 import com.fina.b1s.mapper.MailMessageMapper;
@@ -14,6 +15,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.concurrent.Executor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -118,6 +120,56 @@ class MailWorkflowServiceImplTest {
 
         AgentInboundRequest request = captor.getValue();
         assertEquals("Broken Sender <>", request.sender().id());
+    }
+
+    @Test
+    void dispatchIncludesAttachmentMetadataAndTextEvenWhenAgentMessageExists() {
+        MailWorkflowServiceImpl service = new MailWorkflowServiceImpl(
+                mailIntentService,
+                agentRunClient,
+                properties(),
+                mailMessageMapper,
+                mailAttachmentMapper,
+                new ObjectMapper(),
+                sameThreadExecutor()
+        );
+
+        MailMessage mailMessage = new MailMessage();
+        mailMessage.setId(99L);
+        mailMessage.setFromAddress("buyer@example.com");
+        mailMessage.setSubject("purchase order");
+        mailMessage.setBodyText("Please follow up.");
+        mailMessage.setAgentMessage("Short generated agent message.");
+        mailMessage.setAttachmentSummary("po.pdf (123 bytes) [DOCUMENT_SERVICE_EXTRACTED]");
+
+        MailAttachment attachment = new MailAttachment();
+        attachment.setId(1L);
+        attachment.setMailMessageId(99L);
+        attachment.setFileName("po.pdf");
+        attachment.setContentType("application/pdf");
+        attachment.setSizeBytes(123L);
+        attachment.setUploadStatus("UPLOADED");
+        attachment.setTosBucket("evario-demo");
+        attachment.setTosKey("b1s/mail-attachments/99/po.pdf");
+        attachment.setTosUrl("https://evario-demo.tos-s3-cn-shanghai.volces.com/b1s/mail-attachments/99/po.pdf");
+        attachment.setExtractionStatus("DOCUMENT_SERVICE_EXTRACTED");
+        attachment.setExtractedText("PO No. 123456789\nOffice Laptops - Model Z1");
+
+        when(mailAttachmentMapper.selectList(any())).thenReturn(List.of(attachment));
+        when(agentRunClient.run(any())).thenReturn(new AgentRunResult(true, "202", null, "{\"accepted\":true}", null));
+
+        service.dispatch(mailMessage);
+
+        ArgumentCaptor<AgentInboundRequest> captor = ArgumentCaptor.forClass(AgentInboundRequest.class);
+        verify(agentRunClient).run(captor.capture());
+
+        String text = captor.getValue().content().text();
+        assertTrue(text.contains("Agent Message:\nShort generated agent message."));
+        assertTrue(text.contains("Attachment Summary:\npo.pdf (123 bytes) [DOCUMENT_SERVICE_EXTRACTED]"));
+        assertTrue(text.contains("TOS URL: https://evario-demo.tos-s3-cn-shanghai.volces.com/b1s/mail-attachments/99/po.pdf"));
+        assertTrue(text.contains("Extraction Status: DOCUMENT_SERVICE_EXTRACTED"));
+        assertTrue(text.contains("Extracted Text:\nPO No. 123456789"));
+        assertTrue(text.contains("Office Laptops - Model Z1"));
     }
 
     private AgentRunProperties properties() {

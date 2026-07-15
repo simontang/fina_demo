@@ -26,7 +26,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-mail")
-    implementation("org.apache.pdfbox:pdfbox:2.0.31")
 
     implementation("com.baomidou:mybatis-plus-spring-boot3-starter:$mybatisPlusVersion")
 

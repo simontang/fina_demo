@@ -1,19 +1,27 @@
 package com.fina.b1s.mail;
 
+import com.fina.b1s.document.DocumentParseClient;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Set;
 
 @Slf4j
 @Service
 public class MailAttachmentTextExtractorImpl implements MailAttachmentTextExtractor {
 
     private static final int TEXT_LIMIT = 40000;
+    private static final Set<String> DOCUMENT_SERVICE_EXTENSIONS = Set.of(
+            ".pdf", ".png", ".jpg", ".jpeg", ".webp", ".tif", ".tiff", ".doc", ".docx"
+    );
+
+    private final DocumentParseClient documentParseClient;
+
+    public MailAttachmentTextExtractorImpl(DocumentParseClient documentParseClient) {
+        this.documentParseClient = documentParseClient;
+    }
 
     @Override
     public ExtractionResult extract(String fileName, String contentType, byte[] bytes) {
@@ -21,11 +29,13 @@ public class MailAttachmentTextExtractorImpl implements MailAttachmentTextExtrac
             return new ExtractionResult(null, "EMPTY", null);
         }
         try {
-            if (isPdf(fileName, contentType, bytes)) {
-                return new ExtractionResult(trim(extractPdf(bytes)), "EXTRACTED", null);
-            }
             if (isText(contentType, fileName)) {
                 return new ExtractionResult(trim(new String(bytes, StandardCharsets.UTF_8)), "EXTRACTED", null);
+            }
+            if (shouldUseDocumentService(fileName, contentType, bytes)) {
+                DocumentParseClient.ParseResult result = documentParseClient.parse(fileName, contentType, bytes);
+                String status = "DOCUMENT_SERVICE_" + firstNonBlank(result.status(), "FAILED");
+                return new ExtractionResult(trim(result.markdown()), status, result.errorMessage());
             }
             return new ExtractionResult(null, "UNSUPPORTED", null);
         } catch (Exception e) {
@@ -34,19 +44,23 @@ public class MailAttachmentTextExtractorImpl implements MailAttachmentTextExtrac
         }
     }
 
-    private String extractPdf(byte[] bytes) throws Exception {
-        try (PDDocument document = PDDocument.load(new ByteArrayInputStream(bytes))) {
-            PDFTextStripper stripper = new PDFTextStripper();
-            return stripper.getText(document);
-        }
-    }
-
-    private boolean isPdf(String fileName, String contentType, byte[] bytes) {
+    private boolean shouldUseDocumentService(String fileName, String contentType, byte[] bytes) {
         if (StringUtils.hasText(contentType) && contentType.toLowerCase().contains("pdf")) {
+            return true;
+        }
+        if (StringUtils.hasText(contentType) && contentType.toLowerCase().startsWith("image/")) {
             return true;
         }
         if (StringUtils.hasText(fileName) && fileName.toLowerCase().endsWith(".pdf")) {
             return true;
+        }
+        if (StringUtils.hasText(fileName)) {
+            String lower = fileName.toLowerCase();
+            for (String extension : DOCUMENT_SERVICE_EXTENSIONS) {
+                if (lower.endsWith(extension)) {
+                    return true;
+                }
+            }
         }
         return bytes.length >= 4
                 && bytes[0] == '%'
@@ -75,5 +89,9 @@ public class MailAttachmentTextExtractorImpl implements MailAttachmentTextExtrac
             return normalized;
         }
         return normalized.substring(0, TEXT_LIMIT);
+    }
+
+    private String firstNonBlank(String first, String fallback) {
+        return StringUtils.hasText(first) ? first : fallback;
     }
 }

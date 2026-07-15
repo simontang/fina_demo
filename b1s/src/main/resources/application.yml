@@ -82,6 +82,17 @@ tos:
   bucket: ${TOS_BUCKET:${S3_BUCKET:}}
   key-prefix: ${TOS_KEY_PREFIX:${S3_KEY_PREFIX:b1s/mail-attachments}}
 
+document-service:
+  enabled: ${DOCUMENT_SERVICE_ENABLED:false}
+  base-url: ${DOCUMENT_SERVICE_BASE_URL:https://ada.alphafina.cn/api/documents}
+  engine: ${DOCUMENT_SERVICE_ENGINE:auto}
+  mode: ${DOCUMENT_SERVICE_MODE:accurate}
+  language-hints: ${DOCUMENT_SERVICE_LANGUAGE_HINTS:en}
+  connect-timeout-ms: ${DOCUMENT_SERVICE_CONNECT_TIMEOUT_MS:15000}
+  read-timeout-ms: ${DOCUMENT_SERVICE_READ_TIMEOUT_MS:600000}
+  poll-interval-ms: ${DOCUMENT_SERVICE_POLL_INTERVAL_MS:3000}
+  max-wait-ms: ${DOCUMENT_SERVICE_MAX_WAIT_MS:180000}
+
 llm:
   intent:
     enabled: ${LLM_INTENT_ENABLED:false}
