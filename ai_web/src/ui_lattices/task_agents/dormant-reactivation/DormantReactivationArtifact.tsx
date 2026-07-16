@@ -1,4 +1,4 @@
-import { Card, Spin, Table, Tag, Typography } from "antd";
+import { Alert, Card, Spin, Table, Tag, Typography } from "antd";
 import type { TableColumnsType } from "antd";
 import { RocketOutlined } from "@ant-design/icons";
 import type { ElementProps } from "@axiom-lattice/react-sdk";
@@ -11,11 +11,17 @@ const { Text } = Typography;
 
 const columns: TableColumnsType<MarketingCampaignVO> = [
   {
-    title: "Name",
+    title: "Campaign",
     dataIndex: "name",
     key: "name",
+    width: 220,
     ellipsis: true,
-    render: (name: string) => <Text strong style={{ fontSize: 13 }}>{name}</Text>,
+    render: (name: string, campaign) => (
+      <div style={{ minWidth: 0 }}>
+        <Text strong ellipsis style={{ display: "block", fontSize: 13 }}>{name}</Text>
+        <Text type="secondary" style={{ fontSize: 11 }}>#{campaign.id} / {campaign.type}</Text>
+      </div>
+    ),
   },
   {
     title: "Status",
@@ -27,20 +33,23 @@ const columns: TableColumnsType<MarketingCampaignVO> = [
       return <Tag color={config.color}>{config.label}</Tag>;
     },
   },
-  { title: "Type", dataIndex: "type", key: "type", width: 110, render: (type: string) => <Tag>{type}</Tag> },
   {
-    title: "Start",
-    dataIndex: "startTime",
-    key: "startTime",
-    width: 130,
-    render: (date: string) => <Text type="secondary" style={{ fontSize: 12 }}>{date?.slice(0, 10)}</Text>,
+    title: "Main Segment",
+    dataIndex: "mainSegmentDataId",
+    key: "mainSegmentDataId",
+    width: 115,
+    render: (id: number | null) => id == null ? <Text type="secondary">-</Text> : <Text code>#{id}</Text>,
   },
   {
-    title: "End",
-    dataIndex: "endTime",
-    key: "endTime",
-    width: 130,
-    render: (date: string) => <Text type="secondary" style={{ fontSize: 12 }}>{date?.slice(0, 10)}</Text>,
+    title: "Schedule",
+    key: "schedule",
+    width: 205,
+    render: (_, campaign) => (
+      <div>
+        <Text type="secondary" style={{ display: "block", fontSize: 11 }}>{campaign.startTime}</Text>
+        <Text type="secondary" style={{ display: "block", fontSize: 11 }}>{campaign.endTime}</Text>
+      </div>
+    ),
   },
 ];
 
@@ -81,7 +90,7 @@ export const DormantReactivationArtifactPanel: React.FC<ElementProps> = ({ data 
 
   return (
     <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16, height: "100%", overflow: "auto" }}>
-      <Card size="small" title={<Text strong>Reactivation Campaigns</Text>} style={{ borderRadius: 12 }} styles={{ body: { padding: 0 } }}>
+      <Card size="small" title={<Text strong>Reactivation Campaigns</Text>} style={{ borderRadius: 8 }} styles={{ body: { padding: 0 } }}>
         {workbench.loading ? (
           <div style={{ padding: 24, textAlign: "center" }}><Spin /></div>
         ) : workbench.error ? (
@@ -93,8 +102,17 @@ export const DormantReactivationArtifactPanel: React.FC<ElementProps> = ({ data 
             size="small"
             pagination={false}
             rowKey="id"
+            scroll={{ x: 640 }}
             onRow={(record) => ({
-              onClick: () => workbench.selectCampaign(record.id),
+              onClick: () => workbench.selectCampaign(record),
+              onKeyDown: (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  workbench.selectCampaign(record);
+                }
+              },
+              tabIndex: 0,
+              "aria-selected": record.id === workbench.selectedId,
               style: {
                 cursor: "pointer",
                 background: record.id === workbench.selectedId ? "#f0f0ff" : undefined,
@@ -104,7 +122,11 @@ export const DormantReactivationArtifactPanel: React.FC<ElementProps> = ({ data 
         )}
       </Card>
 
-      {workbench.selectedCampaign ? (
+      {workbench.detailLoading ? (
+        <div style={{ minHeight: 180, display: "grid", placeItems: "center" }}><Spin tip="Loading campaign detail..." /></div>
+      ) : workbench.detailError ? (
+        <Alert type="error" showIcon message="Campaign detail unavailable" description={workbench.detailError} />
+      ) : workbench.selectedCampaign ? (
         <CampaignDetail
           campaign={workbench.selectedCampaign}
           actionLoading={workbench.actionLoading}

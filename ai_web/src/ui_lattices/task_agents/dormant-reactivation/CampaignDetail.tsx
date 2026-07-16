@@ -1,6 +1,12 @@
+import { useMemo } from "react";
 import { Button, Card, Popconfirm, Tabs, Typography } from "antd";
 import { PauseCircleOutlined, PlayCircleOutlined, WarningOutlined } from "@ant-design/icons";
-import { CampaignOverviewTab, CampaignStatisticsTab, CampaignStrategyTab } from "./CampaignDetailTabs";
+import { buildCampaignPresentation } from "./campaignPresentation";
+import {
+  CampaignOverviewTab,
+  CampaignStatisticsTab,
+  CampaignStrategyTab,
+} from "./CampaignDetailTabs";
 import type { MarketingCampaignVO } from "./types";
 
 const { Text } = Typography;
@@ -13,13 +19,21 @@ interface CampaignDetailProps {
   onDelete: () => Promise<void>;
 }
 
-export function CampaignDetail({ campaign, actionLoading, onStart, onStop, onDelete }: CampaignDetailProps) {
+export function CampaignDetail({
+  campaign,
+  actionLoading,
+  onStart,
+  onStop,
+  onDelete,
+}: CampaignDetailProps) {
+  const presentation = useMemo(() => buildCampaignPresentation(campaign), [campaign]);
+
   return (
     <Card
       size="small"
-      title={<Text strong>{campaign.name}</Text>}
+      title={<Text strong ellipsis={{ tooltip: campaign.name }}>{campaign.name}</Text>}
       extra={
-        <div style={{ display: "flex", gap: 4 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: 4 }}>
           {campaign.status === "draft" || campaign.status === "scheduled" ? (
             <Button
               type="primary"
@@ -46,19 +60,33 @@ export function CampaignDetail({ campaign, actionLoading, onStart, onStop, onDel
           </Popconfirm>
         </div>
       }
-      style={{ borderRadius: 12, flex: 1 }}
+      style={{ borderRadius: 8, flex: 1 }}
+      styles={{
+        header: { alignItems: "flex-start" },
+        body: { minWidth: 0, overflowX: "hidden" },
+      }}
     >
       <Tabs
         defaultActiveKey="overview"
         size="small"
+        tabBarGutter={18}
+        destroyInactiveTabPane
         items={[
           {
             key: "overview",
             label: "Overview",
             children: <CampaignOverviewTab campaign={campaign} />,
           },
-          { key: "strategy", label: "Strategy", children: <CampaignStrategyTab campaign={campaign} /> },
-          { key: "statistics", label: "Statistics", children: <CampaignStatisticsTab campaign={campaign} /> },
+          {
+            key: "strategy",
+            label: "Strategy",
+            children: <CampaignStrategyTab campaign={campaign} presentation={presentation} />,
+          },
+          {
+            key: "statistics",
+            label: "Statistics",
+            children: <CampaignStatisticsTab presentation={presentation} />,
+          },
         ]}
       />
     </Card>

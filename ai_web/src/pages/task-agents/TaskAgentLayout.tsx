@@ -89,7 +89,7 @@ const TaskAgentInner: React.FC<TaskAgentLayoutProps> = ({ assistantId, tabs }) =
         />
       </div>
 
-      {activeKey !== null && (
+      {activeKey !== null && tabs.some((tab) => tab.key === activeKey) && (
         <Panel
           activeTab={tabs.find((t) => t.key === activeKey)!}
           onClose={() => setActiveKey(null)}
