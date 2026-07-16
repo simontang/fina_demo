@@ -3,6 +3,8 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { createPgStoreConfig } from "@axiom-lattice/pg-stores";
+import { AlibabaTongyiEmbeddings } from "@langchain/community/embeddings/alibaba_tongyi"
+
 import {
   ScheduleType,
 } from "@axiom-lattice/protocols";
@@ -27,6 +29,7 @@ import {
   configureStores,
   sandboxLatticeManager,
   createSandboxProvider,
+  registerEmbeddingsLattice,
 } from "@axiom-lattice/core";
 
 import "./agents";
@@ -327,6 +330,12 @@ async function initializePgStores(): Promise<void> {
 
   console.log("\n✓ All PostgreSQL stores initialized\n");
 }
+
+registerEmbeddingsLattice("default", new AlibabaTongyiEmbeddings({
+  modelName: "text-embedding-v4",
+  apiKey: process.env.ALIBABA_API_KEY,
+}), "Tongyi text-embedding-v4");
+
 async function main() {
 await initializePgStores();
 
