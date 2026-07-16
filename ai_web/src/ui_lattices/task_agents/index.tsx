@@ -1,8 +1,12 @@
 import { FolderOpenFilled } from "@ant-design/icons";
 import { regsiterElement } from "@axiom-lattice/react-sdk";
-import { TaskAgentLayout } from "../../pages/task-agents/TaskAgentLayout";
 import type { TaskAgentTab } from "../../pages/task-agents/TaskAgentLayout";
-import { SegmentArtifactCard, SegmentArtifactPanel } from "./segment/SegmentArtifact";
+import { TaskAgentLayout } from "../../pages/task-agents/TaskAgentLayout";
+import {
+  DormantReactivationArtifactCard,
+  DormantReactivationArtifactPanel,
+} from "./dormant-reactivation/DormantReactivationArtifact";
+import { DormantReactivationLayout } from "./dormant-reactivation/DormantReactivationLayout";
 import {
   ChurnDashboardCard,
   ChurnDashboardPanel,
@@ -15,11 +19,7 @@ import {
   NBAListCard,
   NBAListPanel,
 } from "./insights/ProductNbaViews";
-import {
-  DormantReactivationArtifactCard,
-  DormantReactivationArtifactPanel,
-} from "./dormant-reactivation/DormantReactivationArtifact";
-import { DormantReactivationLayout } from "./dormant-reactivation/DormantReactivationLayout";
+import { SegmentArtifactCard, SegmentArtifactPanel } from "./segment/SegmentArtifact";
 
 regsiterElement("segment_artifact_workbench", {
   card_view: SegmentArtifactCard,
@@ -79,6 +79,6 @@ const dormantReactivationTabs: TaskAgentTab[] = [
 regsiterElement("task_agent_dormant_reactivation", {
   card_view: () => null,
   side_app_view: () => (
-    <DormantReactivationLayout assistantId="dormant-reactivation-orch" tabs={dormantReactivationTabs} />
+    <DormantReactivationLayout assistantId="dormant-reactivation" tabs={dormantReactivationTabs} />
   ),
 });
