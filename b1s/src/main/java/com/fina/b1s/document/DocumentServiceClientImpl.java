@@ -88,7 +88,7 @@ public class DocumentServiceClientImpl implements DocumentParseClient {
     private String createRun(String assetId) throws Exception {
         Map<String, Object> payload = Map.of(
                 "operation", "document.parse",
-                "engine", firstNonBlank(properties.engine(), "auto"),
+                "engine", firstNonBlank(properties.engine(), "datalab"),
                 "inputs", Map.of("source_asset_id", assetId),
                 "params", Map.of(
                         "output_formats", List.of("markdown", "json"),

@@ -85,7 +85,7 @@ tos:
 document-service:
   enabled: ${DOCUMENT_SERVICE_ENABLED:false}
   base-url: ${DOCUMENT_SERVICE_BASE_URL:https://ada.alphafina.cn/api/documents}
-  engine: ${DOCUMENT_SERVICE_ENGINE:auto}
+  engine: ${DOCUMENT_SERVICE_ENGINE:datalab}
   mode: ${DOCUMENT_SERVICE_MODE:accurate}
   language-hints: ${DOCUMENT_SERVICE_LANGUAGE_HINTS:en}
   connect-timeout-ms: ${DOCUMENT_SERVICE_CONNECT_TIMEOUT_MS:15000}

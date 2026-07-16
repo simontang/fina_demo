@@ -31,7 +31,7 @@ class DocumentServiceClientImplIntegrationTest {
                 new DocumentServiceProperties(
                         true,
                         System.getenv().getOrDefault("DOCUMENT_SERVICE_BASE_URL", "https://ada.alphafina.cn/api/documents"),
-                        "auto",
+                        "datalab",
                         "accurate",
                         "en",
                         15_000,

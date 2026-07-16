@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.concurrent.Executor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -77,9 +78,8 @@ class MailWorkflowServiceImplTest {
         assertEquals("tenant_2", request.tenantId());
         assertEquals("sender@example.com", request.sender().id());
         assertTrue(request.content().text().contains("Mail From:\nSender Name <sender@example.com>"));
-        assertTrue(request.content().text().contains("Mail To:\nbuyer@example.com;ops@example.com"));
         assertTrue(request.content().text().contains("Mail Subject:\nPO-20260603"));
-        assertTrue(request.content().text().contains("Mail Body:\nPlease create the order."));
+        assertFalse(request.content().text().contains("Mail Body:\nPlease create the order."));
 
         MailMessage updated = updateCaptor.getValue();
         assertEquals("DISPATCHED", updated.getWorkflowStatus());
@@ -91,6 +91,7 @@ class MailWorkflowServiceImplTest {
         assertTrue(updated.getWorkflowRequest().contains("\"tenantId\":\"tenant_2\""));
         assertTrue(updated.getWorkflowRequest().contains("\"sender\":{\"id\":\"sender@example.com\"}"));
         assertTrue(updated.getWorkflowRequest().contains("\"content\":{\"text\":\"Mail From:\\nSender Name <sender@example.com>"));
+        assertFalse(updated.getWorkflowRequest().contains("Please create the order."));
     }
 
     @Test
@@ -123,7 +124,7 @@ class MailWorkflowServiceImplTest {
     }
 
     @Test
-    void dispatchIncludesAttachmentMetadataAndTextEvenWhenAgentMessageExists() {
+    void dispatchIncludesAttachmentMarkdownWithoutDerivedSummaryOrStorageMetadata() {
         MailWorkflowServiceImpl service = new MailWorkflowServiceImpl(
                 mailIntentService,
                 agentRunClient,
@@ -140,6 +141,7 @@ class MailWorkflowServiceImplTest {
         mailMessage.setSubject("purchase order");
         mailMessage.setBodyText("Please follow up.");
         mailMessage.setAgentMessage("Short generated agent message.");
+        mailMessage.setPurchaseOrderSummary("Generated PO summary.");
         mailMessage.setAttachmentSummary("po.pdf (123 bytes) [DOCUMENT_SERVICE_EXTRACTED]");
 
         MailAttachment attachment = new MailAttachment();
@@ -164,11 +166,20 @@ class MailWorkflowServiceImplTest {
         verify(agentRunClient).run(captor.capture());
 
         String text = captor.getValue().content().text();
-        assertTrue(text.contains("Agent Message:\nShort generated agent message."));
-        assertTrue(text.contains("Attachment Summary:\npo.pdf (123 bytes) [DOCUMENT_SERVICE_EXTRACTED]"));
-        assertTrue(text.contains("TOS URL: https://evario-demo.tos-s3-cn-shanghai.volces.com/b1s/mail-attachments/99/po.pdf"));
-        assertTrue(text.contains("Extraction Status: DOCUMENT_SERVICE_EXTRACTED"));
-        assertTrue(text.contains("Extracted Text:\nPO No. 123456789"));
+        assertFalse(text.contains("Agent Message:"));
+        assertFalse(text.contains("Short generated agent message."));
+        assertFalse(text.contains("Purchase Order Summary:"));
+        assertFalse(text.contains("Generated PO summary."));
+        assertFalse(text.contains("Attachment Summary:"));
+        assertFalse(text.contains("po.pdf (123 bytes) [DOCUMENT_SERVICE_EXTRACTED]"));
+        assertFalse(text.contains("Attachment:\npo.pdf"));
+        assertFalse(text.contains("TOS URL:"));
+        assertFalse(text.contains("TOS Bucket:"));
+        assertFalse(text.contains("TOS Key:"));
+        assertFalse(text.contains("Upload Status:"));
+        assertFalse(text.contains("Extraction Status:"));
+        assertTrue(text.contains("Attachment Markdown:\nAttachment: po.pdf"));
+        assertTrue(text.contains("PO No. 123456789"));
         assertTrue(text.contains("Office Laptops - Model Z1"));
     }
 

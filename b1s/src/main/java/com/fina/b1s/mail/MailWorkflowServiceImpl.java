@@ -148,13 +148,8 @@ public class MailWorkflowServiceImpl implements MailWorkflowService {
     private String buildAgentMessage(MailMessage mailMessage) {
         StringBuilder sb = new StringBuilder();
         appendSection(sb, "Mail From", mailMessage.getFromAddress());
-        appendSection(sb, "Mail To", mailMessage.getToAddresses());
         appendSection(sb, "Mail Subject", mailMessage.getSubject());
-        appendSection(sb, "Mail Body", mailMessage.getBodyText());
-        appendSection(sb, "Agent Message", mailMessage.getAgentMessage());
-        appendSection(sb, "Purchase Order Summary", mailMessage.getPurchaseOrderSummary());
-        appendSection(sb, "Attachment Summary", mailMessage.getAttachmentSummary());
-        appendSection(sb, "Attachment Details", loadAttachmentDetails(mailMessage));
+        appendSection(sb, "Attachment Markdown", loadAttachmentMarkdown(mailMessage));
         String result = sb.toString().trim();
         return StringUtils.hasText(result) ? result : null;
     }
@@ -175,7 +170,7 @@ public class MailWorkflowServiceImpl implements MailWorkflowService {
         return fromAddress.trim();
     }
 
-    private String loadAttachmentDetails(MailMessage mailMessage) {
+    private String loadAttachmentMarkdown(MailMessage mailMessage) {
         Long mailMessageId = mailMessage.getId();
         if (mailMessageId == null) {
             return mailMessage.getAttachmentText();
@@ -188,30 +183,27 @@ public class MailWorkflowServiceImpl implements MailWorkflowService {
         StringBuilder sb = new StringBuilder();
         if (attachments != null) {
             for (MailAttachment attachment : attachments) {
-                appendAttachment(sb, attachment);
+                appendAttachmentText(sb, attachment);
             }
         }
         if (sb.isEmpty() && StringUtils.hasText(mailMessage.getAttachmentText())) {
-            appendSection(sb, "Attachment Extracted Text", mailMessage.getAttachmentText());
+            sb.append(mailMessage.getAttachmentText().trim());
         }
         String result = sb.toString().trim();
         return StringUtils.hasText(result) ? result : null;
     }
 
-    private void appendAttachment(StringBuilder sb, MailAttachment attachment) {
-        StringBuilder detail = new StringBuilder();
-        appendLine(detail, "File Name", attachment.getFileName());
-        appendLine(detail, "Content Type", attachment.getContentType());
-        appendLine(detail, "Size Bytes", attachment.getSizeBytes() == null ? null : String.valueOf(attachment.getSizeBytes()));
-        appendLine(detail, "Upload Status", attachment.getUploadStatus());
-        appendLine(detail, "TOS Bucket", attachment.getTosBucket());
-        appendLine(detail, "TOS Key", attachment.getTosKey());
-        appendLine(detail, "TOS URL", attachment.getTosUrl());
-        appendLine(detail, "Extraction Status", attachment.getExtractionStatus());
-        appendLine(detail, "Extraction Error", attachment.getExtractionError());
-        appendLine(detail, "Upload Error", attachment.getErrorMessage());
-        appendSection(detail, "Extracted Text", attachment.getExtractedText());
-        appendSection(sb, "Attachment " + firstNonBlank(attachment.getFileName(), String.valueOf(attachment.getId())), detail.toString());
+    private void appendAttachmentText(StringBuilder sb, MailAttachment attachment) {
+        if (!StringUtils.hasText(attachment.getExtractedText())) {
+            return;
+        }
+        if (!sb.isEmpty()) {
+            sb.append("\n\n");
+        }
+        sb.append("Attachment: ")
+                .append(firstNonBlank(attachment.getFileName(), String.valueOf(attachment.getId())))
+                .append("\n\n")
+                .append(attachment.getExtractedText().trim());
     }
 
     private void appendSection(StringBuilder sb, String title, String value) {
@@ -222,16 +214,6 @@ public class MailWorkflowServiceImpl implements MailWorkflowService {
             sb.append("\n\n");
         }
         sb.append(title).append(":\n").append(value.trim());
-    }
-
-    private void appendLine(StringBuilder sb, String label, String value) {
-        if (!StringUtils.hasText(value)) {
-            return;
-        }
-        if (!sb.isEmpty()) {
-            sb.append("\n");
-        }
-        sb.append(label).append(": ").append(value.trim());
     }
 
     private String firstNonBlank(String first, String fallback) {

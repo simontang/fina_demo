@@ -30,12 +30,12 @@ public class MailAttachmentTextExtractorImpl implements MailAttachmentTextExtrac
         }
         try {
             if (isText(contentType, fileName)) {
-                return new ExtractionResult(trim(new String(bytes, StandardCharsets.UTF_8)), "EXTRACTED", null);
+                return new ExtractionResult(trimPlainText(new String(bytes, StandardCharsets.UTF_8)), "EXTRACTED", null);
             }
             if (shouldUseDocumentService(fileName, contentType, bytes)) {
                 DocumentParseClient.ParseResult result = documentParseClient.parse(fileName, contentType, bytes);
                 String status = "DOCUMENT_SERVICE_" + firstNonBlank(result.status(), "FAILED");
-                return new ExtractionResult(trim(result.markdown()), status, result.errorMessage());
+                return new ExtractionResult(trimMarkdown(result.markdown()), status, result.errorMessage());
             }
             return new ExtractionResult(null, "UNSUPPORTED", null);
         } catch (Exception e) {
@@ -77,13 +77,27 @@ public class MailAttachmentTextExtractorImpl implements MailAttachmentTextExtrac
                 && (fileName.toLowerCase().endsWith(".txt") || fileName.toLowerCase().endsWith(".csv"));
     }
 
-    private String trim(String value) {
+    private String trimPlainText(String value) {
         if (!StringUtils.hasText(value)) {
             return null;
         }
         String normalized = value.replace('\u00a0', ' ')
                 .replaceAll("[ \\t\\x0B\\f\\r]+", " ")
                 .replaceAll("\\n{3,}", "\n\n")
+                .trim();
+        if (normalized.length() <= TEXT_LIMIT) {
+            return normalized;
+        }
+        return normalized.substring(0, TEXT_LIMIT);
+    }
+
+    private String trimMarkdown(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        String normalized = value.replace('\u00a0', ' ')
+                .replace("\r\n", "\n")
+                .replace('\r', '\n')
                 .trim();
         if (normalized.length() <= TEXT_LIMIT) {
             return normalized;
