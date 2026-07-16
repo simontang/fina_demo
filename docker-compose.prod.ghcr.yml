@@ -68,6 +68,7 @@ services:
       VOLCENGINE_MODEL: ${VOLCENGINE_MODEL:-kimi-k2-250905}
       API_KEY3: ${API_KEY3:-sk-l965HUcG2en0awTue114GfWeTGJBggRReESgeeWND3rHfpvQ}
       # LLM_BASE_URL: ${LLM_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      ALIBABA_API_KEY: ${ALIBABA_API_KEY:-sk-fc1771ebd6d146b58b7a23cc6c85a257}
       OPEN_API: ${OPEN_API:-sk-t9V3yMUWsMJt6yVLCyPHDJ8FhXiUliiUYIzZxZCmTMEsToU7}
 
       VOLCENGINE_APP_ID: ${VOLCENGINE_APP_ID:-691afa7690b35401752447aa}
