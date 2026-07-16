@@ -1,4 +1,6 @@
 import { registerToolLattice } from "@axiom-lattice/core";
+import fs from "node:fs";
+import path from "node:path";
 import "../marketingCampaignCrud";
 
 jest.mock("@axiom-lattice/core", () => ({
@@ -107,5 +109,44 @@ describe("marketingCampaignCrud tenant routing", () => {
     const [url, requestInit] = (global.fetch as jest.Mock).mock.calls[0];
     expect(url).toBe(`http://127.0.0.1:5706${path}`);
     expect(requestInit.method).toBe("POST");
+  });
+
+  it("accepts the documented reactivation v1 strategy", () => {
+    const registration = registerToolLatticeMock.mock.calls.find(
+      ([key]) => key === "marketing_campaign_create",
+    );
+    const schema = registration[1].schema as { parse: (input: unknown) => unknown };
+    const fixture = JSON.parse(fs.readFileSync(
+      path.resolve(process.cwd(), "../docs/api/marketing-campaign-reactivation-example.json"),
+      "utf8",
+    ));
+
+    expect(() => schema.parse(fixture)).not.toThrow();
+  });
+
+  it("rejects conflicting main and source segment data ids", () => {
+    const registration = registerToolLatticeMock.mock.calls.find(
+      ([key]) => key === "marketing_campaign_create",
+    );
+    const schema = registration[1].schema as { parse: (input: unknown) => unknown };
+
+    expect(() => schema.parse({
+      ...campaignInput,
+      mainSegmentDataId: 10,
+      segmentationStrategy: { source: { segmentDataId: 11 } },
+    })).toThrow("must match mainSegmentDataId");
+  });
+
+  it("keeps legacy object and array strategies compatible", () => {
+    const registration = registerToolLatticeMock.mock.calls.find(
+      ([key]) => key === "marketing_campaign_create",
+    );
+    const schema = registration[1].schema as { parse: (input: unknown) => unknown };
+
+    expect(() => schema.parse({
+      ...campaignInput,
+      segmentationStrategy: [{ legacy: true }],
+      offerStrategy: { customPolicy: "legacy" },
+    })).not.toThrow();
   });
 });

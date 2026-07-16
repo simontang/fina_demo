@@ -144,6 +144,31 @@ registerToolLattice(
 );
 
 // ============================================================
+// segment_data_get
+// ============================================================
+
+registerToolLattice(
+  "segment_data_get",
+  {
+    name: "segment_data_get",
+    description:
+      "按 segment_data ID 查询单个已物化分群快照。用于校验用户指定的 Artifact 是否仍存在，" +
+      "并获取 definitionId、runId、rowCount 和创建时间；不要用最新分页结果替代指定快照。",
+    schema: z.object({
+      id: z.number().describe("segment_data 快照 ID"),
+    }),
+  },
+  async (input, exeConfig) => {
+    const result = await cdpFetch(
+      `/api/v1/segment-data/${input.id}`,
+      undefined,
+      getTenantIdFromExecutionConfig(exeConfig),
+    );
+    return JSON.stringify(result);
+  }
+);
+
+// ============================================================
 // segment_data_list
 // ============================================================
 

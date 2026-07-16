@@ -17,6 +17,7 @@ const inputByTool: Record<string, Record<string, unknown>> = {
   segment_definition_update: { id: 1 },
   segment_definition_delete: { id: 1 },
   segment_definition_process: { id: 1 },
+  segment_data_get: { id: 42 },
   segment_data_list: { page: 1, pageSize: 20 },
 };
 
@@ -56,6 +57,24 @@ describe("segmentCrud tenant routing", () => {
   it("falls back to the configured default tenant when runConfig is absent", () => {
     expect(getTenantIdFromExecutionConfig()).toBe(
       process.env.TENANT_ID || "default",
+    );
+  });
+
+  it("gets the exact segment data snapshot by id", async () => {
+    const registration = registerToolLatticeMock.mock.calls.find(
+      ([key]) => key === "segment_data_get",
+    );
+    const executor = registration[2] as (
+      input: Record<string, unknown>,
+      config: unknown,
+    ) => Promise<string>;
+
+    await executor({ id: 42 }, {
+      configurable: { runConfig: { tenantId: "retail_cdp" } },
+    });
+
+    expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
+      "http://127.0.0.1:5706/api/v1/segment-data/42",
     );
   });
 });
