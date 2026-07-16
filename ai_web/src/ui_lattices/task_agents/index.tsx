@@ -1,8 +1,7 @@
-import { FolderOpenFilled, MonitorOutlined } from "@ant-design/icons";
+import { FolderOpenFilled } from "@ant-design/icons";
 import { regsiterElement } from "@axiom-lattice/react-sdk";
 import { TaskAgentLayout } from "../../pages/task-agents/TaskAgentLayout";
 import type { TaskAgentTab } from "../../pages/task-agents/TaskAgentLayout";
-import { TaskAgentRuntimeCard, TaskAgentRuntimePanel } from "./runtime/TaskAgentRuntime";
 import { SegmentArtifactCard, SegmentArtifactPanel } from "./segment/SegmentArtifact";
 import {
   ChurnDashboardCard,
@@ -21,11 +20,6 @@ import {
   DormantReactivationArtifactPanel,
 } from "./dormant-reactivation/DormantReactivationArtifact";
 import { DormantReactivationLayout } from "./dormant-reactivation/DormantReactivationLayout";
-
-regsiterElement("task_agent_runtime", {
-  card_view: TaskAgentRuntimeCard,
-  side_app_view: TaskAgentRuntimePanel,
-});
 
 regsiterElement("segment_artifact_workbench", {
   card_view: SegmentArtifactCard,
@@ -74,12 +68,6 @@ regsiterElement("task_agent_segment", {
 });
 
 const dormantReactivationTabs: TaskAgentTab[] = [
-  {
-    key: "runtime",
-    label: "Runtime",
-    icon: <MonitorOutlined />,
-    componentKey: "task_agent_runtime",
-  },
   {
     key: "artifact",
     label: "Artifact",

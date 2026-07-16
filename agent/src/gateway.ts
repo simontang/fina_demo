@@ -13,7 +13,6 @@ import { registerDatasetRoutes } from "./routes/datasets";
 import { registerPythonProxyRoutes } from "./routes/pythonProxy";
 import { registerCdpProxyRoutes } from "./routes/cdpProxy";
 import { registerRtcRoutes } from "./routes/rtc";
-import { registerTaskAgentRoutes } from "./routes/taskAgents";
 
 const { app, startAsHttpEndpoint, configureSwagger } = LatticeGateway;
 
@@ -69,9 +68,6 @@ export const registerRoutes = (app: FastifyInstance): void => {
 
   // RTC / Voice Chat APIs (frontend calls /api/rtc/* via this agent).
   registerRtcRoutes(app);
-
-  // Task Agent Runtime APIs
-  registerTaskAgentRoutes(app);
 
   // LatticeGateway routes are registered automatically by startAsHttpEndpoint
 
