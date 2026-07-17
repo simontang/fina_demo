@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -186,7 +187,7 @@ public class DocumentServiceClientImpl implements DocumentParseClient {
 
     private byte[] multipartBody(String boundary, String fileName, String contentType, byte[] bytes) throws IOException {
         String safeFileName = StringUtils.hasText(fileName) ? fileName : "attachment.bin";
-        String safeContentType = StringUtils.hasText(contentType) ? contentType : "application/octet-stream";
+        String safeContentType = normalizeContentType(contentType, safeFileName);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         out.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
         out.write(("Content-Disposition: form-data; name=\"file\"; filename=\"" + escapeHeader(safeFileName) + "\"\r\n")
@@ -195,6 +196,61 @@ public class DocumentServiceClientImpl implements DocumentParseClient {
         out.write(bytes);
         out.write(("\r\n--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
         return out.toByteArray();
+    }
+
+    private String normalizeContentType(String contentType, String fileName) {
+        String normalized = StringUtils.hasText(contentType) ? contentType.trim() : "";
+        int parameterStart = normalized.indexOf(';');
+        if (parameterStart >= 0) {
+            normalized = normalized.substring(0, parameterStart).trim();
+        }
+        if (StringUtils.hasText(normalized)
+                && normalized.contains("/")
+                && !"application/octet-stream".equalsIgnoreCase(normalized)) {
+            return normalized.toLowerCase(Locale.ROOT);
+        }
+        return guessContentType(fileName);
+    }
+
+    private String guessContentType(String fileName) {
+        if (!StringUtils.hasText(fileName)) {
+            return "application/octet-stream";
+        }
+        String lower = fileName.toLowerCase(Locale.ROOT);
+        if (lower.endsWith(".pdf")) {
+            return "application/pdf";
+        }
+        if (lower.endsWith(".png")) {
+            return "image/png";
+        }
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
+            return "image/jpeg";
+        }
+        if (lower.endsWith(".webp")) {
+            return "image/webp";
+        }
+        if (lower.endsWith(".tif") || lower.endsWith(".tiff")) {
+            return "image/tiff";
+        }
+        if (lower.endsWith(".doc")) {
+            return "application/msword";
+        }
+        if (lower.endsWith(".docx")) {
+            return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        }
+        if (lower.endsWith(".xls")) {
+            return "application/vnd.ms-excel";
+        }
+        if (lower.endsWith(".xlsx")) {
+            return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        }
+        if (lower.endsWith(".ppt")) {
+            return "application/vnd.ms-powerpoint";
+        }
+        if (lower.endsWith(".pptx")) {
+            return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+        }
+        return "application/octet-stream";
     }
 
     private String escapeHeader(String value) {

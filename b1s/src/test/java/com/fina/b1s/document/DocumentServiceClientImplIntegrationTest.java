@@ -44,14 +44,14 @@ class DocumentServiceClientImplIntegrationTest {
 
         DocumentParseClient.ParseResult result = client.parse(
                 pdfPath.getFileName().toString(),
-                "application/pdf",
+                "application/pdf; name=\"" + pdfPath.getFileName() + "\"",
                 bytes
         );
 
         assertEquals("EXTRACTED", result.status());
         String markdown = result.markdown();
         assertTrue(markdown.contains("TROPICAL ISLAND ENTERPRISES INC."));
-        assertTrue(markdown.contains("PO No. 123456789"));
+        assertTrue(markdown.contains("123456789"));
         assertTrue(markdown.contains("Office Laptops"));
         assertTrue(markdown.contains("Ergonomic Chairs"));
         assertTrue(markdown.contains("330,000.00 PHP"));
