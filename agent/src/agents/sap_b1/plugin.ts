@@ -755,6 +755,7 @@ async function sapApiCallExecutor(
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     Accept: "application/json",
+    "Accept-Encoding": "identity",
   };
   if (sapCookie) headers.Cookie = sapCookie;
 
@@ -958,6 +959,7 @@ export const sapB1Plugin: Plugin = {
           headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
+            "Accept-Encoding": "identity",
             Cookie: `B1SESSION=${config.cookie}; ROUTEID=.node0`,
           },
         });

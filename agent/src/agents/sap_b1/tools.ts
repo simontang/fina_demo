@@ -832,6 +832,7 @@ registerToolLattice(
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       Accept: "application/json",
+      "Accept-Encoding": "identity",
     };
     if (SAP_COOKIE) headers.Cookie = SAP_COOKIE;
 
