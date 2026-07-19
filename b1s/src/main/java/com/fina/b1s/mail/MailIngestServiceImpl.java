@@ -492,10 +492,13 @@ mail.logout()
         String fileName = part.getFileName();
         if (Part.ATTACHMENT.equalsIgnoreCase(disposition)
                 || Part.INLINE.equalsIgnoreCase(disposition) && StringUtils.hasText(fileName)) {
+            byte[] bytes = readAllBytes(part.getInputStream());
+            String contentType = part.getContentType();
+            String resolvedFileName = MailAttachmentFileNameResolver.resolve(fileName, contentType, bytes);
             out.add(new AttachmentPayload(
-                    StringUtils.hasText(fileName) ? fileName : "attachment-" + UUID.randomUUID(),
-                    part.getContentType(),
-                    readAllBytes(part.getInputStream())));
+                    StringUtils.hasText(resolvedFileName) ? resolvedFileName : "attachment-" + UUID.randomUUID(),
+                    contentType,
+                    bytes));
         }
     }
 

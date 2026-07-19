@@ -186,8 +186,8 @@ public class DocumentServiceClientImpl implements DocumentParseClient {
     }
 
     private byte[] multipartBody(String boundary, String fileName, String contentType, byte[] bytes) throws IOException {
-        String safeFileName = StringUtils.hasText(fileName) ? fileName : "attachment.bin";
-        String safeContentType = normalizeContentType(contentType, safeFileName);
+        String safeFileName = normalizeFileName(fileName, contentType, bytes);
+        String safeContentType = normalizeContentType(contentType, safeFileName, bytes);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         out.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
         out.write(("Content-Disposition: form-data; name=\"file\"; filename=\"" + escapeHeader(safeFileName) + "\"\r\n")
@@ -198,7 +198,7 @@ public class DocumentServiceClientImpl implements DocumentParseClient {
         return out.toByteArray();
     }
 
-    private String normalizeContentType(String contentType, String fileName) {
+    private String normalizeContentType(String contentType, String fileName, byte[] bytes) {
         String normalized = StringUtils.hasText(contentType) ? contentType.trim() : "";
         int parameterStart = normalized.indexOf(';');
         if (parameterStart >= 0) {
@@ -209,7 +209,22 @@ public class DocumentServiceClientImpl implements DocumentParseClient {
                 && !"application/octet-stream".equalsIgnoreCase(normalized)) {
             return normalized.toLowerCase(Locale.ROOT);
         }
+        if (hasPdfMagic(bytes)) {
+            return "application/pdf";
+        }
         return guessContentType(fileName);
+    }
+
+    private String normalizeFileName(String fileName, String contentType, byte[] bytes) {
+        String safeFileName = StringUtils.hasText(fileName) ? fileName.trim() : "attachment";
+        String extension = guessExtension(contentType, bytes);
+        if (extension != null && !hasExtension(safeFileName)) {
+            safeFileName = safeFileName + extension;
+        }
+        if (!hasExtension(safeFileName)) {
+            safeFileName = safeFileName + ".bin";
+        }
+        return safeFileName;
     }
 
     private String guessContentType(String fileName) {
@@ -251,6 +266,54 @@ public class DocumentServiceClientImpl implements DocumentParseClient {
             return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
         }
         return "application/octet-stream";
+    }
+
+    private String guessExtension(String contentType, byte[] bytes) {
+        String normalized = StringUtils.hasText(contentType) ? contentType.trim() : "";
+        int parameterStart = normalized.indexOf(';');
+        if (parameterStart >= 0) {
+            normalized = normalized.substring(0, parameterStart).trim();
+        }
+        normalized = normalized.toLowerCase(Locale.ROOT);
+        if ("application/pdf".equals(normalized) || hasPdfMagic(bytes)) {
+            return ".pdf";
+        }
+        if ("image/png".equals(normalized)) {
+            return ".png";
+        }
+        if ("image/jpeg".equals(normalized)) {
+            return ".jpg";
+        }
+        if ("image/webp".equals(normalized)) {
+            return ".webp";
+        }
+        if ("image/tiff".equals(normalized)) {
+            return ".tiff";
+        }
+        if ("application/msword".equals(normalized)) {
+            return ".doc";
+        }
+        if ("application/vnd.openxmlformats-officedocument.wordprocessingml.document".equals(normalized)) {
+            return ".docx";
+        }
+        return null;
+    }
+
+    private boolean hasExtension(String fileName) {
+        if (!StringUtils.hasText(fileName)) {
+            return false;
+        }
+        int lastDot = fileName.lastIndexOf('.');
+        return lastDot > 0 && lastDot < fileName.length() - 1;
+    }
+
+    private boolean hasPdfMagic(byte[] bytes) {
+        return bytes != null
+                && bytes.length >= 4
+                && bytes[0] == '%'
+                && bytes[1] == 'P'
+                && bytes[2] == 'D'
+                && bytes[3] == 'F';
     }
 
     private String escapeHeader(String value) {

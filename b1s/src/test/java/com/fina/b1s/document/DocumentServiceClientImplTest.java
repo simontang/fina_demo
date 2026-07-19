@@ -60,6 +60,29 @@ class DocumentServiceClientImplTest {
         assertFalse(body.contains("Content-Type: application/pdf;"));
     }
 
+    @Test
+    void infersPdfContentTypeFromFileBytesWhenMailHeadersAreGeneric() throws Exception {
+        AtomicReference<String> assetRequestBody = new AtomicReference<>();
+        startServer(assetRequestBody);
+
+        DocumentServiceClientImpl client = new DocumentServiceClientImpl(
+                HttpClient.newHttpClient(),
+                properties("http://127.0.0.1:" + server.getAddress().getPort()),
+                new ObjectMapper()
+        );
+
+        DocumentParseClient.ParseResult result = client.parse(
+                "download",
+                "application/octet-stream",
+                "%PDF-1.7".getBytes(StandardCharsets.ISO_8859_1)
+        );
+
+        assertEquals("EXTRACTED", result.status());
+        String body = assetRequestBody.get();
+        assertTrue(body.contains("filename=\"download.pdf\""));
+        assertTrue(body.contains("Content-Type: application/pdf\r\n\r\n"));
+    }
+
     private void startServer(AtomicReference<String> assetRequestBody) throws IOException {
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         executor = Executors.newCachedThreadPool(r -> {
