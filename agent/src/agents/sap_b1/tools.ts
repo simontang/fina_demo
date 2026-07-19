@@ -785,7 +785,7 @@ registerToolLattice(
     description:
       "执行 SAP B1 Service Layer 的 OData API 查询/创建/更新/删除。" +
       `Base: ${BASE_URL}。` +
-      "⚠️ 先确认是否已通过 sap_api_search 查过字段列表，勿凭记忆编字段名。\n" +
+      "**必须**先调用 sap_api_search 查询该 EntitySet 的字段列表，严格使用返回的 readySelect 或 fields 中的字段名。禁止凭记忆编造字段名，编造字段必 400。\n" +
       "⚠️ 草稿/draft/暂存 → 用 Drafts 接口，不是 Orders/Invoices 等正式单据。" +
       "Drafts 通过 DocObjectCode 区分单据类型(17=订单,13=发票,16=交货单,23=采购订单)。\n" +
       "$filter 操作符: eq/ne/gt/lt/ge/le/contains(f,'v')/startswith(f,'v')/endswith(f,'v')，多条件用 and/or。" +
