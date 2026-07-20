@@ -43,6 +43,9 @@ metrics:
   datasource-type: ${METRICS_DATASOURCE_TYPE:SQLSERVER}
 
 b1:
+  proxy:
+    log-request-body-on-error: ${B1_PROXY_LOG_REQUEST_BODY_ON_ERROR:true}
+    max-request-body-log-chars: ${B1_PROXY_MAX_REQUEST_BODY_LOG_CHARS:8000}
   service-layer:
     base-url: ${B1_SERVICE_LAYER_BASE_URL:https://tengnat.yiyuntong.net:13450/b1s/v1}
     default-company-db: ${B1_COMPANY_DB:SBODemoUS}

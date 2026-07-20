@@ -1,6 +1,7 @@
 package com.fina.b1s.config;
 
 import com.fina.b1s.b1.B1ServiceLayerProperties;
+import com.fina.b1s.b1.B1ProxyProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
@@ -16,7 +17,7 @@ import java.net.HttpURLConnection;
 import java.security.cert.X509Certificate;
 
 @Configuration
-@EnableConfigurationProperties(B1ServiceLayerProperties.class)
+@EnableConfigurationProperties({B1ServiceLayerProperties.class, B1ProxyProperties.class})
 public class B1HttpConfig {
 
     @Bean
