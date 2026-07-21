@@ -384,7 +384,17 @@ function WaveDetails({ value }: { value: CampaignWaveStrategy }) {
         </Descriptions>
       ) : null}
       {value.waves.length > 0 ? (
-        <Table columns={waveColumns} dataSource={value.waves} rowKey="id" pagination={false} size="small" scroll={{ x: 1225 }} />
+        <section style={{ minWidth: 0, maxWidth: "100%" }}>
+          <Table
+            columns={waveColumns}
+            dataSource={value.waves}
+            rowKey="id"
+            pagination={false}
+            size="small"
+            scroll={{ x: 1225 }}
+            style={{ width: "100%", maxWidth: "100%" }}
+          />
+        </section>
       ) : null}
     </div>
   );
@@ -404,7 +414,17 @@ function AbTestDetails({ value }: { value: CampaignAbTest }) {
         {value.winnerPolicy?.confidence !== undefined ? <Descriptions.Item label="Confidence">{formatPercent(value.winnerPolicy.confidence)}</Descriptions.Item> : null}
       </Descriptions>
       {value.variants.length > 0 ? (
-        <Table columns={variantColumns} dataSource={value.variants} rowKey="id" pagination={false} size="small" scroll={{ x: 770 }} />
+        <section style={{ minWidth: 0, maxWidth: "100%" }}>
+          <Table
+            columns={variantColumns}
+            dataSource={value.variants}
+            rowKey="id"
+            pagination={false}
+            size="small"
+            scroll={{ x: 770 }}
+            style={{ width: "100%", maxWidth: "100%" }}
+          />
+        </section>
       ) : null}
     </div>
   );

@@ -1,10 +1,6 @@
 import React from "react";
 import { ConfigProvider } from "antd";
 import {
-  UserSwitchOutlined,
-  RocketOutlined,
-} from "@ant-design/icons";
-import {
   AuthProvider,
   AxiomLatticeProvider,
   LoginPage,
@@ -18,6 +14,7 @@ import "antd/dist/reset.css";
 import { getBaseAPIPath } from "./getBaseAPIPath";
 import Logo from "./components/Logo";
 import { getAppConfig } from "./config";
+import { getActiveDynamicMenuItems } from "./config/menuConfig";
 
 // Create theme with custom primary color
 const customTheme = generateTheme("#5b50c6");
@@ -221,25 +218,10 @@ function AppContent() {
             sidebarLogoIcon: <Logo width={28} height={28} />,
             // Default agent
             assistantId: "new-data-agent",
-            // Workspace menu with Task Agents group
+            // Workspace menu — dynamic items filtered by assistant capabilities
             workspaceMenuItems: [
               ...DEFAULT_WORKSPACE_MENU_ITEMS,
-              {
-                id: "task_agent_dormant_reactivation",
-                type: "route" as const,
-                name: "Dormant Reactivation",
-                icon: <RocketOutlined />,
-                order: -2,
-                group: "Orchestrators",
-              },
-              {
-                id: "task_agent_segment",
-                type: "route" as const,
-                name: "Segment Agent",
-                icon: <UserSwitchOutlined />,
-                order: -1,
-                group: "Task Agents",
-              },
+              ...getActiveDynamicMenuItems("new-data-agent"),
             ],
           }}
         />
