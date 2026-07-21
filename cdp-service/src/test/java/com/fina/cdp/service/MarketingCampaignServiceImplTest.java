@@ -33,6 +33,7 @@ class MarketingCampaignServiceImplTest {
     @Test
     void createAssignsTenantDefaultStatusAndDefaultStrategies() {
         MarketingCampaignRequest request = validRequest();
+        request.setThreadId("campaign-thread-1");
         request.setMainSegmentDataId(31L);
         SegmentData segmentData = new SegmentData();
         segmentData.setId(31L);
@@ -51,11 +52,29 @@ class MarketingCampaignServiceImplTest {
         verify(mapper).insert(captor.capture());
         MarketingCampaign inserted = captor.getValue();
         assertThat(inserted.getTenantId()).isEqualTo("tenant_a");
+        assertThat(inserted.getThreadId()).isEqualTo("campaign-thread-1");
         assertThat(inserted.getStatus()).isEqualTo("draft");
         assertThat(inserted.getSegmentationStrategyJson()).isEqualTo("{}");
         assertThat(inserted.getControlGroupStrategyJson()).isEqualTo("{}");
         assertThat(inserted.getMainSegmentDataId()).isEqualTo(31L);
+        assertThat(result.getThreadId()).isEqualTo("campaign-thread-1");
         assertThat(result.getStatus()).isEqualTo("draft");
+    }
+
+    @Test
+    void updateReplacesAndReturnsThreadId() {
+        MarketingCampaign campaign = campaign(11L, "tenant_a", "draft");
+        campaign.setThreadId("campaign-thread-1");
+        when(mapper.selectByTenantAndId("tenant_a", 11L)).thenReturn(campaign);
+        MarketingCampaignRequest request = validRequest();
+        request.setThreadId("campaign-thread-2");
+
+        var result = service.update("tenant_a", 11L, request);
+
+        ArgumentCaptor<MarketingCampaign> captor = ArgumentCaptor.forClass(MarketingCampaign.class);
+        verify(mapper).updateById(captor.capture());
+        assertThat(captor.getValue().getThreadId()).isEqualTo("campaign-thread-2");
+        assertThat(result.getThreadId()).isEqualTo("campaign-thread-2");
     }
 
     @Test

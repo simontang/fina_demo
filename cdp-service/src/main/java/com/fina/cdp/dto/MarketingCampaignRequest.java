@@ -11,6 +11,8 @@ import java.time.LocalDateTime;
 @Data
 public class MarketingCampaignRequest {
 
+    private String threadId;
+
     @NotBlank(message = "name is required")
     private String name;
 

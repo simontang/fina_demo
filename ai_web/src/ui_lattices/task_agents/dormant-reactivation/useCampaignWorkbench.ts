@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { message } from "antd";
-import { useApi } from "@axiom-lattice/react-sdk";
+import { useApi, useConversationContext } from "@axiom-lattice/react-sdk";
 import { CDP_API_BASE, getErrorMessage, unwrapCdpResponse } from "../shared/cdp";
 import type { CdpApiResponse } from "../shared/cdp";
 import type { MarketingCampaignPage, MarketingCampaignVO } from "./types";
@@ -36,6 +36,7 @@ function normalizeInitialId(initialKey: unknown): number | null {
 
 export function useCampaignWorkbench(initialKey: unknown) {
   const { get, post, del } = useApi();
+  const { selectThread } = useConversationContext();
   const initialIdRef = useRef(normalizeInitialId(initialKey));
   const initialSelectionApplied = useRef(false);
   const [campaigns, setCampaigns] = useState<MarketingCampaignVO[]>([]);
@@ -101,7 +102,10 @@ export function useCampaignWorkbench(initialKey: unknown) {
     selectedIdRef.current = campaign.id;
     setSelectedId(campaign.id);
     void loadCampaignBundle(campaign);
-  }, [loadCampaignBundle]);
+    if (campaign.threadId) {
+      selectThread(campaign.threadId);
+    }
+  }, [loadCampaignBundle, selectThread]);
 
   useEffect(() => {
     const initialId = initialIdRef.current;

@@ -18,6 +18,7 @@ public class MarketingCampaign {
     private Long id;
 
     private String tenantId;
+    private String threadId;
     private String name;
     private String description;
     private String type;

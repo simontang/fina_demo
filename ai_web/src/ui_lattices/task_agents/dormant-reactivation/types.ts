@@ -4,6 +4,7 @@ export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue
 export interface MarketingCampaignVO {
   id: number;
   tenantId: string;
+  threadId?: string;
   name: string;
   description?: string | null;
   type: string;

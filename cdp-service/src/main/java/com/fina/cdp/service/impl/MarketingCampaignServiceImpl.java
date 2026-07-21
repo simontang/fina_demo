@@ -184,6 +184,7 @@ public class MarketingCampaignServiceImpl implements MarketingCampaignService {
     }
 
     private void applyRequest(MarketingCampaign campaign, MarketingCampaignRequest request, boolean creating) {
+        campaign.setThreadId(request.getThreadId());
         campaign.setName(request.getName());
         campaign.setDescription(request.getDescription());
         campaign.setType(request.getType());
@@ -282,6 +283,7 @@ public class MarketingCampaignServiceImpl implements MarketingCampaignService {
         MarketingCampaignVO vo = new MarketingCampaignVO();
         vo.setId(campaign.getId());
         vo.setTenantId(campaign.getTenantId());
+        vo.setThreadId(campaign.getThreadId());
         vo.setName(campaign.getName());
         vo.setDescription(campaign.getDescription());
         vo.setType(campaign.getType());

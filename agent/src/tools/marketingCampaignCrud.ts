@@ -1,6 +1,6 @@
 import { registerToolLattice } from "@axiom-lattice/core";
 import { z } from "zod";
-import { cdpFetch, getTenantIdFromExecutionConfig } from "./cdpToolClient";
+import { cdpFetch, getTenantIdFromExecutionConfig, getThreadIdFromExecutionConfig } from "./cdpToolClient";
 
 const conditionSchema = z.object({
   field: z.string().optional(),
@@ -276,9 +276,12 @@ registerToolLattice(
     schema: campaignMutationSchema,
   },
   async (input, exeConfig) => {
+    const threadId = getThreadIdFromExecutionConfig(exeConfig);
+    const body: Record<string, unknown> = { ...input };
+    if (threadId) body.threadId = threadId;
     const result = await cdpFetch("/api/v1/marketing-campaigns", {
       method: "POST",
-      body: JSON.stringify(input),
+      body: JSON.stringify(body),
     }, getTenantIdFromExecutionConfig(exeConfig));
     return JSON.stringify(result);
   }
@@ -294,9 +297,12 @@ registerToolLattice(
   },
   async (input, exeConfig) => {
     const { id, ...body } = input;
+    const requestBody: Record<string, unknown> = { ...body };
+    const threadId = getThreadIdFromExecutionConfig(exeConfig);
+    if (threadId) requestBody.threadId = threadId;
     const result = await cdpFetch(`/api/v1/marketing-campaigns/${id}`, {
       method: "PUT",
-      body: JSON.stringify(body),
+      body: JSON.stringify(requestBody),
     }, getTenantIdFromExecutionConfig(exeConfig));
     return JSON.stringify(result);
   }

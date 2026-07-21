@@ -90,6 +90,9 @@ CREATE TABLE IF NOT EXISTS t_marketing_campaign (
     deleted                       SMALLINT        NOT NULL DEFAULT 0
 );
 
+ALTER TABLE t_marketing_campaign
+    ADD COLUMN IF NOT EXISTS thread_id VARCHAR(128);
+
 CREATE INDEX IF NOT EXISTS idx_marketing_campaign_tenant_status
     ON t_marketing_campaign (tenant_id, status, deleted);
 CREATE INDEX IF NOT EXISTS idx_marketing_campaign_tenant_type

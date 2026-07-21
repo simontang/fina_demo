@@ -89,6 +89,50 @@ describe("marketingCampaignCrud tenant routing", () => {
     );
   });
 
+  it.each(["marketing_campaign_create", "marketing_campaign_update"])(
+    "injects the execution thread into %s",
+    async (toolName) => {
+      const registration = registerToolLatticeMock.mock.calls.find(
+        ([key]) => key === toolName,
+      );
+      const executor = registration[2] as (
+        input: Record<string, unknown>,
+        config: unknown,
+      ) => Promise<string>;
+
+      await executor(inputByTool[toolName], {
+        configurable: {
+          runConfig: { tenantId: "retail_cdp", threadId: "campaign-thread-1" },
+        },
+      });
+
+      const [, requestInit] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(JSON.parse(requestInit.body)).toMatchObject({
+        threadId: "campaign-thread-1",
+      });
+    },
+  );
+
+  it.each(["marketing_campaign_create", "marketing_campaign_update"])(
+    "omits threadId from %s when the execution context has no thread",
+    async (toolName) => {
+      const registration = registerToolLatticeMock.mock.calls.find(
+        ([key]) => key === toolName,
+      );
+      const executor = registration[2] as (
+        input: Record<string, unknown>,
+        config: unknown,
+      ) => Promise<string>;
+
+      await executor(inputByTool[toolName], {
+        configurable: { runConfig: { tenantId: "retail_cdp" } },
+      });
+
+      const [, requestInit] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(JSON.parse(requestInit.body)).not.toHaveProperty("threadId");
+    },
+  );
+
   it.each([
     ["marketing_campaign_start", "/api/v1/marketing-campaigns/1/start"],
     ["marketing_campaign_stop", "/api/v1/marketing-campaigns/1/stop"],
