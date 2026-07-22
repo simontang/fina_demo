@@ -85,168 +85,168 @@ import "./tools/marketingCampaignCrud";
 
 // 如果设置了 MODEL_LIST 环境变量，则跳过所有代码注册
 if (!process.env.MODEL_LIST) {
-registerModelLattice(
-  "kimi-k2.6",
+  registerModelLattice(
+    "kimi-k2.6",
 
-  {
-    model: "kimi-k2.6",
-    displayName: "kimi-k2.6",
-    //model: "qwen3.5-35b-a3b",
-    provider: "openai",
-    streaming: true,
-    apiKeyEnvName: "API_KEY3",
-    baseURL: baseURL,
-    modelKwargs: {
-      "enable_thinking": false
+    {
+      model: "kimi-k2.6",
+      displayName: "kimi-k2.6",
+      //model: "qwen3.5-35b-a3b",
+      provider: "openai",
+      streaming: true,
+      apiKeyEnvName: "API_KEY3",
+      baseURL: baseURL,
+      modelKwargs: {
+        "enable_thinking": false
+      }
     }
-  }
-);
-registerModelLattice(
-  "deepseek-v4-pro",
+  );
+  registerModelLattice(
+    "deepseek-v4-pro",
 
-  {
-    model: "deepseek-v4-pro",
-    displayName: "deepseek-v4-pro",
-    provider: "openai",
-    streaming: true,
-    apiKeyEnvName: "API_KEY3",
-    baseURL: baseURL,
-    modelKwargs: {
-      "enable_thinking": false
+    {
+      model: "deepseek-v4-pro",
+      displayName: "deepseek-v4-pro",
+      provider: "openai",
+      streaming: true,
+      apiKeyEnvName: "API_KEY3",
+      baseURL: baseURL,
+      modelKwargs: {
+        "enable_thinking": false
+      }
     }
-  }
-);
-registerModelLattice(
-  "deepseek-v4-flash",
+  );
+  registerModelLattice(
+    "deepseek-v4-flash",
 
-  {
-    model: "deepseek-v4-flash",
-    displayName: "deepseek-v4-flash",
-    provider: "openai",
-    streaming: true,
-    apiKeyEnvName: "API_KEY3",
-    baseURL: baseURL,
-    modelKwargs: {
-      "enable_thinking": false
+    {
+      model: "deepseek-v4-flash",
+      displayName: "deepseek-v4-flash",
+      provider: "openai",
+      streaming: true,
+      apiKeyEnvName: "API_KEY3",
+      baseURL: baseURL,
+      modelKwargs: {
+        "enable_thinking": false
+      }
     }
-  }
-);
-registerModelLattice(
-  "qwen3.6-35b-a3b",
+  );
+  registerModelLattice(
+    "qwen3.6-35b-a3b",
 
-  {
-    model: "qwen3.6-35b-a3b",
-    displayName: "qwen3.6-35b-a3b",
-    provider: "openai",
-    streaming: true,
-    apiKeyEnvName: "API_KEY3",
-    baseURL: baseURL,
+    {
+      model: "qwen3.6-35b-a3b",
+      displayName: "qwen3.6-35b-a3b",
+      provider: "openai",
+      streaming: true,
+      apiKeyEnvName: "API_KEY3",
+      baseURL: baseURL,
 
-  }
-);
-registerModelLattice(
-  "qwen3.6-27b",
-
-  {
-    model: "qwen3.6-27b",
-    displayName: "qwen3.6-27b",
-    provider: "openai",
-    streaming: true,
-    apiKeyEnvName: "API_KEY3",
-    baseURL: baseURL,
-
-  }
-);
-registerModelLattice(
-  "default",
-
-  {
-    model: "qwen3.6-plus",
-    displayName: "qwen3.6-plus",
-    provider: "openai",
-    streaming: true,
-    apiKeyEnvName: "API_KEY3",
-    baseURL: baseURL,
-    modelKwargs: {
-      "enable_thinking": false
     }
+  );
+  registerModelLattice(
+    "qwen3.6-27b",
 
-  }
-);
-registerModelLattice(
-  "doubao-seed-2-0-pro",
+    {
+      model: "qwen3.6-27b",
+      displayName: "qwen3.6-27b",
+      provider: "openai",
+      streaming: true,
+      apiKeyEnvName: "API_KEY3",
+      baseURL: baseURL,
 
-  {
-    displayName: "Doubao pro 2.0",
-    model: "doubao-seed-2-0-pro-260215",
-    provider: "volcengine",
-    streaming: true,
-    apiKeyEnvName: "VOLCENGINE_API_KEY2",
-    modelKwargs: {
-      "thinking": { "type": "disabled" }
-    },
-  }
-);
-registerModelLattice(
-  "gpt-5.5",
-
-  {
-    model: "gpt-5.5",
-    displayName: "gpt-5.5",
-    provider: "openai",
-    streaming: true,
-    apiKeyEnvName: "API_KEY3",
-    baseURL: baseURL,
-    modelKwargs: {
-      "thinking_effort": "high"
     }
-  }
-);
-registerModelLattice(
-  "gpt-5.6-sol",
+  );
+  registerModelLattice(
+    "default",
 
-  {
-    model: "gpt-5.6-sol",
-    displayName: "gpt-5.6-sol",
-    provider: "openai",
-    streaming: true,
-    apiKeyEnvName: "API_KEY3",
-    baseURL: baseURL,
-    modelKwargs: {
-      "thinking_effort": "high"
-    }
-  }
-);
-registerModelLattice(
-  "gpt-5.6-terra",
+    {
+      model: "qwen3.6-plus",
+      displayName: "qwen3.6-plus",
+      provider: "openai",
+      streaming: true,
+      apiKeyEnvName: "API_KEY3",
+      baseURL: baseURL,
+      modelKwargs: {
+        "enable_thinking": false
+      }
 
-  {
-    model: "gpt-5.6-terra",
-    displayName: "gpt-5.6-terra",
-    provider: "openai",
-    streaming: true,
-    apiKeyEnvName: "API_KEY3",
-    baseURL: baseURL,
-    modelKwargs: {
-      "thinking_effort": "high"
     }
-  }
-);
-registerModelLattice(
-  "gpt-5.6-luna",
+  );
+  registerModelLattice(
+    "doubao-seed-2-0-pro",
 
-  {
-    model: "gpt-5.6-luna",
-    displayName: "gpt-5.6-luna",
-    provider: "openai",
-    streaming: true,
-    apiKeyEnvName: "API_KEY3",
-    baseURL: baseURL,
-    modelKwargs: {
-      "thinking_effort": "high"
+    {
+      displayName: "Doubao pro 2.0",
+      model: "doubao-seed-2-0-pro-260215",
+      provider: "volcengine",
+      streaming: true,
+      apiKeyEnvName: "VOLCENGINE_API_KEY2",
+      modelKwargs: {
+        "thinking": { "type": "disabled" }
+      },
     }
-  }
-);
+  );
+  registerModelLattice(
+    "gpt-5.5",
+
+    {
+      model: "gpt-5.5",
+      displayName: "gpt-5.5",
+      provider: "openai",
+      streaming: true,
+      apiKeyEnvName: "API_KEY3",
+      baseURL: baseURL,
+      modelKwargs: {
+        "thinking_effort": "high"
+      }
+    }
+  );
+  registerModelLattice(
+    "gpt-5.6-sol",
+
+    {
+      model: "gpt-5.6-sol",
+      displayName: "gpt-5.6-sol",
+      provider: "openai",
+      streaming: true,
+      apiKeyEnvName: "API_KEY3",
+      baseURL: baseURL,
+      modelKwargs: {
+        "thinking_effort": "high"
+      }
+    }
+  );
+  registerModelLattice(
+    "gpt-5.6-terra",
+
+    {
+      model: "gpt-5.6-terra",
+      displayName: "gpt-5.6-terra",
+      provider: "openai",
+      streaming: true,
+      apiKeyEnvName: "API_KEY3",
+      baseURL: baseURL,
+      modelKwargs: {
+        "thinking_effort": "high"
+      }
+    }
+  );
+  registerModelLattice(
+    "gpt-5.6-luna",
+
+    {
+      model: "gpt-5.6-luna",
+      displayName: "gpt-5.6-luna",
+      provider: "openai",
+      streaming: true,
+      apiKeyEnvName: "API_KEY3",
+      baseURL: baseURL,
+      modelKwargs: {
+        "thinking_effort": "high"
+      }
+    }
+  );
 
 }  // end of env var guard: only register hardcoded models if MODEL_LIST is not set
 
@@ -331,15 +331,19 @@ async function initializePgStores(): Promise<void> {
   console.log("\n✓ All PostgreSQL stores initialized\n");
 }
 
-registerEmbeddingsLattice("default", new AlibabaTongyiEmbeddings({
-  modelName: "text-embedding-v4",
-  apiKey: process.env.ALIBABA_API_KEY,
-}), "Tongyi text-embedding-v4");
+try {
+  registerEmbeddingsLattice("default", new AlibabaTongyiEmbeddings({
+    modelName: "text-embedding-v4",
+    apiKey: process.env.ALIBABA_API_KEY,
+  }), "Tongyi text-embedding-v4");
+} catch (error) {
+  console.warn("Failed to register AlibabaTongyiEmbeddings - ALIBABA_API_KEY may be missing:", (error as Error).message);
+}
 
 async function main() {
-await initializePgStores();
+  await initializePgStores();
 
-// Sandbox provider 由 gateway 框架自动根据环境变量注册，无需在此手动配置
+  // Sandbox provider 由 gateway 框架自动根据环境变量注册，无需在此手动配置
 
   // Register Sandbox Manager Lattice
   const sandboxProviderType = process.env.SANDBOX_PROVIDER_TYPE || "microsandbox";
@@ -372,11 +376,11 @@ await initializePgStores();
 
   console.log(`✓ Sandbox provider registered: ${sandboxProviderType}`);
 
-//migrateVectorStoreToPGVectorStore();
+  //migrateVectorStoreToPGVectorStore();
 
-// 启动fastify服务器
-const port = process.env.PORT ? parseInt(process.env.PORT) : 5702;
-startServer(port);
+  // 启动fastify服务器
+  const port = process.env.PORT ? parseInt(process.env.PORT) : 5702;
+  startServer(port);
 }
 
 // Run main function
