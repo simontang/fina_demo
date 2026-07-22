@@ -6,7 +6,7 @@ import type { SideMenuItemConfig } from "@axiom-lattice/react-sdk";
 
 /**
  * Dynamic workspace menu items — these are shown conditionally
- * based on the current assistant's capabilities.
+ * based on the assistants available to the current tenant.
  */
 
 export interface DynamicMenuGroup {
@@ -59,16 +59,18 @@ export const ASSISTANT_MENU_MAP: Record<string, string[]> = {
 };
 
 /**
- * Return the dynamic {@link SideMenuItemConfig}s that are active for
- * the given assistant.
+ * Return the dynamic {@link SideMenuItemConfig}s backed by the available
+ * assistants.
  */
 export function getActiveDynamicMenuItems(
-  assistantId: string,
+  assistantIds: readonly string[],
 ): SideMenuItemConfig[] {
-  const allowedIds = ASSISTANT_MENU_MAP[assistantId];
-  if (!allowedIds || allowedIds.length === 0) return [];
+  const allowedIds = new Set(
+    assistantIds.flatMap((assistantId) => ASSISTANT_MENU_MAP[assistantId] ?? []),
+  );
+  if (allowedIds.size === 0) return [];
 
   return DYNAMIC_MENU_GROUPS.flatMap((group) =>
-    group.items.filter((item) => allowedIds.includes(item.id)),
+    group.items.filter((item) => allowedIds.has(item.id)),
   );
 }

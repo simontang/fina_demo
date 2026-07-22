@@ -1,5 +1,5 @@
 import React from "react";
-import { ConfigProvider } from "antd";
+import { ConfigProvider, Spin } from "antd";
 import {
   AuthProvider,
   AxiomLatticeProvider,
@@ -7,6 +7,7 @@ import {
   RegisterForm,
   TenantSelector,
   useAuth,
+  useClient,
 } from "@axiom-lattice/react-sdk";
 import { LatticeChatShell, DEFAULT_WORKSPACE_MENU_ITEMS } from "@axiom-lattice/react-sdk";
 import { generateTheme } from "./theme";
@@ -190,43 +191,81 @@ function AppContent() {
         },
       }}
     >
-      <div style={{ width: "100vw", height: "100vh", overflow: "hidden" }}>
-        <LatticeChatShell
-          initialConfig={{
-            enableModelSelector: true,
-            enableSkillSlot: false,
-            enableDatabaseSlot: false,
-            resourceFolders: [
-              { name: "/project", displayName: "Project Root", allowUpload: true },
-              // { name: "tmp", displayName: "Working Directory", allowUpload: true },
-              // { name: "metrics", displayName: "Metrics", allowUpload: true },
-              { name: "/agent", displayName: "agent", allowUpload: false },
-              // { name: "agent", displayName: "Agent", allowUpload: false },
-
-            ],
-            enableWorkspace: true,
-            enableThreadCreation: true,
-            enableThreadList: true,
-            baseURL: GATEWAY_URL,
-            globalSharedSandboxURL: "https://demo.alphafina.cn/sandbox/global",
-            // Sidebar configuration
-            sidebarMode: "expanded",
-            sidebarDefaultExpanded: true,
-            sidebarShowToggle: true,
-            sidebarShowNewAnalysis: false,
-            sidebarLogoText: getAppConfig().appName,
-            sidebarLogoIcon: <Logo width={28} height={28} />,
-            // Default agent
-            assistantId: "new-data-agent",
-            // Workspace menu — dynamic items filtered by assistant capabilities
-            workspaceMenuItems: [
-              ...DEFAULT_WORKSPACE_MENU_ITEMS,
-              ...getActiveDynamicMenuItems("new-data-agent"),
-            ],
-          }}
-        />
-      </div>
+      <DataAgentShell key={currentTenant?.id} />
     </AxiomLatticeProvider>
+  );
+}
+
+function DataAgentShell() {
+  const client = useClient("");
+  const [assistantIds, setAssistantIds] = React.useState<readonly string[] | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    setAssistantIds(null);
+
+    client.assistants.list()
+      .then((assistants) => {
+        if (!cancelled) {
+          setAssistantIds(assistants.map((assistant) => assistant.id));
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load assistants for workspace menu:", error);
+        if (!cancelled) {
+          setAssistantIds([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [client]);
+
+  if (assistantIds === null) {
+    return (
+      <div style={{ width: "100vw", height: "100vh", display: "grid", placeItems: "center" }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width: "100vw", height: "100vh", overflow: "hidden" }}>
+      <LatticeChatShell
+        initialConfig={{
+          enableModelSelector: true,
+          enableSkillSlot: false,
+          enableDatabaseSlot: false,
+          resourceFolders: [
+            { name: "/project", displayName: "Project Root", allowUpload: true },
+            // { name: "tmp", displayName: "Working Directory", allowUpload: true },
+            // { name: "metrics", displayName: "Metrics", allowUpload: true },
+            { name: "/agent", displayName: "agent", allowUpload: false },
+            // { name: "agent", displayName: "Agent", allowUpload: false },
+
+          ],
+          enableWorkspace: true,
+          enableThreadCreation: true,
+          enableThreadList: true,
+          baseURL: GATEWAY_URL,
+          globalSharedSandboxURL: "https://demo.alphafina.cn/sandbox/global",
+          // Sidebar configuration
+          sidebarMode: "expanded",
+          sidebarDefaultExpanded: true,
+          sidebarShowToggle: true,
+          sidebarShowNewAnalysis: false,
+          sidebarLogoText: getAppConfig().appName,
+          sidebarLogoIcon: <Logo width={28} height={28} />,
+          assistantId: "",
+          // Workspace menu — dynamic items filtered by available assistants
+          workspaceMenuItems: [
+            ...DEFAULT_WORKSPACE_MENU_ITEMS,
+            ...getActiveDynamicMenuItems(assistantIds),
+          ],
+        }}
+      />
+    </div>
   );
 }
 
