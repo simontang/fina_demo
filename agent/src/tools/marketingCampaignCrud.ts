@@ -9,8 +9,8 @@ const conditionSchema = z.object({
   value: z.unknown().optional(),
 }).passthrough();
 
-const segmentationStrategySchema = z.union([
-  z.object({
+const segmentationStrategySchema = z
+  .object({
     version: z.string().optional(),
     audienceKey: z.string().optional(),
     source: z.object({
@@ -31,12 +31,12 @@ const segmentationStrategySchema = z.union([
       fallbackSubSegmentKey: z.string().optional(),
     }).passthrough().optional(),
     exclusions: z.array(conditionSchema).optional(),
-  }).passthrough(),
-  z.array(z.unknown()),
-]).describe("人群策略。reactivation 推荐包含 source、subSegments、assignment、exclusions");
+  })
+  .passthrough()
+  .describe("人群策略。reactivation 推荐包含 source、subSegments、assignment、exclusions");
 
-const controlGroupStrategySchema = z.union([
-  z.object({
+const controlGroupStrategySchema = z
+  .object({
     enabled: z.boolean().optional(),
     method: z.string().optional(),
     unit: z.string().optional(),
@@ -44,12 +44,12 @@ const controlGroupStrategySchema = z.union([
     seed: z.string().optional(),
     stratifyBy: z.array(z.string()).optional(),
     excludeFromWaves: z.boolean().optional(),
-  }).passthrough(),
-  z.array(z.unknown()),
-]).describe("对照组策略，ratio 使用 0-1 小数");
+  })
+  .passthrough()
+  .describe("对照组策略，ratio 使用 0-1 小数");
 
-const contentChannelStrategySchema = z.union([
-  z.object({
+const contentChannelStrategySchema = z
+  .object({
     version: z.string().optional(),
     defaultLocale: z.string().optional(),
     channels: z.array(z.object({
@@ -69,12 +69,12 @@ const contentChannelStrategySchema = z.union([
       }).passthrough().optional(),
       variables: z.array(z.string()).optional(),
     }).passthrough()).optional(),
-  }).passthrough(),
-  z.array(z.unknown()),
-]).describe("渠道策略。channelKey 供 wave 和 A/B variant 引用");
+  })
+  .passthrough()
+  .describe("渠道策略。channelKey 供 wave 和 A/B variant 引用");
 
-const offerStrategySchema = z.union([
-  z.object({
+const offerStrategySchema = z
+  .object({
     version: z.string().optional(),
     budget: z.object({
       currency: z.string().optional(),
@@ -96,12 +96,12 @@ const offerStrategySchema = z.union([
         offerCode: z.string().optional(),
       }).passthrough()).optional(),
     }).passthrough().optional(),
-  }).passthrough(),
-  z.array(z.unknown()),
-]).describe("权益策略。offerCode 供 wave 和 A/B variant 引用");
+  })
+  .passthrough()
+  .describe("权益策略。offerCode 供 wave 和 A/B variant 引用");
 
-const waveStrategySchema = z.union([
-  z.object({
+const waveStrategySchema = z
+  .object({
     enabled: z.boolean().optional(),
     timezone: z.string().optional(),
     waves: z.array(z.object({
@@ -117,12 +117,12 @@ const waveStrategySchema = z.union([
         includeIf: z.array(conditionSchema).optional(),
       }).passthrough().optional(),
     }).passthrough()).optional(),
-  }).passthrough(),
-  z.array(z.unknown()),
-]).describe("波次策略。waveId 必须稳定，后续 wave 通过 fromWaveIds 引用前序 wave");
+  })
+  .passthrough()
+  .describe("波次策略。waveId 必须稳定，后续 wave 通过 fromWaveIds 引用前序 wave");
 
-const abTestStrategySchema = z.union([
-  z.object({
+const abTestStrategySchema = z
+  .object({
     enabled: z.boolean().optional(),
     unit: z.string().optional(),
     primaryMetric: z.string().optional(),
@@ -143,12 +143,12 @@ const abTestStrategySchema = z.union([
       minSampleSizePerVariant: z.number().optional(),
       confidence: z.number().optional(),
     }).passthrough().optional(),
-  }).passthrough(),
-  z.array(z.unknown()),
-]).describe("A/B 测试策略。scope 和 variant 通过稳定 key 引用 wave、channel 和 offer");
+  })
+  .passthrough()
+  .describe("A/B 测试策略。scope 和 variant 通过稳定 key 引用 wave、channel 和 offer");
 
-const statisticsSchema = z.union([
-  z.object({
+const statisticsSchema = z
+  .object({
     version: z.string().optional(),
     lastComputedAt: z.string().nullable().optional(),
     audience: z.object({
@@ -175,9 +175,9 @@ const statisticsSchema = z.union([
       offerCost: z.number().optional(),
       grossMargin: z.number().nullable().optional(),
     }).passthrough().optional(),
-  }).passthrough(),
-  z.array(z.unknown()),
-]).describe("统计快照，只填写已计算的实际结果，不作为目标值");
+  })
+  .passthrough()
+  .describe("统计快照，只填写已计算的实际结果，不作为目标值");
 
 const campaignMutationBaseSchema = z.object({
   name: z.string().describe("活动名称"),
@@ -202,7 +202,7 @@ function requireMatchingSegmentDataId(
   context: z.RefinementCtx,
 ): void {
   const strategy = value.segmentationStrategy;
-  if (!strategy || Array.isArray(strategy)) return;
+  if (!strategy) return;
   const sourceId = strategy.source?.segmentDataId;
   if (value.mainSegmentDataId != null && sourceId != null && value.mainSegmentDataId !== sourceId) {
     context.addIssue({
@@ -270,7 +270,7 @@ registerToolLattice(
   {
     name: "marketing_campaign_create",
     description:
-      "创建营销活动。reactivation 策略应使用推荐 v1 结构，并保持 subSegmentKey、channelKey、offerCode、waveId、variantId 引用一致。" +
+      "创建营销活动。策略和 statistics 字段必须使用 JSON object。reactivation 策略应使用推荐 v1 结构，并保持 subSegmentKey、channelKey、offerCode、waveId、variantId 引用一致。" +
       "mainSegmentDataId、source.segmentDataId、segmentDefinitionId 和 runId 必须来自 Segment 工具结果，不要编造。" +
       "tenant 从 runConfig.tenantId 注入，body 中不要传 tenantId。",
     schema: campaignMutationSchema,
@@ -292,7 +292,7 @@ registerToolLattice(
   {
     name: "marketing_campaign_update",
     description:
-      "更新营销活动。请求体字段同创建接口；保留推荐 v1 的稳定 key 引用，并使用 Segment 工具返回的真实 source 标识。",
+      "更新营销活动。请求体字段同创建接口；策略和 statistics 字段必须使用 JSON object。保留推荐 v1 的稳定 key 引用，并使用 Segment 工具返回的真实 source 标识。",
     schema: campaignUpdateSchema,
   },
   async (input, exeConfig) => {

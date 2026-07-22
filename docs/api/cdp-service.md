@@ -293,7 +293,7 @@ DELETE /api/v1/segment-data/{id}
 
 **基础路径**: `/api/v1/marketing-campaigns`
 
-营销活动是多租户对象，所有接口都通过 `X-Tenant-Id` 隔离数据。复杂策略字段使用 JSON object/array 表达，服务端以 TEXT 保存。
+营销活动是多租户对象，所有接口都通过 `X-Tenant-Id` 隔离数据。复杂策略字段使用 JSON object 表达，服务端以 TEXT 保存。
 
 #### 3.1 查询营销活动列表
 
@@ -347,7 +347,7 @@ X-Tenant-Id: default
 | `endTime` | `datetime` | ✅ | 结束时间，必须晚于 `startTime` |
 | `mainSegmentDataId` | `Long` | — | 主人群包，对应同租户 `segment_data.id` |
 | `status` | `string` | — | 默认 `draft` |
-| `*Strategy`, `statistics` | `object/array` | — | 策略或统计 JSON，默认 `{}` |
+| `*Strategy`, `statistics` | `object` | — | 策略或统计 JSON，默认 `{}` |
 
 #### 3.3 查询、更新、删除单个活动
 

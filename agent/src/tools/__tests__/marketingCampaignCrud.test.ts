@@ -181,7 +181,7 @@ describe("marketingCampaignCrud tenant routing", () => {
     })).toThrow("must match mainSegmentDataId");
   });
 
-  it("keeps legacy object and array strategies compatible", () => {
+  it("keeps custom object strategies compatible", () => {
     const registration = registerToolLatticeMock.mock.calls.find(
       ([key]) => key === "marketing_campaign_create",
     );
@@ -189,8 +189,31 @@ describe("marketingCampaignCrud tenant routing", () => {
 
     expect(() => schema.parse({
       ...campaignInput,
-      segmentationStrategy: [{ legacy: true }],
+      segmentationStrategy: { customAudiencePolicy: "legacy" },
       offerStrategy: { customPolicy: "legacy" },
     })).not.toThrow();
+  });
+
+  it.each([
+    "segmentationStrategy",
+    "controlGroupStrategy",
+    "contentChannelStrategy",
+    "offerStrategy",
+    "waveStrategy",
+    "abTestStrategy",
+    "statistics",
+  ])("rejects an array for %s", (fieldName) => {
+    for (const toolName of ["marketing_campaign_create", "marketing_campaign_update"]) {
+      const registration = registerToolLatticeMock.mock.calls.find(
+        ([key]) => key === toolName,
+      );
+      const schema = registration[1].schema as { parse: (input: unknown) => unknown };
+
+      expect(() => schema.parse({
+        ...(toolName === "marketing_campaign_update" ? { id: 1 } : {}),
+        ...campaignInput,
+        [fieldName]: [],
+      })).toThrow();
+    }
   });
 });

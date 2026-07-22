@@ -195,13 +195,13 @@ public class MarketingCampaignServiceImpl implements MarketingCampaignService {
         campaign.setStatus(creating
                 ? normalizeStatusOrDefault(request.getStatus(), STATUS_DRAFT)
                 : normalizeStatusOrDefault(request.getStatus(), campaign.getStatus()));
-        campaign.setSegmentationStrategyJson(toJsonOrDefault(request.getSegmentationStrategy()));
-        campaign.setControlGroupStrategyJson(toJsonOrDefault(request.getControlGroupStrategy()));
-        campaign.setContentChannelStrategyJson(toJsonOrDefault(request.getContentChannelStrategy()));
-        campaign.setOfferStrategyJson(toJsonOrDefault(request.getOfferStrategy()));
-        campaign.setWaveStrategyJson(toJsonOrDefault(request.getWaveStrategy()));
-        campaign.setAbTestStrategyJson(toJsonOrDefault(request.getAbTestStrategy()));
-        campaign.setStatisticsJson(toJsonOrDefault(request.getStatistics()));
+        campaign.setSegmentationStrategyJson(toObjectJsonOrDefault(request.getSegmentationStrategy()));
+        campaign.setControlGroupStrategyJson(toObjectJsonOrDefault(request.getControlGroupStrategy()));
+        campaign.setContentChannelStrategyJson(toObjectJsonOrDefault(request.getContentChannelStrategy()));
+        campaign.setOfferStrategyJson(toObjectJsonOrDefault(request.getOfferStrategy()));
+        campaign.setWaveStrategyJson(toObjectJsonOrDefault(request.getWaveStrategy()));
+        campaign.setAbTestStrategyJson(toObjectJsonOrDefault(request.getAbTestStrategy()));
+        campaign.setStatisticsJson(toObjectJsonOrDefault(request.getStatistics()));
     }
 
     private MarketingCampaign requireCampaign(String tenantId, Long id) {
@@ -257,12 +257,12 @@ public class MarketingCampaignServiceImpl implements MarketingCampaignService {
         return value == null || value.isBlank() ? null : value.trim();
     }
 
-    private String toJsonOrDefault(JsonNode node) {
+    private String toObjectJsonOrDefault(JsonNode node) {
         if (node == null || node.isNull()) {
             return EMPTY_JSON;
         }
-        if (!node.isObject() && !node.isArray()) {
-            throw new IllegalArgumentException("Marketing campaign JSON strategy fields must be JSON object or array");
+        if (!node.isObject()) {
+            throw new IllegalArgumentException("Marketing campaign JSON strategy fields must be JSON object");
         }
         try {
             return objectMapper.writeValueAsString(node);

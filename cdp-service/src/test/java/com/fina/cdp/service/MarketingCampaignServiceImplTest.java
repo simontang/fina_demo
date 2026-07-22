@@ -78,19 +78,47 @@ class MarketingCampaignServiceImplTest {
     }
 
     @Test
-    void createStoresObjectAndArrayStrategyJson() {
+    void createStoresObjectStrategyJson() {
         MarketingCampaignRequest request = validRequest();
         ObjectNode segmentation = JsonNodeFactory.instance.objectNode();
         segmentation.put("rule", "vip");
+        ObjectNode wave = JsonNodeFactory.instance.objectNode();
+        wave.put("waveId", "wave_1");
         request.setSegmentationStrategy(segmentation);
-        request.setWaveStrategy(JsonNodeFactory.instance.arrayNode().add("wave_1"));
+        request.setWaveStrategy(wave);
 
         service.create("tenant_a", request);
 
         ArgumentCaptor<MarketingCampaign> captor = ArgumentCaptor.forClass(MarketingCampaign.class);
         verify(mapper).insert(captor.capture());
         assertThat(captor.getValue().getSegmentationStrategyJson()).contains("\"rule\":\"vip\"");
-        assertThat(captor.getValue().getWaveStrategyJson()).isEqualTo("[\"wave_1\"]");
+        assertThat(captor.getValue().getWaveStrategyJson()).contains("\"waveId\":\"wave_1\"");
+    }
+
+    @Test
+    void createRejectsArrayStrategyJson() {
+        MarketingCampaignRequest request = validRequest();
+        request.setWaveStrategy(JsonNodeFactory.instance.arrayNode().add("wave_1"));
+
+        assertThatThrownBy(() -> service.create("tenant_a", request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("must be JSON object");
+
+        verify(mapper, never()).insert(any());
+    }
+
+    @Test
+    void updateRejectsArrayStrategyJson() {
+        MarketingCampaign campaign = campaign(11L, "tenant_a", "draft");
+        when(mapper.selectByTenantAndId("tenant_a", 11L)).thenReturn(campaign);
+        MarketingCampaignRequest request = validRequest();
+        request.setStatistics(JsonNodeFactory.instance.arrayNode());
+
+        assertThatThrownBy(() -> service.update("tenant_a", 11L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("must be JSON object");
+
+        verify(mapper, never()).updateById(any());
     }
 
     @Test
