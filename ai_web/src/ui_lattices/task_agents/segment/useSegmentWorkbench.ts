@@ -113,6 +113,13 @@ export function useSegmentWorkbench(initialKey: unknown) {
     }
   }, [selectThread]);
 
+  const clearSelection = useCallback(() => {
+    segmentDataRequestId.current += 1;
+    setSelectedId(null);
+    setSegmentData(null);
+    setDataLoading(false);
+  }, []);
+
   const deleteSelectedSegment = useCallback(async () => {
     if (!selectedId) return;
     try {
@@ -163,6 +170,7 @@ export function useSegmentWorkbench(initialKey: unknown) {
     processing,
     rows,
     selectSegment,
+    clearSelection,
     deleteSelectedSegment,
     processSelectedSegment,
   };

@@ -107,6 +107,15 @@ export function useCampaignWorkbench(initialKey: unknown) {
     }
   }, [loadCampaignBundle, selectThread]);
 
+  const clearSelection = useCallback(() => {
+    campaignDetailRequestId.current += 1;
+    selectedIdRef.current = null;
+    setSelectedId(null);
+    setSelectedCampaign(null);
+    setDetailLoading(false);
+    setDetailError(null);
+  }, []);
+
   useEffect(() => {
     const initialId = initialIdRef.current;
     if (initialSelectionApplied.current || initialId == null || campaigns.length === 0) return;
@@ -188,6 +197,7 @@ export function useCampaignWorkbench(initialKey: unknown) {
     detailError,
     actionLoading,
     selectCampaign,
+    clearSelection,
     deleteSelectedCampaign,
     startSelectedCampaign,
     stopSelectedCampaign,

@@ -1,0 +1,12 @@
+export const TABLE_DETAIL_WORKBENCH_LAYOUT = {
+  collapsedPanelWidth: 480,
+  expandedPanelWidth: 880,
+  minPanelWidth: 360,
+  minMainWidth: 320,
+  tablePaneWidth: 280,
+  compactBreakpoint: 760,
+  contentGap: 16,
+  contentPadding: 16,
+  selectedRowBackground: "#f0f0ff",
+  panelTransition: "width 160ms ease",
+} as const;

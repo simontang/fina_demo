@@ -1,4 +1,5 @@
-import { Col, Empty, Row, Statistic, Tag, Typography } from "antd";
+import { Col, Empty, Row, Statistic, Typography } from "antd";
+import { OverflowSafeTag } from "../shared/OverflowSafeTag";
 import { campaignStatusConfig } from "./types";
 import type { CampaignPresentation, MarketingCampaignVO } from "./types";
 
@@ -24,11 +25,11 @@ export function CampaignOverviewTab({ campaign }: { campaign: MarketingCampaignV
       </div>
       <div>
         <Text type="secondary" style={{ fontSize: 11 }}>Type</Text>
-        <Paragraph style={{ margin: 0 }}><Tag>{campaign.type}</Tag></Paragraph>
+        <Paragraph style={{ margin: 0 }}><OverflowSafeTag>{campaign.type}</OverflowSafeTag></Paragraph>
       </div>
       <div>
         <Text type="secondary" style={{ fontSize: 11 }}>Status</Text>
-        <Paragraph style={{ margin: 0 }}><Tag color={status.color}>{status.label}</Tag></Paragraph>
+        <Paragraph style={{ margin: 0 }}><OverflowSafeTag color={status.color}>{status.label}</OverflowSafeTag></Paragraph>
       </div>
       {campaign.goal ? (
         <div>

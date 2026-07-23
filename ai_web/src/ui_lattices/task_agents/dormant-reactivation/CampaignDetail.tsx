@@ -1,6 +1,10 @@
 import { useMemo } from "react";
 import { Button, Card, Popconfirm, Tabs, Typography } from "antd";
-import { PauseCircleOutlined, PlayCircleOutlined, WarningOutlined } from "@ant-design/icons";
+import {
+  PauseCircleOutlined,
+  PlayCircleOutlined,
+  WarningOutlined,
+} from "@ant-design/icons";
 import { buildCampaignPresentation } from "./campaignPresentation";
 import {
   CampaignOverviewTab,

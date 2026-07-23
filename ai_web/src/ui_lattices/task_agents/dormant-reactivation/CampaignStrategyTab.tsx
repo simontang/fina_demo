@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
-import { Collapse, Descriptions, Empty, Space, Table, Tag, Typography } from "antd";
+import { Collapse, Descriptions, Empty, Space, Table, Typography } from "antd";
 import type { CollapseProps, TableColumnsType } from "antd";
+import { OverflowSafeTag } from "../shared/OverflowSafeTag";
 import type {
   CampaignAbTest,
   CampaignChannel,
@@ -44,18 +45,18 @@ function formatPercent(value: number): string {
 
 function formatBoolean(value: boolean | undefined): ReactNode {
   if (value === undefined) return <Text type="secondary">Not specified</Text>;
-  return <Tag color={value ? "success" : "default"}>{value ? "Yes" : "No"}</Tag>;
+  return <OverflowSafeTag color={value ? "success" : "default"}>{value ? "Yes" : "No"}</OverflowSafeTag>;
 }
 
 function renderTags(values: string[]): ReactNode {
   return values.length > 0
-    ? <Space size={[0, 4]} wrap>{values.map((value) => <Tag key={value}>{value}</Tag>)}</Space>
+    ? <Space size={[0, 4]} wrap style={{ maxWidth: "100%" }}>{values.map((value) => <OverflowSafeTag key={value}>{value}</OverflowSafeTag>)}</Space>
     : <Text type="secondary">-</Text>;
 }
 
 function FriendlyValue({ value, depth = 0 }: { value: JsonValue; depth?: number }) {
   if (value === null) return <Text type="secondary">Not available</Text>;
-  if (typeof value === "boolean") return <Tag color={value ? "success" : "default"}>{value ? "Yes" : "No"}</Tag>;
+  if (typeof value === "boolean") return <OverflowSafeTag color={value ? "success" : "default"}>{value ? "Yes" : "No"}</OverflowSafeTag>;
   if (typeof value === "number") return <Text>{value.toLocaleString()}</Text>;
   if (typeof value === "string") return <Text style={{ overflowWrap: "anywhere" }}>{value || "-"}</Text>;
 
@@ -66,9 +67,9 @@ function FriendlyValue({ value, depth = 0 }: { value: JsonValue; depth?: number 
       return (
         <Space size={[0, 4]} wrap>
           {value.map((item, index) => (
-            <Tag key={`${String(item)}:${index}`}>
+            <OverflowSafeTag key={`${String(item)}:${index}`}>
               {item === null ? "Not available" : typeof item === "boolean" ? (item ? "Yes" : "No") : String(item)}
-            </Tag>
+            </OverflowSafeTag>
           ))}
         </Space>
       );
@@ -166,7 +167,7 @@ const channelColumns: TableColumnsType<CampaignChannel> = [
     title: "Channel",
     key: "channel",
     width: 150,
-    render: (_, item) => <div><Tag color="blue">{item.channel}</Tag><Text code style={{ fontSize: 11 }}>{item.key}</Text></div>,
+    render: (_, item) => <div><OverflowSafeTag color="blue">{item.channel}</OverflowSafeTag><Text code style={{ fontSize: 11 }}>{item.key}</Text></div>,
   },
   { title: "Template", dataIndex: "templateKey", width: 190, render: (value?: string) => value ? <Text code>{value}</Text> : <Text type="secondary">-</Text> },
   { title: "Eligible segments", dataIndex: "eligibleSubSegmentKeys", width: 210, render: (values: string[]) => renderTags(values) },
@@ -348,9 +349,9 @@ function OfferDetails({ value }: { value: CampaignOfferStrategy }) {
             <Descriptions.Item label="Allocation rules">
               <Space size={[0, 4]} wrap>
                 {value.allocation.rules.map((rule, index) => (
-                  <Tag key={`${rule.subSegmentKey}:${rule.offerCode}:${index}`}>
+                  <OverflowSafeTag key={`${rule.subSegmentKey}:${rule.offerCode}:${index}`}>
                     {rule.subSegmentKey || "Any segment"} to {rule.offerCode || "No offer"}
-                  </Tag>
+                  </OverflowSafeTag>
                 ))}
               </Space>
             </Descriptions.Item>

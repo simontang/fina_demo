@@ -1,7 +1,8 @@
 import { useMemo } from "react";
-import { Button, Card, Col, Popconfirm, Row, Spin, Table, Tabs, Tag, Typography } from "antd";
+import { Button, Card, Col, Popconfirm, Row, Spin, Table, Tabs, Typography } from "antd";
 import type { TableColumnsType } from "antd";
 import { WarningOutlined } from "@ant-design/icons";
+import { OverflowSafeTag } from "../shared/OverflowSafeTag";
 import type { SegmentDataRow, SegmentDataVO, SegmentDefinitionVO } from "./types";
 
 const { Text, Paragraph } = Typography;
@@ -49,7 +50,7 @@ export function SegmentDetail({
           <Button type="text" size="small" danger icon={<WarningOutlined />}>Delete</Button>
         </Popconfirm>
       }
-      style={{ borderRadius: 12, flex: 1 }}
+      style={{ borderRadius: 8, flex: 1 }}
     >
       <Tabs
         defaultActiveKey="overview"
@@ -71,9 +72,9 @@ export function SegmentDetail({
                 <div>
                   <Text type="secondary" style={{ fontSize: 11 }}>Status</Text>
                   <Paragraph style={{ margin: 0 }}>
-                    <Tag color={segment.status === 1 ? "green" : "default"}>
+                    <OverflowSafeTag color={segment.status === 1 ? "green" : "default"}>
                       {segment.status === 1 ? "active" : "disabled"}
-                    </Tag>
+                    </OverflowSafeTag>
                   </Paragraph>
                 </div>
                 {segment.description ? (

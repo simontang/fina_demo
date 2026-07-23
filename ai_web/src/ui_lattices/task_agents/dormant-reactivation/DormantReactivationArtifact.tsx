@@ -1,7 +1,8 @@
-import { Alert, Card, Spin, Table, Tag, Typography } from "antd";
+import { Tag, Typography } from "antd";
 import type { TableColumnsType } from "antd";
 import { RocketOutlined } from "@ant-design/icons";
 import type { ElementProps } from "@axiom-lattice/react-sdk";
+import { TableDetailWorkbench } from "../shared/TableDetailWorkbench";
 import { CampaignDetail } from "./CampaignDetail";
 import { campaignStatusConfig } from "./types";
 import type { MarketingCampaignVO } from "./types";
@@ -14,7 +15,7 @@ const columns: TableColumnsType<MarketingCampaignVO> = [
     title: "Campaign",
     dataIndex: "name",
     key: "name",
-    width: 220,
+    width: 210,
     ellipsis: true,
     render: (name: string, campaign) => (
       <div style={{ minWidth: 0 }}>
@@ -27,29 +28,19 @@ const columns: TableColumnsType<MarketingCampaignVO> = [
     title: "Status",
     dataIndex: "status",
     key: "status",
-    width: 100,
+    width: 96,
     render: (status: string) => {
       const config = campaignStatusConfig[status] || campaignStatusConfig.draft;
       return <Tag color={config.color}>{config.label}</Tag>;
     },
   },
   {
-    title: "Main Segment",
-    dataIndex: "mainSegmentDataId",
-    key: "mainSegmentDataId",
-    width: 115,
-    render: (id: number | null) => id == null ? <Text type="secondary">-</Text> : <Text code>#{id}</Text>,
-  },
-  {
-    title: "Schedule",
-    key: "schedule",
-    width: 205,
-    render: (_, campaign) => (
-      <div>
-        <Text type="secondary" style={{ display: "block", fontSize: 11 }}>{campaign.startTime}</Text>
-        <Text type="secondary" style={{ display: "block", fontSize: 11 }}>{campaign.endTime}</Text>
-      </div>
-    ),
+    title: "Start",
+    dataIndex: "startTime",
+    key: "startTime",
+    width: 138,
+    ellipsis: true,
+    render: (value: string) => <Text type="secondary" style={{ fontSize: 11 }}>{value?.slice(0, 16).replace("T", " ")}</Text>,
   },
 ];
 
@@ -89,44 +80,20 @@ export const DormantReactivationArtifactPanel: React.FC<ElementProps> = ({ data 
   const workbench = useCampaignWorkbench(data?.selectedCampaignKey);
 
   return (
-    <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16, height: "100%", overflow: "auto" }}>
-      <Card size="small" title={<Text strong>Reactivation Campaigns</Text>} style={{ borderRadius: 8 }} styles={{ body: { padding: 0 } }}>
-        {workbench.loading ? (
-          <div style={{ padding: 24, textAlign: "center" }}><Spin /></div>
-        ) : workbench.error ? (
-          <div style={{ padding: 24, textAlign: "center", color: "#ef4444" }}>{workbench.error}</div>
-        ) : (
-          <Table<MarketingCampaignVO>
-            columns={columns}
-            dataSource={workbench.campaigns}
-            size="small"
-            pagination={false}
-            rowKey="id"
-            scroll={{ x: 640 }}
-            onRow={(record) => ({
-              onClick: () => workbench.selectCampaign(record),
-              onKeyDown: (event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  workbench.selectCampaign(record);
-                }
-              },
-              tabIndex: 0,
-              "aria-selected": record.id === workbench.selectedId,
-              style: {
-                cursor: "pointer",
-                background: record.id === workbench.selectedId ? "#f0f0ff" : undefined,
-              },
-            })}
-          />
-        )}
-      </Card>
-
-      {workbench.detailLoading ? (
-        <div style={{ minHeight: 180, display: "grid", placeItems: "center" }}><Spin tip="Loading campaign detail..." /></div>
-      ) : workbench.detailError ? (
-        <Alert type="error" showIcon message="Campaign detail unavailable" description={workbench.detailError} />
-      ) : workbench.selectedCampaign ? (
+    <TableDetailWorkbench
+      title="Reactivation Campaigns"
+      records={workbench.campaigns}
+      columns={columns}
+      getRecordId={(campaign) => campaign.id}
+      selectedId={workbench.selectedId}
+      loading={workbench.loading}
+      error={workbench.error}
+      emptyDescription="No reactivation campaigns"
+      detailLoading={workbench.detailLoading}
+      detailError={workbench.detailError}
+      onSelect={workbench.selectCampaign}
+      onCloseDetail={workbench.clearSelection}
+      renderDetail={() => workbench.selectedCampaign ? (
         <CampaignDetail
           campaign={workbench.selectedCampaign}
           actionLoading={workbench.actionLoading}
@@ -135,6 +102,6 @@ export const DormantReactivationArtifactPanel: React.FC<ElementProps> = ({ data 
           onDelete={workbench.deleteSelectedCampaign}
         />
       ) : null}
-    </div>
+    />
   );
 };

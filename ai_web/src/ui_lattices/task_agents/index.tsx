@@ -57,6 +57,7 @@ const segmentTabs: TaskAgentTab[] = [
     label: "Artifact",
     icon: <FolderOpenFilled />,
     componentKey: "segment_artifact_workbench",
+    panelLayout: "table-detail",
   },
 ];
 
@@ -73,6 +74,7 @@ const dormantReactivationTabs: TaskAgentTab[] = [
     label: "Artifact",
     icon: <FolderOpenFilled />,
     componentKey: "dormant_reactivation_artifact_workbench",
+    panelLayout: "table-detail",
   },
 ];
 
