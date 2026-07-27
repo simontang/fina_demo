@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Collapse, Descriptions, Empty, Space, Table, Typography } from "antd";
 import type { CollapseProps, TableColumnsType } from "antd";
 import { OverflowSafeTag } from "../shared/OverflowSafeTag";
@@ -21,6 +21,11 @@ import type {
 } from "./types";
 
 const { Text } = Typography;
+
+const wrappingTagSpaceStyle: CSSProperties = {
+  maxWidth: "100%",
+  minWidth: 0,
+};
 
 function hasJsonContent(value: JsonValue | undefined): value is JsonValue {
   if (value == null) return false;
@@ -50,7 +55,7 @@ function formatBoolean(value: boolean | undefined): ReactNode {
 
 function renderTags(values: string[]): ReactNode {
   return values.length > 0
-    ? <Space size={[0, 4]} wrap style={{ maxWidth: "100%" }}>{values.map((value) => <OverflowSafeTag key={value}>{value}</OverflowSafeTag>)}</Space>
+    ? <Space size={[4, 4]} wrap style={wrappingTagSpaceStyle}>{values.map((value) => <OverflowSafeTag key={value}>{value}</OverflowSafeTag>)}</Space>
     : <Text type="secondary">-</Text>;
 }
 
@@ -65,7 +70,7 @@ function FriendlyValue({ value, depth = 0 }: { value: JsonValue; depth?: number 
     const primitiveOnly = value.every((item) => item === null || typeof item !== "object");
     if (primitiveOnly) {
       return (
-        <Space size={[0, 4]} wrap>
+        <Space size={[4, 4]} wrap style={wrappingTagSpaceStyle}>
           {value.map((item, index) => (
             <OverflowSafeTag key={`${String(item)}:${index}`}>
               {item === null ? "Not available" : typeof item === "boolean" ? (item ? "Yes" : "No") : String(item)}
@@ -167,7 +172,12 @@ const channelColumns: TableColumnsType<CampaignChannel> = [
     title: "Channel",
     key: "channel",
     width: 150,
-    render: (_, item) => <div><OverflowSafeTag color="blue">{item.channel}</OverflowSafeTag><Text code style={{ fontSize: 11 }}>{item.key}</Text></div>,
+    render: (_, item) => (
+      <Space size={4} wrap style={wrappingTagSpaceStyle}>
+        <OverflowSafeTag color="blue">{item.channel}</OverflowSafeTag>
+        <Text code style={{ fontSize: 11, overflowWrap: "anywhere" }}>{item.key}</Text>
+      </Space>
+    ),
   },
   { title: "Template", dataIndex: "templateKey", width: 190, render: (value?: string) => value ? <Text code>{value}</Text> : <Text type="secondary">-</Text> },
   { title: "Eligible segments", dataIndex: "eligibleSubSegmentKeys", width: 210, render: (values: string[]) => renderTags(values) },
@@ -347,7 +357,7 @@ function OfferDetails({ value }: { value: CampaignOfferStrategy }) {
           {value.allocation?.method ? <Descriptions.Item label="Allocation method">{humanizeKey(value.allocation.method)}</Descriptions.Item> : null}
           {value.allocation?.rules.length ? (
             <Descriptions.Item label="Allocation rules">
-              <Space size={[0, 4]} wrap>
+              <Space size={[4, 4]} wrap style={wrappingTagSpaceStyle}>
                 {value.allocation.rules.map((rule, index) => (
                   <OverflowSafeTag key={`${rule.subSegmentKey}:${rule.offerCode}:${index}`}>
                     {rule.subSegmentKey || "Any segment"} to {rule.offerCode || "No offer"}

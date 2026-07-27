@@ -9,4 +9,7 @@ export const TABLE_DETAIL_WORKBENCH_LAYOUT = {
   contentPadding: 16,
   selectedRowBackground: "#f0f0ff",
   panelTransition: "width 160ms ease",
+  resizeHandleWidth: 16,
+  resizeStep: 24,
+  resizePageStep: 80,
 } as const;

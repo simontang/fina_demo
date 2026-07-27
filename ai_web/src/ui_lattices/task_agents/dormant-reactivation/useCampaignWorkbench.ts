@@ -46,9 +46,10 @@ export function useCampaignWorkbench(initialKey: unknown) {
   const [selectedCampaign, setSelectedCampaign] = useState<MarketingCampaignVO | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
-  const [actionLoading, setActionLoading] = useState(false);
+  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
   const campaignListRequestId = useRef(0);
   const campaignDetailRequestId = useRef(0);
+  const campaignActionRequestId = useRef(0);
   const selectedIdRef = useRef<number | null>(initialIdRef.current);
 
   const loadCampaigns = useCallback(async () => {
@@ -87,13 +88,15 @@ export function useCampaignWorkbench(initialKey: unknown) {
       const response = await get<CdpApiResponse<MarketingCampaignVO>>(
         `${CDP_API_BASE}/marketing-campaigns/${campaign.id}`,
       );
-      if (requestId !== campaignDetailRequestId.current) return;
+      if (requestId !== campaignDetailRequestId.current || selectedIdRef.current !== campaign.id) return;
       setSelectedCampaign(unwrapCdpResponse(response));
     } catch (requestError: unknown) {
-      if (requestId !== campaignDetailRequestId.current) return;
+      if (requestId !== campaignDetailRequestId.current || selectedIdRef.current !== campaign.id) return;
       setDetailError(getErrorMessage(requestError, "Failed to load campaign detail"));
     } finally {
-      if (requestId === campaignDetailRequestId.current) setDetailLoading(false);
+      if (requestId === campaignDetailRequestId.current && selectedIdRef.current === campaign.id) {
+        setDetailLoading(false);
+      }
     }
   }, [get]);
 
@@ -129,52 +132,61 @@ export function useCampaignWorkbench(initialKey: unknown) {
   }, []);
 
   const reloadCampaignDetail = useCallback(async (id: number) => {
+    if (selectedIdRef.current !== id) return;
+
+    const requestId = ++campaignDetailRequestId.current;
+    setDetailError(null);
     try {
       const response = await get<CdpApiResponse<MarketingCampaignVO>>(
         `${CDP_API_BASE}/marketing-campaigns/${id}`,
       );
-      if (selectedIdRef.current === id) setSelectedCampaign(unwrapCdpResponse(response));
+      if (requestId !== campaignDetailRequestId.current || selectedIdRef.current !== id) return;
+      setSelectedCampaign(unwrapCdpResponse(response));
     } catch (requestError: unknown) {
-      if (selectedIdRef.current === id) {
+      if (requestId === campaignDetailRequestId.current && selectedIdRef.current === id) {
         setDetailError(getErrorMessage(requestError, "Failed to refresh campaign detail"));
       }
     }
   }, [get]);
 
   const deleteSelectedCampaign = useCallback(async () => {
-    if (!selectedId) return;
+    const targetId = selectedId;
+    if (!targetId) return;
+
     try {
       const response = await del<CdpApiResponse<null>>(
-        `${CDP_API_BASE}/marketing-campaigns/${selectedId}`,
+        `${CDP_API_BASE}/marketing-campaigns/${targetId}`,
       );
       unwrapCdpResponse(response);
       message.success("Campaign deleted");
-      campaignDetailRequestId.current += 1;
-      selectedIdRef.current = null;
-      setSelectedId(null);
-      setSelectedCampaign(null);
+      if (selectedIdRef.current === targetId) clearSelection();
       void loadCampaigns();
     } catch (requestError: unknown) {
       message.error(getErrorMessage(requestError, "Delete failed"));
     }
-  }, [del, loadCampaigns, selectedId]);
+  }, [clearSelection, del, loadCampaigns, selectedId]);
 
   const runStatusAction = useCallback(async (action: "start" | "stop") => {
-    if (!selectedId) return;
-    setActionLoading(true);
+    const targetId = selectedId;
+    if (!targetId) return;
+
+    const requestId = ++campaignActionRequestId.current;
+    setActionLoadingId(targetId);
     try {
       const response = await post<CdpApiResponse<MarketingCampaignVO>>(
-        `${CDP_API_BASE}/marketing-campaigns/${selectedId}/${action}`,
+        `${CDP_API_BASE}/marketing-campaigns/${targetId}/${action}`,
         {},
       );
       unwrapCdpResponse(response);
       message.success(action === "start" ? "Campaign started" : "Campaign stopped");
-      void reloadCampaignDetail(selectedId);
+      if (selectedIdRef.current === targetId) void reloadCampaignDetail(targetId);
       void loadCampaigns();
     } catch (requestError: unknown) {
       message.error(getErrorMessage(requestError, action === "start" ? "Start failed" : "Stop failed"));
     } finally {
-      setActionLoading(false);
+      if (requestId === campaignActionRequestId.current) {
+        setActionLoadingId((currentId) => currentId === targetId ? null : currentId);
+      }
     }
   }, [loadCampaigns, post, reloadCampaignDetail, selectedId]);
 
@@ -195,7 +207,7 @@ export function useCampaignWorkbench(initialKey: unknown) {
     selectedCampaign,
     detailLoading,
     detailError,
-    actionLoading,
+    actionLoading: actionLoadingId !== null && actionLoadingId === selectedId,
     selectCampaign,
     clearSelection,
     deleteSelectedCampaign,

@@ -7,6 +7,7 @@ import { useTableDetailWorkbenchContext } from "./tableDetailWorkbenchContext";
 import { TABLE_DETAIL_WORKBENCH_LAYOUT } from "./tableDetailWorkbenchLayout";
 
 const { Text } = Typography;
+const TABLE_SCROLL = { x: "max-content" } as const;
 
 function useCompactWorkbench() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -63,6 +64,10 @@ export function TableDetailWorkbench<RecordType extends object>({
   const { detailExpanded, setDetailExpanded } = useTableDetailWorkbenchContext();
   const { containerRef, compact } = useCompactWorkbench();
   const hadSelectionRef = useRef(selectedId !== null);
+  const tablePanelRef = useRef<HTMLElement>(null);
+  const compactBackButtonRef = useRef<HTMLButtonElement>(null);
+  const focusedTableElementRef = useRef<HTMLElement | null>(null);
+  const restoreTableFocusRef = useRef(false);
 
   useEffect(() => {
     if (selectedId !== null) {
@@ -78,20 +83,58 @@ export function TableDetailWorkbench<RecordType extends object>({
   }, [selectedId, setDetailExpanded]);
 
   const selectRecord = (record: RecordType) => {
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement && tablePanelRef.current?.contains(activeElement)) {
+      focusedTableElementRef.current = activeElement;
+    }
     setDetailExpanded(true);
     onSelect(record);
   };
 
   const closeDetail = () => {
+    restoreTableFocusRef.current = true;
     onCloseDetail();
     setDetailExpanded(false);
   };
 
-  const tablePanel = (split: boolean) => (
+  useEffect(() => {
+    if (!detailExpanded || !compact) return;
+
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement && tablePanelRef.current?.contains(activeElement)) {
+      focusedTableElementRef.current = activeElement;
+    }
+
+    if (focusedTableElementRef.current) {
+      compactBackButtonRef.current?.focus();
+    }
+  }, [compact, detailExpanded]);
+
+  useEffect(() => {
+    if (detailExpanded || !restoreTableFocusRef.current) return;
+
+    restoreTableFocusRef.current = false;
+    const focusedTableElement = focusedTableElementRef.current;
+    if (focusedTableElement?.isConnected) {
+      focusedTableElement.focus();
+      return;
+    }
+
+    tablePanelRef.current?.querySelector<HTMLElement>('tr[tabindex="0"]')?.focus();
+  }, [detailExpanded]);
+
+  const tablePanel = (split: boolean, hidden: boolean) => (
     <section
+      ref={tablePanelRef}
       aria-label={title}
+      aria-hidden={hidden || undefined}
+      onFocusCapture={(event) => {
+        if (event.target instanceof HTMLElement) {
+          focusedTableElementRef.current = event.target;
+        }
+      }}
       style={{
-        display: "flex",
+        display: hidden ? "none" : "flex",
         flexDirection: "column",
         flex: split ? `0 0 ${TABLE_DETAIL_WORKBENCH_LAYOUT.tablePaneWidth}px` : 1,
         minWidth: 0,
@@ -117,7 +160,7 @@ export function TableDetailWorkbench<RecordType extends object>({
             size="small"
             pagination={false}
             rowKey={getRecordId}
-            scroll={split ? { x: "max-content" } : undefined}
+            scroll={TABLE_SCROLL}
             onRow={(record) => {
               const recordId = getRecordId(record);
               const selected = selectedId === recordId;
@@ -166,6 +209,7 @@ export function TableDetailWorkbench<RecordType extends object>({
         }}
       >
         <Button
+          ref={compactBackButtonRef}
           type="text"
           size="small"
           icon={singleColumn ? <ArrowLeftOutlined /> : <CloseOutlined />}
@@ -186,6 +230,7 @@ export function TableDetailWorkbench<RecordType extends object>({
   );
 
   const showSplitLayout = detailExpanded && !compact;
+  const showCompactDetail = detailExpanded && compact;
 
   return (
     <div
@@ -200,16 +245,17 @@ export function TableDetailWorkbench<RecordType extends object>({
         padding: TABLE_DETAIL_WORKBENCH_LAYOUT.contentPadding,
       }}
     >
-      {showSplitLayout ? (
-        <div style={{ display: "flex", flex: 1, minHeight: 0, gap: TABLE_DETAIL_WORKBENCH_LAYOUT.contentGap }}>
-          {tablePanel(true)}
-          {detailPanel(false)}
-        </div>
-      ) : detailExpanded ? (
-        detailPanel(true)
-      ) : (
-        tablePanel(false)
-      )}
+      <div
+        style={{
+          display: "flex",
+          flex: 1,
+          minHeight: 0,
+          gap: showSplitLayout ? TABLE_DETAIL_WORKBENCH_LAYOUT.contentGap : 0,
+        }}
+      >
+        {tablePanel(showSplitLayout, showCompactDetail)}
+        {detailExpanded ? detailPanel(showCompactDetail) : null}
+      </div>
     </div>
   );
 }

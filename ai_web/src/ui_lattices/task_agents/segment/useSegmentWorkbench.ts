@@ -14,6 +14,11 @@ function parseSegmentRows(dataJson: string): SegmentDataRow[] {
   }
 }
 
+function normalizeInitialId(initialKey: unknown): number | null {
+  const value = Number(initialKey);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
 export function useSegmentSummary(): SegmentDefinitionVO[] {
   const [segments, setSegments] = useState<SegmentDefinitionVO[]>([]);
   const { get } = useApi();
@@ -39,17 +44,18 @@ export function useSegmentSummary(): SegmentDefinitionVO[] {
 export function useSegmentWorkbench(initialKey: unknown) {
   const { get, post, del } = useApi();
   const { selectThread } = useConversationContext();
+  const initialIdRef = useRef(normalizeInitialId(initialKey));
   const [segments, setSegments] = useState<SegmentDefinitionVO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(
-    initialKey ? Number(initialKey) : null,
-  );
+  const [selectedId, setSelectedId] = useState<number | null>(initialIdRef.current);
   const [segmentData, setSegmentData] = useState<SegmentDataVO | null>(null);
   const [dataLoading, setDataLoading] = useState(false);
-  const [processing, setProcessing] = useState(false);
+  const [processingId, setProcessingId] = useState<number | null>(null);
   const segmentListRequestId = useRef(0);
   const segmentDataRequestId = useRef(0);
+  const segmentProcessRequestId = useRef(0);
+  const selectedIdRef = useRef<number | null>(initialIdRef.current);
 
   const loadSegments = useCallback(async () => {
     const requestId = ++segmentListRequestId.current;
@@ -78,19 +84,26 @@ export function useSegmentWorkbench(initialKey: unknown) {
   }, [loadSegments]);
 
   const loadSegmentData = useCallback(async (definitionId: number) => {
+    if (selectedIdRef.current !== definitionId) return;
+
     const requestId = ++segmentDataRequestId.current;
     setDataLoading(true);
+    setSegmentData(null);
     try {
       const response = await get<CdpApiResponse<SegmentDataPage>>(
         `${CDP_API_BASE}/segment-data?definitionId=${definitionId}&pageSize=1`,
       );
       const { items } = unwrapCdpResponse(response);
-      if (requestId !== segmentDataRequestId.current) return;
+      if (requestId !== segmentDataRequestId.current || selectedIdRef.current !== definitionId) return;
       setSegmentData(Array.isArray(items) ? items[0] ?? null : null);
     } catch {
-      if (requestId === segmentDataRequestId.current) setSegmentData(null);
+      if (requestId === segmentDataRequestId.current && selectedIdRef.current === definitionId) {
+        setSegmentData(null);
+      }
     } finally {
-      if (requestId === segmentDataRequestId.current) setDataLoading(false);
+      if (requestId === segmentDataRequestId.current && selectedIdRef.current === definitionId) {
+        setDataLoading(false);
+      }
     }
   }, [get]);
 
@@ -107,6 +120,12 @@ export function useSegmentWorkbench(initialKey: unknown) {
   }, [selectedId, loadSegmentData]);
 
   const selectSegment = useCallback((segment: SegmentDefinitionVO) => {
+    if (selectedIdRef.current !== segment.id) {
+      segmentDataRequestId.current += 1;
+      setSegmentData(null);
+      setDataLoading(true);
+    }
+    selectedIdRef.current = segment.id;
     setSelectedId(segment.id);
     if (segment.threadId) {
       selectThread(segment.threadId);
@@ -115,41 +134,49 @@ export function useSegmentWorkbench(initialKey: unknown) {
 
   const clearSelection = useCallback(() => {
     segmentDataRequestId.current += 1;
+    selectedIdRef.current = null;
     setSelectedId(null);
     setSegmentData(null);
     setDataLoading(false);
   }, []);
 
   const deleteSelectedSegment = useCallback(async () => {
-    if (!selectedId) return;
+    const targetId = selectedId;
+    if (!targetId) return;
+
     try {
       const response = await del<CdpApiResponse<null>>(
-        `${CDP_API_BASE}/segment-definitions/${selectedId}`,
+        `${CDP_API_BASE}/segment-definitions/${targetId}`,
       );
       unwrapCdpResponse(response);
       message.success("Segment deleted");
-      setSelectedId(null);
+      if (selectedIdRef.current === targetId) clearSelection();
       void loadSegments();
     } catch (requestError: unknown) {
       message.error(getErrorMessage(requestError, "Delete failed"));
     }
-  }, [del, loadSegments, selectedId]);
+  }, [clearSelection, del, loadSegments, selectedId]);
 
   const processSelectedSegment = useCallback(async () => {
-    if (!selectedId) return;
-    setProcessing(true);
+    const targetId = selectedId;
+    if (!targetId) return;
+
+    const requestId = ++segmentProcessRequestId.current;
+    setProcessingId(targetId);
     try {
       const response = await post<CdpApiResponse<SegmentDataVO>>(
-        `${CDP_API_BASE}/segment-definitions/${selectedId}/process`,
+        `${CDP_API_BASE}/segment-definitions/${targetId}/process`,
         {},
       );
       unwrapCdpResponse(response);
       message.success("Process completed");
-      void loadSegmentData(selectedId);
+      if (selectedIdRef.current === targetId) void loadSegmentData(targetId);
     } catch (requestError: unknown) {
       message.error(getErrorMessage(requestError, "Process failed"));
     } finally {
-      setProcessing(false);
+      if (requestId === segmentProcessRequestId.current) {
+        setProcessingId((currentId) => currentId === targetId ? null : currentId);
+      }
     }
   }, [loadSegmentData, post, selectedId]);
 
@@ -167,7 +194,7 @@ export function useSegmentWorkbench(initialKey: unknown) {
     selectedSegment,
     segmentData,
     dataLoading,
-    processing,
+    processing: processingId !== null && processingId === selectedId,
     rows,
     selectSegment,
     clearSelection,

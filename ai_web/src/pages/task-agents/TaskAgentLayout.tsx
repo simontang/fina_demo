@@ -103,6 +103,7 @@ const TaskAgentInner: React.FC<TaskAgentLayoutProps> = ({ assistantId, tabs }) =
 
       {activeKey !== null && tabs.some((tab) => tab.key === activeKey) && (
         <Panel
+          key={activeKey}
           activeTab={tabs.find((t) => t.key === activeKey)!}
           onClose={() => setActiveKey(null)}
         />
@@ -121,21 +122,28 @@ const Panel: React.FC<{
   const dragStartRef = useRef<{ x: number; width: number } | null>(null);
   const tableDetailPanel = activeTab.panelLayout === "table-detail";
   const [detailExpanded, setDetailExpandedState] = useState(false);
+  const detailExpandedRef = useRef(false);
   const [panelWidth, setPanelWidth] = useState<number>(TABLE_DETAIL_WORKBENCH_LAYOUT.collapsedPanelWidth);
   const [dragging, setDragging] = useState(false);
+  const [resizeHandleFocused, setResizeHandleFocused] = useState(false);
 
-  const clampPanelWidth = useCallback((width: number) => {
+  const getMaxPanelWidth = useCallback(() => {
     const containerWidth = panelRef.current?.parentElement?.clientWidth ?? window.innerWidth;
-    const maxWidth = Math.max(
+    return Math.max(
       TABLE_DETAIL_WORKBENCH_LAYOUT.minPanelWidth,
       containerWidth - TABLE_DETAIL_WORKBENCH_LAYOUT.minMainWidth,
     );
-    return Math.min(Math.max(width, TABLE_DETAIL_WORKBENCH_LAYOUT.minPanelWidth), maxWidth);
   }, []);
 
-  const setDetailExpanded = useCallback((expanded: boolean) => {
-    if (!tableDetailPanel) return;
+  const clampPanelWidth = useCallback((width: number) => {
+    const maxWidth = getMaxPanelWidth();
+    return Math.min(Math.max(width, TABLE_DETAIL_WORKBENCH_LAYOUT.minPanelWidth), maxWidth);
+  }, [getMaxPanelWidth]);
 
+  const setDetailExpanded = useCallback((expanded: boolean) => {
+    if (!tableDetailPanel || detailExpandedRef.current === expanded) return;
+
+    detailExpandedRef.current = expanded;
     setDetailExpandedState(expanded);
     setPanelWidth((currentWidth) => (
       clampPanelWidth(
@@ -145,11 +153,6 @@ const Panel: React.FC<{
       )
     ));
   }, [clampPanelWidth, tableDetailPanel]);
-
-  useEffect(() => {
-    setDetailExpandedState(false);
-    setPanelWidth(clampPanelWidth(TABLE_DETAIL_WORKBENCH_LAYOUT.collapsedPanelWidth));
-  }, [activeTab.key, clampPanelWidth]);
 
   useEffect(() => {
     const container = panelRef.current?.parentElement;
@@ -184,6 +187,40 @@ const Panel: React.FC<{
     setDragging(false);
   }, []);
 
+  const onResizeKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    const minWidth = TABLE_DETAIL_WORKBENCH_LAYOUT.minPanelWidth;
+    const maxWidth = getMaxPanelWidth();
+    let adjustment: number | null = null;
+
+    switch (event.key) {
+      case "ArrowLeft":
+        adjustment = TABLE_DETAIL_WORKBENCH_LAYOUT.resizeStep;
+        break;
+      case "ArrowRight":
+        adjustment = -TABLE_DETAIL_WORKBENCH_LAYOUT.resizeStep;
+        break;
+      case "PageUp":
+        adjustment = TABLE_DETAIL_WORKBENCH_LAYOUT.resizePageStep;
+        break;
+      case "PageDown":
+        adjustment = -TABLE_DETAIL_WORKBENCH_LAYOUT.resizePageStep;
+        break;
+      case "Home":
+        event.preventDefault();
+        setPanelWidth(minWidth);
+        return;
+      case "End":
+        event.preventDefault();
+        setPanelWidth(maxWidth);
+        return;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    setPanelWidth((currentWidth) => clampPanelWidth(currentWidth + adjustment));
+  }, [clampPanelWidth, getMaxPanelWidth]);
+
   const tableDetailContext = useMemo<TableDetailWorkbenchContextValue>(() => ({
     detailExpanded: tableDetailPanel && detailExpanded,
     setDetailExpanded,
@@ -195,11 +232,8 @@ const Panel: React.FC<{
       style={{
         width: panelWidth,
         height: "100%",
-        borderLeft: "1px solid #e8e8e8",
-        background: "#fff",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
+        flex: "0 0 auto",
+        overflow: "visible",
         position: "relative",
         transition: dragging ? undefined : TABLE_DETAIL_WORKBENCH_LAYOUT.panelTransition,
       }}
@@ -209,44 +243,67 @@ const Panel: React.FC<{
           role="separator"
           aria-label="Resize table detail workbench"
           aria-orientation="vertical"
+          aria-valuemin={TABLE_DETAIL_WORKBENCH_LAYOUT.minPanelWidth}
+          aria-valuemax={getMaxPanelWidth()}
+          aria-valuenow={Math.round(panelWidth)}
+          aria-valuetext={`${Math.round(panelWidth)} pixels`}
+          tabIndex={0}
           onPointerDown={onResizePointerDown}
           onPointerMove={onResizePointerMove}
           onPointerUp={onResizePointerEnd}
           onPointerCancel={onResizePointerEnd}
+          onKeyDown={onResizeKeyDown}
+          onFocus={() => setResizeHandleFocused(true)}
+          onBlur={() => setResizeHandleFocused(false)}
           style={{
             position: "absolute",
             top: 0,
             bottom: 0,
-            left: -4,
-            width: 8,
+            left: -TABLE_DETAIL_WORKBENCH_LAYOUT.resizeHandleWidth / 2,
+            width: TABLE_DETAIL_WORKBENCH_LAYOUT.resizeHandleWidth,
             cursor: "col-resize",
             touchAction: "none",
-            zIndex: 1,
+            zIndex: 2,
+            background: resizeHandleFocused ? "rgba(99,102,241,0.12)" : undefined,
+            outline: resizeHandleFocused ? "2px solid #6366f1" : undefined,
+            outlineOffset: -2,
           }}
         />
       ) : null}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "8px 12px",
-        borderBottom: "1px solid #e8e8e8",
-        flexShrink: 0,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {activeTab.icon}
-          <Text strong style={{ fontSize: 14 }}>{activeTab.label}</Text>
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          borderLeft: "1px solid #e8e8e8",
+          background: "#fff",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "8px 12px",
+          borderBottom: "1px solid #e8e8e8",
+          flexShrink: 0,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {activeTab.icon}
+            <Text strong style={{ fontSize: 14 }}>{activeTab.label}</Text>
+          </div>
+          <Button type="text" size="small" icon={<CloseOutlined />} onClick={onClose} />
         </div>
-        <Button type="text" size="small" icon={<CloseOutlined />} onClick={onClose} />
-      </div>
-      <div style={{ flex: 1, minHeight: 0, overflow: tableDetailPanel ? "hidden" : "auto" }}>
-        <TableDetailWorkbenchContext.Provider value={tableDetailContext}>
-          {SidePanel ? (
-            <SidePanel component_key={activeTab.componentKey} data={activeTab.data || {}} />
-          ) : (
-            <div style={{ padding: 16, color: "#999" }}>Panel not loaded</div>
-          )}
-        </TableDetailWorkbenchContext.Provider>
+        <div style={{ flex: 1, minHeight: 0, overflow: tableDetailPanel ? "hidden" : "auto" }}>
+          <TableDetailWorkbenchContext.Provider value={tableDetailContext}>
+            {SidePanel ? (
+              <SidePanel component_key={activeTab.componentKey} data={activeTab.data || {}} />
+            ) : (
+              <div style={{ padding: 16, color: "#999" }}>Panel not loaded</div>
+            )}
+          </TableDetailWorkbenchContext.Provider>
+        </div>
       </div>
     </div>
   );

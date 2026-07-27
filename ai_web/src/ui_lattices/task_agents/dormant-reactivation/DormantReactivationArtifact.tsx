@@ -35,12 +35,22 @@ const columns: TableColumnsType<MarketingCampaignVO> = [
     },
   },
   {
-    title: "Start",
-    dataIndex: "startTime",
-    key: "startTime",
-    width: 138,
-    ellipsis: true,
-    render: (value: string) => <Text type="secondary" style={{ fontSize: 11 }}>{value?.slice(0, 16).replace("T", " ")}</Text>,
+    title: "Main Segment",
+    dataIndex: "mainSegmentDataId",
+    key: "mainSegmentDataId",
+    width: 115,
+    render: (id: number | null) => id == null ? <Text type="secondary">-</Text> : <Text code>#{id}</Text>,
+  },
+  {
+    title: "Schedule",
+    key: "schedule",
+    width: 205,
+    render: (_, campaign) => (
+      <div>
+        <Text type="secondary" style={{ display: "block", fontSize: 11 }}>{campaign.startTime}</Text>
+        <Text type="secondary" style={{ display: "block", fontSize: 11 }}>{campaign.endTime}</Text>
+      </div>
+    ),
   },
 ];
 
