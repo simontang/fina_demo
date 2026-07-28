@@ -46,7 +46,7 @@ GET /api/v1/segment-definitions
 GET /api/v1/segment-definitions/page?page=1&pageSize=20&keyword=customer
 ```
 
-`page` 默认值为 `1`，`pageSize` 默认值为 `20`、最大值为 `200`。可选的 `keyword` 会在去除首尾空格后对名称进行不区分大小写的包含搜索；空字符串等同于不搜索，`%`、`_` 和 `\\` 按普通字符处理。结果按 `updatedAt`、`id` 倒序排列。
+`page` 默认值为 `1`，`pageSize` 默认值为 `20`、最大值为 `200`。可选的 `keyword` 会在去除首尾空格后对名称进行不区分大小写的包含搜索；空字符串等同于不搜索，`%`、`_` 和反斜杠按普通字符处理。结果按 `updatedAt`、`id` 倒序排列。
 
 **响应示例**:
 
