@@ -7,7 +7,13 @@ import com.fina.cdp.dto.PageResponse;
 
 public interface MarketingCampaignService {
 
-    PageResponse<MarketingCampaignVO> list(String tenantId, String type, String status, Integer page, Integer pageSize);
+    PageResponse<MarketingCampaignVO> list(
+            String tenantId,
+            String type,
+            String status,
+            Integer page,
+            Integer pageSize,
+            String keyword);
 
     MarketingCampaignVO getById(String tenantId, Long id);
 

@@ -137,15 +137,53 @@ class MarketingCampaignServiceImplTest {
     @Test
     void listFiltersWithinTenantTypeAndStatus() {
         MarketingCampaign campaign = campaign(11L, "tenant_a", "scheduled");
-        when(mapper.countByTenant("tenant_a", "reactivation", "scheduled")).thenReturn(1L);
-        when(mapper.selectPageByTenant("tenant_a", "reactivation", "scheduled", 20, 0)).thenReturn(List.of(campaign));
+        when(mapper.countByTenant("tenant_a", "reactivation", "scheduled", "dormant")).thenReturn(1L);
+        when(mapper.selectPageByTenant(
+                "tenant_a", "reactivation", "scheduled", "dormant", 20, 0)).thenReturn(List.of(campaign));
 
-        PageResponse<?> page = service.list("tenant_a", "reactivation", "scheduled", 1, 20);
+        PageResponse<?> page = service.list(
+                "tenant_a", "reactivation", "scheduled", 1, 20, "  dormant  ");
 
         assertThat(page.getTotal()).isEqualTo(1);
         assertThat(page.getItems()).hasSize(1);
-        verify(mapper).countByTenant("tenant_a", "reactivation", "scheduled");
-        verify(mapper).selectPageByTenant("tenant_a", "reactivation", "scheduled", 20, 0);
+        verify(mapper).countByTenant("tenant_a", "reactivation", "scheduled", "dormant");
+        verify(mapper).selectPageByTenant(
+                "tenant_a", "reactivation", "scheduled", "dormant", 20, 0);
+    }
+
+    @Test
+    void listNormalizesBlankKeywordAndClampsPageValues() {
+        when(mapper.countByTenant("tenant_a", "reactivation", null, null)).thenReturn(0L);
+        when(mapper.selectPageByTenant(
+                "tenant_a", "reactivation", null, null, 200, 200)).thenReturn(List.of());
+
+        PageResponse<?> page = service.list("tenant_a", " reactivation ", null, 2, 500, "   ");
+
+        assertThat(page.getPage()).isEqualTo(2);
+        assertThat(page.getPageSize()).isEqualTo(200);
+        assertThat(page.getItems()).isEmpty();
+        verify(mapper).countByTenant("tenant_a", "reactivation", null, null);
+        verify(mapper).selectPageByTenant(
+                "tenant_a", "reactivation", null, null, 200, 200);
+    }
+
+    @Test
+    void listEscapesLikeWildcardsAndKeepsLargeOffsetPositive() {
+        String escapedKeyword = "50\\%\\_off\\\\vip";
+        long offset = 429_496_729_200L;
+        when(mapper.countByTenant(
+                "tenant_a", "reactivation", null, escapedKeyword)).thenReturn(0L);
+        when(mapper.selectPageByTenant(
+                "tenant_a", "reactivation", null, escapedKeyword, 200, offset)).thenReturn(List.of());
+
+        PageResponse<?> page = service.list(
+                "tenant_a", "reactivation", null, Integer.MAX_VALUE, 200, "  50%_off\\vip  ");
+
+        assertThat(page.getPage()).isEqualTo(Integer.MAX_VALUE);
+        assertThat(page.getItems()).isEmpty();
+        verify(mapper).countByTenant("tenant_a", "reactivation", null, escapedKeyword);
+        verify(mapper).selectPageByTenant(
+                "tenant_a", "reactivation", null, escapedKeyword, 200, offset);
     }
 
     @Test

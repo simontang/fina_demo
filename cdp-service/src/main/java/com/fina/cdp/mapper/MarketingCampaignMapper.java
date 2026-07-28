@@ -25,12 +25,16 @@ public interface MarketingCampaignMapper extends BaseMapper<MarketingCampaign> {
               <if test="status != null and status != ''">
               AND status = #{status}
               </if>
+              <if test="keyword != null and keyword != ''">
+              AND LOWER(name) LIKE CONCAT('%', LOWER(#{keyword}), '%') ESCAPE '\\'
+              </if>
             </script>
             """)
     long countByTenant(
             @Param("tenantId") String tenantId,
             @Param("type") String type,
-            @Param("status") String status);
+            @Param("status") String status,
+            @Param("keyword") String keyword);
 
     @Select("""
             <script>
@@ -44,6 +48,9 @@ public interface MarketingCampaignMapper extends BaseMapper<MarketingCampaign> {
               <if test="status != null and status != ''">
               AND status = #{status}
               </if>
+              <if test="keyword != null and keyword != ''">
+              AND LOWER(name) LIKE CONCAT('%', LOWER(#{keyword}), '%') ESCAPE '\\'
+              </if>
             ORDER BY updated_at DESC, id DESC
             LIMIT #{limit}
             OFFSET #{offset}
@@ -53,8 +60,9 @@ public interface MarketingCampaignMapper extends BaseMapper<MarketingCampaign> {
             @Param("tenantId") String tenantId,
             @Param("type") String type,
             @Param("status") String status,
+            @Param("keyword") String keyword,
             @Param("limit") int limit,
-            @Param("offset") int offset);
+            @Param("offset") long offset);
 
     @Select("""
             SELECT *

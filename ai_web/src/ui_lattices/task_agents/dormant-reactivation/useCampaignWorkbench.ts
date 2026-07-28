@@ -5,6 +5,38 @@ import { CDP_API_BASE, getErrorMessage, unwrapCdpResponse } from "../shared/cdp"
 import type { CdpApiResponse } from "../shared/cdp";
 import type { MarketingCampaignPage, MarketingCampaignVO } from "./types";
 
+const ARTIFACT_PAGE_SIZE = 20;
+const SEARCH_DELAY_MS = 300;
+
+interface RetryRequest {
+  page: number;
+  append: boolean;
+}
+
+function normalizeInitialId(initialKey: unknown): number | null {
+  const value = Number(initialKey);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function mergeCampaigns(
+  current: MarketingCampaignVO[],
+  incoming: MarketingCampaignVO[],
+): MarketingCampaignVO[] {
+  const merged = new Map(current.map((campaign) => [campaign.id, campaign]));
+  incoming.forEach((campaign) => merged.set(campaign.id, campaign));
+  return Array.from(merged.values());
+}
+
+function buildCampaignPageUrl(query: string, page: number, pageSize = ARTIFACT_PAGE_SIZE): string {
+  const params = new URLSearchParams({
+    type: "reactivation",
+    page: String(page),
+    pageSize: String(pageSize),
+  });
+  if (query) params.set("keyword", query);
+  return `${CDP_API_BASE}/marketing-campaigns?${params.toString()}`;
+}
+
 export function useCampaignSummary(): MarketingCampaignVO[] {
   const [campaigns, setCampaigns] = useState<MarketingCampaignVO[]>([]);
   const { get } = useApi();
@@ -12,9 +44,7 @@ export function useCampaignSummary(): MarketingCampaignVO[] {
   useEffect(() => {
     let active = true;
 
-    void get<CdpApiResponse<MarketingCampaignPage>>(
-      `${CDP_API_BASE}/marketing-campaigns?type=reactivation&pageSize=5`,
-    )
+    void get<CdpApiResponse<MarketingCampaignPage>>(buildCampaignPageUrl("", 1, 5))
       .then((response) => {
         const page = unwrapCdpResponse(response);
         if (active) setCampaigns(Array.isArray(page.items) ? page.items : []);
@@ -29,128 +59,206 @@ export function useCampaignSummary(): MarketingCampaignVO[] {
   return campaigns;
 }
 
-function normalizeInitialId(initialKey: unknown): number | null {
-  const value = Number(initialKey);
-  return Number.isFinite(value) && value > 0 ? value : null;
-}
-
 export function useCampaignWorkbench(initialKey: unknown) {
   const { get, post, del } = useApi();
   const { selectThread } = useConversationContext();
   const initialIdRef = useRef(normalizeInitialId(initialKey));
-  const initialSelectionApplied = useRef(false);
+  const initialSelectionAppliedRef = useRef(false);
+  const queryRef = useRef("");
+  const retryRequestRef = useRef<RetryRequest>({ page: 1, append: false });
+  const selectedIdRef = useRef<number | null>(null);
+  const campaignListRequestId = useRef(0);
+  const campaignDetailRequestId = useRef(0);
+  const campaignActionRequestId = useRef(0);
+
   const [campaigns, setCampaigns] = useState<MarketingCampaignVO[]>([]);
+  const [searchValue, setSearchValue] = useState("");
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [overallTotal, setOverallTotal] = useState(0);
+  const [matchedTotal, setMatchedTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(initialIdRef.current);
+  const [selectedOption, setSelectedOption] = useState<MarketingCampaignVO | null>(null);
   const [selectedCampaign, setSelectedCampaign] = useState<MarketingCampaignVO | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
-  const campaignListRequestId = useRef(0);
-  const campaignDetailRequestId = useRef(0);
-  const campaignActionRequestId = useRef(0);
-  const selectedIdRef = useRef<number | null>(initialIdRef.current);
-
-  const loadCampaigns = useCallback(async () => {
-    const requestId = ++campaignListRequestId.current;
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await get<CdpApiResponse<MarketingCampaignPage>>(
-        `${CDP_API_BASE}/marketing-campaigns?type=reactivation`,
-      );
-      const page = unwrapCdpResponse(response);
-      if (requestId !== campaignListRequestId.current) return;
-      setCampaigns(Array.isArray(page.items) ? page.items : []);
-    } catch (requestError: unknown) {
-      if (requestId !== campaignListRequestId.current) return;
-      setError(getErrorMessage(requestError, "Failed to load campaigns"));
-    } finally {
-      if (requestId === campaignListRequestId.current) setLoading(false);
-    }
-  }, [get]);
 
   useEffect(() => {
-    void loadCampaigns();
-    return () => {
-      campaignListRequestId.current += 1;
-    };
-  }, [loadCampaigns]);
+    const timer = window.setTimeout(() => {
+      const normalizedQuery = searchValue.trim();
+      queryRef.current = normalizedQuery;
+      setQuery(normalizedQuery);
+    }, SEARCH_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [searchValue]);
 
-  const loadCampaignBundle = useCallback(async (campaign: MarketingCampaignVO) => {
+  const clearSearch = useCallback(() => {
+    queryRef.current = "";
+    setSearchValue("");
+    setQuery("");
+  }, []);
+
+  const loadCampaignDetail = useCallback(async (campaignId: number) => {
+    if (selectedIdRef.current !== campaignId) return;
+
     const requestId = ++campaignDetailRequestId.current;
     setDetailLoading(true);
     setDetailError(null);
-    setSelectedCampaign(null);
-
     try {
       const response = await get<CdpApiResponse<MarketingCampaignVO>>(
-        `${CDP_API_BASE}/marketing-campaigns/${campaign.id}`,
+        `${CDP_API_BASE}/marketing-campaigns/${campaignId}`,
       );
-      if (requestId !== campaignDetailRequestId.current || selectedIdRef.current !== campaign.id) return;
-      setSelectedCampaign(unwrapCdpResponse(response));
+      if (requestId !== campaignDetailRequestId.current || selectedIdRef.current !== campaignId) return;
+      const campaign = unwrapCdpResponse(response);
+      setSelectedCampaign(campaign);
+      setSelectedOption(campaign);
     } catch (requestError: unknown) {
-      if (requestId !== campaignDetailRequestId.current || selectedIdRef.current !== campaign.id) return;
-      setDetailError(getErrorMessage(requestError, "Failed to load campaign detail"));
+      if (requestId === campaignDetailRequestId.current && selectedIdRef.current === campaignId) {
+        setDetailError(getErrorMessage(requestError, "Failed to load campaign detail"));
+      }
     } finally {
-      if (requestId === campaignDetailRequestId.current && selectedIdRef.current === campaign.id) {
+      if (requestId === campaignDetailRequestId.current && selectedIdRef.current === campaignId) {
         setDetailLoading(false);
       }
     }
   }, [get]);
 
-  const selectCampaign = useCallback((campaign: MarketingCampaignVO) => {
-    initialSelectionApplied.current = true;
-    selectedIdRef.current = campaign.id;
-    setSelectedId(campaign.id);
-    void loadCampaignBundle(campaign);
-    if (campaign.threadId) {
-      selectThread(campaign.threadId);
+  const selectCampaign = useCallback((campaign: MarketingCampaignVO, resetSearch = true) => {
+    const changed = selectedIdRef.current !== campaign.id;
+    if (changed) {
+      campaignDetailRequestId.current += 1;
+      setSelectedCampaign(null);
+      setDetailError(null);
     }
-  }, [loadCampaignBundle, selectThread]);
+    selectedIdRef.current = campaign.id;
+    setSelectedOption(campaign);
+    if (resetSearch) clearSearch();
+    if (campaign.threadId) selectThread(campaign.threadId);
+    if (changed) void loadCampaignDetail(campaign.id);
+  }, [clearSearch, loadCampaignDetail, selectThread]);
 
   const clearSelection = useCallback(() => {
     campaignDetailRequestId.current += 1;
     selectedIdRef.current = null;
-    setSelectedId(null);
+    setSelectedOption(null);
     setSelectedCampaign(null);
     setDetailLoading(false);
     setDetailError(null);
   }, []);
 
-  useEffect(() => {
-    const initialId = initialIdRef.current;
-    if (initialSelectionApplied.current || initialId == null || campaigns.length === 0) return;
-    initialSelectionApplied.current = true;
-    const initialCampaign = campaigns.find((campaign) => campaign.id === initialId);
-    if (initialCampaign) void loadCampaignBundle(initialCampaign);
-  }, [campaigns, loadCampaignBundle]);
+  const loadCampaignOptions = useCallback(async (
+    requestedQuery: string,
+    requestedPage: number,
+    append: boolean,
+    preferredId: number | null = null,
+    autoSelect = false,
+  ): Promise<MarketingCampaignPage | null> => {
+    const requestId = ++campaignListRequestId.current;
+    retryRequestRef.current = { page: requestedPage, append };
+    setError(null);
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+      setLoadingMore(false);
+    }
 
-  useEffect(() => () => {
-    campaignDetailRequestId.current += 1;
-  }, []);
-
-  const reloadCampaignDetail = useCallback(async (id: number) => {
-    if (selectedIdRef.current !== id) return;
-
-    const requestId = ++campaignDetailRequestId.current;
-    setDetailError(null);
     try {
-      const response = await get<CdpApiResponse<MarketingCampaignVO>>(
-        `${CDP_API_BASE}/marketing-campaigns/${id}`,
+      const pageRequest = get<CdpApiResponse<MarketingCampaignPage>>(
+        buildCampaignPageUrl(requestedQuery, requestedPage),
       );
-      if (requestId !== campaignDetailRequestId.current || selectedIdRef.current !== id) return;
-      setSelectedCampaign(unwrapCdpResponse(response));
+      const preferredRequest: Promise<MarketingCampaignVO | null> = preferredId
+        ? get<CdpApiResponse<MarketingCampaignVO>>(
+            `${CDP_API_BASE}/marketing-campaigns/${preferredId}`,
+          )
+            .then(unwrapCdpResponse)
+            .then((campaign) => campaign.type === "reactivation" ? campaign : null)
+            .catch(() => null)
+        : Promise.resolve(null);
+      const [pageResult, preferredResult] = await Promise.allSettled([pageRequest, preferredRequest]);
+      if (requestId !== campaignListRequestId.current || queryRef.current !== requestedQuery) return null;
+      const preferredCampaign = preferredResult.status === "fulfilled" ? preferredResult.value : null;
+      if (pageResult.status === "rejected") {
+        if (autoSelect && preferredCampaign) {
+          initialSelectionAppliedRef.current = true;
+          selectCampaign(preferredCampaign, requestedQuery === "");
+        }
+        throw pageResult.reason;
+      }
+      const pageResponse = pageResult.value;
+      const campaignPage = unwrapCdpResponse(pageResponse);
+      const items = Array.isArray(campaignPage.items) ? campaignPage.items : [];
+      setCampaigns((current) => append ? mergeCampaigns(current, items) : items);
+      setPage(campaignPage.page);
+      setMatchedTotal(campaignPage.total);
+      if (!requestedQuery) setOverallTotal(campaignPage.total);
+
+      if (autoSelect) {
+        const nextSelection = preferredCampaign ?? items[0] ?? null;
+        initialSelectionAppliedRef.current = true;
+        if (nextSelection) selectCampaign(nextSelection, requestedQuery === "");
+        else clearSelection();
+      }
+      return campaignPage;
     } catch (requestError: unknown) {
-      if (requestId === campaignDetailRequestId.current && selectedIdRef.current === id) {
-        setDetailError(getErrorMessage(requestError, "Failed to refresh campaign detail"));
+      if (requestId !== campaignListRequestId.current || queryRef.current !== requestedQuery) return null;
+      setError(getErrorMessage(requestError, "Failed to load campaigns"));
+      return null;
+    } finally {
+      if (requestId === campaignListRequestId.current) {
+        setLoading(false);
+        setLoadingMore(false);
       }
     }
-  }, [get]);
+  }, [clearSelection, get, selectCampaign]);
+
+  useEffect(() => {
+    const needsInitialSelection = !initialSelectionAppliedRef.current;
+    const preferredId = needsInitialSelection && query === "" ? initialIdRef.current : null;
+    void loadCampaignOptions(
+      query,
+      1,
+      false,
+      preferredId,
+      needsInitialSelection || selectedIdRef.current === null,
+    );
+  }, [loadCampaignOptions, query]);
+
+  useEffect(() => () => {
+    campaignListRequestId.current += 1;
+    campaignDetailRequestId.current += 1;
+    campaignActionRequestId.current += 1;
+  }, []);
+
+  const loadMore = useCallback(() => {
+    if (loading || loadingMore || error || campaigns.length >= matchedTotal) return;
+    void loadCampaignOptions(queryRef.current, page + 1, true);
+  }, [campaigns.length, error, loadCampaignOptions, loading, loadingMore, matchedTotal, page]);
+
+  const retryList = useCallback(() => {
+    const retry = retryRequestRef.current;
+    const preferredId = !initialSelectionAppliedRef.current && queryRef.current === ""
+      ? initialIdRef.current
+      : null;
+    void loadCampaignOptions(
+      queryRef.current,
+      retry.page,
+      retry.append,
+      preferredId,
+      selectedIdRef.current === null,
+    );
+  }, [loadCampaignOptions]);
+
+  const retryCampaignDetail = useCallback(() => {
+    const selectedId = selectedIdRef.current;
+    if (selectedId) void loadCampaignDetail(selectedId);
+  }, [loadCampaignDetail]);
 
   const deleteSelectedCampaign = useCallback(async () => {
-    const targetId = selectedId;
+    const targetId = selectedIdRef.current;
     if (!targetId) return;
 
     try {
@@ -159,15 +267,21 @@ export function useCampaignWorkbench(initialKey: unknown) {
       );
       unwrapCdpResponse(response);
       message.success("Campaign deleted");
-      if (selectedIdRef.current === targetId) clearSelection();
-      void loadCampaigns();
+      clearSelection();
+      setCampaigns((current) => current.filter((campaign) => campaign.id !== targetId));
+
+      setOverallTotal((current) => Math.max(0, current - 1));
+
+      const activeQuery = queryRef.current;
+      const refreshedPage = await loadCampaignOptions(activeQuery, 1, false, null, true);
+      if (refreshedPage && activeQuery && refreshedPage.total === 0) clearSearch();
     } catch (requestError: unknown) {
       message.error(getErrorMessage(requestError, "Delete failed"));
     }
-  }, [clearSelection, del, loadCampaigns, selectedId]);
+  }, [clearSearch, clearSelection, del, loadCampaignOptions]);
 
   const runStatusAction = useCallback(async (action: "start" | "stop") => {
-    const targetId = selectedId;
+    const targetId = selectedIdRef.current;
     if (!targetId) return;
 
     const requestId = ++campaignActionRequestId.current;
@@ -177,10 +291,15 @@ export function useCampaignWorkbench(initialKey: unknown) {
         `${CDP_API_BASE}/marketing-campaigns/${targetId}/${action}`,
         {},
       );
-      unwrapCdpResponse(response);
+      const updatedCampaign = unwrapCdpResponse(response);
       message.success(action === "start" ? "Campaign started" : "Campaign stopped");
-      if (selectedIdRef.current === targetId) void reloadCampaignDetail(targetId);
-      void loadCampaigns();
+      if (selectedIdRef.current === targetId) {
+        setSelectedCampaign(updatedCampaign);
+        setSelectedOption(updatedCampaign);
+      }
+      setCampaigns((current) => current.map((campaign) => (
+        campaign.id === targetId ? updatedCampaign : campaign
+      )));
     } catch (requestError: unknown) {
       message.error(getErrorMessage(requestError, action === "start" ? "Start failed" : "Stop failed"));
     } finally {
@@ -188,7 +307,7 @@ export function useCampaignWorkbench(initialKey: unknown) {
         setActionLoadingId((currentId) => currentId === targetId ? null : currentId);
       }
     }
-  }, [loadCampaigns, post, reloadCampaignDetail, selectedId]);
+  }, [post]);
 
   const startSelectedCampaign = useCallback(
     () => runStatusAction("start"),
@@ -201,15 +320,24 @@ export function useCampaignWorkbench(initialKey: unknown) {
 
   return {
     campaigns,
+    searchValue,
+    query,
+    overallTotal,
+    matchedTotal,
     loading,
+    loadingMore,
     error,
-    selectedId,
+    selectedId: selectedOption?.id ?? null,
+    selectedOption,
     selectedCampaign,
     detailLoading,
     detailError,
-    actionLoading: actionLoadingId !== null && actionLoadingId === selectedId,
+    actionLoading: actionLoadingId !== null && actionLoadingId === selectedOption?.id,
+    setSearchValue,
     selectCampaign,
-    clearSelection,
+    loadMore,
+    retryList,
+    retryCampaignDetail,
     deleteSelectedCampaign,
     startSelectedCampaign,
     stopSelectedCampaign,

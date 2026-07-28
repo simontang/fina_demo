@@ -13,6 +13,41 @@ import java.util.List;
 public interface SegmentDefinitionMapper extends BaseMapper<SegmentDefinition> {
 
     @Select("""
+            <script>
+            SELECT COUNT(1)
+            FROM t_segment_definition
+            WHERE tenant_id = #{tenantId}
+              AND deleted = 0
+              <if test="keyword != null and keyword != ''">
+              AND LOWER(name) LIKE CONCAT('%', LOWER(#{keyword}), '%') ESCAPE '\\'
+              </if>
+            </script>
+            """)
+    long countByTenant(
+            @Param("tenantId") String tenantId,
+            @Param("keyword") String keyword);
+
+    @Select("""
+            <script>
+            SELECT *
+            FROM t_segment_definition
+            WHERE tenant_id = #{tenantId}
+              AND deleted = 0
+              <if test="keyword != null and keyword != ''">
+              AND LOWER(name) LIKE CONCAT('%', LOWER(#{keyword}), '%') ESCAPE '\\'
+              </if>
+            ORDER BY updated_at DESC, id DESC
+            LIMIT #{limit}
+            OFFSET #{offset}
+            </script>
+            """)
+    List<SegmentDefinition> selectPageByTenant(
+            @Param("tenantId") String tenantId,
+            @Param("keyword") String keyword,
+            @Param("limit") int limit,
+            @Param("offset") long offset);
+
+    @Select("""
             SELECT *
             FROM t_segment_definition
             WHERE tenant_id = #{tenantId}

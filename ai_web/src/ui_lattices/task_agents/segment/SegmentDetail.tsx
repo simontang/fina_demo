@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Button, Card, Col, Popconfirm, Row, Spin, Table, Tabs, Typography } from "antd";
+import { Alert, Button, Card, Col, Popconfirm, Row, Spin, Table, Tabs, Typography } from "antd";
 import type { TableColumnsType } from "antd";
 import { WarningOutlined } from "@ant-design/icons";
 import { OverflowSafeTag } from "../shared/OverflowSafeTag";
@@ -16,9 +16,11 @@ interface SegmentDetailProps {
   segmentData: SegmentDataVO | null;
   rows: SegmentDataRow[];
   dataLoading: boolean;
+  dataError: string | null;
   processing: boolean;
   onDelete: () => Promise<void>;
   onProcess: () => Promise<void>;
+  onRetryData: () => void;
 }
 
 export function SegmentDetail({
@@ -26,9 +28,11 @@ export function SegmentDetail({
   segmentData,
   rows,
   dataLoading,
+  dataError,
   processing,
   onDelete,
   onProcess,
+  onRetryData,
 }: SegmentDetailProps) {
   const previewRows = useMemo<SegmentPreviewRow[]>(
     () => rows.map((row, index) => ({ ...row, _key: index })),
@@ -105,6 +109,14 @@ export function SegmentDetail({
                 </div>
                 {dataLoading ? (
                   <div style={{ padding: 24, textAlign: "center" }}><Spin /></div>
+                ) : dataError ? (
+                  <Alert
+                    type="error"
+                    showIcon
+                    message="Segment data unavailable"
+                    description={dataError}
+                    action={<Button size="small" onClick={onRetryData}>Retry</Button>}
+                  />
                 ) : segmentData ? (
                   <>
                     <Row gutter={12}>

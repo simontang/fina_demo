@@ -1,6 +1,7 @@
 package com.fina.cdp.service.impl;
 
 import com.fina.cdp.config.TenantResolver;
+import com.fina.cdp.dto.PageResponse;
 import com.fina.cdp.dto.SegmentDefinitionRequest;
 import com.fina.cdp.dto.SegmentDefinitionVO;
 import com.fina.cdp.entity.SegmentDefinition;
@@ -18,6 +19,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SegmentDefinitionServiceImpl implements SegmentDefinitionService {
 
+    private static final int DEFAULT_PAGE = 1;
+    private static final int DEFAULT_PAGE_SIZE = 20;
+    private static final int MAX_PAGE_SIZE = 200;
+
     private final SegmentDefinitionMapper mapper;
 
     @Override
@@ -26,6 +31,39 @@ public class SegmentDefinitionServiceImpl implements SegmentDefinitionService {
         return mapper.selectByTenant(tenant).stream()
                 .map(this::toVO)
                 .toList();
+    }
+
+    @Override
+    public PageResponse<SegmentDefinitionVO> page(
+            String tenantId,
+            Integer page,
+            Integer pageSize,
+            String keyword) {
+        String tenant = TenantResolver.normalize(tenantId);
+        String normalizedKeyword = normalizeKeyword(keyword);
+        int safePage = page == null || page < 1 ? DEFAULT_PAGE : page;
+        int safePageSize = pageSize == null || pageSize < 1
+                ? DEFAULT_PAGE_SIZE
+                : Math.min(pageSize, MAX_PAGE_SIZE);
+        long offset = ((long) safePage - 1L) * safePageSize;
+        long total = mapper.countByTenant(tenant, normalizedKeyword);
+        List<SegmentDefinitionVO> items = mapper.selectPageByTenant(tenant, normalizedKeyword, safePageSize, offset)
+                .stream()
+                .map(this::toVO)
+                .toList();
+        return new PageResponse<>(items, total, safePage, safePageSize);
+    }
+
+    private String normalizeOptional(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String normalizeKeyword(String value) {
+        String normalized = normalizeOptional(value);
+        return normalized == null ? null : normalized
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
     }
 
     @Override

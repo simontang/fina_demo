@@ -11,6 +11,13 @@ export interface SegmentDefinitionVO {
   updatedAt: string;
 }
 
+export interface SegmentDefinitionPage {
+  items: SegmentDefinitionVO[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface SegmentDataVO {
   id: number;
   tenantId: string;

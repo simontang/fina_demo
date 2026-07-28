@@ -38,6 +38,31 @@ GET /api/v1/segment-definitions
 }
 ```
 
+#### 1.1.1 分页查询分群定义
+
+分页查询用于需要按页浏览分群定义的界面，原列表接口保持不变。
+
+```http
+GET /api/v1/segment-definitions/page?page=1&pageSize=20&keyword=customer
+```
+
+`page` 默认值为 `1`，`pageSize` 默认值为 `20`、最大值为 `200`。可选的 `keyword` 会在去除首尾空格后对名称进行不区分大小写的包含搜索；空字符串等同于不搜索，`%`、`_` 和 `\\` 按普通字符处理。结果按 `updatedAt`、`id` 倒序排列。
+
+**响应示例**:
+
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "items": [],
+    "total": 0,
+    "page": 1,
+    "pageSize": 20
+  }
+}
+```
+
 
 
 #### 1.2 查询单个分群定义
@@ -298,7 +323,7 @@ DELETE /api/v1/segment-data/{id}
 #### 3.1 查询营销活动列表
 
 ```http
-GET /api/v1/marketing-campaigns?type=reactivation&status=scheduled&page=1&pageSize=20
+GET /api/v1/marketing-campaigns?type=reactivation&status=scheduled&page=1&pageSize=20&keyword=dormant
 X-Tenant-Id: default
 ```
 
@@ -310,6 +335,7 @@ X-Tenant-Id: default
 | `status`   | `string`   | —    | 按状态过滤：`draft`, `scheduled`, `running`, `stopped`, `completed` |
 | `page`     | `int`      | —    | 页码，默认 1 |
 | `pageSize` | `int`      | —    | 每页条数，默认 20，最大 200 |
+| `keyword`  | `string`   | —    | 名称关键词，不区分大小写；首尾空格会被忽略，SQL 通配符按普通字符处理 |
 
 #### 3.2 创建营销活动
 

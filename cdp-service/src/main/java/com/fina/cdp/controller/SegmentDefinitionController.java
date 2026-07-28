@@ -2,6 +2,7 @@ package com.fina.cdp.controller;
 
 import com.fina.cdp.config.TenantResolver;
 import com.fina.cdp.dto.ApiResponse;
+import com.fina.cdp.dto.PageResponse;
 import com.fina.cdp.dto.SegmentDataVO;
 import com.fina.cdp.dto.SegmentDefinitionRequest;
 import com.fina.cdp.dto.SegmentDefinitionVO;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -34,6 +36,15 @@ public class SegmentDefinitionController {
     @GetMapping
     public ApiResponse<List<SegmentDefinitionVO>> list(HttpServletRequest request) {
         return ApiResponse.ok(definitionService.list(tenantResolver.resolve(request)));
+    }
+
+    @GetMapping("/page")
+    public ApiResponse<PageResponse<SegmentDefinitionVO>> page(
+            HttpServletRequest request,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer pageSize,
+            @RequestParam(required = false) String keyword) {
+        return ApiResponse.ok(definitionService.page(tenantResolver.resolve(request), page, pageSize, keyword));
     }
 
     @GetMapping("/{id}")

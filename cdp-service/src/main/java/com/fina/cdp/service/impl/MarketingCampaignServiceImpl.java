@@ -47,17 +47,25 @@ public class MarketingCampaignServiceImpl implements MarketingCampaignService {
     private final ObjectMapper objectMapper;
 
     @Override
-    public PageResponse<MarketingCampaignVO> list(String tenantId, String type, String status, Integer page, Integer pageSize) {
+    public PageResponse<MarketingCampaignVO> list(
+            String tenantId,
+            String type,
+            String status,
+            Integer page,
+            Integer pageSize,
+            String keyword) {
         String tenant = TenantResolver.normalize(tenantId);
         String normalizedType = normalizeOptional(type);
         String normalizedStatus = normalizeOptionalStatus(status);
+        String normalizedKeyword = normalizeKeyword(keyword);
         int safePage = page == null || page < 1 ? DEFAULT_PAGE : page;
         int safePageSize = pageSize == null || pageSize < 1
                 ? DEFAULT_PAGE_SIZE
                 : Math.min(pageSize, MAX_PAGE_SIZE);
-        int offset = (safePage - 1) * safePageSize;
-        long total = mapper.countByTenant(tenant, normalizedType, normalizedStatus);
-        List<MarketingCampaignVO> items = mapper.selectPageByTenant(tenant, normalizedType, normalizedStatus, safePageSize, offset)
+        long offset = ((long) safePage - 1L) * safePageSize;
+        long total = mapper.countByTenant(tenant, normalizedType, normalizedStatus, normalizedKeyword);
+        List<MarketingCampaignVO> items = mapper.selectPageByTenant(
+                        tenant, normalizedType, normalizedStatus, normalizedKeyword, safePageSize, offset)
                 .stream()
                 .map(this::toVO)
                 .toList();
@@ -255,6 +263,14 @@ public class MarketingCampaignServiceImpl implements MarketingCampaignService {
 
     private String normalizeOptional(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String normalizeKeyword(String value) {
+        String normalized = normalizeOptional(value);
+        return normalized == null ? null : normalized
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
     }
 
     private String toObjectJsonOrDefault(JsonNode node) {

@@ -34,8 +34,10 @@ public class MarketingCampaignController {
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer pageSize) {
-        return ApiResponse.ok(campaignService.list(tenantResolver.resolve(request), type, status, page, pageSize));
+            @RequestParam(required = false) Integer pageSize,
+            @RequestParam(required = false) String keyword) {
+        return ApiResponse.ok(campaignService.list(
+                tenantResolver.resolve(request), type, status, page, pageSize, keyword));
     }
 
     @GetMapping("/{id}")

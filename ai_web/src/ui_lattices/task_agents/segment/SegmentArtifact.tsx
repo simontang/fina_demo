@@ -1,43 +1,57 @@
-import { Tag, Typography } from "antd";
-import type { TableColumnsType } from "antd";
+import { Alert, Button, Empty, Spin, Tag, Typography } from "antd";
 import { FileTextOutlined } from "@ant-design/icons";
 import type { ElementProps } from "@axiom-lattice/react-sdk";
-import { TableDetailWorkbench } from "../shared/TableDetailWorkbench";
+import { ArtifactSelector } from "../shared/ArtifactSelector";
 import { SegmentDetail } from "./SegmentDetail";
 import { useSegmentSummary, useSegmentWorkbench } from "./useSegmentWorkbench";
 import type { SegmentDefinitionVO } from "./types";
 
 const { Text } = Typography;
+const getSegmentId = (segment: SegmentDefinitionVO) => segment.id;
+const getSegmentName = (segment: SegmentDefinitionVO) => segment.name;
 
-const columns: TableColumnsType<SegmentDefinitionVO> = [
-  {
-    title: "Name",
-    dataIndex: "name",
-    key: "name",
-    width: 210,
-    ellipsis: true,
-    render: (name: string) => <Text strong ellipsis style={{ display: "block", fontSize: 13 }}>{name}</Text>,
-  },
-  {
-    title: "Status",
-    dataIndex: "status",
-    key: "status",
-    width: 88,
-    render: (status: number) => (
-      <Tag color={status === 1 ? "green" : "default"}>{status === 1 ? "active" : "disabled"}</Tag>
-    ),
-  },
-  {
-    title: "Created",
-    dataIndex: "createdAt",
-    key: "createdAt",
-    width: 138,
-    ellipsis: true,
-    render: (date: string) => (
-      <Text type="secondary" style={{ fontSize: 11 }}>{date?.slice(0, 16).replace("T", " ")}</Text>
-    ),
-  },
-];
+function formatSegmentCreatedAt(value: string): string {
+  return value?.slice(0, 16).replace("T", " ") || "-";
+}
+
+function renderSegmentOption(segment: SegmentDefinitionVO) {
+  const statusLabel = segment.status === 1 ? "active" : "disabled";
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0, padding: "2px 0" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+        <Text
+          strong
+          ellipsis={{ tooltip: segment.name }}
+          style={{ display: "block", flex: 1, minWidth: 0, fontSize: 13 }}
+        >
+          {segment.name}
+        </Text>
+        <Tag color={segment.status === 1 ? "green" : "default"} style={{ flexShrink: 0, marginInlineEnd: 0 }}>
+          {statusLabel}
+        </Tag>
+      </div>
+      <Text type="secondary" style={{ fontSize: 11 }}>
+        Created {formatSegmentCreatedAt(segment.createdAt)}
+      </Text>
+    </div>
+  );
+}
+
+function renderSegmentSummary(segment: SegmentDefinitionVO) {
+  const statusLabel = segment.status === 1 ? "active" : "disabled";
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "4px 8px" }}>
+      <Tag color={segment.status === 1 ? "green" : "default"} style={{ marginInlineEnd: 0 }}>
+        {statusLabel}
+      </Tag>
+      <Text type="secondary" style={{ fontSize: 12 }}>
+        Created {formatSegmentCreatedAt(segment.createdAt)}
+      </Text>
+    </div>
+  );
+}
 
 export const SegmentArtifactCard: React.FC<ElementProps> = () => {
   const segments = useSegmentSummary();
@@ -69,29 +83,84 @@ export const SegmentArtifactCard: React.FC<ElementProps> = () => {
 export const SegmentArtifactPanel: React.FC<ElementProps> = ({ data }) => {
   const workbench = useSegmentWorkbench(data?.selectedSegmentKey);
 
-  return (
-    <TableDetailWorkbench
-      title="Segment Artifact List"
-      records={workbench.segments}
-      columns={columns}
-      getRecordId={(segment) => segment.id}
-      selectedId={workbench.selectedId}
-      loading={workbench.loading}
-      error={workbench.error}
-      emptyDescription="No segments"
-      onSelect={workbench.selectSegment}
-      onCloseDetail={workbench.clearSelection}
-      renderDetail={() => workbench.selectedSegment ? (
-        <SegmentDetail
-          segment={workbench.selectedSegment}
-          segmentData={workbench.segmentData}
-          rows={workbench.rows}
-          dataLoading={workbench.dataLoading}
-          processing={workbench.processing}
-          onDelete={workbench.deleteSelectedSegment}
-          onProcess={workbench.processSelectedSegment}
+  if (workbench.loading && !workbench.selectedSegment) {
+    return (
+      <div style={{ height: "100%", display: "grid", placeItems: "center" }}>
+        <Spin tip="Loading segments..." />
+      </div>
+    );
+  }
+
+  if (workbench.error && !workbench.selectedSegment) {
+    return (
+      <div style={{ padding: 16 }}>
+        <Alert
+          type="error"
+          showIcon
+          message="Segment artifacts unavailable"
+          description={workbench.error}
+          action={<Button size="small" onClick={workbench.retryList}>Retry</Button>}
         />
-      ) : null}
-    />
+      </div>
+    );
+  }
+
+  if (!workbench.loading && !workbench.error && workbench.overallTotal === 0) {
+    return (
+      <div style={{ height: "100%", display: "grid", placeItems: "center", padding: 16 }}>
+        <Empty description="No segment artifacts" />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        boxSizing: "border-box",
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        minHeight: 0,
+        overflow: "hidden",
+        padding: 16,
+      }}
+    >
+      <ArtifactSelector
+        ariaLabel="Select segment artifact"
+        placeholder="Select a segment artifact"
+        items={workbench.segments}
+        selectedItem={workbench.selectedSegment}
+        getId={getSegmentId}
+        getName={getSegmentName}
+        renderOption={renderSegmentOption}
+        renderSummary={renderSegmentSummary}
+        searchValue={workbench.searchValue}
+        searchActive={Boolean(workbench.query)}
+        overallTotal={workbench.overallTotal}
+        matchedTotal={workbench.matchedTotal}
+        loading={workbench.loading}
+        loadingMore={workbench.loadingMore}
+        error={workbench.error}
+        onSearch={workbench.setSearchValue}
+        onSelect={workbench.selectSegment}
+        onLoadMore={workbench.loadMore}
+        onRetry={workbench.retryList}
+      />
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingTop: 12 }}>
+        {workbench.selectedSegment ? (
+          <SegmentDetail
+            segment={workbench.selectedSegment}
+            segmentData={workbench.segmentData}
+            rows={workbench.rows}
+            dataLoading={workbench.dataLoading}
+            dataError={workbench.dataError}
+            processing={workbench.processing}
+            onDelete={workbench.deleteSelectedSegment}
+            onProcess={workbench.processSelectedSegment}
+            onRetryData={workbench.retrySegmentData}
+          />
+        ) : null}
+      </div>
+    </div>
   );
 };
