@@ -257,7 +257,7 @@ function DataAgentShell() {
           sidebarShowNewAnalysis: false,
           sidebarLogoText: getAppConfig().appName,
           sidebarLogoIcon: <Logo width={28} height={28} />,
-          assistantId: "",
+          assistantId: "new-data-agent",
           // Workspace menu — dynamic items filtered by available assistants
           workspaceMenuItems: [
             ...DEFAULT_WORKSPACE_MENU_ITEMS,

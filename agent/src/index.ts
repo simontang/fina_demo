@@ -30,6 +30,7 @@ import {
   sandboxLatticeManager,
   createSandboxProvider,
   registerEmbeddingsLattice,
+  registerSTTModelLattice,
 } from "@axiom-lattice/core";
 
 import "./agents";
@@ -323,9 +324,9 @@ async function initializePgStores(): Promise<void> {
 
   // Additional config loading after stores are registered
   await sqlDatabaseManager.loadAllConfigsFromStore(stores.database);
-  await metricsServerManager.loadConfigsFromStore(stores.metrics, "default");
-  await metricsServerManager.loadConfigsFromStore(stores.metrics, "tenant_3");
-  await metricsServerManager.loadConfigsFromStore(stores.metrics, "retail_cdp");
+  // await metricsServerManager.loadConfigsFromStore(stores.metrics, "default");
+  // await metricsServerManager.loadConfigsFromStore(stores.metrics, "tenant_3");
+  // await metricsServerManager.loadConfigsFromStore(stores.metrics, "retail_cdp");
 
 
   console.log("\n✓ All PostgreSQL stores initialized\n");
@@ -338,6 +339,18 @@ try {
   }), "Tongyi text-embedding-v4");
 } catch (error) {
   console.warn("Failed to register AlibabaTongyiEmbeddings - ALIBABA_API_KEY may be missing:", (error as Error).message);
+}
+
+// STT (speech-to-text) model for voice input
+try {
+  registerSTTModelLattice("default", {
+    apiMode: "chat",
+    model: "qwen3-asr-flash",
+    baseURL: process.env.DASHSCOPE_BASE_URL || "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    apiKeyEnvName: "ALIBABA_API_KEY",
+  });
+} catch (error) {
+  console.warn("Failed to register STT model - ALIBABA_API_KEY may be missing:", (error as Error).message);
 }
 
 async function main() {
