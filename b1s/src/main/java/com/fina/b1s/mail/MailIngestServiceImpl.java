@@ -108,7 +108,6 @@ mail.logout()
     private final com.fina.b1s.tos.TosProperties tosProperties;
     private final MailAttachmentTextExtractor attachmentTextExtractor;
     private final PurchaseOrderSummaryService purchaseOrderSummaryService;
-    private final MailIntentService mailIntentService;
     private final MailWorkflowService mailWorkflowService;
     private final ObjectMapper objectMapper;
 
@@ -429,8 +428,8 @@ mail.logout()
         entity.setPurchaseOrderSummary(poSummary.summaryText());
         entity.setAgentMessage(poSummary.agentMessage());
         entity.setSnippet(trim(firstNonBlank(poSummary.summaryText(), entity.getBodyText(), attachmentText), SNIPPET_LIMIT));
-        entity.setOrderIntent(mailIntentService.isOrderIntent(entity));
-        entity.setWorkflowStatus(entity.getOrderIntent() ? "PENDING" : "NOT_ORDER_INTENT");
+        entity.setOrderIntent(true);
+        entity.setWorkflowStatus("PENDING");
         entity.setUpdatedAt(LocalDateTime.now());
         messageMapper.updateById(entity);
     }

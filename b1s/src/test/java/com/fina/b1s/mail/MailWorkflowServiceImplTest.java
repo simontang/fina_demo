@@ -24,14 +24,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class MailWorkflowServiceImplTest {
 
-    @Mock
-    private MailIntentService mailIntentService;
     @Mock
     private AgentRunClient agentRunClient;
     @Mock
@@ -42,7 +41,6 @@ class MailWorkflowServiceImplTest {
     @Test
     void dispatchSendsInboundPayloadWithParsedSenderAndSerializedWorkflowRequest() {
         MailWorkflowServiceImpl service = new MailWorkflowServiceImpl(
-                mailIntentService,
                 agentRunClient,
                 properties(),
                 mailMessageMapper,
@@ -97,7 +95,6 @@ class MailWorkflowServiceImplTest {
     @Test
     void dispatchFallsBackToRawSenderWhenAddressParsingFails() {
         MailWorkflowServiceImpl service = new MailWorkflowServiceImpl(
-                mailIntentService,
                 agentRunClient,
                 properties(),
                 mailMessageMapper,
@@ -126,7 +123,6 @@ class MailWorkflowServiceImplTest {
     @Test
     void dispatchIncludesAttachmentMarkdownWithoutDerivedSummaryOrStorageMetadata() {
         MailWorkflowServiceImpl service = new MailWorkflowServiceImpl(
-                mailIntentService,
                 agentRunClient,
                 properties(),
                 mailMessageMapper,
@@ -181,6 +177,46 @@ class MailWorkflowServiceImplTest {
         assertTrue(text.contains("Attachment Markdown:\nAttachment: po.pdf"));
         assertTrue(text.contains("PO No. 123456789"));
         assertTrue(text.contains("Office Laptops - Model Z1"));
+    }
+
+    @Test
+    void asyncDispatchQueuesAndSendsWithoutIntentGate() {
+        MailWorkflowServiceImpl service = new MailWorkflowServiceImpl(
+                agentRunClient,
+                properties(),
+                mailMessageMapper,
+                mailAttachmentMapper,
+                new ObjectMapper(),
+                sameThreadExecutor()
+        );
+
+        MailMessage mailMessage = new MailMessage();
+        mailMessage.setId(42L);
+        mailMessage.setMailbox("sales@alphafina.cn");
+        mailMessage.setUid(1001L);
+
+        MailMessage fresh = new MailMessage();
+        fresh.setId(42L);
+        fresh.setMailbox("sales@alphafina.cn");
+        fresh.setUid(1001L);
+        fresh.setFromAddress("Sender Name <sender@example.com>");
+        fresh.setSubject("Weekly FYI");
+
+        when(mailMessageMapper.selectById(42L)).thenReturn(fresh);
+        when(agentRunClient.run(any())).thenReturn(new AgentRunResult(true, "202", null, "{\"accepted\":true}", null));
+
+        service.dispatchAsyncIfOrderIntent(mailMessage);
+
+        ArgumentCaptor<AgentInboundRequest> requestCaptor = ArgumentCaptor.forClass(AgentInboundRequest.class);
+        ArgumentCaptor<MailMessage> updateCaptor = ArgumentCaptor.forClass(MailMessage.class);
+        verify(agentRunClient).run(requestCaptor.capture());
+        verify(mailMessageMapper, times(2)).updateById(updateCaptor.capture());
+
+        List<MailMessage> updates = updateCaptor.getAllValues();
+        assertEquals("QUEUED", updates.get(0).getWorkflowStatus());
+        assertEquals("DISPATCHED", updates.get(1).getWorkflowStatus());
+        assertEquals("Weekly FYI", fresh.getSubject());
+        assertTrue(requestCaptor.getValue().content().text().contains("Mail Subject:\nWeekly FYI"));
     }
 
     private AgentRunProperties properties() {

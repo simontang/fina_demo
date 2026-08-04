@@ -27,7 +27,6 @@ import java.util.concurrent.Executor;
 @RequiredArgsConstructor
 public class MailWorkflowServiceImpl implements MailWorkflowService {
 
-    private final MailIntentService mailIntentService;
     private final AgentRunClient agentRunClient;
     private final AgentRunProperties agentRunProperties;
     private final MailMessageMapper messageMapper;
@@ -38,19 +37,11 @@ public class MailWorkflowServiceImpl implements MailWorkflowService {
 
     @Override
     public AgentRunResult dispatchIfOrderIntent(MailMessage mailMessage) {
-        if (!mailIntentService.isOrderIntent(mailMessage)) {
-            updateWorkflow(mailMessage, "NOT_ORDER_INTENT", null, null, null, null, null);
-            return new AgentRunResult(false, "NOT_ORDER_INTENT", null, null, null);
-        }
         return dispatch(mailMessage);
     }
 
     @Override
     public void dispatchAsyncIfOrderIntent(MailMessage mailMessage) {
-        if (!mailIntentService.isOrderIntent(mailMessage)) {
-            updateWorkflow(mailMessage, "NOT_ORDER_INTENT", null, null, null, null, null);
-            return;
-        }
         updateWorkflow(mailMessage, "QUEUED", null, null, null, null, null);
         mailDispatchExecutor.execute(() -> {
             try {
