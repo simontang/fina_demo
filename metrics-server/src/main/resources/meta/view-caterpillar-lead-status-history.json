@@ -1,0 +1,64 @@
+{
+  "viewName": "caterpillar_lead_status_history",
+  "docType": "Caterpillar Lead Status History",
+  "docTypeEn": "Caterpillar Lead Status History",
+  "selectSql": "SELECT * FROM caterpillar_lead_status_history",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Lead Status History.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "lead_id",
+      "label": "Lead Id",
+      "description": "Lead Id field on Caterpillar Lead Status History.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "from_status",
+      "label": "From Status",
+      "description": "From Status field on Caterpillar Lead Status History.",
+      "type": "VARCHAR(30)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "to_status",
+      "label": "To Status",
+      "description": "To Status field on Caterpillar Lead Status History.",
+      "type": "VARCHAR(30)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "change_reason",
+      "label": "Change Reason",
+      "description": "Change Reason field on Caterpillar Lead Status History.",
+      "type": "VARCHAR(500)",
+      "example": "Sample value"
+    },
+    {
+      "name": "operator_type",
+      "label": "Operator Type",
+      "description": "Operator Type field on Caterpillar Lead Status History.",
+      "type": "VARCHAR(20)",
+      "example": "Sample value"
+    },
+    {
+      "name": "operator_id",
+      "label": "Operator Id",
+      "description": "Operator Id field on Caterpillar Lead Status History.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "description": "Created At field on Caterpillar Lead Status History.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

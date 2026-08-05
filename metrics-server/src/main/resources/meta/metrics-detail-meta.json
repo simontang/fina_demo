@@ -951,6 +951,326 @@
     },
     "human_readable_explanation": "Count of store-product inventory positions where available quantity is at or below the reorder point. Lower is better."
   }
+},
+{
+  "metric_name": "caterpillar_leads_received",
+  "display_name": "Caterpillar Leads Received",
+  "domain": "sales_performance",
+  "source_type": "cdp_postgres",
+  "description": "Total number of marketing leads received by the Caterpillar lead process.",
+  "data_type": "integer",
+  "format": "0,0",
+  "default_time_context": {
+    "time_dimension": "received_at",
+    "label": "Received At",
+    "granularity": "day",
+    "window": "current_month",
+    "supported_grains": ["day", "week", "month", "year"]
+  },
+  "calculation": {
+    "type": "base",
+    "sql_expression": "COUNT(*)",
+    "dependencies": []
+  },
+  "source": {
+    "table_view": "caterpillar_lead",
+    "base_filters": []
+  },
+  "supported_dimensions": [
+    { "dim_id": "channel_id", "field_name": "channel_id", "type": "categorical" },
+    { "dim_id": "campaign_id", "field_name": "campaign_id", "type": "categorical" },
+    { "dim_id": "quality_level", "field_name": "quality_level", "type": "categorical" }
+  ],
+  "behavior_profile": {
+    "role": "business_indicator",
+    "analysis_priority": 1
+  },
+  "ai_agent_context": {
+    "synonyms": ["Leads Received", "Lead Volume", "Inbound Leads"],
+    "polarity": "positive",
+    "thresholds": [],
+    "human_readable_explanation": "Counts every row in the Caterpillar lead table."
+  }
+},
+{
+  "metric_name": "caterpillar_qualified_lead_rate",
+  "display_name": "Caterpillar Qualified Lead Rate",
+  "domain": "sales_performance",
+  "source_type": "cdp_postgres",
+  "description": "Share of Caterpillar leads whose status is valid, assigned, or converted.",
+  "data_type": "percentage",
+  "format": "0.0%",
+  "default_time_context": {
+    "time_dimension": "received_at",
+    "label": "Received At",
+    "granularity": "day",
+    "window": "current_month",
+    "supported_grains": ["day", "week", "month", "year"]
+  },
+  "calculation": {
+    "type": "base",
+    "sql_expression": "(COUNT(*) FILTER (WHERE status IN ('VALID','ASSIGNED','CONVERTED')))::numeric / NULLIF(COUNT(*), 0)",
+    "dependencies": []
+  },
+  "source": {
+    "table_view": "caterpillar_lead",
+    "base_filters": []
+  },
+  "supported_dimensions": [
+    { "dim_id": "channel_id", "field_name": "channel_id", "type": "categorical" },
+    { "dim_id": "campaign_id", "field_name": "campaign_id", "type": "categorical" },
+    { "dim_id": "quality_level", "field_name": "quality_level", "type": "categorical" }
+  ],
+  "behavior_profile": {
+    "role": "business_indicator",
+    "analysis_priority": 1
+  },
+  "ai_agent_context": {
+    "synonyms": ["Qualified Lead Rate", "Lead Quality", "Valid Leads"],
+    "polarity": "positive",
+    "thresholds": [],
+    "human_readable_explanation": "Divides leads in VALID, ASSIGNED, or CONVERTED status by all Caterpillar leads."
+  }
+},
+{
+  "metric_name": "caterpillar_call_answer_rate",
+  "display_name": "Caterpillar Call Answer Rate",
+  "domain": "sales_performance",
+  "source_type": "cdp_postgres",
+  "description": "Share of Caterpillar outbound call attempts with ANSWERED status.",
+  "data_type": "percentage",
+  "format": "0.0%",
+  "default_time_context": {
+    "time_dimension": "created_at",
+    "label": "Created At",
+    "granularity": "day",
+    "window": "current_month",
+    "supported_grains": ["day", "week", "month", "year"]
+  },
+  "calculation": {
+    "type": "base",
+    "sql_expression": "(COUNT(*) FILTER (WHERE call_status = 'ANSWERED'))::numeric / NULLIF(COUNT(*), 0)",
+    "dependencies": []
+  },
+  "source": {
+    "table_view": "caterpillar_call_record",
+    "base_filters": []
+  },
+  "supported_dimensions": [
+    { "dim_id": "call_task_id", "field_name": "call_task_id", "type": "categorical" },
+    { "dim_id": "business_result", "field_name": "business_result", "type": "categorical" },
+    { "dim_id": "intent_level", "field_name": "intent_level", "type": "categorical" }
+  ],
+  "behavior_profile": {
+    "role": "business_indicator",
+    "analysis_priority": 1
+  },
+  "ai_agent_context": {
+    "synonyms": ["Call Answer Rate", "Answered Calls", "Outbound Calls"],
+    "polarity": "positive",
+    "thresholds": [],
+    "human_readable_explanation": "Divides answered calls by all Caterpillar call records."
+  }
+},
+{
+  "metric_name": "caterpillar_assignment_acceptance_rate",
+  "display_name": "Caterpillar Assignment Acceptance Rate",
+  "domain": "fulfillment_and_logistics",
+  "source_type": "cdp_postgres",
+  "description": "Share of Caterpillar lead assignments accepted by an agency.",
+  "data_type": "percentage",
+  "format": "0.0%",
+  "default_time_context": {
+    "time_dimension": "assigned_at",
+    "label": "Assigned At",
+    "granularity": "day",
+    "window": "current_month",
+    "supported_grains": ["day", "week", "month", "year"]
+  },
+  "calculation": {
+    "type": "base",
+    "sql_expression": "(COUNT(*) FILTER (WHERE delivery_status = 'ACCEPTED'))::numeric / NULLIF(COUNT(*), 0)",
+    "dependencies": []
+  },
+  "source": {
+    "table_view": "caterpillar_lead_assignment",
+    "base_filters": []
+  },
+  "supported_dimensions": [
+    { "dim_id": "agency_id", "field_name": "agency_id", "type": "categorical" },
+    { "dim_id": "assignment_rule", "field_name": "assignment_rule", "type": "categorical" },
+    { "dim_id": "followup_status", "field_name": "followup_status", "type": "categorical" }
+  ],
+  "behavior_profile": {
+    "role": "business_indicator",
+    "analysis_priority": 1
+  },
+  "ai_agent_context": {
+    "synonyms": ["Assignment Acceptance", "Agency Acceptance", "Lead Delivery"],
+    "polarity": "positive",
+    "thresholds": [],
+    "human_readable_explanation": "Divides accepted agency assignments by all Caterpillar lead assignments."
+  }
+},
+{
+  "metric_name": "caterpillar_assignment_order_rate",
+  "display_name": "Caterpillar Assignment Order Rate",
+  "domain": "sales_performance",
+  "source_type": "cdp_postgres",
+  "description": "Share of Caterpillar lead assignments whose conversion status is ORDERED.",
+  "data_type": "percentage",
+  "format": "0.0%",
+  "default_time_context": {
+    "time_dimension": "assigned_at",
+    "label": "Assigned At",
+    "granularity": "day",
+    "window": "current_month",
+    "supported_grains": ["day", "week", "month", "year"]
+  },
+  "calculation": {
+    "type": "base",
+    "sql_expression": "(COUNT(*) FILTER (WHERE conversion_status = 'ORDERED'))::numeric / NULLIF(COUNT(*), 0)",
+    "dependencies": []
+  },
+  "source": {
+    "table_view": "caterpillar_lead_assignment",
+    "base_filters": []
+  },
+  "supported_dimensions": [
+    { "dim_id": "agency_id", "field_name": "agency_id", "type": "categorical" },
+    { "dim_id": "assignment_rule", "field_name": "assignment_rule", "type": "categorical" },
+    { "dim_id": "delivery_status", "field_name": "delivery_status", "type": "categorical" }
+  ],
+  "behavior_profile": {
+    "role": "business_indicator",
+    "analysis_priority": 1
+  },
+  "ai_agent_context": {
+    "synonyms": ["Assignment Order Rate", "Lead Conversion", "Ordered Assignments"],
+    "polarity": "positive",
+    "thresholds": [],
+    "human_readable_explanation": "Divides assignments in ORDERED conversion status by all Caterpillar lead assignments."
+  }
+},
+{
+  "metric_name": "caterpillar_successful_orders",
+  "display_name": "Caterpillar Successful Orders",
+  "domain": "revenue_and_growth",
+  "source_type": "cdp_postgres",
+  "description": "Count of Caterpillar orders in PAID or COMPLETED status.",
+  "data_type": "integer",
+  "format": "0,0",
+  "default_time_context": {
+    "time_dimension": "order_at",
+    "label": "Order At",
+    "granularity": "day",
+    "window": "current_month",
+    "supported_grains": ["day", "week", "month", "year"]
+  },
+  "calculation": {
+    "type": "base",
+    "sql_expression": "COUNT(*) FILTER (WHERE order_status IN ('PAID','COMPLETED'))",
+    "dependencies": []
+  },
+  "source": {
+    "table_view": "caterpillar_order_record",
+    "base_filters": []
+  },
+  "supported_dimensions": [
+    { "dim_id": "agency_id", "field_name": "agency_id", "type": "categorical" },
+    { "dim_id": "campaign_id", "field_name": "campaign_id", "type": "categorical" },
+    { "dim_id": "product_code", "field_name": "product_code", "type": "categorical" }
+  ],
+  "behavior_profile": {
+    "role": "business_indicator",
+    "analysis_priority": 1
+  },
+  "ai_agent_context": {
+    "synonyms": ["Successful Orders", "Paid Orders", "Completed Orders"],
+    "polarity": "positive",
+    "thresholds": [],
+    "human_readable_explanation": "Counts Caterpillar orders in PAID or COMPLETED status."
+  }
+},
+{
+  "metric_name": "caterpillar_paid_order_revenue",
+  "display_name": "Caterpillar Paid Order Revenue",
+  "domain": "revenue_and_growth",
+  "source_type": "cdp_postgres",
+  "description": "Paid amount from Caterpillar orders in PAID or COMPLETED status.",
+  "data_type": "currency",
+  "format": "¥0,0.00",
+  "default_time_context": {
+    "time_dimension": "order_at",
+    "label": "Order At",
+    "granularity": "day",
+    "window": "current_month",
+    "supported_grains": ["day", "week", "month", "year"]
+  },
+  "calculation": {
+    "type": "base",
+    "sql_expression": "COALESCE(SUM(paid_amount) FILTER (WHERE order_status IN ('PAID','COMPLETED')), 0)",
+    "dependencies": []
+  },
+  "source": {
+    "table_view": "caterpillar_order_record",
+    "base_filters": []
+  },
+  "supported_dimensions": [
+    { "dim_id": "agency_id", "field_name": "agency_id", "type": "categorical" },
+    { "dim_id": "campaign_id", "field_name": "campaign_id", "type": "categorical" },
+    { "dim_id": "product_code", "field_name": "product_code", "type": "categorical" }
+  ],
+  "behavior_profile": {
+    "role": "business_indicator",
+    "analysis_priority": 1
+  },
+  "ai_agent_context": {
+    "synonyms": ["Paid Revenue", "Order Revenue", "Collected Revenue"],
+    "polarity": "positive",
+    "thresholds": [],
+    "human_readable_explanation": "Sums paid_amount for Caterpillar orders in PAID or COMPLETED status and returns zero for an empty result."
+  }
+},
+{
+  "metric_name": "caterpillar_survey_completion_rate",
+  "display_name": "Caterpillar Survey Completion Rate",
+  "domain": "customer_value",
+  "source_type": "cdp_postgres",
+  "description": "Share of Caterpillar survey responses in SUBMITTED status.",
+  "data_type": "percentage",
+  "format": "0.0%",
+  "default_time_context": {
+    "time_dimension": "created_at",
+    "label": "Created At",
+    "granularity": "day",
+    "window": "current_month",
+    "supported_grains": ["day", "week", "month", "year"]
+  },
+  "calculation": {
+    "type": "base",
+    "sql_expression": "(COUNT(*) FILTER (WHERE status = 'SUBMITTED'))::numeric / NULLIF(COUNT(*), 0)",
+    "dependencies": []
+  },
+  "source": {
+    "table_view": "caterpillar_survey_response",
+    "base_filters": []
+  },
+  "supported_dimensions": [
+    { "dim_id": "survey_code", "field_name": "survey_code", "type": "categorical" },
+    { "dim_id": "campaign_id", "field_name": "campaign_id", "type": "categorical" },
+    { "dim_id": "touchpoint_id", "field_name": "touchpoint_id", "type": "categorical" }
+  ],
+  "behavior_profile": {
+    "role": "business_indicator",
+    "analysis_priority": 1
+  },
+  "ai_agent_context": {
+    "synonyms": ["Survey Completion", "Submitted Surveys", "Response Completion"],
+    "polarity": "positive",
+    "thresholds": [],
+    "human_readable_explanation": "Divides submitted Caterpillar survey responses by all Caterpillar survey responses."
+  }
 }
 
 ]

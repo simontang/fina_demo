@@ -1,0 +1,106 @@
+{
+  "viewName": "caterpillar_custom_record",
+  "docType": "Caterpillar Custom Record",
+  "docTypeEn": "Caterpillar Custom Record",
+  "selectSql": "SELECT * FROM caterpillar_custom_record",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Custom Record.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "module_id",
+      "label": "Module Id",
+      "description": "Module Id field on Caterpillar Custom Record.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "record_no",
+      "label": "Record No",
+      "description": "Record No field on Caterpillar Custom Record.",
+      "type": "VARCHAR(50)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "customer_id",
+      "label": "Customer Id",
+      "description": "Customer Id field on Caterpillar Custom Record.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "lead_id",
+      "label": "Lead Id",
+      "description": "Lead Id field on Caterpillar Custom Record.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "record_data",
+      "label": "Record Data",
+      "description": "Record Data field on Caterpillar Custom Record.",
+      "type": "JSONB",
+      "example": "{}"
+    },
+    {
+      "name": "record_status",
+      "label": "Record Status",
+      "description": "Record Status field on Caterpillar Custom Record.",
+      "type": "VARCHAR(30)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "external_record_id",
+      "label": "External Record Id",
+      "description": "External Record Id field on Caterpillar Custom Record.",
+      "type": "VARCHAR(100)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "owner_user_id",
+      "label": "Owner User Id",
+      "description": "Owner User Id field on Caterpillar Custom Record.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "created_by",
+      "label": "Created By",
+      "description": "Created By field on Caterpillar Custom Record.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "updated_by",
+      "label": "Updated By",
+      "description": "Updated By field on Caterpillar Custom Record.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "description": "Created At field on Caterpillar Custom Record.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "updated_at",
+      "label": "Updated At",
+      "description": "Updated At field on Caterpillar Custom Record.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "deleted_at",
+      "label": "Deleted At",
+      "description": "Deleted At field on Caterpillar Custom Record.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "viewName": "caterpillar_channel",
+  "docType": "Caterpillar Channel",
+  "docTypeEn": "Caterpillar Channel",
+  "selectSql": "SELECT * FROM caterpillar_channel",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Channel.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "channel_code",
+      "label": "Channel Code",
+      "description": "Channel Code field on Caterpillar Channel.",
+      "type": "VARCHAR(50)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "channel_name",
+      "label": "Channel Name",
+      "description": "Channel Name field on Caterpillar Channel.",
+      "type": "VARCHAR(100)",
+      "example": "Sample name"
+    },
+    {
+      "name": "channel_type",
+      "label": "Channel Type",
+      "description": "Channel Type field on Caterpillar Channel.",
+      "type": "VARCHAR(30)",
+      "example": "Sample value"
+    },
+    {
+      "name": "parent_id",
+      "label": "Parent Id",
+      "description": "Parent Id field on Caterpillar Channel.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "media_platform",
+      "label": "Media Platform",
+      "description": "Media Platform field on Caterpillar Channel.",
+      "type": "VARCHAR(50)",
+      "example": "Sample value"
+    },
+    {
+      "name": "external_channel_id",
+      "label": "External Channel Id",
+      "description": "External Channel Id field on Caterpillar Channel.",
+      "type": "VARCHAR(100)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "status",
+      "label": "Status",
+      "description": "Status field on Caterpillar Channel.",
+      "type": "VARCHAR(20)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "description": "Created At field on Caterpillar Channel.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "updated_at",
+      "label": "Updated At",
+      "description": "Updated At field on Caterpillar Channel.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

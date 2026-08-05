@@ -1,0 +1,85 @@
+{
+  "viewName": "caterpillar_system_user",
+  "docType": "Caterpillar System User",
+  "docTypeEn": "Caterpillar System User",
+  "selectSql": "SELECT * FROM caterpillar_system_user",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar System User.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "username",
+      "label": "Username",
+      "description": "Username field on Caterpillar System User.",
+      "type": "VARCHAR(100)",
+      "example": "Sample name"
+    },
+    {
+      "name": "display_name",
+      "label": "Display Name",
+      "description": "Display Name field on Caterpillar System User.",
+      "type": "VARCHAR(100)",
+      "example": "Sample name"
+    },
+    {
+      "name": "mobile",
+      "label": "Mobile",
+      "description": "Mobile field on Caterpillar System User.",
+      "type": "VARCHAR(32)",
+      "example": "00000000000"
+    },
+    {
+      "name": "email",
+      "label": "Email",
+      "description": "Email field on Caterpillar System User.",
+      "type": "VARCHAR(200)",
+      "example": "user@example.com"
+    },
+    {
+      "name": "agency_id",
+      "label": "Agency Id",
+      "description": "Agency Id field on Caterpillar System User.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "department",
+      "label": "Department",
+      "description": "Department field on Caterpillar System User.",
+      "type": "VARCHAR(100)",
+      "example": "Sample value"
+    },
+    {
+      "name": "status",
+      "label": "Status",
+      "description": "Status field on Caterpillar System User.",
+      "type": "VARCHAR(20)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "last_login_at",
+      "label": "Last Login At",
+      "description": "Last Login At field on Caterpillar System User.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "description": "Created At field on Caterpillar System User.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "updated_at",
+      "label": "Updated At",
+      "description": "Updated At field on Caterpillar System User.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

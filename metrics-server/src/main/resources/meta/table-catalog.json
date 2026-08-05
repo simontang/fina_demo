@@ -520,5 +520,161 @@
     "docType": "Retail CDP Agent Run Summary View",
     "docTypeEn": "Retail CDP Agent Run Summary View",
     "shortDesc": "Daily agent/scenario/status run summary with latency, token, tool-call, cost, approval, and evaluation metrics."
+  },
+  {
+    "tableName": "caterpillar_agency",
+    "docType": "Caterpillar Agency",
+    "docTypeEn": "Caterpillar Agency",
+    "shortDesc": "Agency master data, service scope, delivery capacity, callback endpoint, and operational status."
+  },
+  {
+    "tableName": "caterpillar_system_user",
+    "docType": "Caterpillar System User",
+    "docTypeEn": "Caterpillar System User",
+    "shortDesc": "Caterpillar business users, agency affiliation, department, status, and login timestamps."
+  },
+  {
+    "tableName": "caterpillar_role",
+    "docType": "Caterpillar Role",
+    "docTypeEn": "Caterpillar Role",
+    "shortDesc": "Role definitions, data scopes, permissions, and status."
+  },
+  {
+    "tableName": "caterpillar_user_role",
+    "docType": "Caterpillar User Role",
+    "docTypeEn": "Caterpillar User Role",
+    "shortDesc": "Many-to-many assignments between Caterpillar users and roles."
+  },
+  {
+    "tableName": "caterpillar_channel",
+    "docType": "Caterpillar Channel",
+    "docTypeEn": "Caterpillar Channel",
+    "shortDesc": "Hierarchical marketing and acquisition channel definitions."
+  },
+  {
+    "tableName": "caterpillar_campaign",
+    "docType": "Caterpillar Campaign",
+    "docTypeEn": "Caterpillar Campaign",
+    "shortDesc": "Campaign plans, schedules, budgets, attribution parameters, owners, and status."
+  },
+  {
+    "tableName": "caterpillar_customer",
+    "docType": "Caterpillar Customer",
+    "docTypeEn": "Caterpillar Customer",
+    "shortDesc": "Customer master records, lifecycle attributes, consent status, ownership, and source attribution."
+  },
+  {
+    "tableName": "caterpillar_customer_identity",
+    "docType": "Caterpillar Customer Identity",
+    "docTypeEn": "Caterpillar Customer Identity",
+    "shortDesc": "Customer identity mappings with platform, verification, and primary-identity flags."
+  },
+  {
+    "tableName": "caterpillar_customer_tag",
+    "docType": "Caterpillar Customer Tag",
+    "docTypeEn": "Caterpillar Customer Tag",
+    "shortDesc": "Customer tag definitions and optional rule metadata."
+  },
+  {
+    "tableName": "caterpillar_customer_tag_relation",
+    "docType": "Caterpillar Customer Tag Relation",
+    "docTypeEn": "Caterpillar Customer Tag Relation",
+    "shortDesc": "Assignments of tags to customers with source and expiry context."
+  },
+  {
+    "tableName": "caterpillar_touchpoint",
+    "docType": "Caterpillar Touchpoint",
+    "docTypeEn": "Caterpillar Touchpoint",
+    "shortDesc": "Campaign and channel touchpoints such as forms, web pages, mini-programs, and offline sources."
+  },
+  {
+    "tableName": "caterpillar_behavior_event",
+    "docType": "Caterpillar Behavior Event",
+    "docTypeEn": "Caterpillar Behavior Event",
+    "shortDesc": "Customer or anonymous behavioral events with campaign, channel, device, and event properties."
+  },
+  {
+    "tableName": "caterpillar_lead",
+    "docType": "Caterpillar Lead",
+    "docTypeEn": "Caterpillar Lead",
+    "shortDesc": "Marketing lead records, quality, status, source context, scoring, and deduplication state."
+  },
+  {
+    "tableName": "caterpillar_lead_source_record",
+    "docType": "Caterpillar Lead Source Record",
+    "docTypeEn": "Caterpillar Lead Source Record",
+    "shortDesc": "Raw inbound lead source records and validation processing state."
+  },
+  {
+    "tableName": "caterpillar_lead_status_history",
+    "docType": "Caterpillar Lead Status History",
+    "docTypeEn": "Caterpillar Lead Status History",
+    "shortDesc": "Audit history of lead status transitions and operators."
+  },
+  {
+    "tableName": "caterpillar_call_task",
+    "docType": "Caterpillar Call Task",
+    "docTypeEn": "Caterpillar Call Task",
+    "shortDesc": "Outbound call task configuration, progress counters, schedule, and status."
+  },
+  {
+    "tableName": "caterpillar_call_record",
+    "docType": "Caterpillar Call Record",
+    "docTypeEn": "Caterpillar Call Record",
+    "shortDesc": "Individual outbound call attempts, answer state, business result, timing, and callback data."
+  },
+  {
+    "tableName": "caterpillar_lead_assignment",
+    "docType": "Caterpillar Lead Assignment",
+    "docTypeEn": "Caterpillar Lead Assignment",
+    "shortDesc": "Lead deliveries to agencies, acceptance state, follow-up, and conversion status."
+  },
+  {
+    "tableName": "caterpillar_order_record",
+    "docType": "Caterpillar Order Record",
+    "docTypeEn": "Caterpillar Order Record",
+    "shortDesc": "Customer orders, paid amounts, statuses, timestamps, and campaign/lead attribution."
+  },
+  {
+    "tableName": "caterpillar_survey_response",
+    "docType": "Caterpillar Survey Response",
+    "docTypeEn": "Caterpillar Survey Response",
+    "shortDesc": "Survey response headers, identity context, completion status, score, and timestamps."
+  },
+  {
+    "tableName": "caterpillar_survey_answer",
+    "docType": "Caterpillar Survey Answer",
+    "docTypeEn": "Caterpillar Survey Answer",
+    "shortDesc": "Question-level answers and scores for survey responses."
+  },
+  {
+    "tableName": "caterpillar_custom_module",
+    "docType": "Caterpillar Custom Module",
+    "docTypeEn": "Caterpillar Custom Module",
+    "shortDesc": "Definitions for tenant-specific custom business modules."
+  },
+  {
+    "tableName": "caterpillar_custom_field",
+    "docType": "Caterpillar Custom Field",
+    "docTypeEn": "Caterpillar Custom Field",
+    "shortDesc": "Field definitions, validation settings, options, and sensitivity flags for custom modules."
+  },
+  {
+    "tableName": "caterpillar_custom_record",
+    "docType": "Caterpillar Custom Record",
+    "docTypeEn": "Caterpillar Custom Record",
+    "shortDesc": "Records stored in custom modules with customer/lead ownership and audit fields."
+  },
+  {
+    "tableName": "caterpillar_integration_log",
+    "docType": "Caterpillar Integration Log",
+    "docTypeEn": "Caterpillar Integration Log",
+    "shortDesc": "Inbound and outbound integration execution logs and processing outcomes."
+  },
+  {
+    "tableName": "caterpillar_audit_log",
+    "docType": "Caterpillar Audit Log",
+    "docTypeEn": "Caterpillar Audit Log",
+    "shortDesc": "User and system audit events with before/after snapshots."
   }
 ]

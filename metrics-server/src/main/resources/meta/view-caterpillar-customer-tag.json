@@ -1,0 +1,71 @@
+{
+  "viewName": "caterpillar_customer_tag",
+  "docType": "Caterpillar Customer Tag",
+  "docTypeEn": "Caterpillar Customer Tag",
+  "selectSql": "SELECT * FROM caterpillar_customer_tag",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Customer Tag.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "tag_code",
+      "label": "Tag Code",
+      "description": "Tag Code field on Caterpillar Customer Tag.",
+      "type": "VARCHAR(50)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "tag_name",
+      "label": "Tag Name",
+      "description": "Tag Name field on Caterpillar Customer Tag.",
+      "type": "VARCHAR(100)",
+      "example": "Sample name"
+    },
+    {
+      "name": "tag_category",
+      "label": "Tag Category",
+      "description": "Tag Category field on Caterpillar Customer Tag.",
+      "type": "VARCHAR(50)",
+      "example": "Sample value"
+    },
+    {
+      "name": "description",
+      "label": "Description",
+      "description": "Description field on Caterpillar Customer Tag.",
+      "type": "VARCHAR(500)",
+      "example": "Sample value"
+    },
+    {
+      "name": "rule_json",
+      "label": "Rule Json",
+      "description": "Rule Json field on Caterpillar Customer Tag.",
+      "type": "JSONB",
+      "example": "{}"
+    },
+    {
+      "name": "status",
+      "label": "Status",
+      "description": "Status field on Caterpillar Customer Tag.",
+      "type": "VARCHAR(20)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "description": "Created At field on Caterpillar Customer Tag.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "updated_at",
+      "label": "Updated At",
+      "description": "Updated At field on Caterpillar Customer Tag.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

@@ -1,0 +1,113 @@
+{
+  "viewName": "caterpillar_integration_log",
+  "docType": "Caterpillar Integration Log",
+  "docTypeEn": "Caterpillar Integration Log",
+  "selectSql": "SELECT * FROM caterpillar_integration_log",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Integration Log.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "system_code",
+      "label": "System Code",
+      "description": "System Code field on Caterpillar Integration Log.",
+      "type": "VARCHAR(50)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "interface_code",
+      "label": "Interface Code",
+      "description": "Interface Code field on Caterpillar Integration Log.",
+      "type": "VARCHAR(100)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "direction",
+      "label": "Direction",
+      "description": "Direction field on Caterpillar Integration Log.",
+      "type": "VARCHAR(10)",
+      "example": "Sample val"
+    },
+    {
+      "name": "request_id",
+      "label": "Request Id",
+      "description": "Request Id field on Caterpillar Integration Log.",
+      "type": "VARCHAR(100)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "business_type",
+      "label": "Business Type",
+      "description": "Business Type field on Caterpillar Integration Log.",
+      "type": "VARCHAR(50)",
+      "example": "Sample value"
+    },
+    {
+      "name": "business_id",
+      "label": "Business Id",
+      "description": "Business Id field on Caterpillar Integration Log.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "request_data",
+      "label": "Request Data",
+      "description": "Request Data field on Caterpillar Integration Log.",
+      "type": "JSONB",
+      "example": "{}"
+    },
+    {
+      "name": "response_data",
+      "label": "Response Data",
+      "description": "Response Data field on Caterpillar Integration Log.",
+      "type": "JSONB",
+      "example": "{}"
+    },
+    {
+      "name": "http_status",
+      "label": "Http Status",
+      "description": "Http Status field on Caterpillar Integration Log.",
+      "type": "INTEGER",
+      "example": "1"
+    },
+    {
+      "name": "process_status",
+      "label": "Process Status",
+      "description": "Process Status field on Caterpillar Integration Log.",
+      "type": "VARCHAR(20)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "error_message",
+      "label": "Error Message",
+      "description": "Error Message field on Caterpillar Integration Log.",
+      "type": "TEXT",
+      "example": "Sample value"
+    },
+    {
+      "name": "retry_count",
+      "label": "Retry Count",
+      "description": "Retry Count field on Caterpillar Integration Log.",
+      "type": "INTEGER",
+      "example": "1"
+    },
+    {
+      "name": "started_at",
+      "label": "Started At",
+      "description": "Started At field on Caterpillar Integration Log.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "completed_at",
+      "label": "Completed At",
+      "description": "Completed At field on Caterpillar Integration Log.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

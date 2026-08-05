@@ -1,0 +1,36 @@
+{
+  "viewName": "caterpillar_user_role",
+  "docType": "Caterpillar User Role",
+  "docTypeEn": "Caterpillar User Role",
+  "selectSql": "SELECT * FROM caterpillar_user_role",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar User Role.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "user_id",
+      "label": "User Id",
+      "description": "User Id field on Caterpillar User Role.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "role_id",
+      "label": "Role Id",
+      "description": "Role Id field on Caterpillar User Role.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "description": "Created At field on Caterpillar User Role.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

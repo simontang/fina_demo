@@ -1,0 +1,85 @@
+{
+  "viewName": "caterpillar_custom_module",
+  "docType": "Caterpillar Custom Module",
+  "docTypeEn": "Caterpillar Custom Module",
+  "selectSql": "SELECT * FROM caterpillar_custom_module",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Custom Module.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "module_code",
+      "label": "Module Code",
+      "description": "Module Code field on Caterpillar Custom Module.",
+      "type": "VARCHAR(50)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "module_name",
+      "label": "Module Name",
+      "description": "Module Name field on Caterpillar Custom Module.",
+      "type": "VARCHAR(100)",
+      "example": "Sample name"
+    },
+    {
+      "name": "description",
+      "label": "Description",
+      "description": "Description field on Caterpillar Custom Module.",
+      "type": "VARCHAR(500)",
+      "example": "Sample value"
+    },
+    {
+      "name": "primary_object_type",
+      "label": "Primary Object Type",
+      "description": "Primary Object Type field on Caterpillar Custom Module.",
+      "type": "VARCHAR(30)",
+      "example": "Sample value"
+    },
+    {
+      "name": "display_field_code",
+      "label": "Display Field Code",
+      "description": "Display Field Code field on Caterpillar Custom Module.",
+      "type": "VARCHAR(50)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "enable_workflow",
+      "label": "Enable Workflow",
+      "description": "Enable Workflow field on Caterpillar Custom Module.",
+      "type": "BOOLEAN",
+      "example": "true"
+    },
+    {
+      "name": "status",
+      "label": "Status",
+      "description": "Status field on Caterpillar Custom Module.",
+      "type": "VARCHAR(20)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "created_by",
+      "label": "Created By",
+      "description": "Created By field on Caterpillar Custom Module.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "description": "Created At field on Caterpillar Custom Module.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "updated_at",
+      "label": "Updated At",
+      "description": "Updated At field on Caterpillar Custom Module.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

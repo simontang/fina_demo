@@ -1,0 +1,134 @@
+{
+  "viewName": "caterpillar_lead_assignment",
+  "docType": "Caterpillar Lead Assignment",
+  "docTypeEn": "Caterpillar Lead Assignment",
+  "selectSql": "SELECT * FROM caterpillar_lead_assignment",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Lead Assignment.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "lead_id",
+      "label": "Lead Id",
+      "description": "Lead Id field on Caterpillar Lead Assignment.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "agency_id",
+      "label": "Agency Id",
+      "description": "Agency Id field on Caterpillar Lead Assignment.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "assignment_batch_no",
+      "label": "Assignment Batch No",
+      "description": "Assignment Batch No field on Caterpillar Lead Assignment.",
+      "type": "VARCHAR(50)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "assignment_rule",
+      "label": "Assignment Rule",
+      "description": "Assignment Rule field on Caterpillar Lead Assignment.",
+      "type": "VARCHAR(100)",
+      "example": "Sample value"
+    },
+    {
+      "name": "assignment_reason",
+      "label": "Assignment Reason",
+      "description": "Assignment Reason field on Caterpillar Lead Assignment.",
+      "type": "VARCHAR(500)",
+      "example": "Sample value"
+    },
+    {
+      "name": "assigned_at",
+      "label": "Assigned At",
+      "description": "Assigned At field on Caterpillar Lead Assignment.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "delivery_status",
+      "label": "Delivery Status",
+      "description": "Delivery Status field on Caterpillar Lead Assignment.",
+      "type": "VARCHAR(30)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "external_lead_id",
+      "label": "External Lead Id",
+      "description": "External Lead Id field on Caterpillar Lead Assignment.",
+      "type": "VARCHAR(100)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "response_code",
+      "label": "Response Code",
+      "description": "Response Code field on Caterpillar Lead Assignment.",
+      "type": "VARCHAR(50)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "response_message",
+      "label": "Response Message",
+      "description": "Response Message field on Caterpillar Lead Assignment.",
+      "type": "TEXT",
+      "example": "Sample value"
+    },
+    {
+      "name": "followup_status",
+      "label": "Followup Status",
+      "description": "Followup Status field on Caterpillar Lead Assignment.",
+      "type": "VARCHAR(30)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "conversion_status",
+      "label": "Conversion Status",
+      "description": "Conversion Status field on Caterpillar Lead Assignment.",
+      "type": "VARCHAR(30)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "converted_at",
+      "label": "Converted At",
+      "description": "Converted At field on Caterpillar Lead Assignment.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "is_current",
+      "label": "Is Current",
+      "description": "Is Current field on Caterpillar Lead Assignment.",
+      "type": "BOOLEAN",
+      "example": "true"
+    },
+    {
+      "name": "created_by",
+      "label": "Created By",
+      "description": "Created By field on Caterpillar Lead Assignment.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "description": "Created At field on Caterpillar Lead Assignment.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "updated_at",
+      "label": "Updated At",
+      "description": "Updated At field on Caterpillar Lead Assignment.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

@@ -1,0 +1,148 @@
+{
+  "viewName": "caterpillar_call_record",
+  "docType": "Caterpillar Call Record",
+  "docTypeEn": "Caterpillar Call Record",
+  "selectSql": "SELECT * FROM caterpillar_call_record",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Call Record.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "call_task_id",
+      "label": "Call Task Id",
+      "description": "Call Task Id field on Caterpillar Call Record.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "lead_id",
+      "label": "Lead Id",
+      "description": "Lead Id field on Caterpillar Call Record.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "external_call_id",
+      "label": "External Call Id",
+      "description": "External Call Id field on Caterpillar Call Record.",
+      "type": "VARCHAR(100)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "call_sequence",
+      "label": "Call Sequence",
+      "description": "Call Sequence field on Caterpillar Call Record.",
+      "type": "INTEGER",
+      "example": "1"
+    },
+    {
+      "name": "call_status",
+      "label": "Call Status",
+      "description": "Call Status field on Caterpillar Call Record.",
+      "type": "VARCHAR(30)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "business_result",
+      "label": "Business Result",
+      "description": "Business Result field on Caterpillar Call Record.",
+      "type": "VARCHAR(30)",
+      "example": "Sample value"
+    },
+    {
+      "name": "intent_level",
+      "label": "Intent Level",
+      "description": "Intent Level field on Caterpillar Call Record.",
+      "type": "VARCHAR(20)",
+      "example": "Sample value"
+    },
+    {
+      "name": "agent_name",
+      "label": "Agent Name",
+      "description": "Agent Name field on Caterpillar Call Record.",
+      "type": "VARCHAR(100)",
+      "example": "Sample name"
+    },
+    {
+      "name": "agent_external_id",
+      "label": "Agent External Id",
+      "description": "Agent External Id field on Caterpillar Call Record.",
+      "type": "VARCHAR(100)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "started_at",
+      "label": "Started At",
+      "description": "Started At field on Caterpillar Call Record.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "answered_at",
+      "label": "Answered At",
+      "description": "Answered At field on Caterpillar Call Record.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "ended_at",
+      "label": "Ended At",
+      "description": "Ended At field on Caterpillar Call Record.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "duration_seconds",
+      "label": "Duration Seconds",
+      "description": "Duration Seconds field on Caterpillar Call Record.",
+      "type": "INTEGER",
+      "example": "1"
+    },
+    {
+      "name": "recording_url",
+      "label": "Recording Url",
+      "description": "Recording Url field on Caterpillar Call Record.",
+      "type": "VARCHAR(1000)",
+      "example": "https://example.com/resource"
+    },
+    {
+      "name": "remark",
+      "label": "Remark",
+      "description": "Remark field on Caterpillar Call Record.",
+      "type": "TEXT",
+      "example": "Sample value"
+    },
+    {
+      "name": "callback_raw_data",
+      "label": "Callback Raw Data",
+      "description": "Callback Raw Data field on Caterpillar Call Record.",
+      "type": "JSONB",
+      "example": "{}"
+    },
+    {
+      "name": "callback_at",
+      "label": "Callback At",
+      "description": "Callback At field on Caterpillar Call Record.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "description": "Created At field on Caterpillar Call Record.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "updated_at",
+      "label": "Updated At",
+      "description": "Updated At field on Caterpillar Call Record.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

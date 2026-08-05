@@ -1,0 +1,141 @@
+{
+  "viewName": "caterpillar_behavior_event",
+  "docType": "Caterpillar Behavior Event",
+  "docTypeEn": "Caterpillar Behavior Event",
+  "selectSql": "SELECT * FROM caterpillar_behavior_event",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Behavior Event.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "event_id",
+      "label": "Event Id",
+      "description": "Event Id field on Caterpillar Behavior Event.",
+      "type": "VARCHAR(64)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "event_name",
+      "label": "Event Name",
+      "description": "Event Name field on Caterpillar Behavior Event.",
+      "type": "VARCHAR(100)",
+      "example": "Sample name"
+    },
+    {
+      "name": "event_type",
+      "label": "Event Type",
+      "description": "Event Type field on Caterpillar Behavior Event.",
+      "type": "VARCHAR(50)",
+      "example": "Sample value"
+    },
+    {
+      "name": "customer_id",
+      "label": "Customer Id",
+      "description": "Customer Id field on Caterpillar Behavior Event.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "anonymous_id",
+      "label": "Anonymous Id",
+      "description": "Anonymous Id field on Caterpillar Behavior Event.",
+      "type": "VARCHAR(100)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "session_id",
+      "label": "Session Id",
+      "description": "Session Id field on Caterpillar Behavior Event.",
+      "type": "VARCHAR(100)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "touchpoint_id",
+      "label": "Touchpoint Id",
+      "description": "Touchpoint Id field on Caterpillar Behavior Event.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "channel_id",
+      "label": "Channel Id",
+      "description": "Channel Id field on Caterpillar Behavior Event.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "campaign_id",
+      "label": "Campaign Id",
+      "description": "Campaign Id field on Caterpillar Behavior Event.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "page_url",
+      "label": "Page Url",
+      "description": "Page Url field on Caterpillar Behavior Event.",
+      "type": "VARCHAR(2000)",
+      "example": "https://example.com/resource"
+    },
+    {
+      "name": "page_title",
+      "label": "Page Title",
+      "description": "Page Title field on Caterpillar Behavior Event.",
+      "type": "VARCHAR(500)",
+      "example": "Sample value"
+    },
+    {
+      "name": "referrer",
+      "label": "Referrer",
+      "description": "Referrer field on Caterpillar Behavior Event.",
+      "type": "VARCHAR(2000)",
+      "example": "Sample value"
+    },
+    {
+      "name": "device_type",
+      "label": "Device Type",
+      "description": "Device Type field on Caterpillar Behavior Event.",
+      "type": "VARCHAR(30)",
+      "example": "Sample value"
+    },
+    {
+      "name": "device_id",
+      "label": "Device Id",
+      "description": "Device Id field on Caterpillar Behavior Event.",
+      "type": "VARCHAR(100)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "ip_address",
+      "label": "Ip Address",
+      "description": "Ip Address field on Caterpillar Behavior Event.",
+      "type": "VARCHAR(64)",
+      "example": "192.0.2.1"
+    },
+    {
+      "name": "event_properties",
+      "label": "Event Properties",
+      "description": "Event Properties field on Caterpillar Behavior Event.",
+      "type": "JSONB",
+      "example": "{}"
+    },
+    {
+      "name": "occurred_at",
+      "label": "Occurred At",
+      "description": "Occurred At field on Caterpillar Behavior Event.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "received_at",
+      "label": "Received At",
+      "description": "Received At field on Caterpillar Behavior Event.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "viewName": "caterpillar_call_task",
+  "docType": "Caterpillar Call Task",
+  "docTypeEn": "Caterpillar Call Task",
+  "selectSql": "SELECT * FROM caterpillar_call_task",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Call Task.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "task_no",
+      "label": "Task No",
+      "description": "Task No field on Caterpillar Call Task.",
+      "type": "VARCHAR(50)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "task_name",
+      "label": "Task Name",
+      "description": "Task Name field on Caterpillar Call Task.",
+      "type": "VARCHAR(200)",
+      "example": "Sample name"
+    },
+    {
+      "name": "campaign_id",
+      "label": "Campaign Id",
+      "description": "Campaign Id field on Caterpillar Call Task.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "provider_code",
+      "label": "Provider Code",
+      "description": "Provider Code field on Caterpillar Call Task.",
+      "type": "VARCHAR(50)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "call_strategy",
+      "label": "Call Strategy",
+      "description": "Call Strategy field on Caterpillar Call Task.",
+      "type": "JSONB",
+      "example": "{}"
+    },
+    {
+      "name": "total_count",
+      "label": "Total Count",
+      "description": "Total Count field on Caterpillar Call Task.",
+      "type": "INTEGER",
+      "example": "1"
+    },
+    {
+      "name": "completed_count",
+      "label": "Completed Count",
+      "description": "Completed Count field on Caterpillar Call Task.",
+      "type": "INTEGER",
+      "example": "1"
+    },
+    {
+      "name": "status",
+      "label": "Status",
+      "description": "Status field on Caterpillar Call Task.",
+      "type": "VARCHAR(20)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "start_at",
+      "label": "Start At",
+      "description": "Start At field on Caterpillar Call Task.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "end_at",
+      "label": "End At",
+      "description": "End At field on Caterpillar Call Task.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "created_by",
+      "label": "Created By",
+      "description": "Created By field on Caterpillar Call Task.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "description": "Created At field on Caterpillar Call Task.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "updated_at",
+      "label": "Updated At",
+      "description": "Updated At field on Caterpillar Call Task.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

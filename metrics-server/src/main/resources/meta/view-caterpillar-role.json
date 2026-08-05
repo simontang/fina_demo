@@ -1,0 +1,64 @@
+{
+  "viewName": "caterpillar_role",
+  "docType": "Caterpillar Role",
+  "docTypeEn": "Caterpillar Role",
+  "selectSql": "SELECT * FROM caterpillar_role",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Role.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "role_code",
+      "label": "Role Code",
+      "description": "Role Code field on Caterpillar Role.",
+      "type": "VARCHAR(50)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "role_name",
+      "label": "Role Name",
+      "description": "Role Name field on Caterpillar Role.",
+      "type": "VARCHAR(100)",
+      "example": "Sample name"
+    },
+    {
+      "name": "data_scope",
+      "label": "Data Scope",
+      "description": "Data Scope field on Caterpillar Role.",
+      "type": "VARCHAR(30)",
+      "example": "Sample value"
+    },
+    {
+      "name": "permission_json",
+      "label": "Permission Json",
+      "description": "Permission Json field on Caterpillar Role.",
+      "type": "JSONB",
+      "example": "{}"
+    },
+    {
+      "name": "status",
+      "label": "Status",
+      "description": "Status field on Caterpillar Role.",
+      "type": "VARCHAR(20)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "description": "Created At field on Caterpillar Role.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "updated_at",
+      "label": "Updated At",
+      "description": "Updated At field on Caterpillar Role.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "viewName": "caterpillar_customer_tag_relation",
+  "docType": "Caterpillar Customer Tag Relation",
+  "docTypeEn": "Caterpillar Customer Tag Relation",
+  "selectSql": "SELECT * FROM caterpillar_customer_tag_relation",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Customer Tag Relation.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "customer_id",
+      "label": "Customer Id",
+      "description": "Customer Id field on Caterpillar Customer Tag Relation.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "tag_id",
+      "label": "Tag Id",
+      "description": "Tag Id field on Caterpillar Customer Tag Relation.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "source_type",
+      "label": "Source Type",
+      "description": "Source Type field on Caterpillar Customer Tag Relation.",
+      "type": "VARCHAR(30)",
+      "example": "Sample value"
+    },
+    {
+      "name": "source_id",
+      "label": "Source Id",
+      "description": "Source Id field on Caterpillar Customer Tag Relation.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "tagged_at",
+      "label": "Tagged At",
+      "description": "Tagged At field on Caterpillar Customer Tag Relation.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "expire_at",
+      "label": "Expire At",
+      "description": "Expire At field on Caterpillar Customer Tag Relation.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "created_by",
+      "label": "Created By",
+      "description": "Created By field on Caterpillar Customer Tag Relation.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    }
+  ]
+}

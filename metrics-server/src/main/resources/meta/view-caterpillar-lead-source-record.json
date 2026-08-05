@@ -1,0 +1,78 @@
+{
+  "viewName": "caterpillar_lead_source_record",
+  "docType": "Caterpillar Lead Source Record",
+  "docTypeEn": "Caterpillar Lead Source Record",
+  "selectSql": "SELECT * FROM caterpillar_lead_source_record",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Lead Source Record.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "lead_id",
+      "label": "Lead Id",
+      "description": "Lead Id field on Caterpillar Lead Source Record.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "touchpoint_id",
+      "label": "Touchpoint Id",
+      "description": "Touchpoint Id field on Caterpillar Lead Source Record.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "external_record_id",
+      "label": "External Record Id",
+      "description": "External Record Id field on Caterpillar Lead Source Record.",
+      "type": "VARCHAR(100)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "request_id",
+      "label": "Request Id",
+      "description": "Request Id field on Caterpillar Lead Source Record.",
+      "type": "VARCHAR(100)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "raw_data",
+      "label": "Raw Data",
+      "description": "Raw Data field on Caterpillar Lead Source Record.",
+      "type": "JSONB",
+      "example": "{}"
+    },
+    {
+      "name": "validation_status",
+      "label": "Validation Status",
+      "description": "Validation Status field on Caterpillar Lead Source Record.",
+      "type": "VARCHAR(20)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "validation_message",
+      "label": "Validation Message",
+      "description": "Validation Message field on Caterpillar Lead Source Record.",
+      "type": "TEXT",
+      "example": "Sample value"
+    },
+    {
+      "name": "received_at",
+      "label": "Received At",
+      "description": "Received At field on Caterpillar Lead Source Record.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "processed_at",
+      "label": "Processed At",
+      "description": "Processed At field on Caterpillar Lead Source Record.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

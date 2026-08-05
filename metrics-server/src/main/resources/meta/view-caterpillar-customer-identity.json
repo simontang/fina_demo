@@ -1,0 +1,78 @@
+{
+  "viewName": "caterpillar_customer_identity",
+  "docType": "Caterpillar Customer Identity",
+  "docTypeEn": "Caterpillar Customer Identity",
+  "selectSql": "SELECT * FROM caterpillar_customer_identity",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Customer Identity.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "customer_id",
+      "label": "Customer Id",
+      "description": "Customer Id field on Caterpillar Customer Identity.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "identity_type",
+      "label": "Identity Type",
+      "description": "Identity Type field on Caterpillar Customer Identity.",
+      "type": "VARCHAR(30)",
+      "example": "Sample value"
+    },
+    {
+      "name": "identity_value",
+      "label": "Identity Value",
+      "description": "Identity Value field on Caterpillar Customer Identity.",
+      "type": "TEXT",
+      "example": "Sample value"
+    },
+    {
+      "name": "identity_hash",
+      "label": "Identity Hash",
+      "description": "Identity Hash field on Caterpillar Customer Identity.",
+      "type": "VARCHAR(64)",
+      "example": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "name": "platform",
+      "label": "Platform",
+      "description": "Platform field on Caterpillar Customer Identity.",
+      "type": "VARCHAR(50)",
+      "example": "Sample value"
+    },
+    {
+      "name": "is_primary",
+      "label": "Is Primary",
+      "description": "Is Primary field on Caterpillar Customer Identity.",
+      "type": "BOOLEAN",
+      "example": "true"
+    },
+    {
+      "name": "verified",
+      "label": "Verified",
+      "description": "Verified field on Caterpillar Customer Identity.",
+      "type": "BOOLEAN",
+      "example": "true"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "description": "Created At field on Caterpillar Customer Identity.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "updated_at",
+      "label": "Updated At",
+      "description": "Updated At field on Caterpillar Customer Identity.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

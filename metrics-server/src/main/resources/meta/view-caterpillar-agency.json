@@ -1,0 +1,99 @@
+{
+  "viewName": "caterpillar_agency",
+  "docType": "Caterpillar Agency",
+  "docTypeEn": "Caterpillar Agency",
+  "selectSql": "SELECT * FROM caterpillar_agency",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Agency.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "agency_code",
+      "label": "Agency Code",
+      "description": "Agency Code field on Caterpillar Agency.",
+      "type": "VARCHAR(50)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "agency_name",
+      "label": "Agency Name",
+      "description": "Agency Name field on Caterpillar Agency.",
+      "type": "VARCHAR(200)",
+      "example": "Sample name"
+    },
+    {
+      "name": "contact_name",
+      "label": "Contact Name",
+      "description": "Contact Name field on Caterpillar Agency.",
+      "type": "VARCHAR(100)",
+      "example": "Sample name"
+    },
+    {
+      "name": "contact_mobile",
+      "label": "Contact Mobile",
+      "description": "Contact Mobile field on Caterpillar Agency.",
+      "type": "VARCHAR(32)",
+      "example": "00000000000"
+    },
+    {
+      "name": "region_scope",
+      "label": "Region Scope",
+      "description": "Region Scope field on Caterpillar Agency.",
+      "type": "JSONB",
+      "example": "[]"
+    },
+    {
+      "name": "product_scope",
+      "label": "Product Scope",
+      "description": "Product Scope field on Caterpillar Agency.",
+      "type": "JSONB",
+      "example": "[]"
+    },
+    {
+      "name": "daily_capacity",
+      "label": "Daily Capacity",
+      "description": "Daily Capacity field on Caterpillar Agency.",
+      "type": "INTEGER",
+      "example": "1"
+    },
+    {
+      "name": "distribution_weight",
+      "label": "Distribution Weight",
+      "description": "Distribution Weight field on Caterpillar Agency.",
+      "type": "NUMERIC(8,4)",
+      "example": "100.0000"
+    },
+    {
+      "name": "callback_url",
+      "label": "Callback Url",
+      "description": "Callback Url field on Caterpillar Agency.",
+      "type": "VARCHAR(1000)",
+      "example": "https://example.com/resource"
+    },
+    {
+      "name": "status",
+      "label": "Status",
+      "description": "Status field on Caterpillar Agency.",
+      "type": "VARCHAR(20)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "description": "Created At field on Caterpillar Agency.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "updated_at",
+      "label": "Updated At",
+      "description": "Updated At field on Caterpillar Agency.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

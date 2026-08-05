@@ -1,0 +1,106 @@
+{
+  "viewName": "caterpillar_survey_response",
+  "docType": "Caterpillar Survey Response",
+  "docTypeEn": "Caterpillar Survey Response",
+  "selectSql": "SELECT * FROM caterpillar_survey_response",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Survey Response.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "survey_code",
+      "label": "Survey Code",
+      "description": "Survey Code field on Caterpillar Survey Response.",
+      "type": "VARCHAR(50)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "survey_version",
+      "label": "Survey Version",
+      "description": "Survey Version field on Caterpillar Survey Response.",
+      "type": "VARCHAR(20)",
+      "example": "Sample value"
+    },
+    {
+      "name": "customer_id",
+      "label": "Customer Id",
+      "description": "Customer Id field on Caterpillar Survey Response.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "lead_id",
+      "label": "Lead Id",
+      "description": "Lead Id field on Caterpillar Survey Response.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "touchpoint_id",
+      "label": "Touchpoint Id",
+      "description": "Touchpoint Id field on Caterpillar Survey Response.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "campaign_id",
+      "label": "Campaign Id",
+      "description": "Campaign Id field on Caterpillar Survey Response.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "anonymous_id",
+      "label": "Anonymous Id",
+      "description": "Anonymous Id field on Caterpillar Survey Response.",
+      "type": "VARCHAR(100)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "status",
+      "label": "Status",
+      "description": "Status field on Caterpillar Survey Response.",
+      "type": "VARCHAR(20)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "started_at",
+      "label": "Started At",
+      "description": "Started At field on Caterpillar Survey Response.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "submitted_at",
+      "label": "Submitted At",
+      "description": "Submitted At field on Caterpillar Survey Response.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "total_score",
+      "label": "Total Score",
+      "description": "Total Score field on Caterpillar Survey Response.",
+      "type": "NUMERIC(10,2)",
+      "example": "100.00"
+    },
+    {
+      "name": "extra_data",
+      "label": "Extra Data",
+      "description": "Extra Data field on Caterpillar Survey Response.",
+      "type": "JSONB",
+      "example": "{}"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "description": "Created At field on Caterpillar Survey Response.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

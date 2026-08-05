@@ -1,0 +1,92 @@
+{
+  "viewName": "caterpillar_touchpoint",
+  "docType": "Caterpillar Touchpoint",
+  "docTypeEn": "Caterpillar Touchpoint",
+  "selectSql": "SELECT * FROM caterpillar_touchpoint",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Touchpoint.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "touchpoint_code",
+      "label": "Touchpoint Code",
+      "description": "Touchpoint Code field on Caterpillar Touchpoint.",
+      "type": "VARCHAR(50)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "touchpoint_name",
+      "label": "Touchpoint Name",
+      "description": "Touchpoint Name field on Caterpillar Touchpoint.",
+      "type": "VARCHAR(200)",
+      "example": "Sample name"
+    },
+    {
+      "name": "touchpoint_type",
+      "label": "Touchpoint Type",
+      "description": "Touchpoint Type field on Caterpillar Touchpoint.",
+      "type": "VARCHAR(30)",
+      "example": "Sample value"
+    },
+    {
+      "name": "channel_id",
+      "label": "Channel Id",
+      "description": "Channel Id field on Caterpillar Touchpoint.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "campaign_id",
+      "label": "Campaign Id",
+      "description": "Campaign Id field on Caterpillar Touchpoint.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "external_app_id",
+      "label": "External App Id",
+      "description": "External App Id field on Caterpillar Touchpoint.",
+      "type": "VARCHAR(100)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "page_url",
+      "label": "Page Url",
+      "description": "Page Url field on Caterpillar Touchpoint.",
+      "type": "VARCHAR(2000)",
+      "example": "https://example.com/resource"
+    },
+    {
+      "name": "config_json",
+      "label": "Config Json",
+      "description": "Config Json field on Caterpillar Touchpoint.",
+      "type": "JSONB",
+      "example": "{}"
+    },
+    {
+      "name": "status",
+      "label": "Status",
+      "description": "Status field on Caterpillar Touchpoint.",
+      "type": "VARCHAR(20)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "description": "Created At field on Caterpillar Touchpoint.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "updated_at",
+      "label": "Updated At",
+      "description": "Updated At field on Caterpillar Touchpoint.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

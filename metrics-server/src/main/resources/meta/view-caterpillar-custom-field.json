@@ -1,0 +1,113 @@
+{
+  "viewName": "caterpillar_custom_field",
+  "docType": "Caterpillar Custom Field",
+  "docTypeEn": "Caterpillar Custom Field",
+  "selectSql": "SELECT * FROM caterpillar_custom_field",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Custom Field.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "module_id",
+      "label": "Module Id",
+      "description": "Module Id field on Caterpillar Custom Field.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "field_code",
+      "label": "Field Code",
+      "description": "Field Code field on Caterpillar Custom Field.",
+      "type": "VARCHAR(50)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "field_name",
+      "label": "Field Name",
+      "description": "Field Name field on Caterpillar Custom Field.",
+      "type": "VARCHAR(100)",
+      "example": "Sample name"
+    },
+    {
+      "name": "field_type",
+      "label": "Field Type",
+      "description": "Field Type field on Caterpillar Custom Field.",
+      "type": "VARCHAR(30)",
+      "example": "Sample value"
+    },
+    {
+      "name": "is_required",
+      "label": "Is Required",
+      "description": "Is Required field on Caterpillar Custom Field.",
+      "type": "BOOLEAN",
+      "example": "true"
+    },
+    {
+      "name": "is_unique",
+      "label": "Is Unique",
+      "description": "Is Unique field on Caterpillar Custom Field.",
+      "type": "BOOLEAN",
+      "example": "true"
+    },
+    {
+      "name": "is_searchable",
+      "label": "Is Searchable",
+      "description": "Is Searchable field on Caterpillar Custom Field.",
+      "type": "BOOLEAN",
+      "example": "true"
+    },
+    {
+      "name": "is_sensitive",
+      "label": "Is Sensitive",
+      "description": "Is Sensitive field on Caterpillar Custom Field.",
+      "type": "BOOLEAN",
+      "example": "true"
+    },
+    {
+      "name": "option_json",
+      "label": "Option Json",
+      "description": "Option Json field on Caterpillar Custom Field.",
+      "type": "JSONB",
+      "example": "{}"
+    },
+    {
+      "name": "validation_json",
+      "label": "Validation Json",
+      "description": "Validation Json field on Caterpillar Custom Field.",
+      "type": "JSONB",
+      "example": "{}"
+    },
+    {
+      "name": "sort_order",
+      "label": "Sort Order",
+      "description": "Sort Order field on Caterpillar Custom Field.",
+      "type": "INTEGER",
+      "example": "1"
+    },
+    {
+      "name": "status",
+      "label": "Status",
+      "description": "Status field on Caterpillar Custom Field.",
+      "type": "VARCHAR(20)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "description": "Created At field on Caterpillar Custom Field.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "updated_at",
+      "label": "Updated At",
+      "description": "Updated At field on Caterpillar Custom Field.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

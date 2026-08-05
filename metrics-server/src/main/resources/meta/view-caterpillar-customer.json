@@ -1,0 +1,162 @@
+{
+  "viewName": "caterpillar_customer",
+  "docType": "Caterpillar Customer",
+  "docTypeEn": "Caterpillar Customer",
+  "selectSql": "SELECT * FROM caterpillar_customer",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Customer.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "customer_no",
+      "label": "Customer No",
+      "description": "Customer No field on Caterpillar Customer.",
+      "type": "VARCHAR(50)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "name",
+      "label": "Name",
+      "description": "Name field on Caterpillar Customer.",
+      "type": "VARCHAR(100)",
+      "example": "Sample name"
+    },
+    {
+      "name": "mobile",
+      "label": "Mobile",
+      "description": "Mobile field on Caterpillar Customer.",
+      "type": "VARCHAR(512)",
+      "example": "00000000000"
+    },
+    {
+      "name": "mobile_hash",
+      "label": "Mobile Hash",
+      "description": "Mobile Hash field on Caterpillar Customer.",
+      "type": "VARCHAR(64)",
+      "example": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "name": "gender",
+      "label": "Gender",
+      "description": "Gender field on Caterpillar Customer.",
+      "type": "VARCHAR(20)",
+      "example": "Sample value"
+    },
+    {
+      "name": "birthday",
+      "label": "Birthday",
+      "description": "Birthday field on Caterpillar Customer.",
+      "type": "DATE",
+      "example": "2026-01-01"
+    },
+    {
+      "name": "province",
+      "label": "Province",
+      "description": "Province field on Caterpillar Customer.",
+      "type": "VARCHAR(50)",
+      "example": "Sample value"
+    },
+    {
+      "name": "city",
+      "label": "City",
+      "description": "City field on Caterpillar Customer.",
+      "type": "VARCHAR(50)",
+      "example": "Sample value"
+    },
+    {
+      "name": "district",
+      "label": "District",
+      "description": "District field on Caterpillar Customer.",
+      "type": "VARCHAR(50)",
+      "example": "Sample value"
+    },
+    {
+      "name": "address",
+      "label": "Address",
+      "description": "Address field on Caterpillar Customer.",
+      "type": "VARCHAR(1000)",
+      "example": "Sample value"
+    },
+    {
+      "name": "customer_level",
+      "label": "Customer Level",
+      "description": "Customer Level field on Caterpillar Customer.",
+      "type": "VARCHAR(30)",
+      "example": "Sample value"
+    },
+    {
+      "name": "lifecycle_stage",
+      "label": "Lifecycle Stage",
+      "description": "Lifecycle Stage field on Caterpillar Customer.",
+      "type": "VARCHAR(30)",
+      "example": "Sample value"
+    },
+    {
+      "name": "first_channel_id",
+      "label": "First Channel Id",
+      "description": "First Channel Id field on Caterpillar Customer.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "first_campaign_id",
+      "label": "First Campaign Id",
+      "description": "First Campaign Id field on Caterpillar Customer.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "owner_user_id",
+      "label": "Owner User Id",
+      "description": "Owner User Id field on Caterpillar Customer.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "consent_status",
+      "label": "Consent Status",
+      "description": "Consent Status field on Caterpillar Customer.",
+      "type": "VARCHAR(20)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "consent_time",
+      "label": "Consent Time",
+      "description": "Consent Time field on Caterpillar Customer.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "status",
+      "label": "Status",
+      "description": "Status field on Caterpillar Customer.",
+      "type": "VARCHAR(20)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "merged_to_id",
+      "label": "Merged To Id",
+      "description": "Merged To Id field on Caterpillar Customer.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "description": "Created At field on Caterpillar Customer.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "updated_at",
+      "label": "Updated At",
+      "description": "Updated At field on Caterpillar Customer.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

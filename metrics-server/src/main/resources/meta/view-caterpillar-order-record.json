@@ -1,0 +1,141 @@
+{
+  "viewName": "caterpillar_order_record",
+  "docType": "Caterpillar Order Record",
+  "docTypeEn": "Caterpillar Order Record",
+  "selectSql": "SELECT * FROM caterpillar_order_record",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Order Record.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "order_no",
+      "label": "Order No",
+      "description": "Order No field on Caterpillar Order Record.",
+      "type": "VARCHAR(100)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "customer_id",
+      "label": "Customer Id",
+      "description": "Customer Id field on Caterpillar Order Record.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "lead_id",
+      "label": "Lead Id",
+      "description": "Lead Id field on Caterpillar Order Record.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "agency_id",
+      "label": "Agency Id",
+      "description": "Agency Id field on Caterpillar Order Record.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "campaign_id",
+      "label": "Campaign Id",
+      "description": "Campaign Id field on Caterpillar Order Record.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "product_code",
+      "label": "Product Code",
+      "description": "Product Code field on Caterpillar Order Record.",
+      "type": "VARCHAR(100)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "product_name",
+      "label": "Product Name",
+      "description": "Product Name field on Caterpillar Order Record.",
+      "type": "VARCHAR(200)",
+      "example": "Sample name"
+    },
+    {
+      "name": "quantity",
+      "label": "Quantity",
+      "description": "Quantity field on Caterpillar Order Record.",
+      "type": "INTEGER",
+      "example": "1"
+    },
+    {
+      "name": "order_amount",
+      "label": "Order Amount",
+      "description": "Order Amount field on Caterpillar Order Record.",
+      "type": "NUMERIC(18,2)",
+      "example": "100.00"
+    },
+    {
+      "name": "paid_amount",
+      "label": "Paid Amount",
+      "description": "Paid Amount field on Caterpillar Order Record.",
+      "type": "NUMERIC(18,2)",
+      "example": "100.00"
+    },
+    {
+      "name": "order_status",
+      "label": "Order Status",
+      "description": "Order Status field on Caterpillar Order Record.",
+      "type": "VARCHAR(30)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "order_at",
+      "label": "Order At",
+      "description": "Order At field on Caterpillar Order Record.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "paid_at",
+      "label": "Paid At",
+      "description": "Paid At field on Caterpillar Order Record.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "completed_at",
+      "label": "Completed At",
+      "description": "Completed At field on Caterpillar Order Record.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "external_order_id",
+      "label": "External Order Id",
+      "description": "External Order Id field on Caterpillar Order Record.",
+      "type": "VARCHAR(100)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "extra_data",
+      "label": "Extra Data",
+      "description": "Extra Data field on Caterpillar Order Record.",
+      "type": "JSONB",
+      "example": "{}"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "description": "Created At field on Caterpillar Order Record.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "updated_at",
+      "label": "Updated At",
+      "description": "Updated At field on Caterpillar Order Record.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

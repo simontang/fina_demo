@@ -1,0 +1,78 @@
+{
+  "viewName": "caterpillar_survey_answer",
+  "docType": "Caterpillar Survey Answer",
+  "docTypeEn": "Caterpillar Survey Answer",
+  "selectSql": "SELECT * FROM caterpillar_survey_answer",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Survey Answer.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "response_id",
+      "label": "Response Id",
+      "description": "Response Id field on Caterpillar Survey Answer.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "question_code",
+      "label": "Question Code",
+      "description": "Question Code field on Caterpillar Survey Answer.",
+      "type": "VARCHAR(50)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "question_text",
+      "label": "Question Text",
+      "description": "Question Text field on Caterpillar Survey Answer.",
+      "type": "VARCHAR(1000)",
+      "example": "Sample value"
+    },
+    {
+      "name": "answer_type",
+      "label": "Answer Type",
+      "description": "Answer Type field on Caterpillar Survey Answer.",
+      "type": "VARCHAR(30)",
+      "example": "Sample value"
+    },
+    {
+      "name": "answer_text",
+      "label": "Answer Text",
+      "description": "Answer Text field on Caterpillar Survey Answer.",
+      "type": "TEXT",
+      "example": "Sample value"
+    },
+    {
+      "name": "answer_number",
+      "label": "Answer Number",
+      "description": "Answer Number field on Caterpillar Survey Answer.",
+      "type": "NUMERIC(18,4)",
+      "example": "100.0000"
+    },
+    {
+      "name": "answer_json",
+      "label": "Answer Json",
+      "description": "Answer Json field on Caterpillar Survey Answer.",
+      "type": "JSONB",
+      "example": "{}"
+    },
+    {
+      "name": "score",
+      "label": "Score",
+      "description": "Score field on Caterpillar Survey Answer.",
+      "type": "NUMERIC(10,2)",
+      "example": "100.00"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "description": "Created At field on Caterpillar Survey Answer.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

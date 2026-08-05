@@ -1,0 +1,71 @@
+{
+  "viewName": "caterpillar_audit_log",
+  "docType": "Caterpillar Audit Log",
+  "docTypeEn": "Caterpillar Audit Log",
+  "selectSql": "SELECT * FROM caterpillar_audit_log",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Audit Log.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "user_id",
+      "label": "User Id",
+      "description": "User Id field on Caterpillar Audit Log.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "action",
+      "label": "Action",
+      "description": "Action field on Caterpillar Audit Log.",
+      "type": "VARCHAR(50)",
+      "example": "Sample value"
+    },
+    {
+      "name": "object_type",
+      "label": "Object Type",
+      "description": "Object Type field on Caterpillar Audit Log.",
+      "type": "VARCHAR(50)",
+      "example": "Sample value"
+    },
+    {
+      "name": "object_id",
+      "label": "Object Id",
+      "description": "Object Id field on Caterpillar Audit Log.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "before_data",
+      "label": "Before Data",
+      "description": "Before Data field on Caterpillar Audit Log.",
+      "type": "JSONB",
+      "example": "{}"
+    },
+    {
+      "name": "after_data",
+      "label": "After Data",
+      "description": "After Data field on Caterpillar Audit Log.",
+      "type": "JSONB",
+      "example": "{}"
+    },
+    {
+      "name": "ip_address",
+      "label": "Ip Address",
+      "description": "Ip Address field on Caterpillar Audit Log.",
+      "type": "VARCHAR(64)",
+      "example": "192.0.2.1"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "description": "Created At field on Caterpillar Audit Log.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}

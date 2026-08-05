@@ -90,6 +90,70 @@
         "short_desc": "Store-product inventory positions at or below reorder point.",
         "search_keywords": ["Low Stock", "Reorder Risk", "Inventory Alert", "Out of Stock Risk"],
         "source_type": "cdp_postgres"
+      },
+      {
+        "metric_name": "caterpillar_leads_received",
+        "display_name": "Caterpillar Leads Received",
+        "domain": "sales_performance",
+        "short_desc": "Total Caterpillar marketing leads received.",
+        "search_keywords": ["Leads Received", "Lead Volume", "Inbound Leads"],
+        "source_type": "cdp_postgres"
+      },
+      {
+        "metric_name": "caterpillar_qualified_lead_rate",
+        "display_name": "Caterpillar Qualified Lead Rate",
+        "domain": "sales_performance",
+        "short_desc": "Share of leads in valid, assigned, or converted status.",
+        "search_keywords": ["Qualified Lead Rate", "Lead Quality", "Valid Leads"],
+        "source_type": "cdp_postgres"
+      },
+      {
+        "metric_name": "caterpillar_call_answer_rate",
+        "display_name": "Caterpillar Call Answer Rate",
+        "domain": "sales_performance",
+        "short_desc": "Share of outbound call attempts that were answered.",
+        "search_keywords": ["Call Answer Rate", "Answered Calls", "Outbound Calls"],
+        "source_type": "cdp_postgres"
+      },
+      {
+        "metric_name": "caterpillar_assignment_acceptance_rate",
+        "display_name": "Caterpillar Assignment Acceptance Rate",
+        "domain": "fulfillment_and_logistics",
+        "short_desc": "Share of lead assignments accepted by agencies.",
+        "search_keywords": ["Assignment Acceptance", "Agency Acceptance", "Lead Delivery"],
+        "source_type": "cdp_postgres"
+      },
+      {
+        "metric_name": "caterpillar_assignment_order_rate",
+        "display_name": "Caterpillar Assignment Order Rate",
+        "domain": "sales_performance",
+        "short_desc": "Share of lead assignments that reached ordered conversion status.",
+        "search_keywords": ["Assignment Order Rate", "Lead Conversion", "Ordered Assignments"],
+        "source_type": "cdp_postgres"
+      },
+      {
+        "metric_name": "caterpillar_successful_orders",
+        "display_name": "Caterpillar Successful Orders",
+        "domain": "revenue_and_growth",
+        "short_desc": "Count of paid or completed Caterpillar orders.",
+        "search_keywords": ["Successful Orders", "Paid Orders", "Completed Orders"],
+        "source_type": "cdp_postgres"
+      },
+      {
+        "metric_name": "caterpillar_paid_order_revenue",
+        "display_name": "Caterpillar Paid Order Revenue",
+        "domain": "revenue_and_growth",
+        "short_desc": "Paid amount from paid or completed Caterpillar orders.",
+        "search_keywords": ["Paid Revenue", "Order Revenue", "Collected Revenue"],
+        "source_type": "cdp_postgres"
+      },
+      {
+        "metric_name": "caterpillar_survey_completion_rate",
+        "display_name": "Caterpillar Survey Completion Rate",
+        "domain": "customer_value",
+        "short_desc": "Share of Caterpillar survey responses submitted successfully.",
+        "search_keywords": ["Survey Completion", "Submitted Surveys", "Response Completion"],
+        "source_type": "cdp_postgres"
       }
     ]
   }

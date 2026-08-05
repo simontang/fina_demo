@@ -1,0 +1,155 @@
+{
+  "viewName": "caterpillar_lead",
+  "docType": "Caterpillar Lead",
+  "docTypeEn": "Caterpillar Lead",
+  "selectSql": "SELECT * FROM caterpillar_lead",
+  "columns": [
+    {
+      "name": "id",
+      "label": "Id",
+      "description": "Id field on Caterpillar Lead.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "lead_no",
+      "label": "Lead No",
+      "description": "Lead No field on Caterpillar Lead.",
+      "type": "VARCHAR(50)",
+      "example": "SAMPLE_001"
+    },
+    {
+      "name": "customer_id",
+      "label": "Customer Id",
+      "description": "Customer Id field on Caterpillar Lead.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "name",
+      "label": "Name",
+      "description": "Name field on Caterpillar Lead.",
+      "type": "VARCHAR(100)",
+      "example": "Sample name"
+    },
+    {
+      "name": "mobile",
+      "label": "Mobile",
+      "description": "Mobile field on Caterpillar Lead.",
+      "type": "VARCHAR(512)",
+      "example": "00000000000"
+    },
+    {
+      "name": "mobile_hash",
+      "label": "Mobile Hash",
+      "description": "Mobile Hash field on Caterpillar Lead.",
+      "type": "VARCHAR(64)",
+      "example": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "name": "channel_id",
+      "label": "Channel Id",
+      "description": "Channel Id field on Caterpillar Lead.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "campaign_id",
+      "label": "Campaign Id",
+      "description": "Campaign Id field on Caterpillar Lead.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "touchpoint_id",
+      "label": "Touchpoint Id",
+      "description": "Touchpoint Id field on Caterpillar Lead.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "product_interest",
+      "label": "Product Interest",
+      "description": "Product Interest field on Caterpillar Lead.",
+      "type": "VARCHAR(200)",
+      "example": "Sample value"
+    },
+    {
+      "name": "province",
+      "label": "Province",
+      "description": "Province field on Caterpillar Lead.",
+      "type": "VARCHAR(50)",
+      "example": "Sample value"
+    },
+    {
+      "name": "city",
+      "label": "City",
+      "description": "City field on Caterpillar Lead.",
+      "type": "VARCHAR(50)",
+      "example": "Sample value"
+    },
+    {
+      "name": "lead_score",
+      "label": "Lead Score",
+      "description": "Lead Score field on Caterpillar Lead.",
+      "type": "NUMERIC(8,2)",
+      "example": "100.00"
+    },
+    {
+      "name": "quality_level",
+      "label": "Quality Level",
+      "description": "Quality Level field on Caterpillar Lead.",
+      "type": "VARCHAR(20)",
+      "example": "Sample value"
+    },
+    {
+      "name": "status",
+      "label": "Status",
+      "description": "Status field on Caterpillar Lead.",
+      "type": "VARCHAR(30)",
+      "example": "SAMPLE_STATUS"
+    },
+    {
+      "name": "invalid_reason",
+      "label": "Invalid Reason",
+      "description": "Invalid Reason field on Caterpillar Lead.",
+      "type": "VARCHAR(200)",
+      "example": "Sample value"
+    },
+    {
+      "name": "duplicate_of_id",
+      "label": "Duplicate Of Id",
+      "description": "Duplicate Of Id field on Caterpillar Lead.",
+      "type": "UUID",
+      "example": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "name": "cleaning_result",
+      "label": "Cleaning Result",
+      "description": "Cleaning Result field on Caterpillar Lead.",
+      "type": "JSONB",
+      "example": "{}"
+    },
+    {
+      "name": "received_at",
+      "label": "Received At",
+      "description": "Received At field on Caterpillar Lead.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "created_at",
+      "label": "Created At",
+      "description": "Created At field on Caterpillar Lead.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    },
+    {
+      "name": "updated_at",
+      "label": "Updated At",
+      "description": "Updated At field on Caterpillar Lead.",
+      "type": "TIMESTAMP(6) WITH TIME ZONE",
+      "example": "2026-01-01T09:00:00+08:00"
+    }
+  ]
+}
