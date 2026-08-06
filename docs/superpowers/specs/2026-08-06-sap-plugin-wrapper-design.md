@@ -51,6 +51,8 @@
 ### 组件 3：URL 构造与编码（纯函数 `buildUrl`/`encodeQueryOptions`）
 
 - 新增 `encodeQueryOptions(queryOptions)`：按 `&` 分段，段内对引号包裹的值做安全编码：`'`→`%27`、`&`→`%26`、`#`→`%23`、`+`→`%2B`；`$filter`/`contains`/`eq` 等 OData 语法关键字不做处理。
+- **幂等编码（关键）**：LLM 输入可能是原始表达式或已部分编码的混合形态，编码前识别已存在的 `%xx` 十六进制序列并跳过，禁止双重编码（`%27` 不得变成 `%2527`）。
+- **工具描述规则**：明确要求 LLM 传原始 OData 表达式（裸单引号、裸 `&`），编码全部由工具负责，禁止 LLM 自行 encode。
 - `id` 仅用于 PATCH/DELETE；GET 不再接受 `id`（schema 描述改为「查询请用 `$filter`」），消除 `/Orders('1173')` 500 路径。
 - `entitySet` 用 `encodeURIComponent` 处理（已有）。
 
