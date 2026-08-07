@@ -135,3 +135,4 @@ LLM → sap_api_call(entitySet, method, queryOptions, body)
 - 不拆分强类型专用工具。
 - 不做自动纠错重试（400 自动回退字段重试）。
 - 不改 `sap_api_search` 的 schema（仅改返回内容与描述）。
+- **暂不纳入 UDF/自定义表**（`U_` 前缀字段、`Z20_*` UDT 实体已从 API_LIST 移除）：UDF 依赖真实 `$metadata` 按公司动态获取，当前场景用不到，聚焦内置实体；未来按需从 `__fixtures__/sap_metadata.json`（或实时 `$metadata`）接入。

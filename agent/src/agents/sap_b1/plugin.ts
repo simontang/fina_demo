@@ -526,79 +526,6 @@ export const API_LIST: ApiEntry[] = [
     description: "设置货币汇率",
     fields: [],
   },
-  {
-    name: "Z20_COST",
-    kind: "EntitySet",
-    entityType: "SAPB1.Z20_COST",
-    primaryKey: "DocEntry",
-    domain: "Item / Product",
-    description: "自定义: 成本记录表（含周期/实例维度的成本历史）",
-    fields: [
-      "DocEntry", "DocNum", "Period", "Instance", "Series",
-      "Status", "RequestStatus", "Creator", "Remark",
-      "Canceled", "Object", "CreateDate", "CreateTime",
-    ],
-  },
-  {
-    name: "Z20_CPAT",
-    kind: "EntitySet",
-    entityType: "SAPB1.Z20_CPAT",
-    primaryKey: "DocEntry",
-    domain: "Item / Product",
-    description: "自定义: 成本/价格分摊记录",
-    fields: [
-      "DocEntry", "DocNum", "Period", "Instance",
-      "Status", "Creator", "Remark", "CreateDate", "CreateTime",
-    ],
-  },
-  {
-    name: "Z20_OINP",
-    kind: "EntitySet",
-    entityType: "SAPB1.Z20_OINP",
-    primaryKey: "DocEntry",
-    domain: "Document",
-    description: "自定义: 采购订单输入价格记录",
-    fields: [
-      "DocEntry", "DocNum", "Period", "Instance",
-      "Status", "Creator", "Remark", "CreateDate", "CreateTime",
-    ],
-  },
-  {
-    name: "Z20_PWAG",
-    kind: "EntitySet",
-    entityType: "SAPB1.Z20_PWAG",
-    primaryKey: "DocEntry",
-    domain: "Item / Product",
-    description: "自定义: 工价/工序价格记录",
-    fields: [
-      "DocEntry", "DocNum", "Period", "Instance",
-      "Status", "Creator", "Remark", "CreateDate", "CreateTime",
-    ],
-  },
-  {
-    name: "Z20_HOLD",
-    kind: "EntitySet",
-    entityType: "SAPB1.Z20_HOLD",
-    primaryKey: "DocEntry",
-    domain: "Inventory / Warehouse",
-    description: "自定义: 暂存/冻结库存记录",
-    fields: [
-      "DocEntry", "DocNum", "Period", "Instance",
-      "Status", "Creator", "Remark", "CreateDate", "CreateTime",
-    ],
-  },
-  {
-    name: "Z20_IMIT",
-    kind: "EntitySet",
-    entityType: "SAPB1.Z20_IMIT",
-    primaryKey: "DocEntry",
-    domain: "Inventory / Warehouse",
-    description: "自定义: 库存初始化记录",
-    fields: [
-      "DocEntry", "DocNum", "Period", "Instance",
-      "Status", "Creator", "Remark", "CreateDate", "CreateTime",
-    ],
-  },
 ];
 
 // ============================================================
@@ -865,7 +792,6 @@ const DEFAULT_SELECT_BY_CLASS: Record<string, string[]> = {
   business_partner: ["CardCode", "CardName", "CardType", "GroupCode", "Phone1", "Valid"],
   item: ["ItemCode", "ItemName", "ItemsGroupCode", "QuantityOnStock"],
   warehouse: ["WarehouseCode", "WarehouseName"],
-  udt_doc: ["DocEntry", "DocNum", "Period", "Instance", "Status", "CreateDate"],
 };
 
 const ENTITY_CLASS: Record<string, string> = {
@@ -890,12 +816,6 @@ const ENTITY_CLASS: Record<string, string> = {
   SalesPersons: "business_partner",
   Items: "item",
   Warehouses: "warehouse",
-  Z20_COST: "udt_doc",
-  Z20_CPAT: "udt_doc",
-  Z20_OINP: "udt_doc",
-  Z20_PWAG: "udt_doc",
-  Z20_HOLD: "udt_doc",
-  Z20_IMIT: "udt_doc",
 };
 
 export function applyDefaultSelect(entitySet: string, method: string, id?: string, queryOptions?: string): string | undefined {

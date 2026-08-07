@@ -85,16 +85,6 @@ describe("applyDefaultSelect（默认 $select 白名单注入）", () => {
     expect(q).not.toContain("DocEntry");
   });
 
-  it("Z20_COST → 注入 udt_doc 白名单子集，不整表注入", () => {
-    const q = applyDefaultSelect("Z20_COST", "GET", undefined, undefined)!;
-    expect(q).toContain("$select=");
-    for (const f of ["DocEntry", "DocNum", "Period", "Instance", "Status", "CreateDate"]) {
-      expect(q).toContain(f);
-    }
-    expect(q).not.toContain("RequestStatus");
-    expect(q).not.toContain("Series");
-  });
-
   it("无类别映射的实体（SalesPersons）→ 只注入 $top，不注入 $select", () => {
     const q = applyDefaultSelect("SalesPersons", "GET", undefined, undefined)!;
     expect(q).toContain("$top=20");
