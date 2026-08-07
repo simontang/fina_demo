@@ -1166,7 +1166,7 @@ export const sapB1Plugin: Plugin = {
               entitySet: z
                 .string()
                 .describe("EntitySet 名称，如 'BusinessPartners', 'Orders', 'Items', 'PurchaseOrders'"),
-              method: z.enum(["GET", "POST", "PATCH", "DELETE"]).describe("HTTP 方法"),
+              method: z.enum(["GET", "POST", "PATCH", "DELETE"]).describe("HTTP 方法。注意：FunctionImport（如 SBOBobService_GetCurrencyRate）只能用 POST，参数放 body；EntitySet 支持 GET 查询（$filter）与 POST/PATCH/DELETE（带 id）"),
               id: z
                 .string()
                 .optional()
