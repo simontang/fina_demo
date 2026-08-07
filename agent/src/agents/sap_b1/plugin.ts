@@ -1,7 +1,6 @@
 import { PluginRegistry } from "@axiom-lattice/core";
 import type { Plugin } from "@axiom-lattice/protocols";
-import { tool } from "@langchain/core/tools";
-import { createMiddleware } from "langchain";
+import { createMiddleware,tool } from "langchain";
 import { z } from "zod";
 
 // ============================================================
@@ -534,9 +533,6 @@ export const API_LIST: ApiEntry[] = [
 
 interface SapB1Config {
   baseUrl?: string;
-  cookie?: string;
-  companyDb?: string;
-  tenantId?: string;
   _resolvedConnections?: { config: Record<string, unknown> }[];
 }
 
@@ -682,14 +678,6 @@ export async function sapApiCallExecutor(
     || process.env.SAP_SERVICE_LAYER_URL
     || "https://b1s.alphafina.cn/b1s/v1";
 
-  const sapCookie = config?.cookie
-    ? config.cookie.includes("B1SESSION")
-      ? config.cookie
-      : `B1SESSION=${config.cookie}`
-    : process.env.SAP_B1SESSION
-      ? `B1SESSION=${process.env.SAP_B1SESSION}`
-      : "";
-
   const queryOptions = applyDefaultSelect(input.entitySet, input.method, input.id, input.queryOptions);
   const encodedQuery = queryOptions ? encodeQueryOptions(queryOptions) : undefined;
   const url = buildUrl(baseUrl, input.entitySet, input.method, input.id, encodedQuery);
@@ -699,9 +687,6 @@ export async function sapApiCallExecutor(
     Accept: "application/json",
     "Accept-Encoding": "identity",
   };
-  if (sapCookie) headers.Cookie = sapCookie;
-  if (config?.companyDb) headers["X-Company-DB"] = config.companyDb;
-  if (config?.tenantId) headers["X-Tenant-Id"] = config.tenantId;
 
   const fetchOptions: RequestInit = { method: input.method, headers };
   if ((input.method === "POST" || input.method === "PATCH") && input.body) {
@@ -734,7 +719,7 @@ export async function sapApiCallExecutor(
       const slError = extractSlError(data);
       const isFunctionImport = API_LIST.find((e) => e.name === input.entitySet)?.kind === "FunctionImport";
       if (res.status === 401) {
-        result.hint = "需要有效认证：走代理则检查代理账号/公司配置（X-Company-DB），直连则检查 B1SESSION Cookie。";
+        result.hint = "需要有效认证：走代理时认证由服务端管理，请检查代理账号与可达性。";
       } else if (res.status === 404) {
         result.hint = "接口或实体不存在，请用 sap_api_search 核对 entitySet 名称，检查主键值。";
       } else if (isFunctionImport && input.method === "GET") {
@@ -979,7 +964,7 @@ const sapApiCallDescription =
   "PATCH 只传变更字段；DELETE 需传 id。\n" +
   "GET 自动注入保守 $select+$top=20（字段经真实 $metadata 校验），手动传入可覆盖；不要自己拼 %xx 编码，引号/特殊字符交给工具处理。" +
   "嵌套集合(DocumentLines等)自动裁剪只保留常用字段，防 token 爆炸。" +
-  "认证走代理时由服务端管理，可通过连接配置 companyDb/tenantId 切换公司；直连才需 B1SESSION Cookie。";
+  "认证走代理时由服务端管理，无需额外配置。";
 
 export const sapB1Plugin: Plugin = {
   meta: {
@@ -1004,24 +989,14 @@ export const sapB1Plugin: Plugin = {
   connection: {
     fields: [
       { key: "baseUrl", type: "string", title: "Base URL", widget: "input", required: true },
-      { key: "cookie", type: "password", title: "B1SESSION Cookie（直连才需要）", widget: "password", required: false },
-      { key: "companyDb", type: "string", title: "Company DB（走代理时用于切换公司，如 XSM_ZSK）", widget: "input", required: false },
-      { key: "tenantId", type: "string", title: "Tenant Id（可选，代理会话维度）", widget: "input", required: false },
     ],
-    test: async (config: { baseUrl?: string; cookie?: string; companyDb?: string; tenantId?: string }) => {
+    test: async (config: { baseUrl?: string }) => {
       try {
-        const headers: Record<string, string> = {
+        const headers = {
           "Content-Type": "application/json",
           Accept: "application/json",
           "Accept-Encoding": "identity",
         };
-        if (config.cookie) {
-          headers.Cookie = config.cookie.includes("B1SESSION")
-            ? config.cookie
-            : `B1SESSION=${config.cookie}`;
-        }
-        if (config.companyDb) headers["X-Company-DB"] = config.companyDb;
-        if (config.tenantId) headers["X-Tenant-Id"] = config.tenantId;
         const res = await fetch(`${config.baseUrl}/BusinessPartners?$top=1`, { headers });
         return { ok: res.ok, message: res.ok ? "连接成功" : `HTTP ${res.status}` };
       } catch (err: unknown) {
@@ -1047,7 +1022,6 @@ export const sapB1Plugin: Plugin = {
     if (conns?.length) {
       const connConfig = conns[0].config;
       if (connConfig.baseUrl) config.baseUrl = connConfig.baseUrl as string;
-      if (connConfig.cookie) config.cookie = connConfig.cookie as string;
     }
 
     return createMiddleware({

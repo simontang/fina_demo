@@ -280,7 +280,7 @@ describe("sapApiCallExecutor（与 curl 等价）", () => {
     );
   });
 
-  it("代理链路：带 X-Company-DB / X-Tenant-Id / 原样 Cookie", async () => {
+  it("基础请求头稳定（Content-Type/Accept/Accept-Encoding），不带 Cookie 类头", async () => {
     let capturedHeaders: Record<string, string> = {};
     mockFetchOnce((_url, opts) => {
       capturedHeaders = opts.headers as Record<string, string>;
@@ -288,16 +288,14 @@ describe("sapApiCallExecutor（与 curl 等价）", () => {
     });
     await sapApiCallExecutor(
       { entitySet: "BusinessPartners", method: "GET", queryOptions: "$top=1" },
-      {
-        baseUrl: "https://b1s.alphafina.cn/b1s/v1",
-        cookie: "B1SESSION=abc; ROUTEID=.node5",
-        companyDb: "XSM_ZSK",
-        tenantId: "tenant-1",
-      }
+      { baseUrl: "https://b1s.alphafina.cn/b1s/v1" }
     );
-    expect(capturedHeaders["X-Company-DB"]).toBe("XSM_ZSK");
-    expect(capturedHeaders["X-Tenant-Id"]).toBe("tenant-1");
-    expect(capturedHeaders["Cookie"]).toBe("B1SESSION=abc; ROUTEID=.node5");
+    expect(capturedHeaders["Content-Type"]).toBe("application/json");
+    expect(capturedHeaders["Accept"]).toBe("application/json");
+    expect(capturedHeaders["Accept-Encoding"]).toBe("identity");
+    expect(capturedHeaders["Cookie"]).toBeUndefined();
+    expect(capturedHeaders["X-Company-DB"]).toBeUndefined();
+    expect(capturedHeaders["X-Tenant-Id"]).toBeUndefined();
   });
 
   it("400 响应 → hint 包含 SL 具体错误信息", async () => {
