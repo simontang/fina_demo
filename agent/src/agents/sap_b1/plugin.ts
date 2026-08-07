@@ -18,14 +18,25 @@ interface ApiEntry {
   fields: string[];
 }
 
-const EXPAND_FIELDS: Record<string, string[]> = {
+export const EXPAND_FIELDS: Record<string, string[]> = {
   "DocumentLines": [
-    "LineNum", "ItemCode", "ItemDescription", "Quantity", "UnitPrice",
+    "LineNum", "ItemCode", "ItemDescription", "Quantity", "UnitPrice", "Price",
     "WarehouseCode", "Total", "Currency", "TaxCode", "PriceAfterVAT",
     "UoMEntry", "UoMCode",
   ],
   "DocumentAdditionalExpenses": [
     "LineNum", "ExpenseCode", "LineTotal", "TaxCode", "VatGroup",
+  ],
+  "ItemPrices": ["PriceList", "Currency", "Price", "Factor", "BasePriceList"],
+  "ItemWarehouseInfoCollection": [
+    "WarehouseCode", "QuantityOnStock", "Committed", "Ordered", "CountedQuantity",
+  ],
+  "BPAddresses": [
+    "AddressName", "AddressType", "Street", "City", "Country",
+    "ZipCode", "Block", "IsActive", "Default",
+  ],
+  "ContactEmployees": [
+    "CardCode", "Name", "Position", "Address", "Phone1", "Email", "Active",
   ],
 };
 
@@ -36,7 +47,7 @@ const ENTITIES_WITH_LINES = new Set([
   "DownPayments", "InventoryGenEntries", "InventoryGenExits",
 ]);
 
-const API_LIST: ApiEntry[] = [
+export const API_LIST: ApiEntry[] = [
   {
     name: "BusinessPartners",
     kind: "EntitySet",
@@ -70,7 +81,7 @@ const API_LIST: ApiEntry[] = [
     primaryKey: "SalesEmployeeCode",
     domain: "BusinessPartner",
     description: "销售雇员",
-    fields: ["SalesEmployeeCode", "SalesEmployeeName", "CommissionGroup", "Valid"],
+    fields: ["SalesEmployeeCode", "SalesEmployeeName", "CommissionGroup", "Active"],
   },
   {
     name: "Items",
@@ -97,7 +108,7 @@ const API_LIST: ApiEntry[] = [
     primaryKey: "Number",
     domain: "Item / Product",
     description: "物料组",
-    fields: ["Number", "GroupName", "CommissionGroup"],
+    fields: ["Number", "GroupName"],
   },
   {
     name: "PriceLists",
@@ -120,7 +131,7 @@ const API_LIST: ApiEntry[] = [
     primaryKey: "AbsEntry",
     domain: "Item / Product",
     description: "条码",
-    fields: ["AbsEntry", "ItemCode", "UoMEntry", "BarCode", "FreeText"],
+    fields: ["AbsEntry", "ItemNo", "UoMEntry", "Barcode", "FreeText"],
   },
   {
     name: "Orders",
@@ -134,7 +145,7 @@ const API_LIST: ApiEntry[] = [
       "CardCode", "CardName", "Address", "DocTotal", "DocCurrency",
       "SalesPersonCode", "Confirmed", "Cancelled", "DocumentStatus",
       "Comments", "Reference1", "Reference2", "NumAtCard",
-      "VatSum", "RoundDif", "DiscountPercent",
+      "VatSum", "RoundingDiffAmount", "DiscountPercent",
       "PaymentGroupCode", "Project",
       "DocumentLines",
     ],
@@ -236,7 +247,6 @@ const API_LIST: ApiEntry[] = [
       "DocEntry", "DocNum", "DocObjectCode", "DocType", "DocDate", "DocDueDate", "TaxDate",
       "CardCode", "CardName", "DocTotal", "DocCurrency",
       "Comments", "SalesPersonCode", "Confirmed", "Cancelled", "DocumentStatus",
-      "U_YWLX", "U_YWLX2",
       "DocumentLines",
     ],
   },
@@ -476,7 +486,7 @@ const API_LIST: ApiEntry[] = [
     primaryKey: "DocEntry",
     domain: "Document",
     description: "到岸成本/附加成本凭证",
-    fields: ["DocEntry", "DocNum", "DocDate", "CardCode", "Comments"],
+    fields: ["DocEntry", "LandedCostNumber", "PostingDate", "VendorCode", "Remarks"],
   },
   {
     name: "LandedCostsCodes",
@@ -598,6 +608,8 @@ const API_LIST: ApiEntry[] = [
 interface SapB1Config {
   baseUrl?: string;
   cookie?: string;
+  companyDb?: string;
+  tenantId?: string;
   _resolvedConnections?: { config: Record<string, unknown> }[];
 }
 
@@ -632,7 +644,7 @@ function mapResult(e: ApiEntry): Record<string, unknown> {
   return r;
 }
 
-async function sapApiSearchExecutor(
+export async function sapApiSearchExecutor(
   input: { query?: string; domain?: string; maxResults?: number },
   config?: SapB1Config
 ) {
@@ -735,7 +747,7 @@ async function sapApiSearchExecutor(
   };
 }
 
-async function sapApiCallExecutor(
+export async function sapApiCallExecutor(
   input: { entitySet: string; method: "GET" | "POST" | "PATCH" | "DELETE"; id?: string; queryOptions?: string; body?: Record<string, unknown> },
   config?: SapB1Config
 ) {
@@ -744,13 +756,16 @@ async function sapApiCallExecutor(
     || "https://b1s.alphafina.cn/b1s/v1";
 
   const sapCookie = config?.cookie
-    ? `B1SESSION=${config.cookie}; ROUTEID=.node0`
+    ? config.cookie.includes("B1SESSION")
+      ? config.cookie
+      : `B1SESSION=${config.cookie}`
     : process.env.SAP_B1SESSION
-      ? `B1SESSION=${process.env.SAP_B1SESSION}; ROUTEID=.node0`
+      ? `B1SESSION=${process.env.SAP_B1SESSION}`
       : "";
 
   const queryOptions = applyDefaultSelect(input.entitySet, input.method, input.id, input.queryOptions);
-  const url = buildUrl(baseUrl, input.entitySet, input.method, input.id, queryOptions);
+  const encodedQuery = queryOptions ? encodeQueryOptions(queryOptions) : undefined;
+  const url = buildUrl(baseUrl, input.entitySet, input.method, input.id, encodedQuery);
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -758,6 +773,8 @@ async function sapApiCallExecutor(
     "Accept-Encoding": "identity",
   };
   if (sapCookie) headers.Cookie = sapCookie;
+  if (config?.companyDb) headers["X-Company-DB"] = config.companyDb;
+  if (config?.tenantId) headers["X-Tenant-Id"] = config.tenantId;
 
   const fetchOptions: RequestInit = { method: input.method, headers };
   if ((input.method === "POST" || input.method === "PATCH") && input.body) {
@@ -787,12 +804,23 @@ async function sapApiCallExecutor(
 
     if (!res.ok) {
       result.error = `HTTP ${res.status} ${res.statusText}`;
-      result.hint =
-        res.status === 401
-          ? "需要有效的 B1SESSION Cookie。请先通过 Login 端点获取，或设置 SAP_B1SESSION 环境变量。"
-          : res.status === 404
-            ? "接口或实体不存在，请检查 entitySet 名称和 id。"
-            : undefined;
+      const slError = extractSlError(data);
+      const isFunctionImport = API_LIST.find((e) => e.name === input.entitySet)?.kind === "FunctionImport";
+      if (res.status === 401) {
+        result.hint = "需要有效认证：走代理则检查代理账号/公司配置（X-Company-DB），直连则检查 B1SESSION Cookie。";
+      } else if (res.status === 404) {
+        result.hint = "接口或实体不存在，请用 sap_api_search 核对 entitySet 名称，检查主键值。";
+      } else if (isFunctionImport && input.method === "GET") {
+        result.hint = `${input.entitySet} 是 FunctionImport，需用 POST 调用，参数放 body 中（格式以 $metadata 为准）。`;
+      } else if (slError) {
+        result.hint = `SAP 返回: ${slError}。400 多为字段名不存在（用 sap_api_search 核对）或特殊字符未正确编码；500 多为 $expand/主键路径问题。`;
+      }
+    } else {
+      const value = (data as { value?: unknown[] } | null)?.value;
+      if (Array.isArray(value)) {
+        const top = extractTop(input.queryOptions);
+        result.hasMore = value.length === top;
+      }
     }
 
     return result;
@@ -807,25 +835,87 @@ async function sapApiCallExecutor(
   }
 }
 
+function extractSlError(data: unknown): string | undefined {
+  if (!data || typeof data !== "object") return undefined;
+  const err = (data as { error?: { message?: { value?: string } } }).error;
+  const value = err?.message?.value;
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function extractTop(queryOptions?: string): number {
+  const m = queryOptions?.match(/\$top\s*=\s*(\d+)/);
+  return m ? parseInt(m[1], 10) : 20;
+}
+
 // ============================================================
 // Helpers
 // ============================================================
 
-function applyDefaultSelect(entitySet: string, method: string, id?: string, queryOptions?: string): string | undefined {
+// ============================================================
+// 默认 $select 保守白名单（经真实 $metadata 校验，见 __fixtures__）
+// ============================================================
+
+const DEFAULT_SELECT_BY_CLASS: Record<string, string[]> = {
+  document: [
+    "DocEntry", "DocNum", "DocDate", "CardCode", "CardName",
+    "DocTotal", "DocCurrency", "DocumentStatus",
+  ],
+  inventory_doc: ["DocEntry", "DocNum", "DocDate"],
+  stock_transfer: ["DocEntry", "DocNum", "DocDate"],
+  business_partner: ["CardCode", "CardName", "CardType", "GroupCode", "Phone1", "Valid"],
+  item: ["ItemCode", "ItemName", "ItemsGroupCode", "QuantityOnStock"],
+  warehouse: ["WarehouseCode", "WarehouseName"],
+  udt_doc: ["DocEntry", "DocNum", "Period", "Instance", "Status", "CreateDate"],
+};
+
+const ENTITY_CLASS: Record<string, string> = {
+  Orders: "document",
+  DeliveryNotes: "document",
+  Invoices: "document",
+  Quotations: "document",
+  CreditNotes: "document",
+  Returns: "document",
+  DownPayments: "document",
+  Drafts: "document",
+  PurchaseOrders: "document",
+  PurchaseDeliveryNotes: "document",
+  PurchaseInvoices: "document",
+  PurchaseReturns: "document",
+  PurchaseQuotations: "document",
+  LandedCosts: "document",
+  InventoryGenEntries: "inventory_doc",
+  InventoryGenExits: "inventory_doc",
+  StockTransfers: "stock_transfer",
+  BusinessPartners: "business_partner",
+  SalesPersons: "business_partner",
+  Items: "item",
+  Warehouses: "warehouse",
+  Z20_COST: "udt_doc",
+  Z20_CPAT: "udt_doc",
+  Z20_OINP: "udt_doc",
+  Z20_PWAG: "udt_doc",
+  Z20_HOLD: "udt_doc",
+  Z20_IMIT: "udt_doc",
+};
+
+export function applyDefaultSelect(entitySet: string, method: string, id?: string, queryOptions?: string): string | undefined {
   if (method !== "GET") return queryOptions;
 
   const parts: string[] = [];
 
-  if (!id && (!queryOptions || !/\$top\s*=/.test(queryOptions))) {
-    parts.push("$top=20");
+  const entry = API_LIST.find((e) => e.name === entitySet);
+  const isEntitySet = entry?.kind === "EntitySet";
+
+  if (!queryOptions || !/\$top\s*=/.test(queryOptions)) {
+    if (isEntitySet) parts.push("$top=20");
   }
 
-  if (!queryOptions || !/\$select\s*=/.test(queryOptions)) {
-    const entry = API_LIST.find(
-      (e) => e.kind === "EntitySet" && e.name === entitySet
-    );
-    if (entry && entry.fields.length > 0) {
-      parts.push(`$select=${entry.fields.join(",")}`);
+  if (isEntitySet && (!queryOptions || !/\$select\s*=/.test(queryOptions))) {
+    const cls = ENTITY_CLASS[entitySet];
+    if (cls && DEFAULT_SELECT_BY_CLASS[cls]) {
+      const known = new Set(entry.fields);
+      const selected = DEFAULT_SELECT_BY_CLASS[cls].filter((f) => known.has(f));
+      if (selected.length > 0) parts.push(`$select=${selected.join(",")}`);
     }
   }
 
@@ -833,10 +923,10 @@ function applyDefaultSelect(entitySet: string, method: string, id?: string, quer
     parts.push(queryOptions);
   }
 
-  return parts.length > 0 ? parts.join("&").replace(/'/g, "%27") : undefined;
+  return parts.length > 0 ? parts.join("&") : undefined;
 }
 
-function cleanODataNoise(data: unknown): void {
+export function cleanODataNoise(data: unknown): void {
   if (!data || typeof data !== "object") return;
   if (Array.isArray(data)) {
     for (const item of data) cleanODataNoise(item);
@@ -862,7 +952,7 @@ function cleanODataNoise(data: unknown): void {
   }
 }
 
-function trimNestedCollections(obj: Record<string, unknown>): void {
+export function trimNestedCollections(obj: Record<string, unknown>): void {
   for (const [key, val] of Object.entries(obj)) {
     if (Array.isArray(val) && EXPAND_FIELDS[key]) {
       const keep = new Set(EXPAND_FIELDS[key]);
@@ -879,7 +969,7 @@ function trimNestedCollections(obj: Record<string, unknown>): void {
   }
 }
 
-function buildUrl(
+export function buildUrl(
   baseUrl: string,
   entitySet: string,
   method: string,
@@ -888,7 +978,7 @@ function buildUrl(
 ): string {
   let url = `${baseUrl}/${entitySet}`;
 
-  if (id && method !== "POST") {
+  if (id && method !== "POST" && method !== "GET") {
     url += `('${encodeURIComponent(id)}')`;
   }
 
@@ -897,6 +987,47 @@ function buildUrl(
   }
 
   return url;
+}
+
+const HEX_ESCAPE = /^[0-9A-Fa-f]{2}$/;
+const ODataSafeChar = /^[A-Za-z0-9$=(),.\-_:/?*<>]$/;
+
+export function encodeQueryOptions(queryOptions: string): string {
+  let out = "";
+  let inQuote = false;
+  let i = 0;
+  while (i < queryOptions.length) {
+    const ch = queryOptions[i];
+
+    if (ch === "%" && HEX_ESCAPE.test(queryOptions.slice(i + 1, i + 3))) {
+      out += queryOptions.slice(i, i + 3);
+      i += 3;
+      continue;
+    }
+
+    if (ch === "'") {
+      out += "%27";
+      inQuote = !inQuote;
+      i += 1;
+      continue;
+    }
+
+    if (ch === "&" && !inQuote) {
+      out += "&";
+      i += 1;
+      continue;
+    }
+
+    if (ODataSafeChar.test(ch)) {
+      out += ch;
+      i += 1;
+      continue;
+    }
+
+    out += encodeURIComponent(ch);
+    i += 1;
+  }
+  return out;
 }
 
 // ============================================================
@@ -921,12 +1052,14 @@ const sapApiCallDescription =
   "   DocumentLines 会自动作为嵌套 JSON 返回。ItemPrices、BPAddresses 等同理。\n" +
   "2. 不要用主键路径 /Orders('1173')，易 500。用 $filter=DocEntry eq 1173 代替。\n" +
   "3. 查单条记录时优先 $filter，而非传 id 参数。\n" +
+  "4. FunctionImport（如 SBOBobService_GetCurrencyRate）只能用 POST 调用，参数放 body 中，禁止 GET。\n" +
   "400 多为特殊字符未编码(引号用 %27)；500 多为字段不存在或用错了 $expand；无结果则放宽 filter。\n" +
   "POST 创建: sap_api_search 返回的 lineFields 是 DocumentLines 子字段。" +
   "body 必含 DocObjectCode(DocType)、CardCode、DocDate；DocumentLines 为数组，每项必含 ItemCode、Quantity。" +
   "PATCH 只传变更字段；DELETE 需传 id。\n" +
-  "GET 自动注入 $select+$top=20，手动传入可覆盖。嵌套集合(DocumentLines等)自动裁剪只保留常用字段，防 token 爆炸。" +
-  "认证需 SAP_B1SESSION 环境变量或连接配置。";
+  "GET 自动注入保守 $select+$top=20（字段经真实 $metadata 校验），手动传入可覆盖；不要自己拼 %xx 编码，引号/特殊字符交给工具处理。" +
+  "嵌套集合(DocumentLines等)自动裁剪只保留常用字段，防 token 爆炸。" +
+  "认证走代理时由服务端管理，可通过连接配置 companyDb/tenantId 切换公司；直连才需 B1SESSION Cookie。";
 
 export const sapB1Plugin: Plugin = {
   meta: {
@@ -951,18 +1084,25 @@ export const sapB1Plugin: Plugin = {
   connection: {
     fields: [
       { key: "baseUrl", type: "string", title: "Base URL", widget: "input", required: true },
-      { key: "cookie", type: "password", title: "B1SESSION Cookie", widget: "password", required: true },
+      { key: "cookie", type: "password", title: "B1SESSION Cookie（直连才需要）", widget: "password", required: false },
+      { key: "companyDb", type: "string", title: "Company DB（走代理时用于切换公司，如 XSM_ZSK）", widget: "input", required: false },
+      { key: "tenantId", type: "string", title: "Tenant Id（可选，代理会话维度）", widget: "input", required: false },
     ],
-    test: async (config) => {
+    test: async (config: { baseUrl?: string; cookie?: string; companyDb?: string; tenantId?: string }) => {
       try {
-        const res = await fetch(`${config.baseUrl}/BusinessPartners?$top=1`, {
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            "Accept-Encoding": "identity",
-            Cookie: `B1SESSION=${config.cookie}; ROUTEID=.node0`,
-          },
-        });
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "Accept-Encoding": "identity",
+        };
+        if (config.cookie) {
+          headers.Cookie = config.cookie.includes("B1SESSION")
+            ? config.cookie
+            : `B1SESSION=${config.cookie}`;
+        }
+        if (config.companyDb) headers["X-Company-DB"] = config.companyDb;
+        if (config.tenantId) headers["X-Tenant-Id"] = config.tenantId;
+        const res = await fetch(`${config.baseUrl}/BusinessPartners?$top=1`, { headers });
         return { ok: res.ok, message: res.ok ? "连接成功" : `HTTP ${res.status}` };
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
