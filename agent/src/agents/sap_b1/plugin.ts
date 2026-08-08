@@ -724,6 +724,8 @@ export async function sapApiCallExecutor(
         result.hint = "接口或实体不存在，请用 sap_api_search 核对 entitySet 名称，检查主键值。";
       } else if (isFunctionImport && input.method === "GET") {
         result.hint = `${input.entitySet} 是 FunctionImport，需用 POST 调用，参数放 body 中（格式以 $metadata 为准）。`;
+      } else if (slError && slError.includes("expand")) {
+        result.hint = `SAP 返回: ${slError}。本环境不支持 $expand（实测必 400），请改用 $select 包含导航属性，如 $select=ItemCode,ItemWarehouseInfoCollection，嵌套集合会自动作为 JSON 返回。`;
       } else if (slError) {
         result.hint = `SAP 返回: ${slError}。400 多为字段名不存在（用 sap_api_search 核对）或特殊字符未正确编码；500 多为 $expand/主键路径问题。`;
       }
@@ -953,8 +955,8 @@ const sapApiCallDescription =
   "$filter 操作符: eq/ne/gt/lt/ge/le/contains(f,'v')/startswith(f,'v')/endswith(f,'v')，多条件用 and/or。" +
   "字符串值必须单引号包裹。$orderby=Field desc 排序。\n\n" +
   "⚠️ SAP B1 实战经验:\n" +
-  "1. 不要用 $expand！$expand 极易触发 400/500。改用 $select 包含嵌套字段，如 $select=DocEntry,DocNum,DocumentLines，\n" +
-  "   DocumentLines 会自动作为嵌套 JSON 返回。ItemPrices、BPAddresses 等同理。\n" +
+  "1. 本环境实测不支持 $expand（必 400: Cannot expand invalid navigation property）。改用 $select 包含导航属性，如 $select=DocEntry,DocNum,DocumentLines，\n" +
+  "   DocumentLines 会自动作为嵌套 JSON 返回。ItemPrices、ItemWarehouseInfoCollection、BPAddresses 等同理。\n" +
   "2. 不要用主键路径 /Orders('1173')，易 500。用 $filter=DocEntry eq 1173 代替。\n" +
   "3. 查单条记录时优先 $filter，而非传 id 参数。\n" +
   "4. FunctionImport（如 SBOBobService_GetCurrencyRate）只能用 POST 调用，参数放 body 中，禁止 GET。\n" +

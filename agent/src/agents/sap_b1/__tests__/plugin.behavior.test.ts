@@ -315,6 +315,24 @@ describe("sapApiCallExecutor（与 curl 等价）", () => {
     expect(result.hint).toContain("RoundDif");
   });
 
+  it("$expand 400 → hint 明确指引改用 $select 导航属性", async () => {
+    mockFetchOnce(() =>
+      new Response(
+        JSON.stringify({
+          error: { code: "1", message: { lang: "en", value: "Cannot expand invalid navigation property 'DocumentLines' for entity type 'Document'" } },
+        }),
+        { status: 400 }
+      )
+    );
+    const result = await sapApiCallExecutor(
+      { entitySet: "Orders", method: "GET", queryOptions: "$top=1&$expand=DocumentLines" },
+      { baseUrl: "https://x" }
+    );
+    expect(result.ok).toBe(false);
+    expect(result.hint).toContain("不支持 $expand");
+    expect(result.hint).toContain("$select=");
+  });
+
   it("返回 $top 满条数 → hasMore=true", async () => {
     mockFetchOnce(() =>
       new Response(JSON.stringify({ value: new Array(20).fill({ DocEntry: 1 }) }), {
