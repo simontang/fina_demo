@@ -114,6 +114,21 @@ describe("sap_api_search", () => {
     });
   });
 
+  it("finds by Chinese keyword — 银行 (Finance)", async () => {
+    const result = await search({ query: "银行" });
+    expect(result.totalMatches).toBeGreaterThan(0);
+    result.results.forEach((r: any) => {
+      expect(r.domain).toBe("Finance / Accounting");
+    });
+  });
+
+  it("finds bank statement entities by name", async () => {
+    for (const q of ["BankStatements", "Banks", "HouseBankAccounts", "ChartOfAccounts"]) {
+      const result = await search({ query: q });
+      expect(result.results.some((r: any) => r.name === q)).toBe(true);
+    }
+  });
+
   it("filters by domain", async () => {
     const result = await search({ query: "", domain: "BusinessPartner" });
     expect(result.totalMatches).toBeGreaterThan(0);

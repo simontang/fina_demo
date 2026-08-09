@@ -670,6 +670,10 @@ export async function sapApiSearchExecutor(
     "价格": "Item / Product",
     "成本": "Item / Product",
     "汇率": "Finance / Accounting",
+    "银行": "Finance / Accounting",
+    "对账单": "Finance / Accounting",
+    "银行账户": "Finance / Accounting",
+    "科目": "Finance / Accounting",
     "到岸": "Document",
   };
 

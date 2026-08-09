@@ -91,6 +91,18 @@ describe("applyDefaultSelect（默认 $select 白名单注入）", () => {
     expect(q).not.toContain("$select=");
   });
 
+  it("BankStatements 无类别 → 只注入 $top，不注入 $select", () => {
+    const q = applyDefaultSelect("BankStatements", "GET", undefined, undefined)!;
+    expect(q).toContain("$top=20");
+    expect(q).not.toContain("$select=");
+  });
+
+  it("BankStatements 显式 $select 含 BankStatementRows → 不覆盖", () => {
+    const q = applyDefaultSelect("BankStatements", "GET", undefined, "$select=InternalNumber,BankStatementRows&$top=5")!;
+    expect(q).toContain("$select=InternalNumber,BankStatementRows");
+    expect(q).not.toContain("StatementDate");
+  });
+
   it("FunctionImport GET → 不注入任何查询参数", () => {
     const q = applyDefaultSelect("SBOBobService_GetCurrencyRate", "GET", undefined, undefined);
     expect(q).toBeUndefined();
@@ -378,6 +390,39 @@ describe("trimNestedCollections / cleanODataNoise", () => {
     const line = (data.value[0] as any).DocumentLines[0];
     expect(line.Price).toBe(12.5);
     expect(line.Foo).toBeUndefined();
+  });
+
+  it("BankStatementRows 只保留核心字段", () => {
+    const data = {
+      InternalNumber: 1,
+      BankStatementRows: [
+        {
+          SequenceNo: 1, Reference: "R1", Details: "转账", DebitAmountLC: 100,
+          CreditAmountLC: 0, Balance: 100, BPCode: "C001", Foo: "x", Foo2: 2,
+        },
+      ],
+    };
+    trimNestedCollections(data as any);
+    const row = (data as any).BankStatementRows[0];
+    expect(row.Reference).toBe("R1");
+    expect(row.DebitAmountLC).toBe(100);
+    expect(row.BPCode).toBe("C001");
+    expect(row.Foo).toBeUndefined();
+    expect(row.Foo2).toBeUndefined();
+  });
+
+  it("BPBankAccounts 只保留核心字段", () => {
+    const data = {
+      CardCode: "C001",
+      BPBankAccounts: [
+        { AccountNo: "123", BankCode: "CITI", IBAN: "US123", Foo: "x" },
+      ],
+    };
+    trimNestedCollections(data as any);
+    const acc = (data as any).BPBankAccounts[0];
+    expect(acc.AccountNo).toBe("123");
+    expect(acc.BankCode).toBe("CITI");
+    expect(acc.Foo).toBeUndefined();
   });
 
   it("清理 odata.* 噪声", () => {
