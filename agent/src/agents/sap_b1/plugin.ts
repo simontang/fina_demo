@@ -37,6 +37,13 @@ export const EXPAND_FIELDS: Record<string, string[]> = {
   "ContactEmployees": [
     "CardCode", "Name", "Position", "Address", "Phone1", "Email", "Active",
   ],
+  "BankStatementRows": [
+    "ExternalBankStatementNo", "SequenceNo", "AccountNumber", "AccountName",
+    "Reference", "DueDate", "Details", "DebitAmountFC", "CreditAmountFC",
+    "DebitAmountLC", "CreditAmountLC", "Balance", "RowStatus", "BPCode",
+    "BPName", "BPBankAccount", "StatementNumber", "BankStmtLineDate",
+    "ReconciliationNo", "JournalEntryID", "PaymentID",
+  ],
 };
 
 const ENTITIES_WITH_LINES = new Set([
@@ -495,6 +502,61 @@ export const API_LIST: ApiEntry[] = [
     domain: "Document",
     description: "到岸成本代码定义",
     fields: ["Code", "Name"],
+  },
+
+  // ========== Finance / Accounting（银行对账单相关） ==========
+  {
+    name: "Banks",
+    kind: "EntitySet",
+    entityType: "SAPB1.Bank",
+    primaryKey: "BankCode",
+    domain: "Finance / Accounting",
+    description: "银行主数据（收款/付款银行定义）",
+    fields: [
+      "BankCode", "BankName", "SwiftNo", "IBAN", "CountryCode",
+      "AbsoluteEntry", "AccountforOutgoingChecks", "NextCheckNumber", "DigitalPayments",
+    ],
+  },
+  {
+    name: "HouseBankAccounts",
+    kind: "EntitySet",
+    entityType: "SAPB1.HouseBankAccount",
+    primaryKey: "AbsoluteEntry",
+    domain: "Finance / Accounting",
+    description: "内部银行账户（公司银行科目，对账单挂载于此）",
+    fields: [
+      "AbsoluteEntry", "BankCode", "AccNo", "Branch", "AccountName", "GLAccount",
+      "IBAN", "BICSwiftCode", "BankKey", "City", "Country", "State", "Block",
+      "IncomingPaymentSeries", "OutgoingPaymentSeries", "ECheck",
+    ],
+  },
+  {
+    name: "ChartOfAccounts",
+    kind: "EntitySet",
+    entityType: "SAPB1.ChartOfAccount",
+    primaryKey: "Code",
+    domain: "Finance / Accounting",
+    description: "会计科目表",
+    fields: [
+      "Code", "Name", "AccountType", "AcctCurrency", "Balance", "CashAccount",
+      "BudgetAccount", "ActiveAccount", "PrimaryAccount", "AccountLevel",
+      "FatherAccountKey", "ExternalCode", "FormatCode", "Category",
+      "FrozenFor", "BlockManualPosting", "ValidFor", "ValidFrom", "ValidTo",
+    ],
+  },
+  {
+    name: "BankStatements",
+    kind: "EntitySet",
+    entityType: "SAPB1.BankStatement",
+    primaryKey: "InternalNumber",
+    domain: "Finance / Accounting",
+    description: "银行对账单（含 BankStatementRows 明细行）",
+    fields: [
+      "InternalNumber", "BankAccountKey", "StatementNumber", "StatementDate",
+      "Status", "Imported", "StartingBalanceF", "EndingBalanceF",
+      "StartingBalanceL", "EndingBalanceL", "Currency",
+      "BankStatementRows",
+    ],
   },
   {
     name: "CompanyService_GetItemPrice",
