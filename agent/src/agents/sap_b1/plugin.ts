@@ -37,6 +37,10 @@ export const EXPAND_FIELDS: Record<string, string[]> = {
   "ContactEmployees": [
     "CardCode", "Name", "Position", "Address", "Phone1", "Email", "Active",
   ],
+  "BPBankAccounts": [
+    "AccountNo", "AccountName", "BankCode", "Branch", "IBAN", "BICSwiftCode",
+    "Country", "City", "Street", "Block", "InternalKey", "BPCode",
+  ],
   "BankStatementRows": [
     "ExternalBankStatementNo", "SequenceNo", "AccountNumber", "AccountName",
     "Reference", "DueDate", "Details", "DebitAmountFC", "CreditAmountFC",
@@ -68,7 +72,7 @@ export const API_LIST: ApiEntry[] = [
       "CurrentAccountBalance", "OpenOrdersBalance", "OpenDeliveryNotesBalance",
       "PayTermsGrpCode", "VatGroup", "VatLiable", "FederalTaxID",
       "Valid", "Frozen", "CompanyPrivate", "CreateDate", "CreateTime", "UpdateDate", "UpdateTime",
-      "BPAddresses", "ContactEmployees",
+      "BPAddresses", "ContactEmployees", "BPBankAccounts",
     ],
   },
   {
@@ -624,7 +628,7 @@ function mapResult(e: ApiEntry): Record<string, unknown> {
     r.expand = ["ItemPrices", "ItemWarehouseInfoCollection"];
   }
   if (e.name === "BusinessPartners") {
-    r.expand = ["BPAddresses", "ContactEmployees"];
+    r.expand = ["BPAddresses", "ContactEmployees", "BPBankAccounts"];
   }
   return r;
 }
