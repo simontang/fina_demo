@@ -40,21 +40,12 @@ import "./tools/marketingCampaignCrud";
 // 加载环境变量
 
 // registerModelLattice("default", {
-//   model: "kimi-k2-0711-preview",
-//   provider: "openai",
-//   streaming: true,
-//   apiKeyEnvName: "KIMI_API_KEY",
-//   baseURL: "https://api.moonshot.cn/v1",
-// });
-
-// registerModelLattice("default", {
 //   model: "deepseek-chat",
 //   provider: "deepseek",
 //   streaming: true,
 // });
 
 // registerModelLattice("default", {
-//   model: process.env.VOLCENGINE_MODEL || "kimi-k2-250905",
 //   provider: "volcengine",
 //   streaming: true,
 //   apiKeyEnvName: "VOLCENGINE_API_KEY2",
@@ -86,22 +77,6 @@ import "./tools/marketingCampaignCrud";
 
 // 如果设置了 MODEL_LIST 环境变量，则跳过所有代码注册
 if (!process.env.MODEL_LIST) {
-  registerModelLattice(
-    "kimi-k2.6",
-
-    {
-      model: "kimi-k2.6",
-      displayName: "kimi-k2.6",
-      //model: "qwen3.5-35b-a3b",
-      provider: "openai",
-      streaming: true,
-      apiKeyEnvName: "API_KEY3",
-      baseURL: baseURL,
-      modelKwargs: {
-        "enable_thinking": false
-      }
-    }
-  );
   registerModelLattice(
     "deepseek-v4-pro",
 
