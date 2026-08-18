@@ -377,18 +377,38 @@ describe("sapApiCallExecutor（与 curl 等价）", () => {
 // ============================================================
 
 describe("trimNestedCollections / cleanODataNoise", () => {
-  it("DocumentLines 保留 Price（与 lineFields 对齐）", () => {
+  it("DocumentLines 保留 Price 和三单匹配字段（与 lineFields 对齐）", () => {
     const data = {
       value: [
         {
           DocEntry: 1,
-          DocumentLines: [{ LineNum: 0, ItemCode: "I1", Price: 12.5, UnitPrice: 10, Foo: 1 }],
+          DocumentLines: [{
+            LineNum: 0,
+            ItemCode: "I1",
+            Price: 12.5,
+            UnitPrice: 10,
+            BaseType: 20,
+            BaseEntry: 601,
+            BaseLine: 0,
+            LineStatus: "bost_Open",
+            RemainingOpenQuantity: 1,
+            RemainingOpenInventoryQuantity: 1,
+            OpenAmount: 500,
+            Foo: 1,
+          }],
         },
       ],
     };
     trimNestedCollections(data.value[0] as any);
     const line = (data.value[0] as any).DocumentLines[0];
     expect(line.Price).toBe(12.5);
+    expect(line.BaseType).toBe(20);
+    expect(line.BaseEntry).toBe(601);
+    expect(line.BaseLine).toBe(0);
+    expect(line.LineStatus).toBe("bost_Open");
+    expect(line.RemainingOpenQuantity).toBe(1);
+    expect(line.RemainingOpenInventoryQuantity).toBe(1);
+    expect(line.OpenAmount).toBe(500);
     expect(line.Foo).toBeUndefined();
   });
 

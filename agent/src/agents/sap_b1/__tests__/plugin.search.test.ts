@@ -46,6 +46,21 @@ describe("sap_api_search", () => {
     expect(result.results.some((r: any) => r.name === "PurchaseOrders")).toBe(true);
   });
 
+  it("exposes three-way-match fields in document lineFields", async () => {
+    const result = await search({ query: "PurchaseDeliveryNotes" });
+    const grpo = result.results.find((r: any) => r.name === "PurchaseDeliveryNotes");
+    expect(grpo).toBeTruthy();
+    expect(grpo.lineFields).toEqual(expect.arrayContaining([
+      "BaseType",
+      "BaseEntry",
+      "BaseLine",
+      "LineStatus",
+      "RemainingOpenQuantity",
+      "RemainingOpenInventoryQuantity",
+      "OpenAmount",
+    ]));
+  });
+
   it("finds Warehouses by exact name", async () => {
     const result = await search({ query: "Warehouses" });
     expect(result.results.some((r: any) => r.name === "Warehouses")).toBe(true);

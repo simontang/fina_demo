@@ -17,12 +17,16 @@ interface ApiEntry {
   fields: string[];
 }
 
+const DOCUMENT_LINE_FIELDS = [
+  "LineNum", "ItemCode", "ItemDescription", "Quantity", "UnitPrice", "Price",
+  "WarehouseCode", "Total", "Currency", "TaxCode", "VatGroup", "PriceAfterVAT",
+  "UoMEntry", "UoMCode",
+  "BaseType", "BaseEntry", "BaseLine", "LineStatus", "RemainingOpenQuantity",
+  "RemainingOpenInventoryQuantity", "OpenAmount",
+];
+
 export const EXPAND_FIELDS: Record<string, string[]> = {
-  "DocumentLines": [
-    "LineNum", "ItemCode", "ItemDescription", "Quantity", "UnitPrice", "Price",
-    "WarehouseCode", "Total", "Currency", "TaxCode", "PriceAfterVAT",
-    "UoMEntry", "UoMCode",
-  ],
+  "DocumentLines": DOCUMENT_LINE_FIELDS,
   "DocumentAdditionalExpenses": [
     "LineNum", "ExpenseCode", "LineTotal", "TaxCode", "VatGroup",
   ],
@@ -622,7 +626,7 @@ function mapResult(e: ApiEntry): Record<string, unknown> {
   };
   if (ENTITIES_WITH_LINES.has(e.name)) {
     r.expand = ["DocumentLines", "DocumentAdditionalExpenses"];
-    r.lineFields = ["LineNum", "ItemCode", "ItemDescription", "Quantity", "UnitPrice", "Price", "WarehouseCode", "UoMEntry", "UoMCode", "VatGroup", "Currency", "TaxCode", "PriceAfterVAT"];
+    r.lineFields = DOCUMENT_LINE_FIELDS;
   }
   if (e.name === "Items") {
     r.expand = ["ItemPrices", "ItemWarehouseInfoCollection"];
