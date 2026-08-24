@@ -59,7 +59,7 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1440,
     height: 900,
-    title: 'Chrysalis',
+    title: 'Scale',
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

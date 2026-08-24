@@ -1,9 +1,9 @@
 {
   "name": "evario-desktop",
-  "productName": "Chrysalis",
+  "productName": "Scale",
   "version": "0.1.0",
   "private": true,
-  "description": "Chrysalis desktop shell (remote Agent Gateway)",
+  "description": "Scale desktop shell (remote Agent Gateway)",
   "author": "Alphafina",
   "main": "main.js",
   "scripts": {
@@ -22,7 +22,7 @@
     "electron-builder": "^26.0.0"
   },
   "build": {
-    "appId": "ai.chrysalis.desktop",
+    "appId": "ai.scale.desktop",
     "directories": {
       "output": "release"
     },
