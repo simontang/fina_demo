@@ -4,12 +4,10 @@ import { getToken, getUser, clearAuth, setToken, setUser } from "./utils/session
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
-// Get base API path
+// Get base API path (use origin so non-standard ports like Electron's
+// 127.0.0.1:5721 keep the port; standard 80/443 behave identically).
 function getBaseAPIPath(): string {
-  if (window.location.hostname === "localhost") {
-    return "http://localhost:5702";
-  }
-  return `${window.location.protocol}//${window.location.hostname}`;
+  return window.location.origin;
 }
 
 const baseURL = apiUrl || getBaseAPIPath();
