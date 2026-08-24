@@ -5,7 +5,8 @@
 // The gateway URL is deliberately NOT hardcoded here. Resolution order:
 //   1. process env  GATEWAY_URL
 //   2. desktop/.env (dotenv, gitignored — dev convenience)
-//   3. userData/config.json  { "gatewayUrl": "..." }
+//   3. userData/config.json  { "gatewayUrl": "..." }  (user override)
+//   4. bundled config.json  (extraResources default, ships with the app)
 // If none is set, /api returns a clear 502 and the app logs a message.
 'use strict';
 
@@ -21,22 +22,35 @@ const DEFAULT_PORT = 5721;
 // never overrides already-set process env vars.
 dotenv.config({ path: path.join(__dirname, '.env') });
 
-function resolveGatewayUrl() {
-  if (process.env.GATEWAY_URL && process.env.GATEWAY_URL.trim()) {
-    return process.env.GATEWAY_URL.trim().replace(/\/+$/, '');
-  }
+function readGatewayUrlFromFile(filePath) {
   try {
-    const cfgPath = path.join(app.getPath('userData'), 'config.json');
-    if (fs.existsSync(cfgPath)) {
-      const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+    if (filePath && fs.existsSync(filePath)) {
+      const cfg = JSON.parse(fs.readFileSync(filePath, 'utf8'));
       if (cfg.gatewayUrl && cfg.gatewayUrl.trim()) {
         return cfg.gatewayUrl.trim().replace(/\/+$/, '');
       }
     }
   } catch (e) {
-    console.warn('[desktop] config.json read failed:', e.message);
+    console.warn(`[desktop] config read failed (${filePath}):`, e.message);
   }
   return null;
+}
+
+function bundledConfigPath() {
+  // Packaged: <app>/Contents/Resources/config.json (extraResources).
+  // Dev: local template next to this file.
+  return app.isPackaged
+    ? path.join(process.resourcesPath, 'config.json')
+    : path.join(__dirname, 'config.default.json');
+}
+
+function resolveGatewayUrl() {
+  if (process.env.GATEWAY_URL && process.env.GATEWAY_URL.trim()) {
+    return process.env.GATEWAY_URL.trim().replace(/\/+$/, '');
+  }
+  const userCfg = readGatewayUrlFromFile(path.join(app.getPath('userData'), 'config.json'));
+  if (userCfg) return userCfg;
+  return readGatewayUrlFromFile(bundledConfigPath());
 }
 
 let port;
@@ -45,7 +59,7 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1440,
     height: 900,
-    title: 'Evario Desktop',
+    title: 'Chrysalis',
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

@@ -1,9 +1,9 @@
 {
   "name": "evario-desktop",
-  "productName": "Evario Desktop",
+  "productName": "Chrysalis",
   "version": "0.1.0",
   "private": true,
-  "description": "Evario desktop shell (remote Agent Gateway)",
+  "description": "Chrysalis desktop shell (remote Agent Gateway)",
   "author": "Alphafina",
   "main": "main.js",
   "scripts": {
@@ -22,7 +22,7 @@
     "electron-builder": "^26.0.0"
   },
   "build": {
-    "appId": "ai.evario.desktop",
+    "appId": "ai.chrysalis.desktop",
     "directories": {
       "output": "release"
     },
@@ -37,6 +37,10 @@
         "from": "../ai_web/dist",
         "to": "renderer",
         "filter": ["**/*"]
+      },
+      {
+        "from": "config.default.json",
+        "to": "config.json"
       }
     ],
     "asar": true,
