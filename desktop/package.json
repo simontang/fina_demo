@@ -45,6 +45,7 @@
     ],
     "asar": true,
     "npmRebuild": false,
+    "afterSign": "scripts/after-sign.js",
     "mac": {
       "target": ["dmg", "zip"],
       "category": "public.app-category.business",
