@@ -1,0 +1,52 @@
+{
+  "name": "evario-desktop",
+  "productName": "Evario Desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Evario desktop shell (remote Agent Gateway)",
+  "author": "Alphafina",
+  "main": "main.js",
+  "scripts": {
+    "dev": "RENDERER_DIR=../ai_web/dist electron .",
+    "pack": "electron-builder --dir",
+    "build": "pnpm --dir ../ai_web run build && electron-builder",
+    "dist": "pnpm --dir ../ai_web run build && electron-builder --mac dmg zip",
+    "clean": "rimraf release"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "http-proxy": "^1.18.1"
+  },
+  "devDependencies": {
+    "electron": "^37.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "ai.evario.desktop",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "server.js",
+      "package.json",
+      "node_modules/**"
+    ],
+    "extraResources": [
+      {
+        "from": "../ai_web/dist",
+        "to": "renderer",
+        "filter": ["**/*"]
+      }
+    ],
+    "asar": true,
+    "npmRebuild": false,
+    "mac": {
+      "target": ["dmg", "zip"],
+      "category": "public.app-category.business",
+      "icon": "assets/icon.png",
+      "hardenedRuntime": false
+    },
+    "artifactName": "${productName}-${version}-${arch}.${ext}"
+  }
+}
