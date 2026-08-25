@@ -86,11 +86,13 @@ function sendFile(res, filePath) {
       return;
     }
     const type = MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream';
+    // Only the hashed build assets under /admin/assets/ are immutable. Brand files
+    // (config.json, logo.png, favicon.ico) and index.html must never be cached long —
+    // otherwise an app update keeps serving the previous version's logo/branding.
+    const isHashedAsset = filePath.includes(path.sep + 'assets' + path.sep);
     res.writeHead(200, {
       'Content-Type': type,
-      'Cache-Control': type.startsWith('image/') || type.includes('font') || type.includes('javascript') || type.includes('css')
-        ? 'public, max-age=31536000, immutable'
-        : 'no-cache',
+      'Cache-Control': isHashedAsset ? 'public, max-age=31536000, immutable' : 'no-cache',
     });
     fs.createReadStream(filePath).pipe(res);
   });
