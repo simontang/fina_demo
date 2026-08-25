@@ -52,7 +52,14 @@ module.exports = {
       fs.rmSync(rendererDest, { recursive: true, force: true });
       fs.cpSync(path.join(__dirname, '..', 'ai_web', 'dist'), rendererDest, { recursive: true });
       fs.copyFileSync(path.join(__dirname, 'config.default.json'), path.join(resources, 'config.json'));
-      console.log(`[forge] copied renderer + default config into ${resources}`);
+
+      // Overlay the fina brand (same files online bind-mounts over the SPA):
+      // the login page + title read appName/logo/favicon from /admin/config.json.
+      const finaBrand = path.join(__dirname, '..', 'configs', 'fina');
+      for (const f of ['config.json', 'logo.png', 'favicon.ico']) {
+        fs.copyFileSync(path.join(finaBrand, f), path.join(rendererDest, f));
+      }
+      console.log(`[forge] copied renderer + default config + fina brand into ${resources}`);
 
       console.log(`[forge] ad-hoc re-signing ${appPath}`);
       try {
