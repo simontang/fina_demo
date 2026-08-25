@@ -1,3 +1,9 @@
 allowBuilds:
   electron: true
   electron-winstaller: true
+  fs-xattr: true
+  macos-alias: true
+# @electron-forge/cli pulls @electron/node-gyp (git-resolved) via @electron/rebuild.
+blockExoticSubdeps: false
+# electron-forge (electron-packager) requires a hoisted node_modules layout.
+nodeLinker: hoisted

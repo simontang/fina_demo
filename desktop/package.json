@@ -7,51 +7,19 @@
   "author": "Alphafina",
   "main": "main.js",
   "scripts": {
-    "dev": "RENDERER_DIR=../ai_web/dist electron .",
-    "pack": "electron-builder --dir",
-    "build": "pnpm --dir ../ai_web run build && electron-builder",
-    "dist": "pnpm --dir ../ai_web run build && electron-builder --mac dmg zip",
-    "clean": "rimraf release"
+    "dev": "RENDERER_DIR=../ai_web/dist electron-forge start",
+    "pack": "electron-forge package",
+    "make": "electron-forge make",
+    "dist": "pnpm --dir ../ai_web run build && electron-forge make",
+    "clean": "rimraf out"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
     "http-proxy": "^1.18.1"
   },
   "devDependencies": {
-    "electron": "^37.0.0",
-    "electron-builder": "^26.0.0"
-  },
-  "build": {
-    "appId": "ai.scale.desktop",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "main.js",
-      "server.js",
-      "package.json",
-      "node_modules/**"
-    ],
-    "extraResources": [
-      {
-        "from": "../ai_web/dist",
-        "to": "renderer",
-        "filter": ["**/*"]
-      },
-      {
-        "from": "config.default.json",
-        "to": "config.json"
-      }
-    ],
-    "asar": true,
-    "npmRebuild": false,
-    "afterSign": "scripts/after-sign.js",
-    "mac": {
-      "target": ["dmg", "zip"],
-      "category": "public.app-category.business",
-      "icon": "assets/icon.png",
-      "hardenedRuntime": false
-    },
-    "artifactName": "${productName}-${version}-${arch}.${ext}"
+    "@electron-forge/cli": "^7.6.0",
+    "@electron-forge/maker-dmg": "^7.6.0",
+    "electron": "^37.0.0"
   }
 }
