@@ -1,5 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
+import "@axiom-lattice/react-sdk/styles.css";
 import "./styles/tokens.css";
 import "./ui_lattices";
 import App from "./App";
