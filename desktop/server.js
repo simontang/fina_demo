@@ -45,13 +45,18 @@ const MIME = {
 let gatewayUrl = null;
 let proxy = null;
 
+// Restored sessionStorage snapshot from the previous launch (Electron main
+// process persists it to userData). Injected into the SPA entry so login
+// survives app restarts — see sendIndex().
+let restoreSession = null;
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://127.0.0.1');
   const p = url.pathname;
 
   // SPA entry: /, /admin, /admin/
   if (p === '/' || p === '/admin' || p === '/admin/') {
-    return sendFile(res, path.join(RENDERER_DIR, 'index.html'));
+    return sendIndex(res);
   }
 
   // Pass-through reverse proxy for all gateway APIs (path preserved).
@@ -71,12 +76,50 @@ const server = http.createServer((req, res) => {
       res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
       return res.end('Forbidden');
     }
+    // Direct /admin/index.html requests get the same session-restore treatment.
+    if (path.basename(filePath) === 'index.html') {
+      return sendIndex(res);
+    }
     return sendFile(res, filePath);
   }
 
   res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end('Not found');
 });
+
+// SPA entry. When a stored session exists, injects an inline script that
+// restores sessionStorage BEFORE the deferred module bundle runs (classic inline
+// scripts execute during parse; module scripts run after the document is parsed).
+// The guard (sessionStorage.length === 0) means only a fresh tab is hydrated —
+// a mid-run reload never clobbers live auth state with a stale snapshot.
+function sendIndex(res) {
+  fs.readFile(path.join(RENDERER_DIR, 'index.html'), (err, buf) => {
+    if (err || !buf) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Not found');
+      return;
+    }
+    let html = buf.toString('utf8');
+    if (restoreSession && Object.keys(restoreSession).length) {
+      // Escape '<' so no stored value can break out of the inline script.
+      const payload = JSON.stringify(restoreSession).replace(/</g, '\\u003c');
+      const script =
+        '<script>(function(){try{' +
+        'if(sessionStorage.length>0)return;' +
+        'var s=' + payload + ';' +
+        'for(var k in s){sessionStorage.setItem(k,s[k]);}' +
+        '}catch(e){}})();</script>';
+      html = html.includes('</body>')
+        ? html.replace('</body>', script + '</body>')
+        : html + script;
+    }
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-cache',
+    });
+    res.end(html);
+  });
+}
 
 function sendFile(res, filePath) {
   fs.stat(filePath, (err, st) => {
@@ -98,8 +141,9 @@ function sendFile(res, filePath) {
   });
 }
 
-function start({ host = '127.0.0.1', preferredPort = 5721, gatewayUrl: g = null } = {}) {
+function start({ host = '127.0.0.1', preferredPort = 5721, gatewayUrl: g = null, restoreSession: rs = null } = {}) {
   gatewayUrl = g;
+  restoreSession = rs;
 
   if (g) {
     proxy = httpProxy.createProxyServer({

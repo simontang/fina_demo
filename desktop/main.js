@@ -54,9 +54,43 @@ function resolveGatewayUrl() {
 }
 
 let port;
+let win;
+
+// --- sessionStorage persistence -------------------------------------------------
+// The SPA + SDK keep auth in sessionStorage, which dies with the tab, so a fresh
+// launch always landed back on the login page. We snapshot the whole
+// sessionStorage to userData and re-inject it into the SPA entry on next start
+// (server.js sendIndex). Snapshot cadence: every 20s while a window is alive,
+// plus a final best-effort capture right before quit.
+const sessionStoreFile = () => path.join(app.getPath('userData'), 'session-storage.json');
+
+function readStoredSession() {
+  try {
+    return JSON.parse(fs.readFileSync(sessionStoreFile(), 'utf8'));
+  } catch (e) {
+    return null;
+  }
+}
+
+async function snapshotSession() {
+  if (!win || win.isDestroyed() || win.webContents.isDestroyed()) return;
+  try {
+    // Return a JSON string so executeJavaScript avoids structured-clone of a big
+    // object; write only when the payload actually changed.
+    const data = await win.webContents.executeJavaScript(
+      'JSON.stringify(Object.fromEntries(Object.entries(sessionStorage)))'
+    );
+    const existing = fs.existsSync(sessionStoreFile()) ? fs.readFileSync(sessionStoreFile(), 'utf8') : '';
+    if (existing !== data) {
+      fs.writeFileSync(sessionStoreFile(), data);
+    }
+  } catch (e) {
+    // Renderer busy / navigating — skip this tick; not fatal.
+  }
+}
 
 function createWindow() {
-  const win = new BrowserWindow({
+  win = new BrowserWindow({
     width: 1440,
     height: 900,
     title: 'Scale',
@@ -97,9 +131,20 @@ app.whenReady().then(async () => {
     console.error('[desktop] Agent Gateway not configured. Set GATEWAY_URL via env, desktop/.env, or userData/config.json.');
   }
 
-  const { port: p } = await start({ host: '127.0.0.1', preferredPort: DEFAULT_PORT, gatewayUrl });
+  const { port: p } = await start({
+    host: '127.0.0.1',
+    preferredPort: DEFAULT_PORT,
+    gatewayUrl,
+    restoreSession: readStoredSession(),
+  });
   port = p;
   console.log(`[desktop] serving on http://127.0.0.1:${port}/admin/ -> gateway ${gatewayUrl || '(not configured)'}`);
+
+  // Periodically snapshot sessionStorage so a login mid-session is captured (and
+  // a logout isn't resurrected from a stale file next launch).
+  setInterval(() => {
+    snapshotSession();
+  }, 20000);
 
   createWindow();
   app.on('activate', () => {
@@ -109,6 +154,20 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+// Final snapshot before quit so the last ≤20s of state (e.g. a fresh login) is
+// not lost on Cmd+Q. Defer quit until the renderer has handed over its session.
+let quitPending = false;
+app.on('before-quit', (e) => {
+  if (quitPending) return;
+  e.preventDefault();
+  quitPending = true;
+  const done = Promise.race([
+    snapshotSession(),
+    new Promise((resolve) => setTimeout(resolve, 1000)),
+  ]);
+  done.finally(() => app.quit());
 });
 
 app.on('will-quit', () => {
