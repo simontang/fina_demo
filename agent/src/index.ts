@@ -93,11 +93,11 @@ if (!process.env.MODEL_LIST) {
     }
   );
   registerModelLattice(
-    "deepseek-v4-flash",
+    "qwen3.8-flash",
 
     {
-      model: "deepseek-v4-flash",
-      displayName: "deepseek-v4-flash",
+      model: "qwen3.8-flash",
+      displayName: "qwen3.8-flash",
       provider: "openai",
       streaming: true,
       apiKeyEnvName: "API_KEY3",
@@ -121,11 +121,11 @@ if (!process.env.MODEL_LIST) {
     }
   );
   registerModelLattice(
-    "qwen3.6-27b",
+    "qwen3.8-27b",
 
     {
-      model: "qwen3.6-27b",
-      displayName: "qwen3.6-27b",
+      model: "qwen3.8-27b",
+      displayName: "qwen3.8-27b",
       provider: "openai",
       streaming: true,
       apiKeyEnvName: "API_KEY3",
@@ -137,8 +137,8 @@ if (!process.env.MODEL_LIST) {
     "default",
 
     {
-      model: "qwen3.6-plus",
-      displayName: "qwen3.6-plus",
+      model: "deepseek-v4-flash",
+      displayName: "deepseek-v4-flash",
       provider: "openai",
       streaming: true,
       apiKeyEnvName: "API_KEY3",
