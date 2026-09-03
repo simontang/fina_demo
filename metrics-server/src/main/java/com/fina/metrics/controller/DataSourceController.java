@@ -2,6 +2,8 @@ package com.fina.metrics.controller;
 
 import com.fina.metrics.dto.*;
 import com.fina.metrics.service.DataSourceService;
+import com.fina.metrics.service.DataSourceTableAccessService;
+import com.fina.metrics.util.TenantHeaderResolver;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +43,7 @@ import java.util.Map;
 public class DataSourceController {
 
     private final DataSourceService dataSourceService;
+    private final DataSourceTableAccessService tableAccessService;
 
     // ─── Query ────────────────────────────────────────────────────────────────
 
@@ -165,5 +168,83 @@ public class DataSourceController {
     @GetMapping("/{id}/pool")
     public ApiResponse<Map<String, Object>> poolStatus(@PathVariable Long id) {
         return ApiResponse.ok(dataSourceService.getPoolStatus(id));
+    }
+
+    // ─── Tenant-scoped table access ──────────────────────────────────────────
+
+    @GetMapping("/{id}/table-grants")
+    public ApiResponse<List<DataSourceTableGrantVO>> listTableGrants(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
+        return ApiResponse.ok(tableAccessService.listGrants(resolveTenant(tenantId), id));
+    }
+
+    @PostMapping("/{id}/table-grants")
+    public ApiResponse<DataSourceTableGrantVO> createTableGrant(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
+            @Valid @RequestBody DataSourceTableGrantRequest request) {
+        return ApiResponse.ok(tableAccessService.createGrant(resolveTenant(tenantId), id, request));
+    }
+
+    @PutMapping("/{id}/table-grants/{grantId}")
+    public ApiResponse<DataSourceTableGrantVO> updateTableGrant(
+            @PathVariable Long id,
+            @PathVariable Long grantId,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
+            @Valid @RequestBody DataSourceTableGrantRequest request) {
+        return ApiResponse.ok(tableAccessService.updateGrant(resolveTenant(tenantId), id, grantId, request));
+    }
+
+    @DeleteMapping("/{id}/table-grants/{grantId}")
+    public ApiResponse<Void> deleteTableGrant(
+            @PathVariable Long id,
+            @PathVariable Long grantId,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
+        tableAccessService.deleteGrant(resolveTenant(tenantId), id, grantId);
+        return ApiResponse.ok();
+    }
+
+    @GetMapping("/{id}/schema/tables")
+    public ApiResponse<List<DataSourceTableVO>> listSchemaTables(
+            @PathVariable Long id,
+            @RequestParam(required = false) String schemaName) {
+        return ApiResponse.ok(tableAccessService.listPhysicalTables(id, schemaName));
+    }
+
+    @PostMapping("/{id}/query")
+    public ApiResponse<MetricsQueryData> queryDatasource(
+            @PathVariable Long id,
+            @Valid @RequestBody SqlProbeRequest request) {
+        return ApiResponse.ok(tableAccessService.queryDatasource(id, request));
+    }
+
+    @GetMapping("/{id}/tables")
+    public ApiResponse<List<DataSourceTableVO>> listTables(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
+        return ApiResponse.ok(tableAccessService.listAuthorizedTables(resolveTenant(tenantId), id));
+    }
+
+    @GetMapping("/{id}/tables/{tableName}/columns")
+    public ApiResponse<List<DataSourceColumnVO>> listColumns(
+            @PathVariable Long id,
+            @PathVariable String tableName,
+            @RequestParam(required = false) String schemaName,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
+        return ApiResponse.ok(tableAccessService.listAuthorizedColumns(
+                resolveTenant(tenantId), id, schemaName, tableName));
+    }
+
+    @PostMapping("/{id}/sql/probe")
+    public ApiResponse<MetricsQueryData> probeSql(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
+            @Valid @RequestBody SqlProbeRequest request) {
+        return ApiResponse.ok(tableAccessService.probeSql(resolveTenant(tenantId), id, request));
+    }
+
+    private String resolveTenant(String tenantId) {
+        return TenantHeaderResolver.resolve(tenantId);
     }
 }

@@ -2,8 +2,11 @@ package com.fina.metrics.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fina.metrics.dto.MetricsMetaObjectVO;
 import com.fina.metrics.dto.TableViewDetailResponse;
 import com.fina.metrics.dto.TableViewIndexItem;
+import com.fina.metrics.service.MetricsMetaObjectService;
+import com.fina.metrics.service.MetricsMetaObjectTypes;
 import com.fina.metrics.service.TableViewMetaService;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -40,12 +43,16 @@ public class TableViewMetaServiceImpl implements TableViewMetaService {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final ResourcePatternResolver resourceResolver;
+    private final MetricsMetaObjectService metaObjectService;
 
     private List<TableViewIndexItem>   indexList  = Collections.emptyList();
     private List<TableViewDetailResponse> detailList = Collections.emptyList();
 
-    public TableViewMetaServiceImpl(ResourcePatternResolver resourceResolver) {
+    public TableViewMetaServiceImpl(
+            ResourcePatternResolver resourceResolver,
+            MetricsMetaObjectService metaObjectService) {
         this.resourceResolver = resourceResolver;
+        this.metaObjectService = metaObjectService;
     }
 
     @PostConstruct
@@ -93,12 +100,216 @@ public class TableViewMetaServiceImpl implements TableViewMetaService {
 
     @Override
     public List<TableViewIndexItem> getTableViewsIndex() {
-        return indexList;
+        return getTableViewsIndex(null);
+    }
+
+    @Override
+    public List<TableViewIndexItem> getTableViewsIndex(Long datasourceId) {
+        return overlay(datasourceId).index();
     }
 
     @Override
     public List<TableViewDetailResponse> getTableViewsDetails() {
-        return detailList;
+        return getTableViewsDetails(null);
+    }
+
+    @Override
+    public List<TableViewDetailResponse> getTableViewsDetails(Long datasourceId) {
+        return overlay(datasourceId).detail();
+    }
+
+    private TableOverlay overlay(Long datasourceId) {
+        Map<String, TableViewIndexItem> indexes = new LinkedHashMap<>();
+        Map<String, TableViewDetailResponse> details = new LinkedHashMap<>();
+
+        for (TableViewIndexItem item : indexList) {
+            indexes.put(item.getTableName(), copyIndex(item));
+        }
+        for (TableViewDetailResponse item : detailList) {
+            details.put(item.getTableName(), copyDetail(item));
+        }
+
+        for (MetricsMetaObjectVO object : metaObjectService.listActiveForOverlay(
+                MetricsMetaObjectTypes.TABLE_CATALOG,
+                datasourceId)) {
+            applyTableCatalogOverlay(object, indexes, details);
+        }
+
+        for (MetricsMetaObjectVO object : metaObjectService.listActiveForOverlay(
+                MetricsMetaObjectTypes.TABLE_VIEW_DETAIL,
+                datasourceId)) {
+            applyTableViewDetailOverlay(object, indexes, details);
+        }
+
+        return new TableOverlay(
+                Collections.unmodifiableList(new ArrayList<>(indexes.values())),
+                Collections.unmodifiableList(new ArrayList<>(details.values())));
+    }
+
+    private void applyTableCatalogOverlay(
+            MetricsMetaObjectVO object,
+            Map<String, TableViewIndexItem> indexes,
+            Map<String, TableViewDetailResponse> details) {
+        JsonNode payload = object.getPayload();
+        if (payload == null || !payload.isObject()) {
+            return;
+        }
+        String tableName = firstNonBlank(
+                payload.path("tableName").asText(null),
+                payload.path("viewName").asText(null),
+                object.getObjectKey());
+        if (tableName.isBlank()) {
+            return;
+        }
+
+        TableViewIndexItem existingIndex = indexes.get(tableName);
+        TableViewDetailResponse existingDetail = details.get(tableName);
+        TableViewIndexItem index = TableViewIndexItem.builder()
+                .tableName(tableName)
+                .displayName(firstNonBlank(
+                        payload.path("displayName").asText(null),
+                        payload.path("docTypeEn").asText(null),
+                        payload.path("docType").asText(null),
+                        existingIndex != null ? existingIndex.getDisplayName() : null,
+                        tableName))
+                .docType(firstNonBlank(payload.path("docType").asText(null),
+                        existingIndex != null ? existingIndex.getDocType() : null))
+                .docTypeEn(firstNonBlank(payload.path("docTypeEn").asText(null),
+                        existingIndex != null ? existingIndex.getDocTypeEn() : null))
+                .mainTable(firstNonBlank(payload.path("mainTable").asText(null),
+                        existingIndex != null ? existingIndex.getMainTable() : null))
+                .lineTable(firstNonBlank(payload.path("lineTable").asText(null),
+                        existingIndex != null ? existingIndex.getLineTable() : null))
+                .columnCount(existingIndex != null ? existingIndex.getColumnCount() : null)
+                .shortDesc(firstNonBlank(payload.path("shortDesc").asText(null),
+                        existingIndex != null ? existingIndex.getShortDesc() : null))
+                .build();
+        indexes.put(tableName, index);
+
+        TableViewDetailResponse detail = existingDetail != null
+                ? existingDetail
+                : TableViewDetailResponse.builder().tableName(tableName).build();
+        detail.setDocType(firstNonBlank(payload.path("docType").asText(null), detail.getDocType()));
+        detail.setDocTypeEn(firstNonBlank(payload.path("docTypeEn").asText(null), detail.getDocTypeEn()));
+        detail.setMainTable(firstNonBlank(payload.path("mainTable").asText(null), detail.getMainTable()));
+        detail.setLineTable(firstNonBlank(payload.path("lineTable").asText(null), detail.getLineTable()));
+        details.put(tableName, detail);
+    }
+
+    private void applyTableViewDetailOverlay(
+            MetricsMetaObjectVO object,
+            Map<String, TableViewIndexItem> indexes,
+            Map<String, TableViewDetailResponse> details) {
+        JsonNode payload = object.getPayload();
+        if (payload == null || !payload.isObject()) {
+            return;
+        }
+        String tableName = firstNonBlank(
+                payload.path("tableName").asText(null),
+                payload.path("viewName").asText(null),
+                object.getObjectKey());
+        if (tableName.isBlank()) {
+            return;
+        }
+
+        TableViewDetailResponse existingDetail = details.get(tableName);
+        TableViewIndexItem existingIndex = indexes.get(tableName);
+        List<TableViewDetailResponse.ColumnMeta> columns = parsePayloadColumns(payload.path("columns"));
+        Integer objTypeCode = null;
+        if (payload.has("objTypeCode")) {
+            objTypeCode = payload.path("objTypeCode").asInt();
+        } else if (existingDetail != null) {
+            objTypeCode = existingDetail.getObjTypeCode();
+        }
+
+        TableViewDetailResponse detail = TableViewDetailResponse.builder()
+                .tableName(tableName)
+                .docType(firstNonBlank(payload.path("docType").asText(null),
+                        existingDetail != null ? existingDetail.getDocType() : null))
+                .docTypeEn(firstNonBlank(payload.path("docTypeEn").asText(null),
+                        existingDetail != null ? existingDetail.getDocTypeEn() : null))
+                .objTypeCode(objTypeCode)
+                .mainTable(firstNonBlank(payload.path("mainTable").asText(null),
+                        existingDetail != null ? existingDetail.getMainTable() : null))
+                .lineTable(firstNonBlank(payload.path("lineTable").asText(null),
+                        existingDetail != null ? existingDetail.getLineTable() : null))
+                .selectSql(firstNonBlank(payload.path("selectSql").asText(null),
+                        existingDetail != null ? existingDetail.getSelectSql() : null))
+                .columns(columns.isEmpty() && existingDetail != null ? existingDetail.getColumns() : columns)
+                .build();
+        details.put(tableName, detail);
+
+        indexes.put(tableName, TableViewIndexItem.builder()
+                .tableName(tableName)
+                .displayName(firstNonBlank(
+                        payload.path("displayName").asText(null),
+                        detail.getDocTypeEn(),
+                        detail.getDocType(),
+                        existingIndex != null ? existingIndex.getDisplayName() : null,
+                        tableName))
+                .docType(firstNonBlank(detail.getDocType(),
+                        existingIndex != null ? existingIndex.getDocType() : null))
+                .docTypeEn(firstNonBlank(detail.getDocTypeEn(),
+                        existingIndex != null ? existingIndex.getDocTypeEn() : null))
+                .mainTable(firstNonBlank(detail.getMainTable(),
+                        existingIndex != null ? existingIndex.getMainTable() : null))
+                .lineTable(firstNonBlank(detail.getLineTable(),
+                        existingIndex != null ? existingIndex.getLineTable() : null))
+                .columnCount(detail.getColumns() != null
+                        ? detail.getColumns().size()
+                        : existingIndex != null ? existingIndex.getColumnCount() : null)
+                .shortDesc(existingIndex != null ? existingIndex.getShortDesc() : null)
+                .build());
+    }
+
+    private List<TableViewDetailResponse.ColumnMeta> parsePayloadColumns(JsonNode columnsNode) {
+        if (columnsNode == null || !columnsNode.isArray()) {
+            return List.of();
+        }
+        List<TableViewDetailResponse.ColumnMeta> columns = new ArrayList<>();
+        for (JsonNode col : columnsNode) {
+            if (col == null || !col.isObject()) {
+                continue;
+            }
+            String name = col.path("name").asText(null);
+            if (name == null || name.isBlank()) {
+                continue;
+            }
+            columns.add(TableViewDetailResponse.ColumnMeta.builder()
+                    .name(name)
+                    .label(col.path("label").asText(null))
+                    .description(col.path("description").asText(null))
+                    .type(col.path("type").asText(null))
+                    .example(col.path("example").asText(null))
+                    .build());
+        }
+        return columns;
+    }
+
+    private TableViewIndexItem copyIndex(TableViewIndexItem item) {
+        return TableViewIndexItem.builder()
+                .tableName(item.getTableName())
+                .displayName(item.getDisplayName())
+                .docType(item.getDocType())
+                .docTypeEn(item.getDocTypeEn())
+                .mainTable(item.getMainTable())
+                .lineTable(item.getLineTable())
+                .columnCount(item.getColumnCount())
+                .shortDesc(item.getShortDesc())
+                .build();
+    }
+
+    private TableViewDetailResponse copyDetail(TableViewDetailResponse item) {
+        return TableViewDetailResponse.builder()
+                .tableName(item.getTableName())
+                .docType(item.getDocType())
+                .docTypeEn(item.getDocTypeEn())
+                .objTypeCode(item.getObjTypeCode())
+                .mainTable(item.getMainTable())
+                .lineTable(item.getLineTable())
+                .selectSql(item.getSelectSql())
+                .columns(item.getColumns() == null ? null : new ArrayList<>(item.getColumns()))
+                .build();
     }
 
     // ── Loaders ───────────────────────────────────────────────────────────────
@@ -290,4 +501,8 @@ public class TableViewMetaServiceImpl implements TableViewMetaService {
     }
 
     private record CatalogEntry(String docType, String docTypeEn, String shortDesc) {}
+
+    private record TableOverlay(
+            List<TableViewIndexItem> index,
+            List<TableViewDetailResponse> detail) {}
 }

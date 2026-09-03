@@ -23,6 +23,8 @@ public interface MetricsService {
      */
     MetricsIndexResponse getMetricsIndex(Long datasourceId);
 
+    MetricsIndexResponse getMetricsIndex(Long datasourceId, String tenantId);
+
     /**
      * Returns the full agent context for a single metric within a datasource.
      *
@@ -34,11 +36,15 @@ public interface MetricsService {
      */
     MetricsDetailResponse getMetricDetail(Long datasourceId, String metricName);
 
+    MetricsDetailResponse getMetricDetail(Long datasourceId, String metricName, String tenantId);
+
     /**
      * Returns index and full detail for all metrics in one response.
      * GET /api/v1/datasources/{dsId}/meta
      */
     MetricsMetaFullResponse getMetricsMeta(Long datasourceId);
+
+    MetricsMetaFullResponse getMetricsMeta(Long datasourceId, String tenantId);
 
     // ── Metric definition CRUD ────────────────────────────────────────────────
 
@@ -70,4 +76,6 @@ public interface MetricsService {
      *   The SQL is executed directly; semanticModel is "adhoc".
      */
     MetricsQueryData query(SemanticQueryRequest request);
+
+    MetricsQueryData query(SemanticQueryRequest request, String tenantId);
 }

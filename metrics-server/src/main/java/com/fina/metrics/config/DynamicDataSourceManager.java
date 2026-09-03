@@ -90,6 +90,7 @@ public class DynamicDataSourceManager {
         hc.setIdleTimeout(600_000);
         hc.setMaxLifetime(1_800_000);
         hc.setInitializationFailTimeout(-1); // don't fail fast on startup
+        applyVendorDefaults(hc, type);
 
         String initSql = type.buildConnectionInitSql(config.getSchemaName());
         if (StringUtils.hasText(initSql)) {
@@ -126,6 +127,7 @@ public class DynamicDataSourceManager {
         hc.setMinimumIdle(0);
         hc.setConnectionTimeout(10_000);
         hc.setInitializationFailTimeout(10_000);
+        applyVendorDefaults(hc, type);
         String initSql = type.buildConnectionInitSql(config.getSchemaName());
         if (StringUtils.hasText(initSql)) {
             hc.setConnectionInitSql(initSql);
@@ -220,6 +222,13 @@ public class DynamicDataSourceManager {
             // Fallback: assume plain-text (migration scenario)
             log.warn("Password decryption failed, using as-is (plain text fallback)");
             return encrypted;
+        }
+    }
+
+    private void applyVendorDefaults(HikariConfig hc, DataSourceType type) {
+        String transactionIsolation = type.getTransactionIsolationName();
+        if (StringUtils.hasText(transactionIsolation)) {
+            hc.setTransactionIsolation(transactionIsolation);
         }
     }
 }

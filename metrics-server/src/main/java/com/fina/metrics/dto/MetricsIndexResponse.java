@@ -32,8 +32,9 @@ public class MetricsIndexResponse {
 
     /**
      * One entry per metric in the catalog.
-     * registered=true means there is a configured SQL in t_metrics_meta for
-     * this datasource and the metric can be queried immediately.
+     * registered=true means the metric can be queried immediately.
+     * Legacy metrics use t_metrics_meta; DB-backed published metrics can be
+     * queryable through metric_detail + table meta + tenant table grants.
      */
     @Data
     @Builder
@@ -44,7 +45,7 @@ public class MetricsIndexResponse {
         private String domain;
         private String shortDesc;
         private List<String> searchKeywords;
-        /** true = SQL configured in t_metrics_meta for this datasource */
+        /** true = runtime queryable for this datasource and tenant */
         private boolean registered;
     }
 }

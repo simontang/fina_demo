@@ -72,4 +72,27 @@ class SemanticQueryBuilderImplTest {
 
         assertThat(result.sql()).contains("TO_NVARCHAR(\"DocDate\", 'YYYY-MM') AS \"DocDate__month\"");
     }
+
+    @Test
+    void quotesSchemaQualifiedTableViewByIdentifierPart() throws Exception {
+        SemanticQueryRequest request = new SemanticQueryRequest();
+
+        JsonNode detail = mapper.readTree("""
+                {
+                  "metric_name": "hankel_row_count",
+                  "calculation": {"sql_expression": "COUNT(*)"},
+                  "source": {"table_view": "public.hankel_distr_sell_out", "base_filters": []},
+                  "supported_dimensions": []
+                }
+                """);
+
+        SemanticQueryBuilder.BuildResult result = builder.buildMulti(
+                List.of("hankel_row_count"),
+                request,
+                List.of(detail),
+                "cdp_postgres");
+
+        assertThat(result.sql()).contains("FROM \"public\".\"hankel_distr_sell_out\"");
+        assertThat(result.sql()).doesNotContain("FROM \"public.hankel_distr_sell_out\"");
+    }
 }

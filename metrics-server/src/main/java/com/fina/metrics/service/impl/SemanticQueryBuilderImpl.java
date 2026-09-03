@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fina.metrics.config.DataSourceType;
 import com.fina.metrics.dto.SemanticQueryRequest;
 import com.fina.metrics.service.SemanticQueryBuilder;
+import com.fina.metrics.util.SqlIdentifierUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -195,7 +196,7 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT\n  ");
         sql.append(String.join(",\n  ", selectExprs));
-        sql.append("\nFROM \"").append(tableView).append("\"");
+        sql.append("\nFROM ").append(SqlIdentifierUtils.quoteQualified(tableView));
 
         if (!whereParts.isEmpty()) {
             sql.append("\nWHERE ").append(String.join("\n  AND ", whereParts));
@@ -350,7 +351,7 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT\n  ");
         sql.append(String.join(",\n  ", selectExprs));
-        sql.append("\nFROM \"").append(tableView).append("\"");
+        sql.append("\nFROM ").append(SqlIdentifierUtils.quoteQualified(tableView));
         if (!whereParts.isEmpty()) {
             sql.append("\nWHERE ").append(String.join("\n  AND ", whereParts));
         }

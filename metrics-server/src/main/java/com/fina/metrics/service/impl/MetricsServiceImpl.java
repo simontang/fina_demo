@@ -9,12 +9,17 @@ import com.fina.metrics.config.DynamicDataSourceManager;
 import com.fina.metrics.dto.*;
 import com.fina.metrics.entity.DataSourceConfig;
 import com.fina.metrics.entity.MetricsMeta;
+import com.fina.metrics.exception.ForbiddenException;
 import com.fina.metrics.mapper.DataSourceConfigMapper;
 import com.fina.metrics.mapper.MetricsMetaMapper;
+import com.fina.metrics.service.DataSourceTableAccessService;
 import com.fina.metrics.service.MetaCatalogService;
 import com.fina.metrics.service.MetricsService;
 import com.fina.metrics.service.SemanticQueryBuilder;
 import com.fina.metrics.service.TableViewMetaService;
+import com.fina.metrics.util.ReadOnlySqlValidator;
+import com.fina.metrics.util.SqlIdentifierUtils;
+import com.fina.metrics.util.TenantHeaderResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -39,21 +44,30 @@ public class MetricsServiceImpl implements MetricsService {
     private final MetaCatalogService       catalog;
     private final SemanticQueryBuilder     queryBuilder;
     private final TableViewMetaService     tableViewMetaService;
+    private final DataSourceTableAccessService tableAccessService;
 
     private static final int MAX_LIMIT     = 10000;
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final String CATERPILLAR_DATASOURCE_NAME = "Caterpillar PostgreSQL";
     private static final String CATERPILLAR_PREFIX = "caterpillar_";
 
     // ── Discovery / meta ──────────────────────────────────────────────────────
 
     @Override
     public MetricsIndexResponse getMetricsIndex(Long datasourceId) {
+        return getMetricsIndex(datasourceId, TenantHeaderResolver.DEFAULT_TENANT_ID);
+    }
+
+    @Override
+    public MetricsIndexResponse getMetricsIndex(Long datasourceId, String tenantId) {
         log.debug("getMetricsIndex datasource={}", datasourceId);
+        String resolvedTenant = TenantHeaderResolver.resolve(tenantId);
         DataSourceConfig datasource = resolveDatasourceConfig(datasourceId);
         DataSourceType sourceType = resolveDatasourceType(datasource);
         CdpCatalogScope cdpScope = resolveCdpCatalogScope(datasource, sourceType);
-        boolean caterpillarDatasource = isCaterpillarDatasource(datasource, sourceType);
+        List<DataSourceTableGrantVO> tableGrants = tableAccessService.listActiveGrants(resolvedTenant, datasourceId);
+        boolean tableGrantFiltering = !tableGrants.isEmpty();
+        Map<String, JsonNode> detailLookup = tableGrantFiltering ? detailLookup(datasourceId) : Map.of();
+        boolean legacyRegistrationRequired = requiresLegacyCdpRegistration(sourceType, tableGrantFiltering, cdpScope);
         Set<String> registered = metaMapper.selectList(
                         new LambdaQueryWrapper<MetricsMeta>()
                                 .eq(MetricsMeta::getDatasourceId, datasourceId)
@@ -66,35 +80,45 @@ public class MetricsServiceImpl implements MetricsService {
 
         String dsName = datasource != null ? datasource.getName() : null;
 
-        List<MetricsIndexResponse.MetricIndexItem> items = catalog.getIndexItems().stream()
-                .filter(node -> isMetricVisibleForDatasource(node, datasource, sourceType, cdpScope))
-                .filter(node -> !caterpillarDatasource
-                        || isRegisteredCaterpillarMetric(node, registered))
+        List<MetricsIndexResponse.MetricIndexItem> items = catalog.getIndexItems(datasourceId).stream()
+                .filter(node -> tableGrantFiltering
+                        ? isMetricPublishedAndAuthorizedForRuntime(
+                                datasourceId, node, sourceType, tableGrants, detailLookup)
+                        : isMetricVisibleForDatasource(node, sourceType, cdpScope))
+                .filter(node -> isMetricAuthorizedForTenant(
+                        datasourceId, node, tableGrants, detailLookup))
+                .filter(node -> !legacyRegistrationRequired
+                        || isRegisteredMetricOnPublishedTable(node, registered, datasourceId, detailLookup))
                 .map(node -> {
                     List<String> keywords = new ArrayList<>();
                     node.path("search_keywords").forEach(k -> keywords.add(k.asText()));
                     String metricName = node.path("metric_name").asText("");
+                    boolean runtimeQueryable = registered.contains(metricName)
+                            || (tableGrantFiltering && isMetricPublishedAndAuthorizedForRuntime(
+                                    datasourceId, node, sourceType, tableGrants, detailLookup));
                     return MetricsIndexResponse.MetricIndexItem.builder()
                             .metricName(metricName)
                             .displayName(node.path("display_name").asText(""))
                             .domain(node.path("domain").asText(""))
                             .shortDesc(node.path("short_desc").asText(""))
                             .searchKeywords(keywords)
-                            .registered(registered.contains(metricName))
+                            .registered(runtimeQueryable)
                             .build();
                 })
                 .collect(Collectors.toList());
 
-        List<TableViewIndexItem> tables = tableViewMetaService.getTableViewsIndex().stream()
-                .filter(item -> isTableVisibleForDatasource(
-                        item.getTableName(), datasource, sourceType, cdpScope))
+        List<TableViewIndexItem> tables = tableViewMetaService.getTableViewsIndex(datasourceId).stream()
+                .filter(item -> tableGrantFiltering
+                        || isTableVisibleForDatasource(item.getTableName(), sourceType, cdpScope))
+                .filter(item -> !tableGrantFiltering
+                        || isTableAuthorizedByGrantList(tableGrants, null, item.getTableName()))
                 .collect(Collectors.toList());
 
         return MetricsIndexResponse.builder()
                 .datasourceId(datasourceId)
                 .datasourceName(dsName)
-                .catalogVersion(catalog.getCatalogVersion())
-                .domainCategories(catalog.getDomainCategories())
+                .catalogVersion(catalog.getCatalogVersion(datasourceId))
+                .domainCategories(catalog.getDomainCategories(datasourceId))
                 .metrics(items)
                 .tables(tables)
                 .build();
@@ -102,17 +126,36 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public MetricsDetailResponse getMetricDetail(Long datasourceId, String metricName) {
+        return getMetricDetail(datasourceId, metricName, TenantHeaderResolver.DEFAULT_TENANT_ID);
+    }
+
+    @Override
+    public MetricsDetailResponse getMetricDetail(Long datasourceId, String metricName, String tenantId) {
         log.debug("getMetricDetail datasource={} metric={}", datasourceId, metricName);
+        String resolvedTenant = TenantHeaderResolver.resolve(tenantId);
         DataSourceConfig datasource = resolveDatasourceConfig(datasourceId);
         DataSourceType sourceType = resolveDatasourceType(datasource);
         CdpCatalogScope cdpScope = resolveCdpCatalogScope(datasource, sourceType);
-        boolean caterpillarDatasource = isCaterpillarDatasource(datasource, sourceType);
-        JsonNode catalogDetail = catalog.findDetailItem(metricName)
+        JsonNode catalogDetail = catalog.findDetailItem(metricName, datasourceId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Metric not found in catalog: " + metricName));
-        if (!isMetricVisibleForDatasource(catalogDetail, datasource, sourceType, cdpScope)) {
+        List<DataSourceTableGrantVO> tableGrants = tableAccessService.listActiveGrants(resolvedTenant, datasourceId);
+        boolean tableGrantFiltering = !tableGrants.isEmpty();
+        if (tableGrantFiltering) {
+            if (!isMetricPublishedAndAuthorizedForRuntime(
+                    datasourceId, catalogDetail, sourceType, tableGrants, Map.of())) {
+                throw new ForbiddenException("Metric is not authorized for this tenant: " + metricName);
+            }
+        } else if (!isMetricVisibleForDatasource(catalogDetail, sourceType, cdpScope)) {
             throw new IllegalArgumentException(
                     "Metric " + metricName + " is not available for datasource type " + sourceType.getCode());
+        }
+        if (!isMetricAuthorizedForTenant(
+                datasourceId,
+                catalogDetail,
+                tableGrants,
+                Map.of())) {
+            throw new ForbiddenException("Metric is not authorized for this tenant: " + metricName);
         }
 
         MetricsMeta dbMeta = metaMapper.selectOne(
@@ -122,10 +165,11 @@ public class MetricsServiceImpl implements MetricsService {
                         .eq(MetricsMeta::getStatus, 1)
                         .eq(MetricsMeta::getDeleted, 0)
         );
-        if (caterpillarDatasource
-                && (dbMeta == null || !isUsableCaterpillarMetricDetail(catalogDetail))) {
+        if (requiresLegacyCdpRegistration(sourceType, tableGrantFiltering, cdpScope)
+                && (dbMeta == null || !isTablePublishedForDatasource(
+                        datasourceId, catalogDetail.path("source").path("table_view").asText(null)))) {
             throw new IllegalArgumentException(
-                    "Metric " + metricName + " is not registered for Caterpillar datasource");
+                    "Metric " + metricName + " is not registered for this datasource");
         }
 
         JsonNode aiCtxNode = catalogDetail.path("ai_agent_context");
@@ -223,21 +267,35 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public MetricsMetaFullResponse getMetricsMeta(Long datasourceId) {
+        return getMetricsMeta(datasourceId, TenantHeaderResolver.DEFAULT_TENANT_ID);
+    }
+
+    @Override
+    public MetricsMetaFullResponse getMetricsMeta(Long datasourceId, String tenantId) {
         // index already carries tables[] via getMetricsIndex
+        String resolvedTenant = TenantHeaderResolver.resolve(tenantId);
         DataSourceConfig datasource = resolveDatasourceConfig(datasourceId);
         DataSourceType sourceType = resolveDatasourceType(datasource);
         CdpCatalogScope cdpScope = resolveCdpCatalogScope(datasource, sourceType);
-        MetricsIndexResponse index = getMetricsIndex(datasourceId);
+        List<DataSourceTableGrantVO> tableGrants = tableAccessService.listActiveGrants(resolvedTenant, datasourceId);
+        boolean tableGrantFiltering = !tableGrants.isEmpty();
+        MetricsIndexResponse index = getMetricsIndex(datasourceId, resolvedTenant);
         List<MetricsDetailResponse> metricsDetails = index.getMetrics().stream()
-                .map(item -> getMetricDetail(datasourceId, item.getMetricName()))
+                .map(item -> getMetricDetail(datasourceId, item.getMetricName(), resolvedTenant))
                 .collect(Collectors.toList());
+        List<TableViewDetailResponse> tableDetails = tableGrantFiltering
+                && (index.getTables() == null || index.getTables().isEmpty())
+                ? List.of()
+                : tableViewMetaService.getTableViewsDetails(datasourceId).stream()
+                        .filter(item -> tableGrantFiltering
+                                || isTableVisibleForDatasource(item.getTableName(), sourceType, cdpScope))
+                        .filter(item -> !tableGrantFiltering
+                                || isTableAuthorizedByGrantList(tableGrants, null, item.getTableName()))
+                        .collect(Collectors.toList());
         return MetricsMetaFullResponse.builder()
                 .index(index)
                 .metricsDetails(metricsDetails)
-                .tablesDetails(tableViewMetaService.getTableViewsDetails().stream()
-                        .filter(item -> isTableVisibleForDatasource(
-                                item.getTableName(), datasource, sourceType, cdpScope))
-                        .collect(Collectors.toList()))
+                .tablesDetails(tableDetails)
                 .build();
     }
 
@@ -298,25 +356,33 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public MetricsQueryData query(SemanticQueryRequest request) {
+        return query(request, TenantHeaderResolver.DEFAULT_TENANT_ID);
+    }
+
+    @Override
+    public MetricsQueryData query(SemanticQueryRequest request, String tenantId) {
         boolean debug = Boolean.TRUE.equals(request.getDebug());
+        String resolvedTenant = TenantHeaderResolver.resolve(tenantId);
 
         // ── Ad-hoc SQL ───────────────────────────────────────────────────────
         if (StringUtils.hasText(request.getCustomSql())) {
             log.info("Ad-hoc query datasource={}", request.getDatasourceId());
-            // For customSql we delegate LIMIT / TOP handling to the caller's SQL.
-            // request.limit is ignored here to avoid generating dialect-specific syntax.
+            // For customSql, limit is enforced through JDBC maxRows so SQL remains dialect-neutral.
             String sqlToRun = request.getCustomSql();
-            Map<String, Object> params = request.getParams() != null ? request.getParams() : Map.of();
-            QueryResult qr = executeQuery(request.getDatasourceId(), sqlToRun, params);
-            Map<String, Object> debugObj = debug
-                    ? Map.of("sql", sqlToRun, "params", params)
-                    : null;
-            return MetricsQueryData.builder()
-                    .semanticModel("adhoc")
-                    .columns(qr.columns())
-                    .rows(qr.rows())
-                    .debug(debugObj)
-                    .build();
+            ReadOnlySqlValidator.validate(sqlToRun);
+            SqlProbeRequest sqlRequest = new SqlProbeRequest();
+            sqlRequest.setSql(sqlToRun);
+            sqlRequest.setParams(request.getParams());
+            sqlRequest.setMaxRows(request.getLimit());
+            sqlRequest.setDebug(request.getDebug());
+            MetricsQueryData result;
+            if (tableAccessService.hasActiveGrants(resolvedTenant, request.getDatasourceId())) {
+                result = tableAccessService.probeSql(resolvedTenant, request.getDatasourceId(), sqlRequest);
+            } else {
+                result = tableAccessService.queryDatasource(request.getDatasourceId(), sqlRequest);
+            }
+            result.setSemanticModel("adhoc");
+            return result;
         }
 
         // ── Semantic mode: one SQL for all metrics ────────────────────────────
@@ -327,34 +393,49 @@ public class MetricsServiceImpl implements MetricsService {
         }
         DataSourceConfig datasource = resolveDatasourceConfig(request.getDatasourceId());
         DataSourceType sourceType = resolveDatasourceType(datasource);
-        boolean caterpillarDatasource = isCaterpillarDatasource(datasource, sourceType);
-        if (sourceType.isCdp() && !caterpillarDatasource) {
+        CdpCatalogScope cdpScope = resolveCdpCatalogScope(datasource, sourceType);
+        List<DataSourceTableGrantVO> tableGrants = tableAccessService.listActiveGrants(
+                resolvedTenant, request.getDatasourceId());
+        boolean tableGrantFiltering = !tableGrants.isEmpty();
+        boolean legacyCdpSemanticAllowed = isLegacyCdpSemanticAllowed(sourceType, tableGrantFiltering, cdpScope);
+        if (sourceType.isCdp() && !tableGrantFiltering && !legacyCdpSemanticAllowed) {
             throw new IllegalArgumentException(
                     "Semantic metrics are not enabled for cdp_postgres yet; use custom_sql for CDP datasource queries");
         }
 
         List<JsonNode> catalogDetails = new ArrayList<>();
-        String caterpillarTableView = null;
+        String semanticTableView = null;
         for (String metricName : metrics) {
-            JsonNode detail = catalog.findDetailItem(metricName)
+            JsonNode detail = catalog.findDetailItem(metricName, request.getDatasourceId())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Metric '" + metricName + "' not found in catalog"));
-            if (caterpillarDatasource) {
-                if (!isUsableCaterpillarMetricDetail(detail)) {
-                    throw new IllegalArgumentException(
-                            "Metric '" + metricName + "' is not available for Caterpillar datasource");
+            if (tableGrantFiltering) {
+                if (!isMetricPublishedAndAuthorizedForRuntime(
+                        request.getDatasourceId(), detail, sourceType, tableGrants, Map.of())) {
+                    throw new ForbiddenException("Metric is not authorized for this tenant: " + metricName);
                 }
-                requireMeta(request.getDatasourceId(), metricName);
-                String metricTableView = detail.path("source").path("table_view").asText("");
-                if (caterpillarTableView == null) {
-                    caterpillarTableView = metricTableView;
-                } else if (!caterpillarTableView.equals(metricTableView)) {
-                    throw new IllegalArgumentException(
-                            "All requested Caterpillar metrics must share the same source table/view");
-                }
-            } else if (referencesCaterpillarMetric(detail)) {
+            } else if (!isMetricVisibleForDatasource(detail, sourceType, cdpScope)) {
                 throw new IllegalArgumentException(
-                        "Metric '" + metricName + "' is only available for Caterpillar datasource");
+                        "Metric '" + metricName + "' is not available for datasource type " + sourceType.getCode());
+            }
+            if (requiresLegacyCdpRegistration(sourceType, tableGrantFiltering, cdpScope)) {
+                requireMeta(request.getDatasourceId(), metricName);
+                if (!isTablePublishedForDatasource(
+                        request.getDatasourceId(), detail.path("source").path("table_view").asText(null))) {
+                    throw new IllegalArgumentException(
+                            "Metric '" + metricName + "' references an unpublished table");
+                }
+            }
+            String metricTableView = detail.path("source").path("table_view").asText("");
+            if (!StringUtils.hasText(metricTableView)) {
+                throw new IllegalArgumentException(
+                        "Metric '" + metricName + "' has no source.table_view in catalog");
+            }
+            if (semanticTableView == null) {
+                semanticTableView = metricTableView;
+            } else if (!SqlIdentifierUtils.sameTableName(semanticTableView, metricTableView, false)) {
+                throw new IllegalArgumentException(
+                        "All requested metrics must share the same source table/view");
             }
             catalogDetails.add(detail);
         }
@@ -494,76 +575,173 @@ public class MetricsServiceImpl implements MetricsService {
 
     private boolean isMetricVisibleForDatasource(
             JsonNode node,
-            DataSourceConfig datasource,
             DataSourceType sourceType,
             CdpCatalogScope cdpScope) {
-        if (isCaterpillarDatasource(datasource, sourceType)) {
-            return isCaterpillarMetric(node);
-        }
-        if (referencesCaterpillarMetric(node)) {
-            return false;
-        }
         return isMetricVisibleForSource(node, sourceType, cdpScope);
     }
 
     private boolean isTableVisibleForDatasource(
             String tableName,
-            DataSourceConfig datasource,
             DataSourceType sourceType,
             CdpCatalogScope cdpScope) {
-        if (isCaterpillarDatasource(datasource, sourceType)) {
-            return hasCaterpillarPrefix(tableName);
-        }
-        if (hasCaterpillarPrefix(tableName)) {
-            return false;
-        }
         return isTableVisibleForSource(tableName, sourceType, cdpScope);
     }
 
-    private boolean isCaterpillarDatasource(
-            DataSourceConfig datasource,
-            DataSourceType sourceType) {
-        return datasource != null
-                && sourceType == DataSourceType.CDP_POSTGRES
-                && "cdp_postgres".equals(datasource.getSourceType())
-                && CATERPILLAR_DATASOURCE_NAME.equals(datasource.getName());
-    }
-
-    private boolean isCaterpillarMetric(JsonNode node) {
-        if (!hasCaterpillarPrefix(node.path("metric_name").asText(""))) {
+    private boolean isMetricPublishedAndAuthorizedForRuntime(
+            Long datasourceId,
+            JsonNode node,
+            DataSourceType sourceType,
+            List<DataSourceTableGrantVO> tableGrants,
+            Map<String, JsonNode> detailLookup) {
+        if (!isMetricSourceTypeCompatible(datasourceId, node, sourceType, detailLookup)) {
             return false;
         }
-        String tableView = node.path("source").path("table_view").asText("");
-        return !StringUtils.hasText(tableView) || hasCaterpillarPrefix(tableView);
+        String tableView = resolveMetricTableView(datasourceId, node, detailLookup).orElse(null);
+        return StringUtils.hasText(tableView)
+                && isTableAuthorizedByGrantList(tableGrants, null, tableView)
+                && isTablePublishedForDatasource(datasourceId, tableView);
     }
 
-    private boolean isCaterpillarMetricDetail(JsonNode node) {
-        return hasCaterpillarPrefix(node.path("metric_name").asText(""))
-                && hasCaterpillarPrefix(node.path("source").path("table_view").asText(""));
+    private boolean isMetricAuthorizedForTenant(
+            Long datasourceId,
+            JsonNode node,
+            List<DataSourceTableGrantVO> tableGrants,
+            Map<String, JsonNode> detailLookup) {
+        if (tableGrants.isEmpty()) {
+            return true;
+        }
+        String tableView = resolveMetricTableView(datasourceId, node, detailLookup).orElse(null);
+        return StringUtils.hasText(tableView)
+                && isTableAuthorizedByGrantList(tableGrants, null, tableView);
     }
 
-    private boolean isRegisteredCaterpillarMetric(JsonNode indexNode, Set<String> registered) {
+    private boolean isTableAuthorizedByGrantList(
+            List<DataSourceTableGrantVO> tableGrants,
+            String schemaName,
+            String tableName) {
+        if (!StringUtils.hasText(tableName)) {
+            return false;
+        }
+        SqlIdentifierUtils.TableIdentifier tableIdentifier =
+                SqlIdentifierUtils.parseTableIdentifier(schemaName, tableName);
+        for (DataSourceTableGrantVO grant : tableGrants) {
+            boolean caseSensitive = Boolean.TRUE.equals(grant.getCaseSensitive());
+            String effectiveSchema = tableIdentifier.schemaName();
+            if (StringUtils.hasText(effectiveSchema)
+                    && StringUtils.hasText(grant.getSchemaName())) {
+                boolean schemaMatches = caseSensitive
+                        ? grant.getSchemaName().equals(effectiveSchema)
+                        : grant.getSchemaName().equalsIgnoreCase(effectiveSchema);
+                if (!schemaMatches) {
+                    continue;
+                }
+            }
+            String candidate = SqlIdentifierUtils.normalizeForComparison(
+                    tableIdentifier.tableName(), caseSensitive);
+            String pattern = caseSensitive
+                    ? grant.getTablePattern()
+                    : grant.getTablePattern().toLowerCase(Locale.ROOT);
+            boolean allowed = "EXACT".equals(grant.getPatternType())
+                    ? candidate.equals(pattern)
+                    : candidate.startsWith(pattern);
+            if (allowed) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Optional<String> resolveMetricTableView(
+            Long datasourceId,
+            JsonNode node,
+            Map<String, JsonNode> detailLookup) {
+        String tableView = node.path("source").path("table_view").asText(null);
+        if (StringUtils.hasText(tableView)) {
+            return Optional.of(tableView);
+        }
+        String metricName = node.path("metric_name").asText(null);
+        if (!StringUtils.hasText(metricName)) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(detailLookup.get(metricName))
+                .or(() -> catalog.findDetailItem(metricName, datasourceId))
+                .map(detail -> detail.path("source").path("table_view").asText(null))
+                .filter(StringUtils::hasText);
+    }
+
+    private boolean isTablePublishedForDatasource(Long datasourceId, String tableName) {
+        if (!StringUtils.hasText(tableName)) {
+            return false;
+        }
+        return tableViewMetaService.getTableViewsIndex(datasourceId).stream()
+                .anyMatch(table -> SqlIdentifierUtils.sameTableName(
+                        table.getTableName(), tableName, false));
+    }
+
+    private boolean isRegisteredMetricOnPublishedTable(
+            JsonNode indexNode,
+            Set<String> registered,
+            Long datasourceId,
+            Map<String, JsonNode> detailLookup) {
         String metricName = indexNode.path("metric_name").asText("");
         if (!registered.contains(metricName)) {
             return false;
         }
-        return catalog.findDetailItem(metricName)
-                .filter(this::isUsableCaterpillarMetricDetail)
+        return resolveMetricTableView(datasourceId, indexNode, detailLookup)
+                .filter(tableView -> isTablePublishedForDatasource(datasourceId, tableView))
                 .isPresent();
     }
 
-    private boolean isUsableCaterpillarMetricDetail(JsonNode detail) {
-        if (!isCaterpillarMetricDetail(detail)) {
+    private boolean isMetricSourceTypeCompatible(
+            Long datasourceId,
+            JsonNode node,
+            DataSourceType sourceType,
+            Map<String, JsonNode> detailLookup) {
+        if (isMetricSourceTypeCompatible(node, sourceType)) {
+            return true;
+        }
+        String metricName = node.path("metric_name").asText(null);
+        if (!StringUtils.hasText(metricName)) {
             return false;
         }
-        String tableView = detail.path("source").path("table_view").asText("");
-        return tableViewMetaService.getTableViewsIndex().stream()
-                .anyMatch(table -> tableView.equals(table.getTableName()));
+        JsonNode detail = Optional.ofNullable(detailLookup.get(metricName))
+                .or(() -> catalog.findDetailItem(metricName, datasourceId))
+                .orElse(null);
+        return detail != null && isMetricSourceTypeCompatible(detail, sourceType);
     }
 
-    private boolean referencesCaterpillarMetric(JsonNode node) {
-        return hasCaterpillarPrefix(node.path("metric_name").asText(""))
-                || hasCaterpillarPrefix(node.path("source").path("table_view").asText(""));
+    private boolean isMetricSourceTypeCompatible(JsonNode node, DataSourceType sourceType) {
+        String itemSourceType = node.path("source_type").asText(null);
+        if (sourceType.isCdp()) {
+            return "cdp_postgres".equals(itemSourceType);
+        }
+        return itemSourceType == null || itemSourceType.isBlank() || "sap_b1_hana".equals(itemSourceType);
+    }
+
+    private boolean isLegacyCdpSemanticAllowed(
+            DataSourceType sourceType,
+            boolean tableGrantFiltering,
+            CdpCatalogScope cdpScope) {
+        return sourceType.isCdp()
+                && !tableGrantFiltering
+                && cdpScope == CdpCatalogScope.CATERPILLAR;
+    }
+
+    private boolean requiresLegacyCdpRegistration(
+            DataSourceType sourceType,
+            boolean tableGrantFiltering,
+            CdpCatalogScope cdpScope) {
+        return isLegacyCdpSemanticAllowed(sourceType, tableGrantFiltering, cdpScope);
+    }
+
+    private Map<String, JsonNode> detailLookup(Long datasourceId) {
+        return catalog.getDetailItems(datasourceId).stream()
+                .filter(item -> StringUtils.hasText(item.path("metric_name").asText(null)))
+                .collect(Collectors.toMap(
+                        item -> item.path("metric_name").asText(),
+                        item -> item,
+                        (left, right) -> right,
+                        LinkedHashMap::new));
     }
 
     private boolean hasCaterpillarPrefix(String name) {
@@ -581,7 +759,9 @@ public class MetricsServiceImpl implements MetricsService {
 
     private boolean isTableVisibleForSource(String tableName, DataSourceType sourceType, CdpCatalogScope cdpScope) {
         boolean isCdpTable = tableName != null
-                && (tableName.startsWith("demo_") || tableName.startsWith("retailcdp_"));
+                && (tableName.startsWith("demo_")
+                || tableName.startsWith("retailcdp_")
+                || hasCaterpillarPrefix(tableName));
         return sourceType.isCdp() ? isCdpTable && cdpScope.matches(tableName) : !isCdpTable;
     }
 
@@ -610,10 +790,13 @@ public class MetricsServiceImpl implements MetricsService {
         if (descriptor.contains("retailcdp") || descriptor.contains("retail cdp")) {
             return CdpCatalogScope.RETAIL_CDP;
         }
+        if (descriptor.contains("caterpillar")) {
+            return CdpCatalogScope.CATERPILLAR;
+        }
         if (descriptor.contains("demo_") || descriptor.contains("cdp demo") || descriptor.contains("crm agent cdp")) {
             return CdpCatalogScope.DEMO_CDP;
         }
-        return CdpCatalogScope.ALL;
+        return CdpCatalogScope.NONE;
     }
 
     private String nullToEmpty(String value) {
@@ -623,7 +806,9 @@ public class MetricsServiceImpl implements MetricsService {
     private enum CdpCatalogScope {
         DEMO_CDP("demo_"),
         RETAIL_CDP("retailcdp_"),
-        ALL("");
+        CATERPILLAR(CATERPILLAR_PREFIX),
+        ALL(""),
+        NONE(null);
 
         private final String prefix;
 
@@ -632,8 +817,14 @@ public class MetricsServiceImpl implements MetricsService {
         }
 
         private boolean matches(String name) {
-            if (!StringUtils.hasText(name) || this == ALL) {
+            if (!StringUtils.hasText(name)) {
+                return false;
+            }
+            if (this == ALL) {
                 return true;
+            }
+            if (this == NONE) {
+                return false;
             }
             return name.startsWith(prefix);
         }

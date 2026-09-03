@@ -2,6 +2,7 @@ package com.fina.metrics.controller;
 
 import com.fina.metrics.dto.*;
 import com.fina.metrics.service.MetricsService;
+import com.fina.metrics.util.TenantHeaderResolver;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,8 +46,10 @@ public class MetricsController {
      * registered=false → in catalog but SQL not yet configured for this datasource
      */
     @GetMapping("/api/v1/datasources/{dsId}/metrics/index")
-    public ApiResponse<MetricsIndexResponse> getMetricsIndex(@PathVariable Long dsId) {
-        return ApiResponse.ok(metricsService.getMetricsIndex(dsId));
+    public ApiResponse<MetricsIndexResponse> getMetricsIndex(
+            @PathVariable Long dsId,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
+        return ApiResponse.ok(metricsService.getMetricsIndex(dsId, resolveTenant(tenantId)));
     }
 
     /**
@@ -59,8 +62,9 @@ public class MetricsController {
     @GetMapping("/api/v1/datasources/{dsId}/metrics/{metricName}/detail")
     public ApiResponse<MetricsDetailResponse> getMetricDetail(
             @PathVariable Long dsId,
-            @PathVariable String metricName) {
-        return ApiResponse.ok(metricsService.getMetricDetail(dsId, metricName));
+            @PathVariable String metricName,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
+        return ApiResponse.ok(metricsService.getMetricDetail(dsId, metricName, resolveTenant(tenantId)));
     }
 
     /**
@@ -68,8 +72,10 @@ public class MetricsController {
      * GET /api/v1/datasources/{dsId}/meta
      */
     @GetMapping("/api/v1/datasources/{dsId}/meta")
-    public ApiResponse<MetricsMetaFullResponse> getMetricsMeta(@PathVariable Long dsId) {
-        return ApiResponse.ok(metricsService.getMetricsMeta(dsId));
+    public ApiResponse<MetricsMetaFullResponse> getMetricsMeta(
+            @PathVariable Long dsId,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
+        return ApiResponse.ok(metricsService.getMetricsMeta(dsId, resolveTenant(tenantId)));
     }
 
     // ── Query execution ───────────────────────────────────────────────────────
@@ -84,14 +90,15 @@ public class MetricsController {
      */
     @PostMapping("/api/v1/metrics/query")
     public ApiResponse<MetricsQueryData> query(
-            @Valid @RequestBody SemanticQueryRequest request) {
+            @Valid @RequestBody SemanticQueryRequest request,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
         if (log.isInfoEnabled()) {
             log.info("Query datasource={} metrics={} customSql={}",
                     request.getDatasourceId(),
                     request.getMetrics(),
                     request.getCustomSql() != null ? "[adhoc]" : null);
         }
-        return ApiResponse.ok(metricsService.query(request));
+        return ApiResponse.ok(metricsService.query(request, resolveTenant(tenantId)));
     }
 
     // ── Metric definition CRUD ────────────────────────────────────────────────
@@ -129,5 +136,9 @@ public class MetricsController {
     public ApiResponse<Void> deleteMetric(@PathVariable Long id) {
         metricsService.deleteMetricMeta(id);
         return ApiResponse.ok();
+    }
+
+    private String resolveTenant(String tenantId) {
+        return TenantHeaderResolver.resolve(tenantId);
     }
 }

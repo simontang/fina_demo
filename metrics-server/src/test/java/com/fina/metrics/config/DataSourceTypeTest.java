@@ -15,6 +15,7 @@ class DataSourceTypeTest {
         assertThat(type).isEqualTo(DataSourceType.CDP_POSTGRES);
         assertThat(type.getDriverClassName()).isEqualTo("org.postgresql.Driver");
         assertThat(type.buildConnectionInitSql("public")).isEqualTo("SET search_path TO \"public\"");
+        assertThat(type.getTransactionIsolationName()).isEqualTo("TRANSACTION_READ_COMMITTED");
     }
 
     @Test
@@ -24,6 +25,7 @@ class DataSourceTypeTest {
 
         assertThat(DataSourceType.resolve("", "jdbc:sap://hana.example.com:30015"))
                 .isEqualTo(DataSourceType.SAP_B1_HANA);
+        assertThat(DataSourceType.SAP_B1_HANA.getTransactionIsolationName()).isNull();
     }
 
     @Test

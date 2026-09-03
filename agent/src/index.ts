@@ -36,6 +36,7 @@ import {
 import "./agents";
 import "./tools/segmentCrud";
 import "./tools/marketingCampaignCrud";
+import "./tools/metricsTools";
 
 // 加载环境变量
 

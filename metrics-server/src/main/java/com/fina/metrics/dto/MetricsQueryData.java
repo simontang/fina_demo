@@ -13,6 +13,7 @@ import java.util.Map;
  * data.semanticModel — semantic model name (e.g. source.table_view)
  * data.columns      — column metadata (name + type), order matches each row
  * data.rows         — array of value arrays (not objects), same order as columns
+ * data.rowCount     — number of returned rows, when populated by probe-style APIs
  * data.debug        — present only when request.debug=true (sql, params, etc.)
  */
 @Data
@@ -23,6 +24,7 @@ public class MetricsQueryData {
     private String semanticModel;
     private List<ColumnMeta> columns;
     private List<List<Object>> rows;
+    private Integer rowCount;
     /**
      * Only when request.debug == true. May contain "sql", "params", etc.
      */

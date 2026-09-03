@@ -14,6 +14,12 @@ public interface TableViewMetaService {
     /** Lightweight index of all known tables/views (view-*.json first, then CSV-only). */
     List<TableViewIndexItem> getTableViewsIndex();
 
+    /** Static index plus DB metadata overlay for the datasource. */
+    List<TableViewIndexItem> getTableViewsIndex(Long datasourceId);
+
     /** Full detail per table/view (same order as index). */
     List<TableViewDetailResponse> getTableViewsDetails();
+
+    /** Static detail plus DB metadata overlay for the datasource. */
+    List<TableViewDetailResponse> getTableViewsDetails(Long datasourceId);
 }

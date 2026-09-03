@@ -6,12 +6,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fina.metrics.config.DynamicDataSourceManager;
 import com.fina.metrics.dto.MetricsIndexResponse;
+import com.fina.metrics.dto.MetricsQueryData;
 import com.fina.metrics.dto.SemanticQueryRequest;
+import com.fina.metrics.dto.DataSourceTableGrantVO;
 import com.fina.metrics.dto.TableViewIndexItem;
 import com.fina.metrics.entity.DataSourceConfig;
 import com.fina.metrics.entity.MetricsMeta;
 import com.fina.metrics.mapper.DataSourceConfigMapper;
 import com.fina.metrics.mapper.MetricsMetaMapper;
+import com.fina.metrics.service.DataSourceTableAccessService;
 import com.fina.metrics.service.MetaCatalogService;
 import com.fina.metrics.service.SemanticQueryBuilder;
 import com.fina.metrics.service.TableViewMetaService;
@@ -19,14 +22,20 @@ import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.ResultSetExtractor;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class MetricsServiceImplTest {
@@ -36,9 +45,11 @@ class MetricsServiceImplTest {
     private final ObjectMapper mapper = new ObjectMapper();
     private MetricsMetaMapper metaMapper;
     private DataSourceConfigMapper datasourceMapper;
+    private DynamicDataSourceManager dsManager;
     private MetaCatalogService catalog;
     private SemanticQueryBuilder queryBuilder;
     private TableViewMetaService tableViewMetaService;
+    private DataSourceTableAccessService tableAccessService;
     private MetricsServiceImpl service;
 
     @BeforeAll
@@ -52,33 +63,39 @@ class MetricsServiceImplTest {
     void setUp() {
         metaMapper = mock(MetricsMetaMapper.class);
         datasourceMapper = mock(DataSourceConfigMapper.class);
+        dsManager = mock(DynamicDataSourceManager.class);
         catalog = mock(MetaCatalogService.class);
         queryBuilder = mock(SemanticQueryBuilder.class);
         tableViewMetaService = mock(TableViewMetaService.class);
+        tableAccessService = mock(DataSourceTableAccessService.class);
         service = new MetricsServiceImpl(
                 metaMapper,
                 datasourceMapper,
-                mock(DynamicDataSourceManager.class),
+                dsManager,
                 catalog,
                 queryBuilder,
-                tableViewMetaService);
-        when(catalog.getCatalogVersion()).thenReturn("1.0");
-        when(catalog.getDomainCategories()).thenReturn(List.of());
+                tableViewMetaService,
+                tableAccessService);
+        when(catalog.getCatalogVersion(DATASOURCE_ID)).thenReturn("1.0");
+        when(catalog.getDomainCategories(DATASOURCE_ID)).thenReturn(List.of());
+        when(catalog.getDetailItems(DATASOURCE_ID)).thenReturn(List.of());
         when(metaMapper.selectList(any())).thenReturn(List.of());
-        when(tableViewMetaService.getTableViewsIndex()).thenReturn(List.of());
+        when(tableViewMetaService.getTableViewsIndex(DATASOURCE_ID)).thenReturn(List.of());
+        when(tableAccessService.hasActiveGrants(any(), any())).thenReturn(false);
+        when(tableAccessService.listActiveGrants(any(), any())).thenReturn(List.of());
     }
 
     @Test
     void caterpillarIndexOnlyContainsCaterpillarMetadata() throws Exception {
         when(datasourceMapper.selectById(DATASOURCE_ID)).thenReturn(datasource("Caterpillar PostgreSQL"));
-        when(catalog.getIndexItems()).thenReturn(List.of(
-                indexMetric("caterpillar_leads_received", null),
+        when(catalog.getIndexItems(DATASOURCE_ID)).thenReturn(List.of(
+                indexMetric("caterpillar_leads_received", "cdp_postgres"),
                 indexMetric("retailcdp_total_revenue", "cdp_postgres"),
                 indexMetric("order_amt_tax_inc", null)));
-        when(catalog.findDetailItem("caterpillar_leads_received")).thenReturn(Optional.of(
+        when(catalog.findDetailItem("caterpillar_leads_received", DATASOURCE_ID)).thenReturn(Optional.of(
                 detailMetric("caterpillar_leads_received", "caterpillar_lead")));
         when(metaMapper.selectList(any())).thenReturn(List.of(registration("caterpillar_leads_received")));
-        when(tableViewMetaService.getTableViewsIndex()).thenReturn(List.of(
+        when(tableViewMetaService.getTableViewsIndex(DATASOURCE_ID)).thenReturn(List.of(
                 table("caterpillar_lead"),
                 table("retailcdp_transactions"),
                 table("MTC_VW_AI_ORDR")));
@@ -94,11 +111,11 @@ class MetricsServiceImplTest {
     @Test
     void caterpillarIndexHidesUnregisteredMetrics() throws Exception {
         when(datasourceMapper.selectById(DATASOURCE_ID)).thenReturn(datasource("Caterpillar PostgreSQL"));
-        when(catalog.getIndexItems()).thenReturn(List.of(
+        when(catalog.getIndexItems(DATASOURCE_ID)).thenReturn(List.of(
                 indexMetric("caterpillar_leads_received", "cdp_postgres")));
-        when(catalog.findDetailItem("caterpillar_leads_received")).thenReturn(Optional.of(
+        when(catalog.findDetailItem("caterpillar_leads_received", DATASOURCE_ID)).thenReturn(Optional.of(
                 detailMetric("caterpillar_leads_received", "caterpillar_lead")));
-        when(tableViewMetaService.getTableViewsIndex()).thenReturn(List.of(table("caterpillar_lead")));
+        when(tableViewMetaService.getTableViewsIndex(DATASOURCE_ID)).thenReturn(List.of(table("caterpillar_lead")));
 
         MetricsIndexResponse response = service.getMetricsIndex(DATASOURCE_ID);
 
@@ -110,11 +127,11 @@ class MetricsServiceImplTest {
     @Test
     void retailScopeKeepsExistingBehaviorAndHidesCaterpillarMetadata() throws Exception {
         when(datasourceMapper.selectById(DATASOURCE_ID)).thenReturn(datasource("Retail CDP PostgreSQL"));
-        when(catalog.getIndexItems()).thenReturn(List.of(
+        when(catalog.getIndexItems(DATASOURCE_ID)).thenReturn(List.of(
                 indexMetric("caterpillar_leads_received", null),
                 indexMetric("retailcdp_total_revenue", "cdp_postgres"),
                 indexMetric("order_amt_tax_inc", null)));
-        when(tableViewMetaService.getTableViewsIndex()).thenReturn(List.of(
+        when(tableViewMetaService.getTableViewsIndex(DATASOURCE_ID)).thenReturn(List.of(
                 table("caterpillar_lead"),
                 table("retailcdp_transactions"),
                 table("MTC_VW_AI_ORDR")));
@@ -128,24 +145,60 @@ class MetricsServiceImplTest {
     }
 
     @Test
+    void tableGrantsFilterIndexTablesAndMetricSources() throws Exception {
+        when(datasourceMapper.selectById(DATASOURCE_ID)).thenReturn(datasource("Hankel PostgreSQL"));
+        when(tableAccessService.listActiveGrants("hankel", DATASOURCE_ID))
+                .thenReturn(List.of(tableGrant("hankel_")));
+        when(catalog.getIndexItems(DATASOURCE_ID)).thenReturn(List.of(
+                indexMetricWithSource("hankel_sales_amount", "hankel_sales"),
+                indexMetricWithSource("retailcdp_total_revenue", "retailcdp_transactions")));
+        when(tableViewMetaService.getTableViewsIndex(DATASOURCE_ID)).thenReturn(List.of(
+                table("hankel_sales"),
+                table("retailcdp_transactions")));
+
+        MetricsIndexResponse response = service.getMetricsIndex(DATASOURCE_ID, "hankel");
+
+        assertThat(response.getMetrics()).extracting(MetricsIndexResponse.MetricIndexItem::getMetricName)
+                .containsExactly("hankel_sales_amount");
+        assertThat(response.getMetrics()).extracting(MetricsIndexResponse.MetricIndexItem::isRegistered)
+                .containsExactly(true);
+        assertThat(response.getTables()).extracting(TableViewIndexItem::getTableName)
+                .containsExactly("hankel_sales");
+    }
+
+    @Test
+    void tableGrantedMetricIsHiddenUntilSourceTableMetaIsPublished() throws Exception {
+        when(datasourceMapper.selectById(DATASOURCE_ID)).thenReturn(datasource("Hankel PostgreSQL"));
+        when(tableAccessService.listActiveGrants("hankel", DATASOURCE_ID))
+                .thenReturn(List.of(tableGrant("hankel_")));
+        when(catalog.getIndexItems(DATASOURCE_ID)).thenReturn(List.of(
+                indexMetricWithSource("hankel_sales_amount", "hankel_sales")));
+        when(tableViewMetaService.getTableViewsIndex(DATASOURCE_ID)).thenReturn(List.of());
+
+        MetricsIndexResponse response = service.getMetricsIndex(DATASOURCE_ID, "hankel");
+
+        assertThat(response.getMetrics()).isEmpty();
+    }
+
+    @Test
     void caterpillarSemanticQueryRejectsRetailMetric() throws Exception {
         when(datasourceMapper.selectById(DATASOURCE_ID)).thenReturn(datasource("Caterpillar PostgreSQL"));
-        when(catalog.findDetailItem("retailcdp_total_revenue")).thenReturn(Optional.of(
+        when(catalog.findDetailItem("retailcdp_total_revenue", DATASOURCE_ID)).thenReturn(Optional.of(
                 detailMetric("retailcdp_total_revenue", "retailcdp_transactions")));
 
         SemanticQueryRequest request = request("retailcdp_total_revenue");
 
         assertThatThrownBy(() -> service.query(request))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("not available for Caterpillar datasource");
+                .hasMessageContaining("not available for datasource type cdp_postgres");
     }
 
     @Test
     void caterpillarSemanticQueryRequiresActiveRegistration() throws Exception {
         when(datasourceMapper.selectById(DATASOURCE_ID)).thenReturn(datasource("Caterpillar PostgreSQL"));
-        when(catalog.findDetailItem("caterpillar_leads_received")).thenReturn(Optional.of(
+        when(catalog.findDetailItem("caterpillar_leads_received", DATASOURCE_ID)).thenReturn(Optional.of(
                 detailMetric("caterpillar_leads_received", "caterpillar_lead")));
-        when(tableViewMetaService.getTableViewsIndex()).thenReturn(List.of(table("caterpillar_lead")));
+        when(tableViewMetaService.getTableViewsIndex(DATASOURCE_ID)).thenReturn(List.of(table("caterpillar_lead")));
         when(metaMapper.selectOne(any())).thenReturn(null);
 
         assertThatThrownBy(() -> service.query(request("caterpillar_leads_received")))
@@ -156,11 +209,11 @@ class MetricsServiceImplTest {
     @Test
     void caterpillarSemanticQueryRejectsMetricsFromDifferentTables() throws Exception {
         when(datasourceMapper.selectById(DATASOURCE_ID)).thenReturn(datasource("Caterpillar PostgreSQL"));
-        when(catalog.findDetailItem("caterpillar_leads_received")).thenReturn(Optional.of(
+        when(catalog.findDetailItem("caterpillar_leads_received", DATASOURCE_ID)).thenReturn(Optional.of(
                 detailMetric("caterpillar_leads_received", "caterpillar_lead")));
-        when(catalog.findDetailItem("caterpillar_call_answer_rate")).thenReturn(Optional.of(
+        when(catalog.findDetailItem("caterpillar_call_answer_rate", DATASOURCE_ID)).thenReturn(Optional.of(
                 detailMetric("caterpillar_call_answer_rate", "caterpillar_call_record")));
-        when(tableViewMetaService.getTableViewsIndex()).thenReturn(List.of(
+        when(tableViewMetaService.getTableViewsIndex(DATASOURCE_ID)).thenReturn(List.of(
                 table("caterpillar_lead"), table("caterpillar_call_record")));
         when(metaMapper.selectOne(any())).thenReturn(new MetricsMeta());
 
@@ -176,25 +229,25 @@ class MetricsServiceImplTest {
     @Test
     void caterpillarSemanticQueryRejectsUnknownStaticTable() throws Exception {
         when(datasourceMapper.selectById(DATASOURCE_ID)).thenReturn(datasource("Caterpillar PostgreSQL"));
-        when(catalog.findDetailItem("caterpillar_leads_received")).thenReturn(Optional.of(
+        when(catalog.findDetailItem("caterpillar_leads_received", DATASOURCE_ID)).thenReturn(Optional.of(
                 detailMetric("caterpillar_leads_received", "caterpillar_missing")));
         when(metaMapper.selectOne(any())).thenReturn(new MetricsMeta());
 
         assertThatThrownBy(() -> service.query(request("caterpillar_leads_received")))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("not available for Caterpillar datasource");
+                .hasMessageContaining("references an unpublished table");
     }
 
     @Test
     void caterpillarNameWithoutCdpSourceTypeDoesNotEnableSpecialBranch() throws Exception {
         when(datasourceMapper.selectById(DATASOURCE_ID)).thenReturn(
                 datasource("Caterpillar PostgreSQL", "sap_b1_hana"));
-        when(catalog.findDetailItem("caterpillar_leads_received")).thenReturn(Optional.of(
+        when(catalog.findDetailItem("caterpillar_leads_received", DATASOURCE_ID)).thenReturn(Optional.of(
                 detailMetric("caterpillar_leads_received", "caterpillar_lead")));
 
         assertThatThrownBy(() -> service.query(request("caterpillar_leads_received")))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("only available for Caterpillar datasource");
+                .hasMessageContaining("not available for datasource type sap_b1_hana");
     }
 
     @Test
@@ -204,6 +257,95 @@ class MetricsServiceImplTest {
         assertThatThrownBy(() -> service.query(request("retailcdp_total_revenue")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Semantic metrics are not enabled for cdp_postgres yet");
+    }
+
+    @Test
+    void cdpSemanticQueryWithTableGrantAllowsAuthorizedMetric() throws Exception {
+        JsonNode detail = detailMetric("hankel_sales_row_count", "public.hankel_distr_sell_out");
+        NamedParameterJdbcTemplate jdbc = mock(NamedParameterJdbcTemplate.class);
+        String sql = "SELECT COUNT(*) AS \"hankel_sales_row_count\" FROM \"public\".\"hankel_distr_sell_out\" LIMIT 1";
+
+        when(datasourceMapper.selectById(DATASOURCE_ID)).thenReturn(datasource("Hankel PostgreSQL"));
+        when(tableAccessService.listActiveGrants("hankel", DATASOURCE_ID))
+                .thenReturn(List.of(tableGrant("hankel_")));
+        when(tableViewMetaService.getTableViewsIndex(DATASOURCE_ID))
+                .thenReturn(List.of(table("hankel_distr_sell_out")));
+        when(catalog.findDetailItem("hankel_sales_row_count", DATASOURCE_ID)).thenReturn(Optional.of(detail));
+        when(queryBuilder.buildMulti(
+                eq(List.of("hankel_sales_row_count")),
+                any(),
+                eq(List.of(detail)),
+                eq("cdp_postgres")))
+                .thenReturn(new SemanticQueryBuilder.BuildResult(sql, Map.of(), List.of("hankel_sales_row_count")));
+        when(dsManager.getNamedJdbcTemplate(DATASOURCE_ID)).thenReturn(jdbc);
+        when(jdbc.query(
+                eq(sql),
+                any(MapSqlParameterSource.class),
+                any(ResultSetExtractor.class)))
+                .thenReturn(List.of(List.of(10L)));
+
+        MetricsQueryData result = service.query(request("hankel_sales_row_count"), "hankel");
+
+        assertThat(result.getSemanticModel()).isEqualTo("public.hankel_distr_sell_out");
+        assertThat(result.getRows()).containsExactly(List.of(10L));
+        verify(queryBuilder).buildMulti(
+                eq(List.of("hankel_sales_row_count")),
+                any(),
+                eq(List.of(detail)),
+                eq("cdp_postgres"));
+    }
+
+    @Test
+    void customSqlRejectsWriteSqlBeforeExecution() {
+        SemanticQueryRequest request = new SemanticQueryRequest();
+        request.setDatasourceId(DATASOURCE_ID);
+        request.setCustomSql("DELETE FROM OCRD");
+
+        assertThatThrownBy(() -> service.query(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Only SELECT or WITH");
+    }
+
+    @Test
+    void customSqlWithoutGrantsUsesDatasourceQueryAndKeepsAdhocSemanticModel() {
+        MetricsQueryData data = MetricsQueryData.builder()
+                .semanticModel("datasource_query")
+                .columns(List.of())
+                .rows(List.of())
+                .rowCount(0)
+                .build();
+        when(tableAccessService.queryDatasource(eq(DATASOURCE_ID), any())).thenReturn(data);
+        SemanticQueryRequest request = new SemanticQueryRequest();
+        request.setDatasourceId(DATASOURCE_ID);
+        request.setCustomSql("SELECT * FROM OCRD");
+        request.setLimit(25);
+
+        MetricsQueryData result = service.query(request, "tenant_5");
+
+        assertThat(result.getSemanticModel()).isEqualTo("adhoc");
+        assertThat(result.getRowCount()).isZero();
+        verify(tableAccessService).queryDatasource(eq(DATASOURCE_ID), any());
+    }
+
+    @Test
+    void customSqlWithGrantsUsesAuthorizedProbeAndKeepsAdhocSemanticModel() {
+        MetricsQueryData data = MetricsQueryData.builder()
+                .semanticModel("probe")
+                .columns(List.of())
+                .rows(List.of())
+                .rowCount(0)
+                .build();
+        when(tableAccessService.hasActiveGrants("hankel", DATASOURCE_ID)).thenReturn(true);
+        when(tableAccessService.probeSql(eq("hankel"), eq(DATASOURCE_ID), any())).thenReturn(data);
+        SemanticQueryRequest request = new SemanticQueryRequest();
+        request.setDatasourceId(DATASOURCE_ID);
+        request.setCustomSql("SELECT * FROM hankel_sales");
+        request.setLimit(25);
+
+        MetricsQueryData result = service.query(request, "hankel");
+
+        assertThat(result.getSemanticModel()).isEqualTo("adhoc");
+        verify(tableAccessService).probeSql(eq("hankel"), eq(DATASOURCE_ID), any());
     }
 
     private DataSourceConfig datasource(String name) {
@@ -230,10 +372,21 @@ class MetricsServiceImplTest {
         return mapper.readTree("{\"metric_name\":\"" + metricName + "\"" + sourceTypeJson + "}");
     }
 
+    private JsonNode indexMetricWithSource(String metricName, String tableView) throws Exception {
+        return mapper.readTree("""
+                {
+                  "metric_name": "%s",
+                  "source_type": "cdp_postgres",
+                  "source": {"table_view": "%s"}
+                }
+                """.formatted(metricName, tableView));
+    }
+
     private JsonNode detailMetric(String metricName, String tableView) throws Exception {
         return mapper.readTree("""
                 {
                   "metric_name": "%s",
+                  "source_type": "cdp_postgres",
                   "calculation": {"sql_expression": "COUNT(*)"},
                   "source": {"table_view": "%s", "base_filters": []},
                   "supported_dimensions": []
@@ -243,6 +396,18 @@ class MetricsServiceImplTest {
 
     private TableViewIndexItem table(String tableName) {
         return TableViewIndexItem.builder().tableName(tableName).build();
+    }
+
+    private DataSourceTableGrantVO tableGrant(String prefix) {
+        DataSourceTableGrantVO grant = new DataSourceTableGrantVO();
+        grant.setTenantId("hankel");
+        grant.setDatasourceId(DATASOURCE_ID);
+        grant.setSchemaName("public");
+        grant.setTablePattern(prefix);
+        grant.setPatternType("PREFIX");
+        grant.setCaseSensitive(false);
+        grant.setStatus(1);
+        return grant;
     }
 
     private SemanticQueryRequest request(String metricName) {

@@ -46,6 +46,13 @@ public enum DataSourceType {
         };
     }
 
+    public String getTransactionIsolationName() {
+        return switch (this) {
+            case SAP_B1_HANA -> null;
+            case CDP_POSTGRES -> "TRANSACTION_READ_COMMITTED";
+        };
+    }
+
     public static DataSourceType resolve(String sourceType, String jdbcUrl) {
         if (StringUtils.hasText(sourceType)) {
             String normalized = sourceType.trim().toLowerCase(Locale.ROOT);
