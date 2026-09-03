@@ -7,11 +7,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Converts a semantic query request into executable HANA SQL.
+ * Converts a semantic query request into executable datasource SQL.
  *
  * Single metric: one SELECT with groupBy + one metric expression.
  * Multiple metrics: one SELECT with groupBy + multiple metric expressions (same FROM/WHERE),
- * provided all metrics share the same source.table_view.
+ * provided all requested metrics and derived dependencies share the same source.table_view.
  */
 public interface SemanticQueryBuilder {
 

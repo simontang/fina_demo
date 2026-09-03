@@ -39,8 +39,9 @@ public class SemanticQueryRequest {
     /**
      * One or more metric names from the catalog.
      * e.g. ["order_amt_tax_inc", "avg_discount_rate"]
-     * Each metric is resolved to its sql_expression and source view from
-     * metrics-detail-meta.json.
+     * Legacy catalog metrics may resolve to calculation.sql_expression.
+     * New DB-backed metrics can resolve from SQL-free calculation metadata
+     * such as aggregate measure or derived ratio definitions.
      */
     private List<String> metrics;
 

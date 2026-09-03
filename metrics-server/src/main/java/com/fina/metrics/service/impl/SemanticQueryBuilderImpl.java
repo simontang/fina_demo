@@ -10,9 +10,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
- * Generates HANA SQL from a semantic query for a single metric.
+ * Generates datasource-specific SQL from a semantic query.
  *
  * Generation steps:
  *   1. Resolve dim_ids in group_by → actual HANA field names (via supported_dimensions)
@@ -22,6 +24,12 @@ import java.util.*;
  *   5. Build GROUP BY from resolved group_by fields
  *   6. Build ORDER BY from request orderBy
  *   7. Append LIMIT
+ *
+ * Metric calculation supports two contracts:
+ *   1. Legacy catalog: calculation.sql_expression is already an executable SQL expression.
+ *   2. DB-backed meta: SQL-free calculation DSL, e.g. aggregate measure or ratio
+ *      derived from other metrics. This keeps new datasource meta semantic instead
+ *      of forcing agents to author raw SQL snippets.
  *
  * Double-underscore time granularity:
  *   "DocDate__month" → TO_NVARCHAR("DocDate", 'YYYY-MM') AS "DocDate__month"
@@ -37,6 +45,12 @@ import java.util.*;
 @Slf4j
 @Service
 public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
+
+    private static final Pattern FORMULA_TOKEN = Pattern.compile(
+            "[A-Za-z_][A-Za-z0-9_]*|\\d+(?:\\.\\d+)?|[()+\\-*/]");
+
+    private static final Set<String> AGGREGATIONS = Set.of(
+            "sum", "avg", "min", "max", "count", "count_distinct");
 
     private static final Map<String, String> HANA_GRAIN_FORMAT = Map.of(
             "year",  "'YYYY'",
@@ -60,7 +74,6 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
         DataSourceType dataSourceType = DataSourceType.resolve(sourceType, null);
 
         String tableView     = catalogDetail.path("source").path("table_view").asText("");
-        String sqlExpr       = catalogDetail.path("calculation").path("sql_expression").asText("");
         JsonNode dimNodes    = catalogDetail.path("supported_dimensions");
         JsonNode timeDimNode = catalogDetail.path("default_time_context");
         JsonNode baseFilters = catalogDetail.path("source").path("base_filters");
@@ -70,11 +83,13 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
             throw new IllegalStateException(
                     "Metric " + metricName + " has no source.table_view in catalog");
         }
-        if (!StringUtils.hasText(sqlExpr)) {
-            log.error("Catalog misconfiguration: metric={} missing calculation.sql_expression", metricName);
-            throw new IllegalStateException(
-                    "Metric " + metricName + " has no calculation.sql_expression in catalog");
-        }
+        Map<String, JsonNode> metricDetailsByName = metricDetailLookup(
+                List.of(catalogDetail), List.of(metricName));
+        String sqlExpr = resolveMetricExpression(
+                metricName,
+                catalogDetail,
+                metricDetailsByName,
+                new LinkedHashSet<>());
 
         // Build dim_id → field_name lookup map for this metric
         Map<String, String> dimMap = buildDimMap(dimNodes, timeDimNode);
@@ -220,23 +235,24 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
                                   String sourceType) {
         DataSourceType dataSourceType = DataSourceType.resolve(sourceType, null);
         if (metricNames == null || metricNames.isEmpty() || catalogDetails == null
-                || catalogDetails.size() != metricNames.size()) {
-            throw new IllegalArgumentException("metricNames and catalogDetails must be non-empty and same size");
+                || catalogDetails.isEmpty()) {
+            throw new IllegalArgumentException("metricNames and catalogDetails must be non-empty");
         }
-        String tableView = catalogDetails.get(0).path("source").path("table_view").asText("");
+        Map<String, JsonNode> metricDetailsByName = metricDetailLookup(catalogDetails, metricNames);
+        JsonNode first = requireMetricDetail(metricNames.get(0), metricDetailsByName);
+        String tableView = first.path("source").path("table_view").asText("");
         if (!StringUtils.hasText(tableView)) {
             throw new IllegalStateException("First metric has no source.table_view in catalog");
         }
-        for (int i = 1; i < catalogDetails.size(); i++) {
-            String tv = catalogDetails.get(i).path("source").path("table_view").asText("");
+        for (Map.Entry<String, JsonNode> entry : metricDetailsByName.entrySet()) {
+            String tv = entry.getValue().path("source").path("table_view").asText("");
             if (!tableView.equals(tv)) {
                 throw new IllegalArgumentException(
                         "All requested metrics must share the same source table/view. "
-                                + "First uses " + tableView + ", metric " + metricNames.get(i) + " uses " + tv);
+                                + "First uses " + tableView + ", metric " + entry.getKey() + " uses " + tv);
             }
         }
 
-        JsonNode first = catalogDetails.get(0);
         JsonNode dimNodes = first.path("supported_dimensions");
         JsonNode timeDimNode = first.path("default_time_context");
         JsonNode baseFilters = first.path("source").path("base_filters");
@@ -258,11 +274,12 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
 
         for (int i = 0; i < metricNames.size(); i++) {
             String metricName = metricNames.get(i);
-            String sqlExpr = catalogDetails.get(i).path("calculation").path("sql_expression").asText("");
-            if (!StringUtils.hasText(sqlExpr)) {
-                throw new IllegalStateException(
-                        "Metric " + metricName + " has no calculation.sql_expression in catalog");
-            }
+            JsonNode detail = requireMetricDetail(metricName, metricDetailsByName);
+            String sqlExpr = resolveMetricExpression(
+                    metricName,
+                    detail,
+                    metricDetailsByName,
+                    new LinkedHashSet<>());
             selectExprs.add(sqlExpr + " AS \"" + metricName + "\"");
             columnLabels.add(metricName);
         }
@@ -448,4 +465,241 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
 
     /** Holds the SELECT expression and GROUP BY expression for one dimension */
     private record DimRef(String selectExpr, String groupByExpr) {}
+
+    private Map<String, JsonNode> metricDetailLookup(
+            List<JsonNode> catalogDetails,
+            List<String> fallbackMetricNames) {
+        Map<String, JsonNode> lookup = new LinkedHashMap<>();
+        for (int i = 0; i < catalogDetails.size(); i++) {
+            JsonNode detail = catalogDetails.get(i);
+            String name = detail.path("metric_name").asText(null);
+            if (!StringUtils.hasText(name) && i < fallbackMetricNames.size()) {
+                name = fallbackMetricNames.get(i);
+            }
+            if (StringUtils.hasText(name)) {
+                lookup.put(name, detail);
+            }
+        }
+        return lookup;
+    }
+
+    private JsonNode requireMetricDetail(String metricName, Map<String, JsonNode> metricDetailsByName) {
+        JsonNode detail = metricDetailsByName.get(metricName);
+        if (detail == null) {
+            throw new IllegalStateException("Metric " + metricName + " has no metric_detail in catalog");
+        }
+        return detail;
+    }
+
+    private String resolveMetricExpression(
+            String metricName,
+            JsonNode catalogDetail,
+            Map<String, JsonNode> metricDetailsByName,
+            Set<String> visiting) {
+        if (!visiting.add(metricName)) {
+            throw new IllegalStateException("Circular derived metric reference: " + String.join(" -> ", visiting)
+                    + " -> " + metricName);
+        }
+        try {
+            JsonNode calculation = catalogDetail.path("calculation");
+            Optional<String> semanticExpression = compileSemanticCalculation(
+                    metricName,
+                    calculation,
+                    metricDetailsByName,
+                    visiting);
+            if (semanticExpression.isPresent()) {
+                return semanticExpression.get();
+            }
+
+            String sqlExpr = calculation.path("sql_expression").asText("");
+            if (StringUtils.hasText(sqlExpr)) {
+                return sqlExpr;
+            }
+
+            log.error("Catalog misconfiguration: metric={} missing supported calculation", metricName);
+            throw new IllegalStateException(
+                    "Metric " + metricName
+                            + " has no supported calculation; provide SQL-free aggregate/derived metadata "
+                            + "or legacy calculation.sql_expression");
+        } finally {
+            visiting.remove(metricName);
+        }
+    }
+
+    private Optional<String> compileSemanticCalculation(
+            String metricName,
+            JsonNode calculation,
+            Map<String, JsonNode> metricDetailsByName,
+            Set<String> visiting) {
+        if (calculation == null || calculation.isMissingNode() || !calculation.isObject()) {
+            return Optional.empty();
+        }
+
+        if (isRatioCalculation(calculation)) {
+            return Optional.of(compileRatioExpression(metricName, calculation, metricDetailsByName, visiting));
+        }
+        if (StringUtils.hasText(calculation.path("formula").asText(null))) {
+            return Optional.of(compileFormulaExpression(
+                    metricName,
+                    calculation.path("formula").asText(),
+                    metricDetailsByName,
+                    visiting));
+        }
+        if (isAggregateCalculation(calculation)) {
+            return Optional.of(compileAggregateExpression(metricName, calculation));
+        }
+        return Optional.empty();
+    }
+
+    private boolean isAggregateCalculation(JsonNode calculation) {
+        String type = normalizeCalculationToken(calculation.path("type").asText(null));
+        return "aggregate".equals(type)
+                || AGGREGATIONS.contains(type)
+                || StringUtils.hasText(calculation.path("aggregation").asText(null))
+                || StringUtils.hasText(calculation.path("aggregate").asText(null))
+                || StringUtils.hasText(calculation.path("function").asText(null));
+    }
+
+    private boolean isRatioCalculation(JsonNode calculation) {
+        String type = normalizeCalculationToken(calculation.path("type").asText(null));
+        String operator = normalizeCalculationToken(calculation.path("operator").asText(null));
+        return "ratio".equals(type)
+                || "ratio".equals(operator)
+                || (StringUtils.hasText(calculation.path("numerator").asText(null))
+                && StringUtils.hasText(calculation.path("denominator").asText(null)));
+    }
+
+    private String compileAggregateExpression(String metricName, JsonNode calculation) {
+        String aggregation = firstNonBlank(
+                calculation.path("aggregation").asText(null),
+                calculation.path("aggregate").asText(null),
+                calculation.path("function").asText(null));
+        String type = normalizeCalculationToken(calculation.path("type").asText(null));
+        if (!StringUtils.hasText(aggregation) && AGGREGATIONS.contains(type)) {
+            aggregation = type;
+        }
+        aggregation = normalizeCalculationToken(aggregation);
+
+        String measure = firstNonBlank(
+                calculation.path("measure").asText(null),
+                calculation.path("field").asText(null),
+                calculation.path("column").asText(null));
+
+        return switch (aggregation) {
+            case "sum" -> aggregateWithRequiredMeasure(metricName, "SUM", measure);
+            case "avg" -> aggregateWithRequiredMeasure(metricName, "AVG", measure);
+            case "min" -> aggregateWithRequiredMeasure(metricName, "MIN", measure);
+            case "max" -> aggregateWithRequiredMeasure(metricName, "MAX", measure);
+            case "count" -> StringUtils.hasText(measure)
+                    ? "COUNT(" + quoteColumn(measure) + ")"
+                    : "COUNT(*)";
+            case "count_distinct" -> {
+                if (!StringUtils.hasText(measure)) {
+                    throw new IllegalStateException(
+                            "Metric " + metricName + " count_distinct calculation requires measure");
+                }
+                yield "COUNT(DISTINCT " + quoteColumn(measure) + ")";
+            }
+            default -> throw new IllegalStateException(
+                    "Metric " + metricName + " has unsupported aggregation: " + aggregation);
+        };
+    }
+
+    private String aggregateWithRequiredMeasure(String metricName, String functionName, String measure) {
+        if (!StringUtils.hasText(measure)) {
+            throw new IllegalStateException(
+                    "Metric " + metricName + " " + functionName.toLowerCase(Locale.ROOT)
+                            + " calculation requires measure");
+        }
+        return functionName + "(" + quoteColumn(measure) + ")";
+    }
+
+    private String compileRatioExpression(
+            String metricName,
+            JsonNode calculation,
+            Map<String, JsonNode> metricDetailsByName,
+            Set<String> visiting) {
+        String numerator = calculation.path("numerator").asText(null);
+        String denominator = calculation.path("denominator").asText(null);
+        if (!StringUtils.hasText(numerator) || !StringUtils.hasText(denominator)) {
+            throw new IllegalStateException(
+                    "Metric " + metricName + " ratio calculation requires numerator and denominator");
+        }
+        String numeratorExpr = resolveMetricReferenceExpression(
+                metricName, numerator, metricDetailsByName, visiting);
+        String denominatorExpr = resolveMetricReferenceExpression(
+                metricName, denominator, metricDetailsByName, visiting);
+        return "(" + numeratorExpr + ") / NULLIF((" + denominatorExpr + "), 0)";
+    }
+
+    private String compileFormulaExpression(
+            String metricName,
+            String formula,
+            Map<String, JsonNode> metricDetailsByName,
+            Set<String> visiting) {
+        StringBuilder sql = new StringBuilder();
+        Matcher matcher = FORMULA_TOKEN.matcher(formula);
+        int position = 0;
+        while (matcher.find()) {
+            String skipped = formula.substring(position, matcher.start());
+            if (!skipped.isBlank()) {
+                throw new IllegalStateException(
+                        "Metric " + metricName + " formula contains unsupported token near: " + skipped.trim());
+            }
+            String token = matcher.group();
+            if (isIdentifierToken(token)) {
+                sql.append("(").append(resolveMetricReferenceExpression(
+                        metricName, token, metricDetailsByName, visiting)).append(")");
+            } else {
+                sql.append(token);
+            }
+            position = matcher.end();
+        }
+        String tail = formula.substring(position);
+        if (!tail.isBlank()) {
+            throw new IllegalStateException(
+                    "Metric " + metricName + " formula contains unsupported token near: " + tail.trim());
+        }
+        if (sql.isEmpty()) {
+            throw new IllegalStateException("Metric " + metricName + " formula is empty");
+        }
+        return sql.toString();
+    }
+
+    private String resolveMetricReferenceExpression(
+            String parentMetricName,
+            String referencedMetricName,
+            Map<String, JsonNode> metricDetailsByName,
+            Set<String> visiting) {
+        JsonNode referenced = metricDetailsByName.get(referencedMetricName);
+        if (referenced == null) {
+            throw new IllegalStateException(
+                    "Metric " + parentMetricName + " references unknown metric: " + referencedMetricName);
+        }
+        return resolveMetricExpression(referencedMetricName, referenced, metricDetailsByName, visiting);
+    }
+
+    private boolean isIdentifierToken(String token) {
+        return token != null && !token.isBlank()
+                && (Character.isLetter(token.charAt(0)) || token.charAt(0) == '_');
+    }
+
+    private String quoteColumn(String column) {
+        return SqlIdentifierUtils.quoteQualified(column);
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (StringUtils.hasText(value)) {
+                return value.trim();
+            }
+        }
+        return "";
+    }
+
+    private String normalizeCalculationToken(String value) {
+        return StringUtils.hasText(value)
+                ? value.trim().toLowerCase(Locale.ROOT).replace('-', '_')
+                : "";
+    }
 }

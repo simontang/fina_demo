@@ -31,6 +31,8 @@ import org.springframework.util.StringUtils;
 
 import java.sql.ResultSetMetaData;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -49,6 +51,8 @@ public class MetricsServiceImpl implements MetricsService {
     private static final int MAX_LIMIT     = 10000;
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String CATERPILLAR_PREFIX = "caterpillar_";
+    private static final Pattern FORMULA_TOKEN = Pattern.compile(
+            "[A-Za-z_][A-Za-z0-9_]*|\\d+(?:\\.\\d+)?|[()+\\-*/]");
 
     // ── Discovery / meta ──────────────────────────────────────────────────────
 
@@ -403,29 +407,24 @@ public class MetricsServiceImpl implements MetricsService {
                     "Semantic metrics are not enabled for cdp_postgres yet; use custom_sql for CDP datasource queries");
         }
 
-        List<JsonNode> catalogDetails = new ArrayList<>();
-        String semanticTableView = null;
+        Map<String, JsonNode> catalogDetailsByName = new LinkedHashMap<>();
+        Set<String> resolvingMetrics = new LinkedHashSet<>();
         for (String metricName : metrics) {
-            JsonNode detail = catalog.findDetailItem(metricName, request.getDatasourceId())
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "Metric '" + metricName + "' not found in catalog"));
-            if (tableGrantFiltering) {
-                if (!isMetricPublishedAndAuthorizedForRuntime(
-                        request.getDatasourceId(), detail, sourceType, tableGrants, Map.of())) {
-                    throw new ForbiddenException("Metric is not authorized for this tenant: " + metricName);
-                }
-            } else if (!isMetricVisibleForDatasource(detail, sourceType, cdpScope)) {
-                throw new IllegalArgumentException(
-                        "Metric '" + metricName + "' is not available for datasource type " + sourceType.getCode());
-            }
-            if (requiresLegacyCdpRegistration(sourceType, tableGrantFiltering, cdpScope)) {
-                requireMeta(request.getDatasourceId(), metricName);
-                if (!isTablePublishedForDatasource(
-                        request.getDatasourceId(), detail.path("source").path("table_view").asText(null))) {
-                    throw new IllegalArgumentException(
-                            "Metric '" + metricName + "' references an unpublished table");
-                }
-            }
+            collectMetricDetailsForQuery(
+                    metricName,
+                    request.getDatasourceId(),
+                    sourceType,
+                    cdpScope,
+                    tableGrantFiltering,
+                    tableGrants,
+                    catalogDetailsByName,
+                    resolvingMetrics);
+        }
+
+        String semanticTableView = null;
+        for (Map.Entry<String, JsonNode> entry : catalogDetailsByName.entrySet()) {
+            String metricName = entry.getKey();
+            JsonNode detail = entry.getValue();
             String metricTableView = detail.path("source").path("table_view").asText("");
             if (!StringUtils.hasText(metricTableView)) {
                 throw new IllegalArgumentException(
@@ -437,14 +436,13 @@ public class MetricsServiceImpl implements MetricsService {
                 throw new IllegalArgumentException(
                         "All requested metrics must share the same source table/view");
             }
-            catalogDetails.add(detail);
         }
 
         SemanticQueryBuilder.BuildResult built = queryBuilder.buildMulti(
-                metrics, request, catalogDetails, sourceType.getCode());
+                metrics, request, new ArrayList<>(catalogDetailsByName.values()), sourceType.getCode());
         QueryResult qr = executeQuery(request.getDatasourceId(), built.sql(), built.params());
 
-        String semanticModel = catalogDetails.get(0).path("source").path("table_view").asText("");
+        String semanticModel = catalogDetailsByName.get(metrics.get(0)).path("source").path("table_view").asText("");
 
         Map<String, Object> debugObj = null;
         if (debug) {
@@ -508,6 +506,125 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     private record QueryResult(List<ColumnMeta> columns, List<List<Object>> rows) {}
+
+    private void collectMetricDetailsForQuery(
+            String metricName,
+            Long datasourceId,
+            DataSourceType sourceType,
+            CdpCatalogScope cdpScope,
+            boolean tableGrantFiltering,
+            List<DataSourceTableGrantVO> tableGrants,
+            Map<String, JsonNode> catalogDetailsByName,
+            Set<String> resolvingMetrics) {
+        if (catalogDetailsByName.containsKey(metricName)) {
+            return;
+        }
+        if (!resolvingMetrics.add(metricName)) {
+            throw new IllegalArgumentException(
+                    "Circular derived metric reference: " + String.join(" -> ", resolvingMetrics)
+                            + " -> " + metricName);
+        }
+        try {
+            JsonNode detail = catalog.findDetailItem(metricName, datasourceId)
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Metric '" + metricName + "' not found in catalog"));
+            assertMetricUsableForQuery(
+                    metricName,
+                    datasourceId,
+                    detail,
+                    sourceType,
+                    cdpScope,
+                    tableGrantFiltering,
+                    tableGrants);
+            catalogDetailsByName.put(metricName, detail);
+            for (String dependency : metricDependencies(detail)) {
+                collectMetricDetailsForQuery(
+                        dependency,
+                        datasourceId,
+                        sourceType,
+                        cdpScope,
+                        tableGrantFiltering,
+                        tableGrants,
+                        catalogDetailsByName,
+                        resolvingMetrics);
+            }
+        } finally {
+            resolvingMetrics.remove(metricName);
+        }
+    }
+
+    private void assertMetricUsableForQuery(
+            String metricName,
+            Long datasourceId,
+            JsonNode detail,
+            DataSourceType sourceType,
+            CdpCatalogScope cdpScope,
+            boolean tableGrantFiltering,
+            List<DataSourceTableGrantVO> tableGrants) {
+        if (tableGrantFiltering) {
+            if (!isMetricPublishedAndAuthorizedForRuntime(
+                    datasourceId, detail, sourceType, tableGrants, Map.of())) {
+                throw new ForbiddenException("Metric is not authorized for this tenant: " + metricName);
+            }
+        } else if (!isMetricVisibleForDatasource(detail, sourceType, cdpScope)) {
+            throw new IllegalArgumentException(
+                    "Metric '" + metricName + "' is not available for datasource type " + sourceType.getCode());
+        }
+        if (requiresLegacyCdpRegistration(sourceType, tableGrantFiltering, cdpScope)) {
+            requireMeta(datasourceId, metricName);
+            if (!isTablePublishedForDatasource(
+                    datasourceId, detail.path("source").path("table_view").asText(null))) {
+                throw new IllegalArgumentException(
+                        "Metric '" + metricName + "' references an unpublished table");
+            }
+        }
+    }
+
+    private Set<String> metricDependencies(JsonNode detail) {
+        JsonNode calculation = detail.path("calculation");
+        if (calculation == null || calculation.isMissingNode() || !calculation.isObject()) {
+            return Set.of();
+        }
+        Set<String> dependencies = new LinkedHashSet<>();
+        addTextDependency(dependencies, calculation.path("numerator").asText(null));
+        addTextDependency(dependencies, calculation.path("denominator").asText(null));
+        String formula = calculation.path("formula").asText(null);
+        if (StringUtils.hasText(formula)) {
+            Matcher matcher = FORMULA_TOKEN.matcher(formula);
+            int position = 0;
+            while (matcher.find()) {
+                String skipped = formula.substring(position, matcher.start());
+                if (!skipped.isBlank()) {
+                    throw new IllegalArgumentException(
+                            "Metric '" + detail.path("metric_name").asText("")
+                                    + "' formula contains unsupported token near: " + skipped.trim());
+                }
+                String token = matcher.group();
+                if (isIdentifierToken(token)) {
+                    dependencies.add(token);
+                }
+                position = matcher.end();
+            }
+            String tail = formula.substring(position);
+            if (!tail.isBlank()) {
+                throw new IllegalArgumentException(
+                        "Metric '" + detail.path("metric_name").asText("")
+                                + "' formula contains unsupported token near: " + tail.trim());
+            }
+        }
+        return dependencies;
+    }
+
+    private void addTextDependency(Set<String> dependencies, String value) {
+        if (StringUtils.hasText(value)) {
+            dependencies.add(value.trim());
+        }
+    }
+
+    private boolean isIdentifierToken(String token) {
+        return token != null && !token.isBlank()
+                && (Character.isLetter(token.charAt(0)) || token.charAt(0) == '_');
+    }
 
     private static int resolveLimit(Integer requested) {
         if (requested == null || requested <= 0) return 1000;

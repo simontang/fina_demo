@@ -18,6 +18,7 @@ import com.fina.metrics.service.DataSourceTableAccessService;
 import com.fina.metrics.service.MetaCatalogService;
 import com.fina.metrics.service.SemanticQueryBuilder;
 import com.fina.metrics.service.TableViewMetaService;
+import org.mockito.ArgumentCaptor;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -296,6 +297,64 @@ class MetricsServiceImplTest {
     }
 
     @Test
+    void cdpSemanticQueryCollectsSqlFreeDerivedMetricDependencies() throws Exception {
+        JsonNode ratio = ratioMetric(
+                "hankel_gross_margin_rate",
+                "public.hankel_distr_sell_in",
+                "hankel_gross_margin",
+                "hankel_sell_in_nes");
+        JsonNode grossMargin = aggregateMetric(
+                "hankel_gross_margin",
+                "public.hankel_distr_sell_in",
+                "sum",
+                "gross_margin");
+        JsonNode nes = aggregateMetric(
+                "hankel_sell_in_nes",
+                "public.hankel_distr_sell_in",
+                "sum",
+                "nes");
+        NamedParameterJdbcTemplate jdbc = mock(NamedParameterJdbcTemplate.class);
+        String sql = "SELECT 1 AS \"hankel_gross_margin_rate\"";
+
+        when(datasourceMapper.selectById(DATASOURCE_ID)).thenReturn(datasource("Hankel PostgreSQL"));
+        when(tableAccessService.listActiveGrants("hankel", DATASOURCE_ID))
+                .thenReturn(List.of(tableGrant("hankel_")));
+        when(tableViewMetaService.getTableViewsIndex(DATASOURCE_ID))
+                .thenReturn(List.of(table("hankel_distr_sell_in")));
+        when(catalog.findDetailItem("hankel_gross_margin_rate", DATASOURCE_ID)).thenReturn(Optional.of(ratio));
+        when(catalog.findDetailItem("hankel_gross_margin", DATASOURCE_ID)).thenReturn(Optional.of(grossMargin));
+        when(catalog.findDetailItem("hankel_sell_in_nes", DATASOURCE_ID)).thenReturn(Optional.of(nes));
+        when(queryBuilder.buildMulti(
+                eq(List.of("hankel_gross_margin_rate")),
+                any(),
+                any(),
+                eq("cdp_postgres")))
+                .thenReturn(new SemanticQueryBuilder.BuildResult(sql, Map.of(), List.of("hankel_gross_margin_rate")));
+        when(dsManager.getNamedJdbcTemplate(DATASOURCE_ID)).thenReturn(jdbc);
+        when(jdbc.query(
+                eq(sql),
+                any(MapSqlParameterSource.class),
+                any(ResultSetExtractor.class)))
+                .thenReturn(List.of(List.of(1)));
+
+        service.query(request("hankel_gross_margin_rate"), "hankel");
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<JsonNode>> detailsCaptor = ArgumentCaptor.forClass(List.class);
+        verify(queryBuilder).buildMulti(
+                eq(List.of("hankel_gross_margin_rate")),
+                any(),
+                detailsCaptor.capture(),
+                eq("cdp_postgres"));
+        assertThat(detailsCaptor.getValue())
+                .extracting(node -> node.path("metric_name").asText())
+                .containsExactly(
+                        "hankel_gross_margin_rate",
+                        "hankel_gross_margin",
+                        "hankel_sell_in_nes");
+    }
+
+    @Test
     void customSqlRejectsWriteSqlBeforeExecution() {
         SemanticQueryRequest request = new SemanticQueryRequest();
         request.setDatasourceId(DATASOURCE_ID);
@@ -392,6 +451,47 @@ class MetricsServiceImplTest {
                   "supported_dimensions": []
                 }
                 """.formatted(metricName, tableView));
+    }
+
+    private JsonNode aggregateMetric(
+            String metricName,
+            String tableView,
+            String aggregation,
+            String measure) throws Exception {
+        return mapper.readTree("""
+                {
+                  "metric_name": "%s",
+                  "source_type": "cdp_postgres",
+                  "calculation": {
+                    "type": "aggregate",
+                    "aggregation": "%s",
+                    "measure": "%s"
+                  },
+                  "source": {"table_view": "%s", "base_filters": []},
+                  "supported_dimensions": []
+                }
+                """.formatted(metricName, aggregation, measure, tableView));
+    }
+
+    private JsonNode ratioMetric(
+            String metricName,
+            String tableView,
+            String numerator,
+            String denominator) throws Exception {
+        return mapper.readTree("""
+                {
+                  "metric_name": "%s",
+                  "source_type": "cdp_postgres",
+                  "calculation": {
+                    "type": "derived",
+                    "operator": "ratio",
+                    "numerator": "%s",
+                    "denominator": "%s"
+                  },
+                  "source": {"table_view": "%s", "base_filters": []},
+                  "supported_dimensions": []
+                }
+                """.formatted(metricName, numerator, denominator, tableView));
     }
 
     private TableViewIndexItem table(String tableName) {
