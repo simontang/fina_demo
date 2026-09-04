@@ -46,7 +46,7 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
 
     @Override
     public List<DataSourceTableGrantVO> listGrants(String tenantId, Long datasourceId) {
-        return selectTenantGrants(tenantId, datasourceId, null).stream()
+        return selectEffectiveGrants(tenantId, datasourceId, null).stream()
                 .map(this::toVO)
                 .collect(Collectors.toList());
     }
@@ -83,7 +83,7 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
             Long datasourceId,
             Long grantId,
             DataSourceTableGrantRequest request) {
-        DataSourceTableGrant grant = requireGrant(tenantId, datasourceId, grantId);
+        DataSourceTableGrant grant = requireGrant(datasourceId, grantId);
         applyRequest(grant, request);
         grantMapper.updateById(grant);
         log.info("Updated datasource table grant id={} tenant={} datasource={}",
@@ -94,7 +94,7 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
     @Override
     @Transactional
     public void deleteGrant(String tenantId, Long datasourceId, Long grantId) {
-        DataSourceTableGrant grant = requireGrant(tenantId, datasourceId, grantId);
+        DataSourceTableGrant grant = requireGrant(datasourceId, grantId);
         grantMapper.deleteById(grant.getId());
         log.info("Deleted datasource table grant id={} tenant={} datasource={}",
                 grantId, grant.getTenantId(), datasourceId);
@@ -361,18 +361,6 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
         return datasourceGrants;
     }
 
-    private List<DataSourceTableGrant> selectTenantGrants(String tenantId, Long datasourceId, Integer status) {
-        LambdaQueryWrapper<DataSourceTableGrant> wrapper = new LambdaQueryWrapper<DataSourceTableGrant>()
-                .eq(DataSourceTableGrant::getTenantId, TenantHeaderResolver.resolve(tenantId))
-                .eq(DataSourceTableGrant::getDatasourceId, datasourceId)
-                .eq(DataSourceTableGrant::getDeleted, 0)
-                .orderByAsc(DataSourceTableGrant::getId);
-        if (status != null) {
-            wrapper.eq(DataSourceTableGrant::getStatus, status);
-        }
-        return grantMapper.selectList(wrapper);
-    }
-
     private List<DataSourceTableGrant> selectDatasourceGrants(Long datasourceId, Integer status) {
         LambdaQueryWrapper<DataSourceTableGrant> wrapper = new LambdaQueryWrapper<DataSourceTableGrant>()
                 .eq(DataSourceTableGrant::getDatasourceId, datasourceId)
@@ -385,11 +373,10 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
         return grantMapper.selectList(wrapper);
     }
 
-    private DataSourceTableGrant requireGrant(String tenantId, Long datasourceId, Long grantId) {
+    private DataSourceTableGrant requireGrant(Long datasourceId, Long grantId) {
         DataSourceTableGrant grant = grantMapper.selectOne(
                 new LambdaQueryWrapper<DataSourceTableGrant>()
                         .eq(DataSourceTableGrant::getId, grantId)
-                        .eq(DataSourceTableGrant::getTenantId, TenantHeaderResolver.resolve(tenantId))
                         .eq(DataSourceTableGrant::getDatasourceId, datasourceId)
                         .eq(DataSourceTableGrant::getDeleted, 0)
         );

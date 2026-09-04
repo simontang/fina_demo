@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.fina.metrics.config.DynamicDataSourceManager;
 import com.fina.metrics.dto.DataSourceTableGrantRequest;
+import com.fina.metrics.dto.DataSourceTableGrantVO;
 import com.fina.metrics.dto.DataSourceTableVO;
 import com.fina.metrics.dto.MetricsQueryData;
 import com.fina.metrics.dto.SqlProbeRequest;
@@ -103,18 +104,20 @@ class DataSourceTableAccessServiceImplTest {
     }
 
     @Test
-    void updateGrantDoesNotFallBackAcrossTenants() {
-        when(grantMapper.selectOne(any())).thenReturn(null);
+    void updateGrantUsesDatasourceBoundary() {
+        DataSourceTableGrant existing = prefixGrant("hankel_");
+        when(grantMapper.selectOne(any())).thenReturn(existing);
         DataSourceTableGrantRequest request = new DataSourceTableGrantRequest();
         request.setSchemaName("public");
-        request.setTablePattern("hankel_");
+        request.setTablePattern("hankel_view_");
         request.setPatternType("PREFIX");
+        request.setStatus(1);
 
-        assertThatThrownBy(() -> service.updateGrant("default", DATASOURCE_ID, 1L, request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("DataSource table grant not found");
+        DataSourceTableGrantVO updated = service.updateGrant("default", DATASOURCE_ID, 1L, request);
 
-        verify(grantMapper, never()).selectList(any());
+        assertThat(updated.getTablePattern()).isEqualTo("hankel_view_");
+        assertThat(updated.getTenantId()).isEqualTo("hankel");
+        verify(grantMapper).updateById(existing);
     }
 
     @Test
