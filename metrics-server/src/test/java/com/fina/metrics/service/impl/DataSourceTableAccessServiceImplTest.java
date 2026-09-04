@@ -3,6 +3,7 @@ package com.fina.metrics.service.impl;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.fina.metrics.config.DynamicDataSourceManager;
+import com.fina.metrics.dto.DataSourceTableGrantRequest;
 import com.fina.metrics.dto.DataSourceTableVO;
 import com.fina.metrics.dto.MetricsQueryData;
 import com.fina.metrics.dto.SqlProbeRequest;
@@ -78,6 +79,42 @@ class DataSourceTableAccessServiceImplTest {
                 service.assertSqlAuthorized("hankel", DATASOURCE_ID, "SELECT * FROM t_datasource_config"))
                 .isInstanceOf(ForbiddenException.class)
                 .hasMessageContaining("unauthorized table");
+    }
+
+    @Test
+    void readChecksFallBackToDatasourceGrantsWhenTenantHasNone() {
+        when(grantMapper.selectList(any()))
+                .thenReturn(List.of(), List.of(prefixGrant("hankel_")));
+
+        assertThat(service.isTableAuthorized("default", DATASOURCE_ID, null, "hankel_sales")).isTrue();
+
+        verify(grantMapper, times(2)).selectList(any());
+    }
+
+    @Test
+    void tenantGrantTakesPrecedenceOverDatasourceFallback() {
+        when(grantMapper.selectList(any()))
+                .thenReturn(List.of(prefixGrant("tenant_only_")));
+
+        assertThat(service.isTableAuthorized("default", DATASOURCE_ID, null, "hankel_sales")).isFalse();
+        assertThat(service.isTableAuthorized("default", DATASOURCE_ID, null, "tenant_only_sales")).isTrue();
+
+        verify(grantMapper, times(2)).selectList(any());
+    }
+
+    @Test
+    void updateGrantDoesNotFallBackAcrossTenants() {
+        when(grantMapper.selectOne(any())).thenReturn(null);
+        DataSourceTableGrantRequest request = new DataSourceTableGrantRequest();
+        request.setSchemaName("public");
+        request.setTablePattern("hankel_");
+        request.setPatternType("PREFIX");
+
+        assertThatThrownBy(() -> service.updateGrant("default", DATASOURCE_ID, 1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("DataSource table grant not found");
+
+        verify(grantMapper, never()).selectList(any());
     }
 
     @Test

@@ -46,14 +46,14 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
 
     @Override
     public List<DataSourceTableGrantVO> listGrants(String tenantId, Long datasourceId) {
-        return selectGrants(tenantId, datasourceId, null).stream()
+        return selectEffectiveGrants(tenantId, datasourceId, null).stream()
                 .map(this::toVO)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<DataSourceTableGrantVO> listActiveGrants(String tenantId, Long datasourceId) {
-        return selectActiveGrants(tenantId, datasourceId).stream()
+        return selectEffectiveActiveGrants(tenantId, datasourceId).stream()
                 .map(this::toVO)
                 .collect(Collectors.toList());
     }
@@ -102,7 +102,7 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
 
     @Override
     public boolean hasActiveGrants(String tenantId, Long datasourceId) {
-        return !selectActiveGrants(tenantId, datasourceId).isEmpty();
+        return !selectEffectiveActiveGrants(tenantId, datasourceId).isEmpty();
     }
 
     @Override
@@ -111,7 +111,7 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
             Long datasourceId,
             String schemaName,
             String tableName) {
-        List<DataSourceTableGrant> grants = selectActiveGrants(tenantId, datasourceId);
+        List<DataSourceTableGrant> grants = selectEffectiveActiveGrants(tenantId, datasourceId);
         DataSourceConfig datasource = resolveDatasource(datasourceId);
         String effectiveSchema = resolveEffectiveSchema(schemaName, datasource, grants);
         return grants.stream().anyMatch(grant -> matchesGrant(grant, effectiveSchema, tableName));
@@ -123,7 +123,7 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
             Long datasourceId,
             String schemaName,
             String tableName) {
-        List<DataSourceTableGrant> grants = selectActiveGrants(tenantId, datasourceId);
+        List<DataSourceTableGrant> grants = selectEffectiveActiveGrants(tenantId, datasourceId);
         if (grants.isEmpty()) {
             return true;
         }
@@ -135,7 +135,7 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
     @Override
     public void assertSqlAuthorized(String tenantId, Long datasourceId, String sql) {
         ReadOnlySqlValidator.validate(sql);
-        List<DataSourceTableGrant> grants = selectActiveGrants(tenantId, datasourceId);
+        List<DataSourceTableGrant> grants = selectEffectiveActiveGrants(tenantId, datasourceId);
         if (grants.isEmpty()) {
             throw new ForbiddenException("No table grants configured for tenant="
                     + TenantHeaderResolver.resolve(tenantId) + " datasourceId=" + datasourceId);
@@ -184,7 +184,7 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
     @Override
     public List<DataSourceTableVO> listAuthorizedTables(String tenantId, Long datasourceId) {
         requireDatasource(datasourceId);
-        List<DataSourceTableGrant> grants = selectActiveGrants(tenantId, datasourceId);
+        List<DataSourceTableGrant> grants = selectEffectiveActiveGrants(tenantId, datasourceId);
         if (grants.isEmpty()) {
             return List.of();
         }
@@ -229,7 +229,7 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
         if (!isTableAuthorized(tenantId, datasourceId, schemaName, tableName)) {
             throw new ForbiddenException("Table is not authorized for this tenant: " + tableName);
         }
-        List<DataSourceTableGrant> grants = selectActiveGrants(tenantId, datasourceId);
+        List<DataSourceTableGrant> grants = selectEffectiveActiveGrants(tenantId, datasourceId);
         DataSourceConfig datasource = resolveDatasource(datasourceId);
         String effectiveSchema = resolveEffectiveSchema(schemaName, datasource, grants);
 
@@ -347,15 +347,41 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
         return rows;
     }
 
-    private List<DataSourceTableGrant> selectActiveGrants(String tenantId, Long datasourceId) {
-        return selectGrants(tenantId, datasourceId, 1);
+    private List<DataSourceTableGrant> selectEffectiveActiveGrants(String tenantId, Long datasourceId) {
+        return selectEffectiveGrants(tenantId, datasourceId, 1);
     }
 
-    private List<DataSourceTableGrant> selectGrants(String tenantId, Long datasourceId, Integer status) {
+    private List<DataSourceTableGrant> selectEffectiveGrants(String tenantId, Long datasourceId, Integer status) {
+        String resolvedTenant = TenantHeaderResolver.resolve(tenantId);
+        List<DataSourceTableGrant> tenantGrants = selectTenantGrants(resolvedTenant, datasourceId, status);
+        if (!tenantGrants.isEmpty()) {
+            return tenantGrants;
+        }
+        List<DataSourceTableGrant> datasourceGrants = selectDatasourceGrants(datasourceId, status);
+        if (!datasourceGrants.isEmpty()) {
+            log.debug("Using datasource-level table grants tenant={} datasource={} grantCount={}",
+                    resolvedTenant, datasourceId, datasourceGrants.size());
+        }
+        return datasourceGrants;
+    }
+
+    private List<DataSourceTableGrant> selectTenantGrants(String tenantId, Long datasourceId, Integer status) {
         LambdaQueryWrapper<DataSourceTableGrant> wrapper = new LambdaQueryWrapper<DataSourceTableGrant>()
                 .eq(DataSourceTableGrant::getTenantId, TenantHeaderResolver.resolve(tenantId))
                 .eq(DataSourceTableGrant::getDatasourceId, datasourceId)
                 .eq(DataSourceTableGrant::getDeleted, 0)
+                .orderByAsc(DataSourceTableGrant::getId);
+        if (status != null) {
+            wrapper.eq(DataSourceTableGrant::getStatus, status);
+        }
+        return grantMapper.selectList(wrapper);
+    }
+
+    private List<DataSourceTableGrant> selectDatasourceGrants(Long datasourceId, Integer status) {
+        LambdaQueryWrapper<DataSourceTableGrant> wrapper = new LambdaQueryWrapper<DataSourceTableGrant>()
+                .eq(DataSourceTableGrant::getDatasourceId, datasourceId)
+                .eq(DataSourceTableGrant::getDeleted, 0)
+                .orderByAsc(DataSourceTableGrant::getTenantId)
                 .orderByAsc(DataSourceTableGrant::getId);
         if (status != null) {
             wrapper.eq(DataSourceTableGrant::getStatus, status);

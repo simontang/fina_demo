@@ -9,15 +9,16 @@
 核心原则：
 
 - 租户 Agent 不能看到 datasource 的全量物理表清单。
-- Datasource 探查必须先读取 `table-grants`，再在授权范围内执行只读 SQL。
+- Datasource 探查工具必须先读取 `table-grants`，确认建议探查范围；Builder/Admin 级 `/datasources/{dsId}/query` 是 datasource 级只读查询能力。
 - `meta/tables` 是发布给 runtime 的语义表，不是 datasource 物理表 inventory。
 - `meta/metrics` 是发布给 runtime 的指标定义。
 - 普通业务 Agent 只使用 `metrics_runtime_tool`。
 - Builder/Admin Agent 可以使用 `metrics_datasource_tool` 和 `metrics_meta_tool`。
+- v1 中 Metrics Server 把 `tenantId` 作为弱上下文：优先使用当前 tenant 的 grants；如果该 tenant 没有 grants，则 fallback 到相同 `datasourceId` 下已有的 active grants。真正的隔离前提是 datasourceId 已按客户/租户隔离。
 
 ## 1. Common Conventions
 
-所有 Metrics Server API 都必须携带租户 header：
+所有 Metrics Server runtime API 都建议携带租户 header：
 
 ```http
 X-Tenant-Id: hankel
@@ -26,6 +27,7 @@ X-Tenant-Id: hankel
 Agent 侧调用前还需要校验：
 
 - `datasourceId` 必须属于当前租户配置的 `selectedDataSources`。
+- Metrics Server 会优先按 `X-Tenant-Id` 取 grants；如果没有 tenant grants，则按 `datasourceId` fallback 到已有 active grants。
 - `serverUrl` 应配置到 Metrics Server 的 `/api/v1` 层。
 - SQL 只允许 `SELECT` 或 `WITH`。
 - 禁止多语句。
@@ -68,7 +70,7 @@ Metrics Server config 示例：
 
 | Tool | Purpose | Permission Boundary |
 |---|---|---|
-| `metrics_datasource_tool` | 探查 datasource 内当前租户授权范围的数据结构和样例数据 | 必须先读取 `table-grants`，只允许在 grant 范围内查询 |
+| `metrics_datasource_tool` | 探查 datasource 内的数据结构和样例数据，用于 Builder/Admin 建模 | 必须先读取 `table-grants` 作为建议探查范围；`/query` 需要 datasource 级权限 |
 | `metrics_meta_tool` | 创建和维护 runtime 可用的 table meta / metric meta | Builder/Admin 权限，写入 published semantic assets |
 | `metrics_runtime_tool` | 普通 Agent 读取 runtime meta 并执行指标查询 | 只能访问已发布 table meta 和 metric meta |
 
@@ -76,7 +78,7 @@ Metrics Server config 示例：
 
 | Object | Meaning | Used By |
 |---|---|---|
-| `table-grants` | 当前租户允许 datasource tool 探查什么范围 | Datasource Tool |
+| `table-grants` | 当前 datasource 建议/允许发布给 runtime 的表范围；读接口支持 tenant 优先、datasource fallback | Datasource Tool / Meta Tool |
 | `meta/tables` | 当前租户已发布给 runtime 的语义表 | Metrics Meta Tool / Runtime |
 | `meta/metrics` | 当前租户已发布给 runtime 的指标 | Metrics Meta Tool / Runtime |
 
@@ -84,7 +86,7 @@ Metrics Server config 示例：
 
 ### 3.1 Purpose
 
-`metrics_datasource_tool` 用于 datasource 探查，帮助 Builder/Admin Agent 理解当前租户允许访问的数据范围、字段结构、样例数据和数据分布。
+`metrics_datasource_tool` 用于 datasource 探查，帮助 Builder/Admin Agent 理解当前 datasource 的字段结构、样例数据和数据分布。
 
 这个工具不负责发布 meta，也不负责回答业务指标问题。
 
@@ -121,7 +123,7 @@ GET  /api/v1/datasources/{dsId}/pool
 
 ### 3.4 Get Table Grants
 
-`table-grants` 是 datasource 探查边界。工具必须先调用这个接口，确认当前租户允许探查哪些 schema/table pattern。
+`table-grants` 是 datasource 的治理边界。工具必须先调用这个接口，确认当前 datasource 建议建模和发布哪些 schema/table pattern。
 
 ```bash
 curl -s \
@@ -149,12 +151,19 @@ curl -s \
 含义：
 
 ```text
-tenant=hankel 只能探查 datasource 15 中 public schema 下 hankel_ 前缀的表。
+datasource 15 的建议建模范围是 public schema 下 hankel_ 前缀的表。
 ```
+
+v1 读路径的 tenant 规则：
+
+- 如果 `X-Tenant-Id` 对应的 grants 存在，返回该 tenant 的 grants。
+- 如果当前 tenant 没有 grants，返回同一 `datasourceId` 下已有的 active grants。
+- 这让 Agent 在 header 缺失或 tenant 不一致时仍能按 datasourceId 工作；前提是 datasourceId 已经按客户隔离。
+- grant 的 create/update/delete 仍然按当前 tenant 精确处理，不做 fallback。
 
 ### 3.5 Run Datasource Query
 
-`/query` 用于在 `table-grants` 范围内执行只读 SQL。
+`/query` 用于 Builder/Admin 在 datasource 范围内执行只读 SQL，例如查询 metadata、抽样、验证计算口径。它不按 `table-grants` 做 runtime 过滤，所以不要暴露给普通业务 Agent。
 
 ```bash
 curl -s \
@@ -204,10 +213,11 @@ curl -s \
 `metrics_datasource_tool` 必须执行以下规则：
 
 - 先调用 `table-grants`。
-- SQL 引用的所有表必须命中当前租户 grant。
+- 让探查围绕建议建模范围展开。
+- `/query` 需要 datasource 级 Builder/Admin 权限；普通业务 Agent 不应直接使用。
 - 不允许返回 datasource 全量物理表清单。
 - 不允许告诉普通 Agent 未授权表是否存在。
-- 如果 SQL 引用未授权表，返回 `TABLE_NOT_GRANTED` 或同类业务错误。
+- runtime `customSql` 或 `/sql/probe` 如果引用未授权表，返回 `TABLE_NOT_GRANTED` 或同类业务错误。
 
 不建议给普通租户 Agent 暴露：
 
@@ -413,7 +423,7 @@ Derived ratio metric：
 `metrics_meta_tool` 应校验或依赖服务端校验：
 
 - `objectKey` 在同一 datasource 下唯一。
-- table meta 引用的物理表必须在当前租户 `table-grants` 范围内。
+- table meta 引用的物理表应在 datasource `table-grants` 范围内；读路径会先看当前 tenant grants，没有时按 datasourceId fallback。
 - metric meta 的 `sourceTable` 必须存在对应 table meta。
 - metric meta 的 `dimensions` 必须来自 table meta columns。
 - derived metric 依赖的指标必须存在。
@@ -663,9 +673,9 @@ POST /api/v1/metrics/query
 
 Datasource Tool：
 
-- 可以读取当前租户 datasource 的 table grants。
-- 可以查询 grant 范围内的表。
-- 查询 grant 范围外的表被拒绝。
+- 可以读取当前 datasource 的 effective table grants。
+- Builder/Admin `/query` 可以做 datasource 级只读探查。
+- runtime `customSql` 查询 grant 范围外的表被拒绝。
 - DDL/DML 被拒绝。
 - 多语句 SQL 被拒绝。
 - 不返回 datasource 全量物理表清单。
