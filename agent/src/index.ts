@@ -89,7 +89,8 @@ if (!process.env.MODEL_LIST) {
       apiKeyEnvName: "API_KEY3",
       baseURL: baseURL,
       modelKwargs: {
-        "enable_thinking": false
+        "enable_thinking": false,
+        "thinking": { "type": "disabled" }
       }
     }
   );
@@ -145,7 +146,8 @@ if (!process.env.MODEL_LIST) {
       apiKeyEnvName: "API_KEY3",
       baseURL: baseURL,
       modelKwargs: {
-        "enable_thinking": false
+        "enable_thinking": false,
+        "thinking": { "type": "disabled" }
       }
 
     }
