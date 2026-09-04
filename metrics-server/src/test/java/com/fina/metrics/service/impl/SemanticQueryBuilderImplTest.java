@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SemanticQueryBuilderImplTest {
 
@@ -206,6 +207,82 @@ class SemanticQueryBuilderImplTest {
 
         assertThat(result.sql()).contains(
                 "(SUM(\"nes\"))/(SUM(\"sell_in_quantity\")) AS \"hankel_avg_sell_in_price\"");
+    }
+
+    @Test
+    void rejectsGroupByDimensionThatIsNotPublished() throws Exception {
+        SemanticQueryRequest request = new SemanticQueryRequest();
+        request.setGroupBy(List.of("combined_id"));
+        JsonNode detail = aggregateMetric("hankel_sell_in_nes", "sum", "nes");
+
+        assertThatThrownBy(() -> builder.buildMulti(
+                List.of("hankel_sell_in_nes"),
+                request,
+                List.of(detail),
+                "cdp_postgres"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("not published in supported_dimensions");
+    }
+
+    @Test
+    void rejectsFilterDimensionThatIsNotPublished() throws Exception {
+        SemanticQueryRequest request = new SemanticQueryRequest();
+        SemanticQueryRequest.FilterItem filter = new SemanticQueryRequest.FilterItem();
+        filter.setDimension("combined_id");
+        filter.setOperator("EQ");
+        filter.setValues(List.of("1"));
+        request.setFilters(List.of(filter));
+        JsonNode detail = aggregateMetric("hankel_sell_in_nes", "sum", "nes");
+
+        assertThatThrownBy(() -> builder.buildMulti(
+                List.of("hankel_sell_in_nes"),
+                request,
+                List.of(detail),
+                "cdp_postgres"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("not published in supported_dimensions");
+    }
+
+    @Test
+    void rejectsOrderByFieldThatIsNotSelected() throws Exception {
+        SemanticQueryRequest request = new SemanticQueryRequest();
+        SemanticQueryRequest.OrderByItem orderBy = new SemanticQueryRequest.OrderByItem();
+        orderBy.setField("combined_id");
+        request.setOrderBy(List.of(orderBy));
+        JsonNode detail = aggregateMetric("hankel_sell_in_nes", "sum", "nes");
+
+        assertThatThrownBy(() -> builder.buildMulti(
+                List.of("hankel_sell_in_nes"),
+                request,
+                List.of(detail),
+                "cdp_postgres"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("must be a selected dimension or metric");
+    }
+
+    @Test
+    void enforcesMetricRequiredGroupByConstraint() throws Exception {
+        SemanticQueryRequest request = new SemanticQueryRequest();
+        JsonNode detail = mapper.readTree("""
+                {
+                  "metric_name": "hankel_final_score",
+                  "source_type": "cdp_postgres",
+                  "source": {"table_view": "public.hankel_leaderboard", "base_filters": []},
+                  "calculation": {"type": "aggregate", "aggregation": "avg", "measure": "score"},
+                  "supported_dimensions": [
+                    {"dim_id": "canonical_sales_name", "field_name": "canonical_sales_name"}
+                  ],
+                  "query_constraints": {"required_group_by": ["canonical_sales_name"]}
+                }
+                """);
+
+        assertThatThrownBy(() -> builder.buildMulti(
+                List.of("hankel_final_score"),
+                request,
+                List.of(detail),
+                "cdp_postgres"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("requires groupBy dimensions: canonical_sales_name");
     }
 
     private JsonNode aggregateMetric(String metricName, String aggregation, String measure) throws Exception {

@@ -38,9 +38,8 @@ import java.util.regex.Pattern;
  * Filter operators:
  *   BETWEEN, IN, EQ, NEQ, GT, GTE, LT, LTE, LIKE, NOT_NULL
  *
- * Dimension resolution:
- *   1. Look up dim_id in the metric's supported_dimensions → take field_name
- *   2. If not found, treat the input as the raw field name directly
+ * Dimension resolution is intentionally strict: request dimensions must be
+ * published in supported_dimensions or default_time_context.
  */
 @Slf4j
 @Service
@@ -96,6 +95,7 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
 
         List<String> groupByItems = request.getGroupBy() != null
                 ? request.getGroupBy() : List.of();
+        validateRequiredGroupBy(List.of(catalogDetail), groupByItems);
 
         Map<String, Object> params = new LinkedHashMap<>();
         List<String> selectCols   = new ArrayList<>();
@@ -106,14 +106,14 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
         // ── SELECT + GROUP BY for each group_by item ─────────────────────────
         for (String gbItem : groupByItems) {
             DimRef ref = resolveGroupByItem(gbItem, dimMap, dataSourceType);
-            selectExprs.add(ref.selectExpr + " AS \"" + gbItem + "\"");
+            selectExprs.add(ref.selectExpr + " AS " + quoteAlias(gbItem));
             groupByClauses.add(ref.groupByExpr);
             columnLabels.add(gbItem);
             selectCols.add(gbItem);
         }
 
         // ── SELECT: metric expression AS metric name (doc: column = metric name) ──
-        selectExprs.add(sqlExpr + " AS \"" + metricName + "\"");
+        selectExprs.add(sqlExpr + " AS " + quoteAlias(metricName));
         columnLabels.add(metricName);
 
         // ── WHERE clause ──────────────────────────────────────────────────────
@@ -125,7 +125,7 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
                 String field    = bf.path("field").asText("");
                 String operator = bf.path("operator").asText("").toUpperCase();
                 if (StringUtils.hasText(field) && "NOT_NULL".equals(operator)) {
-                    whereParts.add("\"" + field + "\" IS NOT NULL");
+                    whereParts.add(quoteColumn(field) + " IS NOT NULL");
                 }
             });
         }
@@ -137,7 +137,7 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
         for (int i = 0; i < filters.size(); i++) {
             SemanticQueryRequest.FilterItem f = filters.get(i);
             String fieldName = resolveFieldName(f.getDimension(), dimMap);
-            String quotedField = "\"" + fieldName + "\"";
+            String quotedField = quoteColumn(fieldName);
             String op = f.getOperator().toUpperCase();
             List<Object> values = f.getValues() != null ? f.getValues() : List.of();
 
@@ -202,8 +202,8 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
 
         for (SemanticQueryRequest.OrderByItem ob : orderBys) {
             String dir = "DESC".equalsIgnoreCase(ob.getDirection()) ? "DESC" : "ASC";
-            // Use the alias name (quoted) so HANA can resolve computed columns
-            orderByParts.add("\"" + ob.getField() + "\" " + dir);
+            validateOrderByField(ob.getField(), groupByItems, List.of(metricName));
+            orderByParts.add(quoteAlias(ob.getField()) + " " + dir);
         }
 
         // ── Assemble SQL ──────────────────────────────────────────────────────
@@ -259,6 +259,9 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
 
         Map<String, String> dimMap = buildDimMap(dimNodes, timeDimNode);
         List<String> groupByItems = request.getGroupBy() != null ? request.getGroupBy() : List.of();
+        validateRequiredGroupBy(
+                metricNames.stream().map(metricDetailsByName::get).filter(Objects::nonNull).toList(),
+                groupByItems);
 
         Map<String, Object> params = new LinkedHashMap<>();
         List<String> selectExprs = new ArrayList<>();
@@ -267,7 +270,7 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
 
         for (String gbItem : groupByItems) {
             DimRef ref = resolveGroupByItem(gbItem, dimMap, dataSourceType);
-            selectExprs.add(ref.selectExpr + " AS \"" + gbItem + "\"");
+            selectExprs.add(ref.selectExpr + " AS " + quoteAlias(gbItem));
             groupByClauses.add(ref.groupByExpr);
             columnLabels.add(gbItem);
         }
@@ -280,7 +283,7 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
                     detail,
                     metricDetailsByName,
                     new LinkedHashSet<>());
-            selectExprs.add(sqlExpr + " AS \"" + metricName + "\"");
+            selectExprs.add(sqlExpr + " AS " + quoteAlias(metricName));
             columnLabels.add(metricName);
         }
 
@@ -290,7 +293,7 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
                 String field = bf.path("field").asText("");
                 String operator = bf.path("operator").asText("").toUpperCase();
                 if (StringUtils.hasText(field) && "NOT_NULL".equals(operator)) {
-                    whereParts.add("\"" + field + "\" IS NOT NULL");
+                    whereParts.add(quoteColumn(field) + " IS NOT NULL");
                 }
             });
         }
@@ -300,7 +303,7 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
         for (int i = 0; i < filters.size(); i++) {
             SemanticQueryRequest.FilterItem f = filters.get(i);
             String fieldName = resolveFieldName(f.getDimension(), dimMap);
-            String quotedField = "\"" + fieldName + "\"";
+            String quotedField = quoteColumn(fieldName);
             String op = f.getOperator().toUpperCase();
             List<Object> values = f.getValues() != null ? f.getValues() : List.of();
 
@@ -361,7 +364,8 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
                 ? request.getOrderBy() : List.of();
         for (SemanticQueryRequest.OrderByItem ob : orderBys) {
             String dir = "DESC".equalsIgnoreCase(ob.getDirection()) ? "DESC" : "ASC";
-            orderByParts.add("\"" + ob.getField() + "\" " + dir);
+            validateOrderByField(ob.getField(), groupByItems, metricNames);
+            orderByParts.add(quoteAlias(ob.getField()) + " " + dir);
         }
 
         int limit = resolveLimit(request.getLimit());
@@ -431,31 +435,80 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
                     : HANA_GRAIN_FORMAT.get(grainPart);
             if (fmt != null) {
                 // Resolve the dim part to a field name
-                String fieldName = dimMap.getOrDefault(dimPart, dimPart);
+                String fieldName = requireDimensionField(dimPart, dimMap);
                 String expr = sourceType == DataSourceType.CDP_POSTGRES
-                        ? "to_char(\"" + fieldName + "\", " + fmt + ")"
-                        : "TO_NVARCHAR(\"" + fieldName + "\", " + fmt + ")";
+                        ? "to_char(" + quoteColumn(fieldName) + ", " + fmt + ")"
+                        : "TO_NVARCHAR(" + quoteColumn(fieldName) + ", " + fmt + ")";
                 return new DimRef(expr, expr);
             }
         }
-        // Plain dim_id or raw field name
-        String fieldName = dimMap.getOrDefault(gbItem, gbItem);
-        String quoted = "\"" + fieldName + "\"";
+        String fieldName = requireDimensionField(gbItem, dimMap);
+        String quoted = quoteColumn(fieldName);
         return new DimRef(quoted, quoted);
     }
 
     /**
-     * Resolve a filter dimension string to the actual HANA field name.
-     * Falls back to treating the input as a raw field name.
+     * Resolve a published filter dimension to the physical field name.
      */
     private String resolveFieldName(String dimension, Map<String, String> dimMap) {
         // Handle "field__grain" in filters (use base field only)
         int dunder = dimension.lastIndexOf("__");
         if (dunder > 0) {
             String dimPart = dimension.substring(0, dunder);
-            return dimMap.getOrDefault(dimPart, dimPart);
+            return requireDimensionField(dimPart, dimMap);
         }
-        return dimMap.getOrDefault(dimension, dimension);
+        return requireDimensionField(dimension, dimMap);
+    }
+
+    private String requireDimensionField(String dimension, Map<String, String> dimMap) {
+        if (!StringUtils.hasText(dimension) || !dimMap.containsKey(dimension)) {
+            throw new IllegalArgumentException(
+                    "Dimension '" + dimension + "' is not published in supported_dimensions");
+        }
+        return dimMap.get(dimension);
+    }
+
+    private void validateOrderByField(
+            String field,
+            List<String> groupByItems,
+            List<String> metricNames) {
+        if (!StringUtils.hasText(field)
+                || (!groupByItems.contains(field) && !metricNames.contains(field))) {
+            throw new IllegalArgumentException(
+                    "Order-by field '" + field + "' must be a selected dimension or metric");
+        }
+    }
+
+    private void validateRequiredGroupBy(List<JsonNode> details, List<String> groupByItems) {
+        Set<String> requested = groupByItems.stream()
+                .filter(StringUtils::hasText)
+                .map(item -> {
+                    int dunder = item.lastIndexOf("__");
+                    return dunder > 0 ? item.substring(0, dunder) : item;
+                })
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        for (JsonNode detail : details) {
+            JsonNode required = detail.path("query_constraints").path("required_group_by");
+            if (required == null || !required.isArray()) {
+                continue;
+            }
+            List<String> missing = new ArrayList<>();
+            required.forEach(node -> {
+                String dimension = node.asText(null);
+                if (StringUtils.hasText(dimension) && !requested.contains(dimension)) {
+                    missing.add(dimension);
+                }
+            });
+            if (!missing.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Metric '" + detail.path("metric_name").asText("")
+                                + "' requires groupBy dimensions: " + String.join(", ", missing));
+            }
+        }
+    }
+
+    private String quoteAlias(String alias) {
+        return "\"" + alias.replace("\"", "\"\"") + "\"";
     }
 
     private int resolveLimit(Integer requested) {

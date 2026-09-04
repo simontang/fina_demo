@@ -46,7 +46,7 @@ public class SemanticQueryRequest {
     private List<String> metrics;
 
     /**
-     * Dimensions to group by.
+     * Published dimensions to group by.
      * Use dim_id from supported_dimensions (e.g. "org_region")
      * or "fieldName__granularity" for time dims (e.g. "DocDate__month").
      */
@@ -83,7 +83,7 @@ public class SemanticQueryRequest {
     /**
      * A single filter condition.
      *
-     * dimension: dim_id (e.g. "org_region") or raw field name (e.g. "DocDate")
+     * dimension: dim_id published in supported_dimensions (e.g. "org_region")
      * operator : BETWEEN | IN | EQ | NEQ | GT | GTE | LT | LTE | LIKE | NOT_NULL
      * values   : list of operand values (empty for NOT_NULL; two for BETWEEN; any count for IN)
      */

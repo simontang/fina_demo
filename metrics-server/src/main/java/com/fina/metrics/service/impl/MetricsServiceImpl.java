@@ -19,6 +19,7 @@ import com.fina.metrics.service.SemanticQueryBuilder;
 import com.fina.metrics.service.TableViewMetaService;
 import com.fina.metrics.util.ReadOnlySqlValidator;
 import com.fina.metrics.util.SqlIdentifierUtils;
+import com.fina.metrics.util.SqlTableReferenceExtractor;
 import com.fina.metrics.util.TenantHeaderResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -193,6 +194,9 @@ public class MetricsServiceImpl implements MetricsService {
 
         List<Map<String, Object>> dimensions =
                 parseJsonArray(catalogDetail.path("supported_dimensions"));
+        Map<String, Object> queryConstraints = catalogDetail.path("query_constraints").isObject()
+                ? MAPPER.convertValue(catalogDetail.path("query_constraints"), new TypeReference<>() {})
+                : null;
 
         // Build TimeContext from the merged default_time_context catalog node
         MetricsDetailResponse.TimeContext timeCtx = null;
@@ -264,6 +268,7 @@ public class MetricsServiceImpl implements MetricsService {
                 .format(catalogDetail.path("format").asText(""))
                 .defaultTimeContext(timeCtx)
                 .supportedDimensions(dimensions)
+                .queryConstraints(queryConstraints)
                 .aiAgentContext(aiCtx)
                 .queryInfo(queryInfo)
                 .build();
@@ -379,12 +384,14 @@ public class MetricsServiceImpl implements MetricsService {
             sqlRequest.setParams(request.getParams());
             sqlRequest.setMaxRows(request.getLimit());
             sqlRequest.setDebug(request.getDebug());
-            MetricsQueryData result;
-            if (tableAccessService.hasActiveGrants(resolvedTenant, request.getDatasourceId())) {
-                result = tableAccessService.probeSql(resolvedTenant, request.getDatasourceId(), sqlRequest);
-            } else {
-                result = tableAccessService.queryDatasource(request.getDatasourceId(), sqlRequest);
+            if (!tableAccessService.hasActiveGrants(resolvedTenant, request.getDatasourceId())) {
+                throw new ForbiddenException(
+                        "Metrics runtime customSql requires active table grants for datasourceId="
+                                + request.getDatasourceId());
             }
+            assertSqlUsesPublishedTables(request.getDatasourceId(), sqlToRun);
+            MetricsQueryData result = tableAccessService.probeSql(
+                    resolvedTenant, request.getDatasourceId(), sqlRequest);
             result.setSemanticModel("adhoc");
             return result;
         }
@@ -793,6 +800,17 @@ public class MetricsServiceImpl implements MetricsService {
         return tableViewMetaService.getTableViewsIndex(datasourceId).stream()
                 .anyMatch(table -> SqlIdentifierUtils.sameTableName(
                         table.getTableName(), tableName, false));
+    }
+
+    private void assertSqlUsesPublishedTables(Long datasourceId, String sql) {
+        for (SqlTableReferenceExtractor.TableReference reference
+                : SqlTableReferenceExtractor.extract(sql)) {
+            if (!isTablePublishedForDatasource(datasourceId, reference.original())) {
+                throw new ForbiddenException(
+                        "Metrics runtime customSql references unpublished table: "
+                                + reference.original());
+            }
+        }
     }
 
     private boolean isRegisteredMetricOnPublishedTable(

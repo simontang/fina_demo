@@ -50,6 +50,9 @@ public class MetricsDetailResponse {
     /** Categorical GROUP BY / filter dimensions: [{dim_id, field_name, type}] */
     private List<Map<String, Object>> supportedDimensions;
 
+    /** Runtime constraints such as required_group_by for non-additive metrics. */
+    private Map<String, Object> queryConstraints;
+
     // ── AI agent context (from catalog JSON) ─────────────────────────────────
     private AiAgentContext aiAgentContext;
 

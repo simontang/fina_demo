@@ -428,7 +428,7 @@ metric_specs = [
     (
         "hankel_order_coverage_rate",
         "Hankel Order Coverage Rate",
-        "Matched New Order amount divided by validation Won Y1.",
+        "Uncapped matched New Order amount divided by validation Won Y1; values above 100% mean orders exceed the validation amount.",
         "public.hankel_view_run_for_gold_sales_summary",
         {"type": "derived", "operator": "ratio", "numerator": "hankel_matched_new_order_value", "denominator": "hankel_validation_won_y1"},
         sales_summary_dims,
@@ -458,7 +458,7 @@ metric_specs = [
     (
         "hankel_final_score",
         "Hankel Final Score",
-        "Average final score from the overall Run for Gold leaderboard for the selected grain.",
+        "Final score at salesperson grain. Queries must group by canonical_sales_name; this metric is not additive across salespeople.",
         "public.hankel_view_run_for_gold_leaderboard",
         {"type": "aggregate", "aggregation": "avg", "measure": "score"},
         leaderboard_dims,
@@ -468,7 +468,7 @@ metric_specs = [
     (
         "hankel_segment_final_score",
         "Hankel Segment Final Score",
-        "Average final score from the key-segment leaderboard for the selected grain.",
+        "Final score at segment and salesperson grain. Queries must group by segment and canonical_sales_name; this metric is not additive.",
         "public.hankel_view_run_for_gold_segment_leaderboard",
         {"type": "aggregate", "aggregation": "avg", "measure": "score"},
         segment_leaderboard_dims,
@@ -514,6 +514,16 @@ for spec in metric_specs:
         fmt=fmt,
         synonyms=synonyms,
     )
+    if metric_name == "hankel_final_score":
+        detail_payload["query_constraints"] = {
+            "required_group_by": ["canonical_sales_name"],
+            "non_additive": True,
+        }
+    elif metric_name == "hankel_segment_final_score":
+        detail_payload["query_constraints"] = {
+            "required_group_by": ["segment", "canonical_sales_name"],
+            "non_additive": True,
+        }
     upsert("metrics", metric_name, "metric_index", index_payload)
     upsert("metrics", metric_name, "metric_detail", detail_payload)
 

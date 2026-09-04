@@ -182,6 +182,39 @@ class MetricsServiceImplTest {
     }
 
     @Test
+    void metricDetailExposesRuntimeQueryConstraints() throws Exception {
+        JsonNode detail = mapper.readTree("""
+                {
+                  "metric_name": "hankel_final_score",
+                  "display_name": "Hankel Final Score",
+                  "source_type": "cdp_postgres",
+                  "source": {"table_view": "public.hankel_leaderboard"},
+                  "calculation": {"type": "aggregate", "aggregation": "avg", "measure": "score"},
+                  "supported_dimensions": [
+                    {"dim_id": "canonical_sales_name", "field_name": "canonical_sales_name"}
+                  ],
+                  "query_constraints": {
+                    "required_group_by": ["canonical_sales_name"],
+                    "non_additive": true
+                  }
+                }
+                """);
+        when(datasourceMapper.selectById(DATASOURCE_ID)).thenReturn(datasource("Hankel PostgreSQL"));
+        when(tableAccessService.listActiveGrants("hankel", DATASOURCE_ID))
+                .thenReturn(List.of(tableGrant("hankel_")));
+        when(tableViewMetaService.getTableViewsIndex(DATASOURCE_ID))
+                .thenReturn(List.of(table("hankel_leaderboard")));
+        when(catalog.findDetailItem("hankel_final_score", DATASOURCE_ID))
+                .thenReturn(Optional.of(detail));
+
+        var response = service.getMetricDetail(DATASOURCE_ID, "hankel_final_score", "hankel");
+
+        assertThat(response.getQueryConstraints())
+                .containsEntry("non_additive", true)
+                .containsEntry("required_group_by", List.of("canonical_sales_name"));
+    }
+
+    @Test
     void caterpillarSemanticQueryRejectsRetailMetric() throws Exception {
         when(datasourceMapper.selectById(DATASOURCE_ID)).thenReturn(datasource("Caterpillar PostgreSQL"));
         when(catalog.findDetailItem("retailcdp_total_revenue", DATASOURCE_ID)).thenReturn(Optional.of(
@@ -366,24 +399,15 @@ class MetricsServiceImplTest {
     }
 
     @Test
-    void customSqlWithoutGrantsUsesDatasourceQueryAndKeepsAdhocSemanticModel() {
-        MetricsQueryData data = MetricsQueryData.builder()
-                .semanticModel("datasource_query")
-                .columns(List.of())
-                .rows(List.of())
-                .rowCount(0)
-                .build();
-        when(tableAccessService.queryDatasource(eq(DATASOURCE_ID), any())).thenReturn(data);
+    void customSqlWithoutGrantsIsRejected() {
         SemanticQueryRequest request = new SemanticQueryRequest();
         request.setDatasourceId(DATASOURCE_ID);
         request.setCustomSql("SELECT * FROM OCRD");
         request.setLimit(25);
 
-        MetricsQueryData result = service.query(request, "tenant_5");
-
-        assertThat(result.getSemanticModel()).isEqualTo("adhoc");
-        assertThat(result.getRowCount()).isZero();
-        verify(tableAccessService).queryDatasource(eq(DATASOURCE_ID), any());
+        assertThatThrownBy(() -> service.query(request, "tenant_5"))
+                .isInstanceOf(com.fina.metrics.exception.ForbiddenException.class)
+                .hasMessageContaining("requires active table grants");
     }
 
     @Test
@@ -395,6 +419,8 @@ class MetricsServiceImplTest {
                 .rowCount(0)
                 .build();
         when(tableAccessService.hasActiveGrants("hankel", DATASOURCE_ID)).thenReturn(true);
+        when(tableViewMetaService.getTableViewsIndex(DATASOURCE_ID))
+                .thenReturn(List.of(table("hankel_sales")));
         when(tableAccessService.probeSql(eq("hankel"), eq(DATASOURCE_ID), any())).thenReturn(data);
         SemanticQueryRequest request = new SemanticQueryRequest();
         request.setDatasourceId(DATASOURCE_ID);
@@ -405,6 +431,20 @@ class MetricsServiceImplTest {
 
         assertThat(result.getSemanticModel()).isEqualTo("adhoc");
         verify(tableAccessService).probeSql(eq("hankel"), eq(DATASOURCE_ID), any());
+    }
+
+    @Test
+    void customSqlWithGrantsRejectsUnpublishedTable() {
+        when(tableAccessService.hasActiveGrants("hankel", DATASOURCE_ID)).thenReturn(true);
+        when(tableViewMetaService.getTableViewsIndex(DATASOURCE_ID))
+                .thenReturn(List.of(table("hankel_published")));
+        SemanticQueryRequest request = new SemanticQueryRequest();
+        request.setDatasourceId(DATASOURCE_ID);
+        request.setCustomSql("SELECT * FROM hankel_raw");
+
+        assertThatThrownBy(() -> service.query(request, "hankel"))
+                .isInstanceOf(com.fina.metrics.exception.ForbiddenException.class)
+                .hasMessageContaining("unpublished table: hankel_raw");
     }
 
     private DataSourceConfig datasource(String name) {
