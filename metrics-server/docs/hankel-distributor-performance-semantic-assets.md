@@ -19,13 +19,21 @@ tables are deliberately not published through `meta/tables`.
 
 | View | Grain | Runtime use |
 |---|---|---|
-| `hankel_view_distr_sell_in` | One imported Sell-in allocation row | Flow metrics with a real `posting_date` |
-| `hankel_view_distr_sell_out` | One customer-product-month-sales-team allocation row | Quality-filtered Sell-out metrics |
+| `hankel_view_distr_sell_in` | One imported Sell-in allocation row | Customer-scoped flow metrics plus raw/excluded audit values |
+| `hankel_view_distr_sell_out` | One customer-product-month-sales-team allocation row | Independently quality-filtered amount and quantity metrics |
 | `hankel_view_distr_inventory_monthly` | One customer-product-month-sales-team snapshot row | Historical stock investigation |
 | `hankel_view_distr_inventory_current` | One customer-product-sales-team row at the latest snapshot | Current inventory metrics |
 
 Sell-in and Sell-out are flow datasets. When a query has no date filter, the
 result covers all loaded periods and the metric Meta states that explicitly.
+
+Sell-in business measures include only the customer-approved Sales Team
+whitelist and rows where `GMM L6 allocation != 'Y'`. The view preserves
+out-of-scope values in `raw_*` and `excluded_*` fields and records the reason.
+
+Sell-out amount and quantity apply separate quality gates. A quantity outlier
+does not remove an otherwise valid Territory amount, and an amount issue does
+not remove an otherwise valid Territory quantity.
 
 Inventory is a stock dataset. Existing `hankel_inventory_*` metrics query only
 the latest available snapshot and aggregate `territory_inventory_*` allocation
@@ -54,7 +62,13 @@ Inventory:
 - `hankel_inventory_quantity`
 
 All metric details use `supported_dimensions`, a schema-qualified source view,
-SQL-free calculation metadata, and an explicit `default_time_context`.
+SQL-free calculation metadata, an explicit `default_time_context`, and a
+`business_status` that distinguishes customer-confirmed metrics from reference,
+pending, and demo-quality metrics.
+
+The customer has not supplied the maintained River Sales Type mapping. Runtime
+therefore exposes source `sales_team` values but does not claim that they are a
+cross-fact `sales_type`. Cross-fact comparison by Sales Type remains blocked.
 
 ## Apply
 

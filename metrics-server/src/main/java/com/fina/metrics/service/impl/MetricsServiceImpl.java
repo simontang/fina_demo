@@ -72,6 +72,11 @@ public class MetricsServiceImpl implements MetricsService {
         List<DataSourceTableGrantVO> tableGrants = tableAccessService.listActiveGrants(resolvedTenant, datasourceId);
         boolean tableGrantFiltering = !tableGrants.isEmpty();
         Map<String, JsonNode> detailLookup = tableGrantFiltering ? detailLookup(datasourceId) : Map.of();
+        List<TableViewIndexItem> publishedTableViews = tableViewMetaService.getTableViewsIndex(datasourceId);
+        Set<String> publishedTableNames = publishedTableViews.stream()
+                .map(TableViewIndexItem::getTableName)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
         boolean legacyRegistrationRequired = requiresLegacyCdpRegistration(sourceType, tableGrantFiltering, cdpScope);
         Set<String> registered = metaMapper.selectList(
                         new LambdaQueryWrapper<MetricsMeta>()
@@ -88,19 +93,21 @@ public class MetricsServiceImpl implements MetricsService {
         List<MetricsIndexResponse.MetricIndexItem> items = catalog.getIndexItems(datasourceId).stream()
                 .filter(node -> tableGrantFiltering
                         ? isMetricPublishedAndAuthorizedForRuntime(
-                                datasourceId, node, sourceType, tableGrants, detailLookup)
+                                datasourceId, node, sourceType, tableGrants, detailLookup, publishedTableNames)
                         : isMetricVisibleForDatasource(node, sourceType, cdpScope))
                 .filter(node -> isMetricAuthorizedForTenant(
                         datasourceId, node, tableGrants, detailLookup))
                 .filter(node -> !legacyRegistrationRequired
-                        || isRegisteredMetricOnPublishedTable(node, registered, datasourceId, detailLookup))
+                        || isRegisteredMetricOnPublishedTable(
+                                node, registered, datasourceId, detailLookup, publishedTableNames))
                 .map(node -> {
                     List<String> keywords = new ArrayList<>();
                     node.path("search_keywords").forEach(k -> keywords.add(k.asText()));
                     String metricName = node.path("metric_name").asText("");
                     boolean runtimeQueryable = registered.contains(metricName)
                             || (tableGrantFiltering && isMetricPublishedAndAuthorizedForRuntime(
-                                    datasourceId, node, sourceType, tableGrants, detailLookup));
+                                    datasourceId, node, sourceType, tableGrants, detailLookup,
+                                    publishedTableNames));
                     return MetricsIndexResponse.MetricIndexItem.builder()
                             .metricName(metricName)
                             .displayName(node.path("display_name").asText(""))
@@ -112,7 +119,7 @@ public class MetricsServiceImpl implements MetricsService {
                 })
                 .collect(Collectors.toList());
 
-        List<TableViewIndexItem> tables = tableViewMetaService.getTableViewsIndex(datasourceId).stream()
+        List<TableViewIndexItem> tables = publishedTableViews.stream()
                 .filter(item -> tableGrantFiltering
                         || isTableVisibleForDatasource(item.getTableName(), sourceType, cdpScope))
                 .filter(item -> !tableGrantFiltering
@@ -177,6 +184,14 @@ public class MetricsServiceImpl implements MetricsService {
                     "Metric " + metricName + " is not registered for this datasource");
         }
 
+        return buildMetricDetailResponse(datasourceId, metricName, catalogDetail, dbMeta);
+    }
+
+    private MetricsDetailResponse buildMetricDetailResponse(
+            Long datasourceId,
+            String metricName,
+            JsonNode catalogDetail,
+            MetricsMeta dbMeta) {
         JsonNode aiCtxNode = catalogDetail.path("ai_agent_context");
         List<Map<String, Object>> thresholds = parseJsonArray(aiCtxNode.path("thresholds"));
         List<String> synonyms = new ArrayList<>();
@@ -289,8 +304,29 @@ public class MetricsServiceImpl implements MetricsService {
         List<DataSourceTableGrantVO> tableGrants = tableAccessService.listActiveGrants(resolvedTenant, datasourceId);
         boolean tableGrantFiltering = !tableGrants.isEmpty();
         MetricsIndexResponse index = getMetricsIndex(datasourceId, resolvedTenant);
+        Map<String, JsonNode> catalogDetailsByName = detailLookup(datasourceId);
+        Map<String, MetricsMeta> dbMetaByName = metaMapper.selectList(
+                        new LambdaQueryWrapper<MetricsMeta>()
+                                .eq(MetricsMeta::getDatasourceId, datasourceId)
+                                .eq(MetricsMeta::getStatus, 1)
+                                .eq(MetricsMeta::getDeleted, 0))
+                .stream()
+                .collect(Collectors.toMap(
+                        MetricsMeta::getMetricCode,
+                        item -> item,
+                        (left, right) -> right,
+                        LinkedHashMap::new));
         List<MetricsDetailResponse> metricsDetails = index.getMetrics().stream()
-                .map(item -> getMetricDetail(datasourceId, item.getMetricName(), resolvedTenant))
+                .map(item -> {
+                    JsonNode detail = Optional.ofNullable(catalogDetailsByName.get(item.getMetricName()))
+                            .orElseThrow(() -> new IllegalArgumentException(
+                                    "Metric not found in catalog: " + item.getMetricName()));
+                    return buildMetricDetailResponse(
+                            datasourceId,
+                            item.getMetricName(),
+                            detail,
+                            dbMetaByName.get(item.getMetricName()));
+                })
                 .collect(Collectors.toList());
         List<TableViewDetailResponse> tableDetails = tableGrantFiltering
                 && (index.getTables() == null || index.getTables().isEmpty())
@@ -717,13 +753,33 @@ public class MetricsServiceImpl implements MetricsService {
             DataSourceType sourceType,
             List<DataSourceTableGrantVO> tableGrants,
             Map<String, JsonNode> detailLookup) {
+        Set<String> publishedTableNames = tableViewMetaService.getTableViewsIndex(datasourceId).stream()
+                .map(TableViewIndexItem::getTableName)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        return isMetricPublishedAndAuthorizedForRuntime(
+                datasourceId,
+                node,
+                sourceType,
+                tableGrants,
+                detailLookup,
+                publishedTableNames);
+    }
+
+    private boolean isMetricPublishedAndAuthorizedForRuntime(
+            Long datasourceId,
+            JsonNode node,
+            DataSourceType sourceType,
+            List<DataSourceTableGrantVO> tableGrants,
+            Map<String, JsonNode> detailLookup,
+            Set<String> publishedTableNames) {
         if (!isMetricSourceTypeCompatible(datasourceId, node, sourceType, detailLookup)) {
             return false;
         }
         String tableView = resolveMetricTableView(datasourceId, node, detailLookup).orElse(null);
         return StringUtils.hasText(tableView)
                 && isTableAuthorizedByGrantList(tableGrants, null, tableView)
-                && isTablePublishedForDatasource(datasourceId, tableView);
+                && isTablePublished(publishedTableNames, tableView);
     }
 
     private boolean isMetricAuthorizedForTenant(
@@ -797,9 +853,20 @@ public class MetricsServiceImpl implements MetricsService {
         if (!StringUtils.hasText(tableName)) {
             return false;
         }
-        return tableViewMetaService.getTableViewsIndex(datasourceId).stream()
-                .anyMatch(table -> SqlIdentifierUtils.sameTableName(
-                        table.getTableName(), tableName, false));
+        Set<String> publishedTableNames = tableViewMetaService.getTableViewsIndex(datasourceId).stream()
+                .map(TableViewIndexItem::getTableName)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        return isTablePublished(publishedTableNames, tableName);
+    }
+
+    private boolean isTablePublished(Set<String> publishedTableNames, String tableName) {
+        if (!StringUtils.hasText(tableName)) {
+            return false;
+        }
+        return publishedTableNames.stream()
+                .anyMatch(publishedTable -> SqlIdentifierUtils.sameTableName(
+                        publishedTable, tableName, false));
     }
 
     private void assertSqlUsesPublishedTables(Long datasourceId, String sql) {
@@ -817,13 +884,14 @@ public class MetricsServiceImpl implements MetricsService {
             JsonNode indexNode,
             Set<String> registered,
             Long datasourceId,
-            Map<String, JsonNode> detailLookup) {
+            Map<String, JsonNode> detailLookup,
+            Set<String> publishedTableNames) {
         String metricName = indexNode.path("metric_name").asText("");
         if (!registered.contains(metricName)) {
             return false;
         }
         return resolveMetricTableView(datasourceId, indexNode, detailLookup)
-                .filter(tableView -> isTablePublishedForDatasource(datasourceId, tableView))
+                .filter(tableView -> isTablePublished(publishedTableNames, tableView))
                 .isPresent();
     }
 

@@ -120,6 +120,14 @@ def table_payload(table_name, display_name, description, grain, source_tables, c
         "sourceSystem": "Hankel distributor review demo",
         "sourceTables": source_tables,
         "assetCategory": category,
+        "business_status": "customer_confirmed_semantic_foundation",
+        "knowledge_base_refs": [
+            "hankel-metrics-kb/01-business-context-and-terms.md",
+            "hankel-metrics-kb/02-river-distributor-metrics.md",
+        ],
+        "known_limitations": [
+            "Cross-fact Sales Type is not published until the customer mapping is available."
+        ],
         "columns": columns,
     }
 
@@ -157,7 +165,7 @@ def time_context(field, label, window):
 
 
 def publish_metric(name, display, description, source_view, calculation, dimensions,
-                   fmt, synonyms, time_ctx):
+                   fmt, synonyms, time_ctx, business_status, business_note):
     index_payload = {
         "metric_name": name,
         "display_name": display,
@@ -166,6 +174,9 @@ def publish_metric(name, display, description, source_view, calculation, dimensi
         "search_keywords": synonyms + ["hankel", "distributor"],
         "source_type": "cdp_postgres",
         "source": {"table_view": source_view},
+        "business_status": business_status,
+        "business_note": business_note,
+        "knowledge_base_refs": ["hankel-metrics-kb/02-river-distributor-metrics.md"],
     }
     detail_payload = {
         "metric_name": name,
@@ -179,6 +190,9 @@ def publish_metric(name, display, description, source_view, calculation, dimensi
         "calculation": calculation,
         "supported_dimensions": dimensions,
         "default_time_context": time_ctx,
+        "business_status": business_status,
+        "business_note": business_note,
+        "knowledge_base_refs": ["hankel-metrics-kb/02-river-distributor-metrics.md"],
         "ai_agent_context": {
             "polarity": "positive",
             "synonyms": synonyms,
@@ -211,6 +225,13 @@ sell_in_table = table_payload(
         column("nes", "NES 净外部销售额", "number", "measure"),
         column("gross_margin", "毛利额", "number", "measure"),
         column("product_contribution_15", "产品贡献额", "number", "measure"),
+        column("combined_id", "经销商 Combined ID"),
+        column("raw_sell_in_quantity", "原始 Sell-in 数量", "number", "audit"),
+        column("raw_nes", "原始 NES", "number", "audit"),
+        column("excluded_sell_in_quantity", "范围外 Sell-in 数量", "number", "audit"),
+        column("excluded_nes", "范围外 NES", "number", "audit"),
+        column("is_customer_scope", "符合客户有效范围", "boolean"),
+        column("scope_exclusion_reason", "范围排除原因"),
     ],
     "normalized flow view",
 )
@@ -232,6 +253,7 @@ inventory_monthly_table = table_payload(
         column("product_unit", "产品单位"),
         column("data_source", "数据来源"),
         column("whether_spl", "是否 SPL"),
+        column("combined_id", "经销商 Combined ID"),
         column("inventory_value", "分摊库存金额", "number", "measure"),
         column("inventory_quantity", "分摊库存数量", "number", "measure"),
         column("raw_inventory_value", "原始库存金额", "number", "audit"),
@@ -266,21 +288,24 @@ sell_in_dims = [
     dim("gmm_l6_allocation", "GMM L6 分摊标记"),
     dim("whether_year_sell_out", "是否计入当年 Sell-out"),
     dim("whether_spl", "是否 SPL"),
+    dim("combined_id", "经销商 Combined ID"),
+    dim("is_customer_scope", "符合客户有效范围", "boolean"),
+    dim("scope_exclusion_reason", "范围排除原因"),
 ]
 sell_in_time = time_context("posting_date", "Sell-in posting date", "all_loaded_periods")
 sell_in_source = "public.hankel_view_distr_sell_in"
 
 sell_in_metrics = [
-    ("hankel_sell_in_nes", "Sell-in NES 净外部销售额", "Sell-in NES（人民币）。未提供日期筛选时汇总全部已加载期间。", "nes", "currency", ["sell-in nes", "净外部销售额"]),
-    ("hankel_sell_in_quantity", "Sell-in 进货数量", "Sell-in 数量。未提供日期筛选时汇总全部已加载期间。", "sell_in_quantity", "number", ["sell-in quantity", "进货数量"]),
-    ("hankel_sell_in_gross_margin", "Sell-in 毛利额", "Sell-in 毛利额（人民币）。未提供日期筛选时汇总全部已加载期间。", "gross_margin", "currency", ["sell-in gross margin", "毛利额"]),
-    ("hankel_sell_in_contribution", "Sell-in 产品贡献额", "Sell-in 产品贡献额（人民币）。未提供日期筛选时汇总全部已加载期间。", "product_contribution_15", "currency", ["sell-in contribution", "产品贡献额"]),
+    ("hankel_sell_in_nes", "Sell-in NES 净外部销售额", "符合客户 Sales Team 白名单且 GMM L6 allocation 不为 Y 的 Sell-in NES（人民币）。", "nes", "currency", ["sell-in nes", "净外部销售额"], "customer_confirmed", "Customer-confirmed Sell-in scope is enforced in the semantic view."),
+    ("hankel_sell_in_quantity", "Sell-in 进货数量", "符合客户 Sales Team 白名单且 GMM L6 allocation 不为 Y 的 Sell-in 数量。", "sell_in_quantity", "number", ["sell-in quantity", "进货数量"], "customer_confirmed", "Customer-confirmed Sell-in scope is enforced in the semantic view."),
+    ("hankel_sell_in_gross_margin", "Sell-in 毛利额", "与有效 Sell-in 范围一致的毛利额（人民币）；正式字段来源仍需业务确认。", "gross_margin", "currency", ["sell-in gross margin", "毛利额"], "pending_business_confirmation", "Field source and production filter semantics require confirmation."),
+    ("hankel_sell_in_contribution", "Sell-in 产品贡献额", "与有效 Sell-in 范围一致的产品贡献额（人民币）；15* 字段业务含义仍需确认。", "product_contribution_15", "currency", ["sell-in contribution", "产品贡献额"], "pending_business_confirmation", "The business meaning of the 15* contribution field requires confirmation."),
 ]
-for name, display, description, measure, fmt, synonyms in sell_in_metrics:
+for name, display, description, measure, fmt, synonyms, business_status, business_note in sell_in_metrics:
     publish_metric(
         name, display, description, sell_in_source,
         {"type": "aggregate", "aggregation": "sum", "measure": measure},
-        sell_in_dims, fmt, synonyms, sell_in_time,
+        sell_in_dims, fmt, synonyms, sell_in_time, business_status, business_note,
     )
 
 publish_metric(
@@ -298,6 +323,8 @@ publish_metric(
     "percent",
     ["sell-in gross margin rate", "毛利率"],
     sell_in_time,
+    "pending_business_confirmation",
+    "Depends on the pending Gross Margin field definition.",
 )
 
 inventory_dims = [
@@ -311,6 +338,7 @@ inventory_dims = [
     dim("product_unit", "产品单位"),
     dim("data_source", "数据来源"),
     dim("whether_spl", "是否 SPL"),
+    dim("combined_id", "经销商 Combined ID"),
 ]
 inventory_time = time_context("snapshot_date", "Inventory snapshot date", "latest_available_snapshot")
 inventory_source = "public.hankel_view_distr_inventory_current"
@@ -325,6 +353,8 @@ publish_metric(
     "currency",
     ["current inventory value", "当前库存金额"],
     inventory_time,
+    "written_spec_reference",
+    "Inventory amount is the default meaning of inventory, but it was not selected as a current River POC KPI.",
 )
 publish_metric(
     "hankel_inventory_quantity",
@@ -336,6 +366,8 @@ publish_metric(
     "number",
     ["current inventory quantity", "当前库存数量"],
     inventory_time,
+    "customer_confirmed",
+    "Current River POC quantity metric; latest valid snapshot only.",
 )
 
 # Runtime exposes semantic views only. Builder/Admin datasource query can still

@@ -50,15 +50,14 @@
 |--------|------|------|
 | **GET** | `/api/v1/datasources/{dsId}/metrics/index` | 指标索引：该 datasource 下所有目录指标及是否已配置 SQL（registered） |
 | **GET** | `/api/v1/datasources/{dsId}/metrics/{metricName}/detail` | 单个指标的完整说明（维度、时间、AI 上下文、query_info 等） |
-| **GET** | `/api/v1/datasources/{dsId}/meta` | **一次性返回** 指标的 index + 所有指标的 detail；以及 **Table/View 的 index（tablesIndex）与 detail（tablesDetails）**。数据来源：meta 目录下 view-*.json（主）、MTC_VW_AI_*.csv（仅对未在 view 中出现的表补充） |
+| **GET** | `/api/v1/datasources/{dsId}/meta` | **一次性返回**统一 index、所有指标 detail 和 Table/View detail。静态 classpath meta 与 datasource DB overlay 合并，当前 tenant 的 published table/metric 受 grant 过滤。 |
 | **POST** | `/api/v1/metrics/query` | 执行语义查询或自定义 SQL 查询，返回单结果集（data: semanticModel, columns, rows, debug） |
 
 **GET /api/v1/datasources/{dsId}/meta 响应说明**  
-`data` 包含四部分：  
-- `index`：指标索引（同 GET .../metrics/index）  
-- `details`：每个指标的完整 detail（同 GET .../metrics/{metricName}/detail）  
-- `tablesIndex`：Table/View 索引列表，每项含 tableName、displayName、docType、docTypeEn、mainTable、lineTable、columnCount 等  
-- `tablesDetails`：Table/View 详情列表，每项含 tableName、docType、mainTable、lineTable、selectSql（可选）、columns（name/label/description/type/example）  
+`data` 包含三部分：
+- `index`：统一索引；`index.metrics` 是指标索引，`index.tables` 是 Table/View 索引。
+- `metricsDetails`：每个指标的完整 detail（同 GET .../metrics/{metricName}/detail）。
+- `tablesDetails`：Table/View 详情列表，每项含 tableName、docType、mainTable、lineTable、selectSql（可选）、columns（name/label/description/type/example）。
 
 Table/View 数据来自 `meta/view-*.json`（优先）与 `meta/MTC_VW_AI_*.csv`（仅当该表无对应 view JSON 时使用）。
 

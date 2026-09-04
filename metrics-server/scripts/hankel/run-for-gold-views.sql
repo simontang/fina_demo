@@ -3,6 +3,16 @@
 -- These views keep complex competition logic outside Metrics metric meta so
 -- runtime metrics can remain SQL-free aggregate or ratio definitions.
 
+CREATE OR REPLACE VIEW hankel_view_run_for_gold_parameters AS
+SELECT
+    DATE '2026-07-01' AS competition_start_date,
+    DATE '2026-12-31' AS competition_end_date,
+    DATE '2026-08-31' AS report_cutoff_date,
+    DATE '2026-01-01' AS target_year_start,
+    DATE '2026-12-31' AS target_year_end,
+    2026::integer AS target_year,
+    0.5::numeric AS validation_threshold;
+
 CREATE OR REPLACE VIEW hankel_view_sales_name_mapping AS
 SELECT
     source_file,
@@ -19,14 +29,7 @@ FROM hankel_sales_name_mapping;
 
 CREATE OR REPLACE VIEW hankel_view_project_opportunity_line AS
 WITH params AS (
-    SELECT
-        DATE '2026-07-01' AS competition_start_date,
-        DATE '2026-12-31' AS competition_end_date,
-        DATE '2026-08-31' AS report_cutoff_date,
-        DATE '2026-01-01' AS target_year_start,
-        DATE '2026-12-31' AS target_year_end,
-        2026::integer AS target_year,
-        0.5::numeric AS validation_threshold
+    SELECT * FROM hankel_view_run_for_gold_parameters
 ),
 sales_mapping AS (
     SELECT DISTINCT ON (project_sales_name_key)
@@ -54,9 +57,17 @@ normalized AS (
         NULLIF(BTRIM(p.opportunity_description), '') AS opportunity_description,
         NULLIF(BTRIM(p.account), '') AS account,
         NULLIF(BTRIM(p.account_description), '') AS account_description,
-        NULLIF(BTRIM(p.sold_to), '') AS sold_to_idh,
+        CASE
+            WHEN BTRIM(COALESCE(p.sold_to, '')) ~ '^[0-9]+[.]0+$'
+            THEN REGEXP_REPLACE(BTRIM(p.sold_to), '[.]0+$', '')
+            ELSE NULLIF(BTRIM(p.sold_to), '')
+        END AS sold_to_idh,
         NULLIF(BTRIM(p.sold_to_description), '') AS sold_to_description,
-        NULLIF(BTRIM(p.product_idh), '') AS product_idh,
+        CASE
+            WHEN BTRIM(COALESCE(p.product_idh, '')) ~ '^[0-9]+[.]0+$'
+            THEN REGEXP_REPLACE(BTRIM(p.product_idh), '[.]0+$', '')
+            ELSE NULLIF(BTRIM(p.product_idh), '')
+        END AS product_idh,
         NULLIF(BTRIM(p.product_description), '') AS product_description,
         NULLIF(BTRIM(p.item_type), '') AS item_type,
         NULLIF(BTRIM(p.project_source), '') AS project_source,
@@ -150,12 +161,36 @@ SELECT
     ], NULL), '; ') AS quality_issues
 FROM scored s;
 
+CREATE OR REPLACE VIEW hankel_view_new_project_opportunity AS
+SELECT
+    canonical_sales_name,
+    opportunity_id,
+    MAX(team) AS team,
+    MAX(sales_team) AS sales_team,
+    MAX(sales_type) AS sales_type,
+    CASE
+        WHEN COUNT(DISTINCT segment) FILTER (WHERE segment IS NOT NULL AND segment <> '') = 1
+        THEN MAX(segment)
+        ELSE 'Multiple'
+    END AS primary_segment,
+    STRING_AGG(DISTINCT segment, ', ' ORDER BY segment)
+        FILTER (WHERE segment IS NOT NULL AND segment <> '') AS segments,
+    SUM(y1_value) AS new_project_y1,
+    COUNT(*) AS project_line_count,
+    MIN(creation_date) AS creation_date,
+    MAX(report_cutoff_date) AS report_cutoff_date,
+    STRING_AGG(DISTINCT quality_issues, '; ' ORDER BY quality_issues)
+        FILTER (WHERE quality_issues IS NOT NULL AND quality_issues <> '') AS quality_issues
+FROM hankel_view_project_opportunity_line
+WHERE is_new_project_h2_to_cutoff
+  AND has_sales_mapping
+  AND opportunity_id IS NOT NULL
+GROUP BY canonical_sales_name, opportunity_id;
+
 CREATE OR REPLACE VIEW hankel_view_new_order_line AS
 WITH params AS (
-    SELECT
-        DATE '2026-01-01' AS target_year_start,
-        DATE '2026-12-31' AS target_year_end,
-        2026::integer AS target_year
+    SELECT target_year_start, target_year_end, target_year
+    FROM hankel_view_run_for_gold_parameters
 ),
 sales_mapping AS (
     SELECT DISTINCT ON (new_order_sales_name_key)
@@ -188,9 +223,17 @@ normalized AS (
         NULLIF(BTRIM(n.distribution_channel), '') AS distribution_channel,
         n.created_on,
         n.requested_delivery_date,
-        NULLIF(BTRIM(n.sold_to), '') AS sold_to_idh,
+        CASE
+            WHEN BTRIM(COALESCE(n.sold_to, '')) ~ '^[0-9]+[.]0+$'
+            THEN REGEXP_REPLACE(BTRIM(n.sold_to), '[.]0+$', '')
+            ELSE NULLIF(BTRIM(n.sold_to), '')
+        END AS sold_to_idh,
         NULLIF(BTRIM(n.sold_to_name), '') AS sold_to_name,
-        NULLIF(BTRIM(n.material), '') AS product_idh,
+        CASE
+            WHEN BTRIM(COALESCE(n.material, '')) ~ '^[0-9]+[.]0+$'
+            THEN REGEXP_REPLACE(BTRIM(n.material), '[.]0+$', '')
+            ELSE NULLIF(BTRIM(n.material), '')
+        END AS product_idh,
         NULLIF(BTRIM(n.mto_mts), '') AS mto_mts,
         NULLIF(BTRIM(n.description), '') AS product_description,
         NULLIF(BTRIM(n.plant), '') AS plant,
@@ -360,8 +403,41 @@ SELECT
         WHEN m.matched_new_order_value >= m.required_new_order_value THEN 'Validated'
         ELSE 'Confirm or add New Order gap CNY ' || TO_CHAR(ROUND(GREATEST(m.required_new_order_value - m.matched_new_order_value, 0), 0), 'FM999999999999990')
     END AS status_action,
-    DATE '2026-08-31' AS report_cutoff_date
+    (SELECT report_cutoff_date FROM hankel_view_run_for_gold_parameters) AS report_cutoff_date
 FROM matched m;
+
+CREATE OR REPLACE VIEW hankel_view_validated_won_opportunity AS
+SELECT
+    p.canonical_sales_name,
+    p.opportunity_id,
+    MAX(p.team) AS team,
+    MAX(p.sales_team) AS sales_team,
+    MAX(p.sales_type) AS sales_type,
+    CASE
+        WHEN COUNT(DISTINCT p.segment) FILTER (WHERE p.segment IS NOT NULL AND p.segment <> '') = 1
+        THEN MAX(p.segment)
+        ELSE 'Multiple'
+    END AS primary_segment,
+    STRING_AGG(DISTINCT p.segment, ', ' ORDER BY p.segment)
+        FILTER (WHERE p.segment IS NOT NULL AND p.segment <> '') AS segments,
+    COUNT(DISTINCT m.match_key) AS match_key_count,
+    STRING_AGG(DISTINCT m.match_key, ', ' ORDER BY m.match_key) AS match_keys,
+    BOOL_OR(m.result = 'Pass') AS has_passed_match_key,
+    CASE WHEN BOOL_OR(m.result = 'Pass') THEN 'Pass' ELSE 'Below 50%' END AS result,
+    CASE WHEN BOOL_OR(m.result = 'Pass') THEN p.opportunity_id END AS validated_opportunity_id,
+    SUM(p.y1_value) AS raw_won_y1,
+    MAX(p.report_cutoff_date) AS report_cutoff_date,
+    STRING_AGG(DISTINCT p.quality_issues, '; ' ORDER BY p.quality_issues)
+        FILTER (WHERE p.quality_issues IS NOT NULL AND p.quality_issues <> '') AS quality_issues
+FROM hankel_view_project_opportunity_line p
+JOIN hankel_view_won_validation_match_key m
+  ON p.canonical_sales_name = m.canonical_sales_name
+ AND p.sold_to_idh = m.sold_to_idh
+ AND p.product_idh = m.product_idh
+WHERE p.is_won_2026_ytd
+  AND p.is_valid_match_key
+  AND p.opportunity_id IS NOT NULL
+GROUP BY p.canonical_sales_name, p.opportunity_id;
 
 CREATE OR REPLACE VIEW hankel_view_run_for_gold_sales_summary AS
 WITH new_project AS (
@@ -370,11 +446,10 @@ WITH new_project AS (
         MAX(team) AS team,
         MAX(sales_team) AS sales_team,
         MAX(sales_type) AS sales_type,
-        COUNT(DISTINCT new_project_opportunity_id) AS new_project_count,
-        SUM(new_project_y1_value) AS new_y1
-    FROM hankel_view_project_opportunity_line
-    WHERE is_new_project_h2_to_cutoff
-      AND has_sales_mapping
+        MAX(report_cutoff_date) AS report_cutoff_date,
+        COUNT(*) AS new_project_count,
+        SUM(new_project_y1) AS new_y1
+    FROM hankel_view_new_project_opportunity
     GROUP BY canonical_sales_name
 ),
 won AS (
@@ -383,8 +458,8 @@ won AS (
         MAX(team) AS team,
         MAX(sales_team) AS sales_team,
         MAX(sales_type) AS sales_type,
-        COUNT(*) AS won_lines,
-        COUNT(validated_match_key) AS validated_won_count,
+        MAX(report_cutoff_date) AS report_cutoff_date,
+        SUM(won_line_count)::bigint AS won_lines,
         COUNT(*) FILTER (WHERE result = 'Below 50%') AS below_50_count,
         SUM(raw_won_y1) AS raw_won_y1,
         SUM(check_period_won_y1) AS validation_won_y1,
@@ -394,6 +469,13 @@ won AS (
         SUM(held_won_y1) AS held_won_y1,
         SUM(new_order_gap) AS new_order_gap
     FROM hankel_view_won_validation_match_key
+    GROUP BY canonical_sales_name
+),
+validated AS (
+    SELECT
+        canonical_sales_name,
+        COUNT(validated_opportunity_id) AS validated_won_count
+    FROM hankel_view_validated_won_opportunity
     GROUP BY canonical_sales_name
 )
 SELECT
@@ -405,7 +487,7 @@ SELECT
     COALESCE(n.new_project_count, 0) AS new_project_count,
     COALESCE(n.new_y1, 0) AS new_y1,
     COALESCE(w.won_lines, 0) AS won_lines,
-    COALESCE(w.validated_won_count, 0) AS validated_won_count,
+    COALESCE(v.validated_won_count, 0) AS validated_won_count,
     COALESCE(w.below_50_count, 0) AS below_50_count,
     COALESCE(w.raw_won_y1, 0) AS raw_won_y1,
     COALESCE(w.validation_won_y1, 0) AS validation_won_y1,
@@ -415,55 +497,58 @@ SELECT
     COALESCE(w.held_won_y1, 0) AS held_won_y1,
     COALESCE(w.new_order_gap, 0) AS new_order_gap,
     COALESCE(w.matched_new_order_value, 0) / NULLIF(COALESCE(w.validation_won_y1, 0), 0) AS order_coverage_rate,
-    DATE '2026-08-31' AS report_cutoff_date
+    COALESCE(n.report_cutoff_date, w.report_cutoff_date) AS report_cutoff_date
 FROM new_project n
 FULL OUTER JOIN won w
-  ON n.canonical_sales_name = w.canonical_sales_name;
+  ON n.canonical_sales_name = w.canonical_sales_name
+LEFT JOIN validated v
+  ON v.canonical_sales_name = COALESCE(n.canonical_sales_name, w.canonical_sales_name);
 
-CREATE OR REPLACE VIEW hankel_view_run_for_gold_leaderboard AS
+CREATE OR REPLACE VIEW hankel_view_run_for_gold_qualification_status AS
 WITH thresholds AS (
     SELECT 'New'::text AS sales_type, 12::integer AS new_project_required, 5::integer AS validated_won_required
     UNION ALL
     SELECT 'Experienced'::text AS sales_type, 25::integer AS new_project_required, 12::integer AS validated_won_required
-),
-base AS (
-    SELECT
-        CASE
-            WHEN s.sales_type = 'New' THEN 'Overall · New 新人组'
-            WHEN s.sales_type = 'Experienced' THEN 'Overall · Experienced 资深组'
-            ELSE 'Overall · ' || s.sales_type
-        END AS award_pool,
-        s.team,
-        s.canonical_sales_name AS leader,
-        s.canonical_sales_name,
-        s.report_cutoff_date,
-        s.sales_type,
-        s.new_project_count,
-        s.validated_won_count,
-        s.new_y1,
-        s.competition_won_y1 AS won_y1,
-        s.validation_won_y1,
-        s.required_new_order_value,
-        s.matched_new_order_value,
-        s.new_order_gap,
-        COALESCE(t.new_project_required, 0) AS new_project_required,
-        COALESCE(t.validated_won_required, 0) AS validated_won_required,
-        (
-            s.new_project_count >= COALESCE(t.new_project_required, 0)
-            AND s.validated_won_count >= COALESCE(t.validated_won_required, 0)
-        ) AS is_qualified
-    FROM hankel_view_run_for_gold_sales_summary s
-    LEFT JOIN thresholds t
-      ON s.sales_type = t.sales_type
-    WHERE s.sales_type IN ('New', 'Experienced')
-),
+)
+SELECT
+    CASE
+        WHEN s.sales_type = 'New' THEN 'Overall · New 新人组'
+        WHEN s.sales_type = 'Experienced' THEN 'Overall · Experienced 资深组'
+        ELSE 'Overall · ' || s.sales_type
+    END AS award_pool,
+    s.team,
+    s.canonical_sales_name AS leader,
+    s.canonical_sales_name,
+    s.report_cutoff_date,
+    s.sales_type,
+    s.new_project_count,
+    s.validated_won_count,
+    s.new_y1,
+    s.competition_won_y1 AS won_y1,
+    s.validation_won_y1,
+    s.required_new_order_value,
+    s.matched_new_order_value,
+    s.new_order_gap,
+    t.new_project_required,
+    t.validated_won_required,
+    (
+        s.new_project_count >= t.new_project_required
+        AND s.validated_won_count >= t.validated_won_required
+    ) AS is_qualified
+FROM hankel_view_run_for_gold_sales_summary s
+JOIN thresholds t
+  ON s.sales_type = t.sales_type;
+
+CREATE OR REPLACE VIEW hankel_view_run_for_gold_leaderboard AS
+WITH
 scored AS (
     SELECT
-        b.*,
+        q.*,
         COUNT(*) OVER (PARTITION BY award_pool) AS pool_size,
-        RANK() OVER (PARTITION BY award_pool ORDER BY new_y1 DESC, new_project_count DESC, leader ASC) AS new_y1_rank,
-        RANK() OVER (PARTITION BY award_pool ORDER BY won_y1 DESC, validated_won_count DESC, leader ASC) AS won_y1_rank
-    FROM base b
+        RANK() OVER (PARTITION BY award_pool ORDER BY new_y1 DESC) AS new_y1_rank,
+        RANK() OVER (PARTITION BY award_pool ORDER BY won_y1 DESC) AS won_y1_rank
+    FROM hankel_view_run_for_gold_qualification_status q
+    WHERE q.is_qualified
 ),
 ranked AS (
     SELECT
@@ -514,7 +599,7 @@ SELECT
     report_cutoff_date
 FROM ranked;
 
-CREATE OR REPLACE VIEW hankel_view_run_for_gold_segment_leaderboard AS
+CREATE OR REPLACE VIEW hankel_view_run_for_gold_segment_qualification_status AS
 WITH thresholds AS (
     SELECT 'Emotor'::text AS segment, 5::integer AS new_project_required, 2::integer AS validated_won_required
     UNION ALL
@@ -536,19 +621,27 @@ new_project AS (
       AND segment IN ('Emotor', 'Fluid', 'Medical')
     GROUP BY canonical_sales_name, segment
 ),
-won AS (
+won_amount AS (
     SELECT
         canonical_sales_name,
         primary_segment AS segment,
         MAX(team) AS team,
         MAX(sales_type) AS sales_type,
-        COUNT(validated_match_key) AS validated_won_count,
         SUM(counted_won_y1) AS won_y1,
         SUM(check_period_won_y1) AS validation_won_y1,
         SUM(required_new_order_value) AS required_new_order_value,
         SUM(matched_new_order_value) AS matched_new_order_value,
         SUM(new_order_gap) AS new_order_gap
     FROM hankel_view_won_validation_match_key
+    WHERE primary_segment IN ('Emotor', 'Fluid', 'Medical')
+    GROUP BY canonical_sales_name, primary_segment
+),
+validated AS (
+    SELECT
+        canonical_sales_name,
+        primary_segment AS segment,
+        COUNT(validated_opportunity_id) AS validated_won_count
+    FROM hankel_view_validated_won_opportunity
     WHERE primary_segment IN ('Emotor', 'Fluid', 'Medical')
     GROUP BY canonical_sales_name, primary_segment
 ),
@@ -559,10 +652,10 @@ base AS (
         COALESCE(n.canonical_sales_name, w.canonical_sales_name) AS leader,
         COALESCE(n.canonical_sales_name, w.canonical_sales_name) AS canonical_sales_name,
         COALESCE(n.team, w.team) AS team,
-        DATE '2026-08-31' AS report_cutoff_date,
+        (SELECT report_cutoff_date FROM hankel_view_run_for_gold_parameters) AS report_cutoff_date,
         COALESCE(n.sales_type, w.sales_type, 'Unmapped') AS sales_type,
         COALESCE(n.new_project_count, 0) AS new_project_count,
-        COALESCE(w.validated_won_count, 0) AS validated_won_count,
+        COALESCE(v.validated_won_count, 0) AS validated_won_count,
         COALESCE(n.new_y1, 0) AS new_y1,
         COALESCE(w.won_y1, 0) AS won_y1,
         COALESCE(w.validation_won_y1, 0) AS validation_won_y1,
@@ -570,9 +663,12 @@ base AS (
         COALESCE(w.matched_new_order_value, 0) AS matched_new_order_value,
         COALESCE(w.new_order_gap, 0) AS new_order_gap
     FROM new_project n
-    FULL OUTER JOIN won w
+    FULL OUTER JOIN won_amount w
       ON n.canonical_sales_name = w.canonical_sales_name
      AND n.segment = w.segment
+    LEFT JOIN validated v
+      ON v.canonical_sales_name = COALESCE(n.canonical_sales_name, w.canonical_sales_name)
+     AND v.segment = COALESCE(n.segment, w.segment)
 ),
 thresholded AS (
     SELECT
@@ -584,16 +680,21 @@ thresholded AS (
             AND b.validated_won_count >= COALESCE(t.validated_won_required, 0)
         ) AS is_qualified
     FROM base b
-    LEFT JOIN thresholds t
+    JOIN thresholds t
       ON b.segment = t.segment
-),
+)
+SELECT * FROM thresholded;
+
+CREATE OR REPLACE VIEW hankel_view_run_for_gold_segment_leaderboard AS
+WITH
 scored AS (
     SELECT
         t.*,
         COUNT(*) OVER (PARTITION BY segment) AS pool_size,
-        RANK() OVER (PARTITION BY segment ORDER BY new_y1 DESC, new_project_count DESC, leader ASC) AS new_y1_rank,
-        RANK() OVER (PARTITION BY segment ORDER BY won_y1 DESC, validated_won_count DESC, leader ASC) AS won_y1_rank
-    FROM thresholded t
+        RANK() OVER (PARTITION BY segment ORDER BY new_y1 DESC) AS new_y1_rank,
+        RANK() OVER (PARTITION BY segment ORDER BY won_y1 DESC) AS won_y1_rank
+    FROM hankel_view_run_for_gold_segment_qualification_status t
+    WHERE t.is_qualified
 ),
 ranked AS (
     SELECT
@@ -669,7 +770,7 @@ SELECT
         THEN CONCAT(GREATEST(new_project_required - new_project_count, 0), ' new projects short')
         ELSE CONCAT(GREATEST(validated_won_required - validated_won_count, 0), ' validated wins short')
     END AS status
-FROM hankel_view_run_for_gold_leaderboard
+FROM hankel_view_run_for_gold_qualification_status
 UNION ALL
 SELECT
     'segment'::text AS scope_type,
@@ -694,7 +795,7 @@ SELECT
         THEN CONCAT(GREATEST(new_project_required - new_project_count, 0), ' new projects short')
         ELSE CONCAT(GREATEST(validated_won_required - validated_won_count, 0), ' validated wins short')
     END AS status
-FROM hankel_view_run_for_gold_segment_leaderboard;
+FROM hankel_view_run_for_gold_segment_qualification_status;
 
 CREATE OR REPLACE VIEW hankel_view_run_for_gold_report_reconciliation AS
 WITH calc_won_by_sales AS (

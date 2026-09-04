@@ -34,7 +34,7 @@
 
 ## Competition Parameters
 
-v1 固定使用当前 demo 参数：
+当前 demo 使用一个单行 `hankel_view_run_for_gold_parameters` 集中管理固定参数：
 
 | Parameter | Value |
 | --- | --- |
@@ -50,13 +50,18 @@ v1 固定使用当前 demo 参数：
 
 | View | Type | Grain | Purpose |
 | --- | --- | --- | --- |
+| `hankel_view_run_for_gold_parameters` | parameter view | one parameter set | 集中保存当前可复现 demo 的日期和验证阈值。 |
 | `hankel_view_sales_name_mapping` | normalized view | one mapping row | 标准化销售姓名、team、sales type。 |
 | `hankel_view_project_opportunity_line` | normalized view | opportunity line | 标准化 Project / Opportunity 行，补充 match-key 质量标记和 New/Won 计算字段。 |
+| `hankel_view_new_project_opportunity` | calculation view | `canonical_sales_name + opportunity_id` | 先在 Opportunity 粒度汇总 New Project Y1。 |
 | `hankel_view_new_order_line` | normalized view | order line | 标准化 New Order 行，过滤 rejected line，形成可匹配订单金额。 |
 | `hankel_view_won_validation_match_key` | calculation view | `canonical_sales_name + sold_to_idh + product_idh` | 计算 Won 到 New Order 的 50% 验证结果。 |
+| `hankel_view_validated_won_opportunity` | calculation view | `canonical_sales_name + opportunity_id` | Opportunity 至少一个精确 Match Key 通过时，将其计为 Validated Won。 |
 | `hankel_view_run_for_gold_sales_summary` | calculation view | `canonical_sales_name` | 汇总 New Project、Validated Won、Won Y1、coverage、gap。 |
-| `hankel_view_run_for_gold_leaderboard` | calculation view | `award_pool + canonical_sales_name` | 计算 overall New/Experienced leaderboard、score、rank、position。 |
-| `hankel_view_run_for_gold_segment_leaderboard` | calculation view | `segment + canonical_sales_name` | 计算 Emotor/Fluid/Medical 细分奖 leaderboard。 |
+| `hankel_view_run_for_gold_qualification_status` | calculation view | `award_pool + canonical_sales_name` | 保存所有 overall 候选及资格状态。 |
+| `hankel_view_run_for_gold_leaderboard` | calculation view | `award_pool + canonical_sales_name` | 只对已入围人员计算 overall score、rank、position。 |
+| `hankel_view_run_for_gold_segment_qualification_status` | calculation view | `segment + canonical_sales_name` | 保存所有细分奖候选及资格状态。 |
+| `hankel_view_run_for_gold_segment_leaderboard` | calculation view | `segment + canonical_sales_name` | 只对已入围人员计算细分奖 leaderboard。 |
 | `hankel_view_run_for_gold_qualification_gap` | calculation view | `scope_type + award_pool + sales_name` | 输出 overall 和 segment 的入围差距。 |
 | `hankel_view_run_for_gold_report_reconciliation` | QA view | `check_type + business_key` | 对比 raw-derived view 与 `hankel_report_*` golden report。 |
 
@@ -75,6 +80,7 @@ Project 侧规则：
 - `status = 'Won'`
 - `close_date` 在 `2026-01-01` 到 `2026-08-31`
 - 必须有 sales mapping、sold-to、product，才能进入有效 match key
+- 纯数字标识符会移除 Excel 产生的尾部 `.0`，其余标识符保持原样
 
 New Order 侧规则：
 
@@ -90,9 +96,18 @@ required_new_order_value = check_period_won_y1 * 0.5
 matched_new_order_value = sum(order_value_cny) by match key
 coverage = matched_new_order_value / check_period_won_y1
 result = Pass when matched_new_order_value >= required_new_order_value
-new_order_gap = greatest(required_new_order_value - matched_new_order_value, 0)
+action_gap = greatest(required_new_order_value - matched_new_order_value, 0)
+signed_gap = required_new_order_value - matched_new_order_value
 counted_won_y1 = raw_won_y1 when result = Pass else 0
 ```
+
+Validated Won Count 不等于通过的 Match Key 数。系统先构建
+`hankel_view_validated_won_opportunity`，同一个 Opportunity 只计一次，只要
+其中至少一个产品 Match Key 为 `Pass` 即通过。
+
+排行榜只读取 `is_qualified=true` 的资格状态行。奖池人数 `N` 因而等于实际
+入围人数；New Y1 和 Won Y1 的分项排名使用纯金额降序 `RANK.EQ`，其他字段
+只用于最终同分排序。
 
 ## Published Metrics
 
@@ -107,7 +122,8 @@ Published metrics are SQL-free. Complex logic is already represented in `hankel_
 | `hankel_required_new_order_value` | same | `sum(required_new_order_value)` |
 | `hankel_matched_new_order_value` | same | `sum(matched_new_order_value)` |
 | `hankel_order_coverage_rate` | same | ratio: `hankel_matched_new_order_value / hankel_validation_won_y1` |
-| `hankel_new_order_gap` | same | `sum(new_order_gap)` |
+| `hankel_new_order_gap` | same | `sum(new_order_gap)`，兼容名称，明确表示非负 Action Gap |
+| `hankel_new_order_signed_gap` | `public.hankel_view_won_validation_match_key` | `sum(new_order_gap_raw)` |
 | `hankel_competition_won_y1` | same | `sum(competition_won_y1)` |
 | `hankel_final_score` | `public.hankel_view_run_for_gold_leaderboard` | `avg(score)` |
 | `hankel_segment_final_score` | `public.hankel_view_run_for_gold_segment_leaderboard` | `avg(score)` |
@@ -166,7 +182,7 @@ Content-Type: application/json
 {
   "datasourceId": 15,
   "metrics": ["hankel_final_score"],
-  "groupBy": ["award_pool", "rank", "leader", "position"],
+  "groupBy": ["award_pool", "rank", "leader", "canonical_sales_name", "position"],
   "orderBy": [
     {"field": "hankel_final_score", "direction": "DESC"}
   ],
@@ -208,7 +224,9 @@ View row-count smoke checks:
 select count(*) from hankel_view_project_opportunity_line;
 select count(*) from hankel_view_new_order_line;
 select count(*) from hankel_view_won_validation_match_key;
+select count(*) from hankel_view_validated_won_opportunity;
 select count(*) from hankel_view_run_for_gold_sales_summary;
+select count(*) from hankel_view_run_for_gold_qualification_status;
 select count(*) from hankel_view_run_for_gold_leaderboard;
 select count(*) from hankel_view_run_for_gold_report_reconciliation;
 ```

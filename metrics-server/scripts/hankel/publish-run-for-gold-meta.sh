@@ -109,7 +109,58 @@ def col(name, dtype="string", desc=None):
     return item
 
 
-def table_payload(table_name, display_name, doc_type, short_desc, grain, columns, category):
+SOURCE_TABLES_BY_ASSET = {
+    "hankel_view_run_for_gold_parameters": [],
+    "hankel_view_sales_name_mapping": ["hankel_sales_name_mapping"],
+    "hankel_view_project_opportunity_line": [
+        "hankel_project_opportunity_lines",
+        "hankel_view_sales_name_mapping",
+        "hankel_view_run_for_gold_parameters",
+    ],
+    "hankel_view_new_project_opportunity": ["hankel_view_project_opportunity_line"],
+    "hankel_view_new_order_line": [
+        "hankel_new_order_lines",
+        "hankel_view_sales_name_mapping",
+        "hankel_view_run_for_gold_parameters",
+    ],
+    "hankel_view_won_validation_match_key": [
+        "hankel_view_project_opportunity_line",
+        "hankel_view_new_order_line",
+    ],
+    "hankel_view_validated_won_opportunity": [
+        "hankel_view_project_opportunity_line",
+        "hankel_view_won_validation_match_key",
+    ],
+    "hankel_view_run_for_gold_sales_summary": [
+        "hankel_view_new_project_opportunity",
+        "hankel_view_won_validation_match_key",
+        "hankel_view_validated_won_opportunity",
+    ],
+    "hankel_view_run_for_gold_qualification_status": ["hankel_view_run_for_gold_sales_summary"],
+    "hankel_view_run_for_gold_leaderboard": ["hankel_view_run_for_gold_qualification_status"],
+    "hankel_view_run_for_gold_segment_qualification_status": [
+        "hankel_view_project_opportunity_line",
+        "hankel_view_won_validation_match_key",
+        "hankel_view_validated_won_opportunity",
+    ],
+    "hankel_view_run_for_gold_segment_leaderboard": [
+        "hankel_view_run_for_gold_segment_qualification_status"
+    ],
+    "hankel_view_run_for_gold_qualification_gap": [
+        "hankel_view_run_for_gold_qualification_status",
+        "hankel_view_run_for_gold_segment_qualification_status",
+    ],
+    "hankel_view_run_for_gold_report_reconciliation": [
+        "hankel_view_run_for_gold_sales_summary",
+        "hankel_view_run_for_gold_leaderboard",
+        "hankel_view_run_for_gold_segment_leaderboard",
+        "hankel_report_*",
+    ],
+}
+
+
+def table_payload(table_name, display_name, doc_type, short_desc, grain, columns, category,
+                  business_status="customer_confirmed_semantic_foundation", business_note=""):
     return {
         "schemaName": "public",
         "tableName": table_name,
@@ -119,13 +170,14 @@ def table_payload(table_name, display_name, doc_type, short_desc, grain, columns
         "shortDesc": short_desc,
         "grain": grain,
         "sourceSystem": "Hankel Run for Gold demo",
-        "sourceTables": [
-            "hankel_project_opportunity_lines",
-            "hankel_new_order_lines",
-            "hankel_sales_name_mapping",
-            "hankel_report_*",
-        ],
+        "sourceTables": SOURCE_TABLES_BY_ASSET.get(table_name, []),
         "assetCategory": category,
+        "business_status": business_status,
+        "business_note": business_note,
+        "knowledge_base_refs": [
+            "hankel-metrics-kb/03-caren-project-won-validation.md",
+            "hankel-metrics-kb/05-analysis-governance-and-open-questions.md",
+        ],
         "columns": columns,
     }
 
@@ -140,7 +192,8 @@ def access_grant(table_name):
     }
 
 
-def metric_index(metric_name, display_name, short_desc, domain, keywords, source_view):
+def metric_index(metric_name, display_name, short_desc, domain, keywords, source_view,
+                 business_status, business_note):
     return {
         "metric_name": metric_name,
         "display_name": display_name,
@@ -149,11 +202,15 @@ def metric_index(metric_name, display_name, short_desc, domain, keywords, source
         "search_keywords": keywords,
         "source_type": "cdp_postgres",
         "source": {"table_view": source_view},
+        "business_status": business_status,
+        "business_note": business_note,
+        "knowledge_base_refs": ["hankel-metrics-kb/03-caren-project-won-validation.md"],
     }
 
 
 def metric_detail(metric_name, display_name, description, source_view, calculation,
-                  supported_dimensions, fmt="number", data_type="numeric", synonyms=None):
+                  supported_dimensions, fmt="number", data_type="numeric", synonyms=None,
+                  business_status="written_spec_reference", business_note=""):
     return {
         "metric_name": metric_name,
         "display_name": display_name,
@@ -175,6 +232,9 @@ def metric_detail(metric_name, display_name, description, source_view, calculati
             "window": "YTD Aug 2026",
             "supported_grains": ["month", "year"],
         },
+        "business_status": business_status,
+        "business_note": business_note,
+        "knowledge_base_refs": ["hankel-metrics-kb/03-caren-project-won-validation.md"],
         "ai_agent_context": {
             "polarity": "positive" if "gap" not in metric_name else "negative",
             "synonyms": synonyms or [],
@@ -226,6 +286,22 @@ segment_leaderboard_dims = [
 
 tables = [
     table_payload(
+        "hankel_view_run_for_gold_parameters",
+        "Hankel Run for Gold Parameters",
+        "Run for Gold Parameters",
+        "Single-row parameter source for the current reproducible YTD Aug 2026 demo run.",
+        "one parameter set",
+        [
+            col("competition_start_date", "date"), col("competition_end_date", "date"),
+            col("report_cutoff_date", "date"), col("target_year_start", "date"),
+            col("target_year_end", "date"), col("target_year", "number"),
+            col("validation_threshold", "number"),
+        ],
+        "parameter view",
+        "demo_fixed_parameters",
+        "Values are fixed for the current demo and must be replaced by run-scoped parameters for production.",
+    ),
+    table_payload(
         "hankel_view_sales_name_mapping",
         "Hankel Sales Name Mapping",
         "Run for Gold Sales Mapping",
@@ -252,6 +328,23 @@ tables = [
             col("quality_issues"),
         ],
         "normalized view",
+    ),
+    table_payload(
+        "hankel_view_new_project_opportunity",
+        "Hankel New Project Opportunity",
+        "Run for Gold New Project",
+        "New Projects aggregated to canonical salesperson and Opportunity ID before higher-level totals.",
+        "canonical_sales_name + opportunity_id",
+        [
+            col("canonical_sales_name"), col("opportunity_id"), col("team"),
+            col("sales_team"), col("sales_type"), col("primary_segment"),
+            col("segments"), col("new_project_y1", "number"),
+            col("project_line_count", "number"), col("creation_date", "date"),
+            col("report_cutoff_date", "date"), col("quality_issues"),
+        ],
+        "calculation view",
+        "written_spec_reference",
+        "New Project ranking metrics are outside the customer-confirmed current POC.",
     ),
     table_payload(
         "hankel_view_new_order_line",
@@ -281,9 +374,30 @@ tables = [
             col("opportunity_ids"), col("raw_won_y1", "number"), col("check_period_won_y1", "number"),
             col("required_new_order_value", "number"), col("matched_new_order_value", "number"),
             col("coverage", "number"), col("result"), col("counted_won_y1", "number"),
-            col("new_order_gap", "number"), col("status_action"),
+            col("new_order_gap", "number"), col("new_order_gap_raw", "number"),
+            col("status_action"),
         ],
         "calculation view",
+        "written_spec_reference",
+        "Qualification thresholds are outside the customer-confirmed current POC.",
+    ),
+    table_payload(
+        "hankel_view_validated_won_opportunity",
+        "Hankel Validated Won Opportunity",
+        "Run for Gold Validated Won",
+        "Opportunity-level validation result; an Opportunity passes when at least one exact product Match Key passes.",
+        "canonical_sales_name + opportunity_id",
+        [
+            col("canonical_sales_name"), col("opportunity_id"), col("team"),
+            col("sales_team"), col("sales_type"), col("primary_segment"),
+            col("segments"), col("match_key_count", "number"), col("match_keys"),
+            col("has_passed_match_key", "boolean"), col("result"),
+            col("validated_opportunity_id"), col("raw_won_y1", "number"),
+            col("report_cutoff_date", "date"), col("quality_issues"),
+        ],
+        "calculation view",
+        "written_spec_reference",
+        "Validated Won Count is defined in the written competition specification, not the current customer-confirmed POC.",
     ),
     table_payload(
         "hankel_view_run_for_gold_sales_summary",
@@ -317,6 +431,26 @@ tables = [
             col("score", "number"), col("position"), col("is_qualified", "boolean"),
         ],
         "calculation view",
+        "written_spec_reference",
+        "Ranking and awards are outside the customer-confirmed current POC.",
+    ),
+    table_payload(
+        "hankel_view_run_for_gold_qualification_status",
+        "Hankel Run for Gold Qualification Status",
+        "Run for Gold Qualification",
+        "All overall-pool candidates with qualification thresholds and status; only qualified rows enter the leaderboard.",
+        "award_pool + canonical_sales_name",
+        [
+            col("award_pool"), col("team"), col("leader"), col("canonical_sales_name"),
+            col("sales_type"), col("new_project_count", "number"),
+            col("validated_won_count", "number"), col("new_y1", "number"),
+            col("won_y1", "number"), col("new_project_required", "number"),
+            col("validated_won_required", "number"), col("is_qualified", "boolean"),
+            col("report_cutoff_date", "date"),
+        ],
+        "calculation view",
+        "written_spec_reference",
+        "Qualification and ranking are outside the customer-confirmed current POC.",
     ),
     table_payload(
         "hankel_view_run_for_gold_segment_leaderboard",
@@ -332,6 +466,26 @@ tables = [
             col("score", "number"), col("position"), col("is_qualified", "boolean"),
         ],
         "calculation view",
+        "written_spec_reference",
+        "Segment ranking and awards are outside the customer-confirmed current POC.",
+    ),
+    table_payload(
+        "hankel_view_run_for_gold_segment_qualification_status",
+        "Hankel Run for Gold Segment Qualification Status",
+        "Run for Gold Segment Qualification",
+        "All segment-pool candidates with qualification thresholds and status; only qualified rows enter segment leaderboards.",
+        "segment + canonical_sales_name",
+        [
+            col("segment"), col("award_pool"), col("team"), col("leader"),
+            col("canonical_sales_name"), col("sales_type"),
+            col("new_project_count", "number"), col("validated_won_count", "number"),
+            col("new_y1", "number"), col("won_y1", "number"),
+            col("new_project_required", "number"), col("validated_won_required", "number"),
+            col("is_qualified", "boolean"), col("report_cutoff_date", "date"),
+        ],
+        "calculation view",
+        "written_spec_reference",
+        "Segment qualification is outside the customer-confirmed current POC.",
     ),
     table_payload(
         "hankel_view_run_for_gold_qualification_gap",
@@ -347,6 +501,8 @@ tables = [
             col("status"),
         ],
         "calculation view",
+        "written_spec_reference",
+        "Qualification thresholds are outside the customer-confirmed current POC.",
     ),
     table_payload(
         "hankel_view_run_for_gold_report_reconciliation",
@@ -361,6 +517,8 @@ tables = [
             col("status"), col("detail"),
         ],
         "QA view",
+        "demo_quality",
+        "Golden-report comparison is a QA asset and is not a business metric source.",
     ),
 ]
 
@@ -388,7 +546,7 @@ metric_specs = [
     (
         "hankel_validated_won_count",
         "Hankel Validated Won Count",
-        "Number of Won match keys that pass New Order validation.",
+        "Number of distinct Won Opportunity IDs with at least one exact product Match Key passing New Order validation.",
         "public.hankel_view_run_for_gold_sales_summary",
         {"type": "aggregate", "aggregation": "sum", "measure": "validated_won_count"},
         sales_summary_dims,
@@ -437,13 +595,23 @@ metric_specs = [
     ),
     (
         "hankel_new_order_gap",
-        "Hankel New Order Gap",
-        "Remaining New Order amount needed for Below 50% Won validation match keys.",
+        "Hankel New Order Action Gap",
+        "Non-negative remaining New Order amount needed for Below 50% Won validation match keys.",
         "public.hankel_view_run_for_gold_sales_summary",
         {"type": "aggregate", "aggregation": "sum", "measure": "new_order_gap"},
         sales_summary_dims,
         "currency",
-        ["gap", "new order gap", "订单缺口"],
+        ["action gap", "new order gap", "还差多少订单", "订单行动缺口"],
+    ),
+    (
+        "hankel_new_order_signed_gap",
+        "Hankel New Order Signed Gap",
+        "Signed required-minus-matched New Order amount; negative values represent over-coverage.",
+        "public.hankel_view_won_validation_match_key",
+        {"type": "aggregate", "aggregation": "sum", "measure": "new_order_gap_raw"},
+        validation_dims,
+        "currency",
+        ["signed gap", "over or under coverage", "超额或不足", "订单有符号差额"],
     ),
     (
         "hankel_competition_won_y1",
@@ -487,6 +655,61 @@ metric_specs = [
     ),
 ]
 
+metric_governance = {
+    "hankel_new_projects_count": (
+        "written_spec_reference",
+        "Competition metric from the written specification; outside the customer-confirmed current POC.",
+    ),
+    "hankel_new_projects_y1": (
+        "written_spec_reference",
+        "Competition metric from the written specification; Opportunity-level SUM is applied before salesperson totals.",
+    ),
+    "hankel_validated_won_count": (
+        "written_spec_reference",
+        "Counts distinct Opportunity IDs, but the metric is outside the customer-confirmed current POC.",
+    ),
+    "hankel_validation_won_y1": (
+        "pending_business_confirmation",
+        "The formula is confirmed; the Won candidate start date still requires business confirmation.",
+    ),
+    "hankel_required_new_order_value": (
+        "customer_confirmed",
+        "Uses the exact 50% threshold; rounding is display-only.",
+    ),
+    "hankel_matched_new_order_value": (
+        "customer_confirmed",
+        "Uses exact Sales Name + Sold-to IDH + Product IDH Match Keys and target-calendar-year New Orders.",
+    ),
+    "hankel_order_coverage_rate": (
+        "customer_confirmed",
+        "Uncapped Matched New Order divided by Check-period Won Y1.",
+    ),
+    "hankel_new_order_gap": (
+        "pending_business_confirmation",
+        "Compatibility metric now explicitly represents non-negative Action Gap.",
+    ),
+    "hankel_new_order_signed_gap": (
+        "pending_business_confirmation",
+        "Explicit Signed Gap is published separately until the customer selects one external default.",
+    ),
+    "hankel_competition_won_y1": (
+        "written_spec_reference",
+        "Ranking input from the written specification; outside the customer-confirmed current POC.",
+    ),
+    "hankel_final_score": (
+        "written_spec_reference",
+        "Overall ranking is outside the customer-confirmed current POC.",
+    ),
+    "hankel_segment_final_score": (
+        "written_spec_reference",
+        "Segment ranking is outside the customer-confirmed current POC.",
+    ),
+    "hankel_match_key_count": (
+        "technical_diagnostic",
+        "Diagnostic Match Key count; do not use as Validated Won Opportunity count.",
+    ),
+}
+
 print(f"Publishing Hankel Run for Gold meta to {base_url}, tenant={tenant_id}, datasource={datasource_id}")
 
 for payload in tables:
@@ -496,6 +719,7 @@ for payload in tables:
 
 for spec in metric_specs:
     metric_name, display_name, description, source_view, calculation, dims, fmt, synonyms = spec
+    business_status, business_note = metric_governance[metric_name]
     index_payload = metric_index(
         metric_name,
         display_name,
@@ -503,6 +727,8 @@ for spec in metric_specs:
         "Hankel Run for Gold",
         synonyms + ["hankel", "run for gold"],
         source_view,
+        business_status,
+        business_note,
     )
     detail_payload = metric_detail(
         metric_name,
@@ -513,6 +739,8 @@ for spec in metric_specs:
         dims,
         fmt=fmt,
         synonyms=synonyms,
+        business_status=business_status,
+        business_note=business_note,
     )
     if metric_name == "hankel_final_score":
         detail_payload["query_constraints"] = {

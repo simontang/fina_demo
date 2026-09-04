@@ -62,22 +62,22 @@ SELECT
     q.territory_sales_quantity AS allocated_sales_quantity,
     q.parsed_territory_sell_out AS allocated_sell_out_value,
     CASE
-        WHEN q.is_quantity_outlier OR q.is_amount_outlier OR q.has_invalid_allocation_value
+        WHEN q.is_quantity_outlier
         THEN NULL
         ELSE q.territory_sales_quantity
     END AS sell_out_quantity,
     CASE
-        WHEN q.is_quantity_outlier OR q.is_amount_outlier OR q.has_invalid_allocation_value
+        WHEN q.is_amount_outlier OR q.has_invalid_allocation_value
         THEN NULL
         ELSE q.parsed_territory_sell_out
     END AS sell_out_value,
     CASE
-        WHEN q.is_quantity_outlier OR q.is_amount_outlier OR q.has_invalid_allocation_value
+        WHEN q.is_quantity_outlier
         THEN COALESCE(q.territory_sales_quantity, 0)
         ELSE 0::numeric
     END AS excluded_sell_out_quantity,
     CASE
-        WHEN q.is_quantity_outlier OR q.is_amount_outlier OR q.has_invalid_allocation_value
+        WHEN q.is_amount_outlier OR q.has_invalid_allocation_value
         THEN COALESCE(q.parsed_territory_sell_out, 0)
         ELSE 0::numeric
     END AS excluded_sell_out_value,
@@ -109,5 +109,7 @@ SELECT
         WHEN q.year_month ~ '^[0-9]{4}-[0-9]{2}$'
         THEN TO_DATE(q.year_month || '-01', 'YYYY-MM-DD')
         ELSE NULL
-    END AS period_date
+    END AS period_date,
+    q.is_quantity_outlier AS is_quantity_quality_excluded,
+    q.is_amount_outlier OR q.has_invalid_allocation_value AS is_value_quality_excluded
 FROM quality q;

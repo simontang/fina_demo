@@ -1,0 +1,31 @@
+{
+  "kbId": "hankel-metrics-analysis",
+  "tenantId": "hankel",
+  "version": "1.1.0",
+  "language": "zh-CN",
+  "reviewedAt": "2026-09-04",
+  "documents": [
+    "README.md",
+    "01-business-context-and-terms.md",
+    "02-river-distributor-metrics.md",
+    "03-caren-project-won-validation.md",
+    "04-generic-project-dashboard.md",
+    "05-analysis-governance-and-open-questions.md",
+    "06-runtime-asset-alignment.md"
+  ],
+  "businessStatusValues": [
+    "customer_confirmed",
+    "customer_confirmed_semantic_foundation",
+    "written_spec_reference",
+    "pending_business_confirmation",
+    "demo_quality",
+    "technical_diagnostic",
+    "demo_fixed_parameters"
+  ],
+  "runtime": {
+    "datasourceId": 15,
+    "metaEndpoint": "/api/v1/datasources/15/meta",
+    "queryEndpoint": "/api/v1/metrics/query"
+  },
+  "containsCustomerRowData": false
+}

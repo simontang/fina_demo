@@ -396,10 +396,10 @@ Derived ratio metric：
 ```json
 {
   "objectType": "metric_detail",
-  "objectKey": "hankel_gross_margin_rate",
+  "objectKey": "hankel_sell_in_gross_margin_rate",
   "status": 1,
   "payload": {
-    "name": "hankel_gross_margin_rate",
+    "name": "hankel_sell_in_gross_margin_rate",
     "displayName": "Gross Margin Rate",
     "description": "Gross margin divided by sell-in NES.",
     "sourceTable": "hankel_distr_sell_in",
@@ -461,7 +461,7 @@ POST /api/v1/metrics/query
 {
   "datasourceId": 15,
   "action": "query",
-  "metrics": ["hankel_sell_in_nes", "hankel_gross_margin_rate"],
+  "metrics": ["hankel_sell_in_nes", "hankel_sell_in_gross_margin_rate"],
   "groupBy": ["sales_team", "posting_year"],
   "filters": [
     {
@@ -517,7 +517,7 @@ curl -s \
     "datasourceId": 15,
     "metrics": [
       "hankel_sell_in_nes",
-      "hankel_gross_margin_rate"
+      "hankel_sell_in_gross_margin_rate"
     ],
     "groupBy": [
       "sales_team",
@@ -548,13 +548,14 @@ curl -s \
 ```json
 {
   "datasourceId": 15,
-  "customSql": "select sales_team, count(*) as row_count from hankel_distr_sell_in group by sales_team",
+  "customSql": "select sales_team, count(*) as row_count from public.hankel_view_distr_sell_in group by sales_team",
   "limit": 20,
   "debug": true
 }
 ```
 
-如果 SQL 引用了未发布或未授权表，例如 `t_datasource_config`，服务端应拒绝。
+如果 SQL 引用了未发布或未授权表，例如 raw 表 `hankel_distr_sell_in`
+或系统表 `t_datasource_config`，服务端应拒绝。
 
 ### 5.7 Runtime Query Rules
 
@@ -758,7 +759,7 @@ Runtime metric query:
   "datasourceId": 15,
   "metrics": [
     "hankel_sell_in_nes",
-    "hankel_gross_margin_rate"
+    "hankel_sell_in_gross_margin_rate"
   ],
   "groupBy": [
     "sales_team",

@@ -9,6 +9,7 @@ import com.fina.metrics.dto.MetricsIndexResponse;
 import com.fina.metrics.dto.MetricsQueryData;
 import com.fina.metrics.dto.SemanticQueryRequest;
 import com.fina.metrics.dto.DataSourceTableGrantVO;
+import com.fina.metrics.dto.TableViewDetailResponse;
 import com.fina.metrics.dto.TableViewIndexItem;
 import com.fina.metrics.entity.DataSourceConfig;
 import com.fina.metrics.entity.MetricsMeta;
@@ -34,8 +35,11 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -212,6 +216,39 @@ class MetricsServiceImplTest {
         assertThat(response.getQueryConstraints())
                 .containsEntry("non_additive", true)
                 .containsEntry("required_group_by", List.of("canonical_sales_name"));
+    }
+
+    @Test
+    void fullMetaBulkLoadsPublishedTablesAndMetricDetails() throws Exception {
+        JsonNode firstDetail = detailMetric(
+                "hankel_sales_amount", "public.hankel_sales");
+        JsonNode secondDetail = detailMetric(
+                "hankel_sales_quantity", "public.hankel_sales");
+        when(datasourceMapper.selectById(DATASOURCE_ID)).thenReturn(datasource("Hankel PostgreSQL"));
+        when(tableAccessService.listActiveGrants("hankel", DATASOURCE_ID))
+                .thenReturn(List.of(tableGrant("hankel_")));
+        when(catalog.getIndexItems(DATASOURCE_ID)).thenReturn(List.of(
+                indexMetricWithSource("hankel_sales_amount", "public.hankel_sales"),
+                indexMetricWithSource("hankel_sales_quantity", "public.hankel_sales")));
+        when(catalog.getDetailItems(DATASOURCE_ID)).thenReturn(List.of(firstDetail, secondDetail));
+        when(tableViewMetaService.getTableViewsIndex(DATASOURCE_ID))
+                .thenReturn(List.of(table("hankel_sales")));
+        when(tableViewMetaService.getTableViewsDetails(DATASOURCE_ID))
+                .thenReturn(List.of(TableViewDetailResponse.builder()
+                        .tableName("hankel_sales")
+                        .build()));
+
+        var response = service.getMetricsMeta(DATASOURCE_ID, "hankel");
+
+        assertThat(response.getMetricsDetails())
+                .extracting("metricName")
+                .containsExactly("hankel_sales_amount", "hankel_sales_quantity");
+        assertThat(response.getTablesDetails())
+                .extracting(TableViewDetailResponse::getTableName)
+                .containsExactly("hankel_sales");
+        verify(tableViewMetaService, times(1)).getTableViewsIndex(DATASOURCE_ID);
+        verify(catalog, times(2)).getDetailItems(DATASOURCE_ID);
+        verify(catalog, never()).findDetailItem(anyString(), eq(DATASOURCE_ID));
     }
 
     @Test
