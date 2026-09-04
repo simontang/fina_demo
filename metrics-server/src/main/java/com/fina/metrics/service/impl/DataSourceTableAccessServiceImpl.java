@@ -46,7 +46,7 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
 
     @Override
     public List<DataSourceTableGrantVO> listGrants(String tenantId, Long datasourceId) {
-        return selectEffectiveGrants(tenantId, datasourceId, null).stream()
+        return selectTenantGrants(tenantId, datasourceId, null).stream()
                 .map(this::toVO)
                 .collect(Collectors.toList());
     }
@@ -353,10 +353,6 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
 
     private List<DataSourceTableGrant> selectEffectiveGrants(String tenantId, Long datasourceId, Integer status) {
         String resolvedTenant = TenantHeaderResolver.resolve(tenantId);
-        List<DataSourceTableGrant> tenantGrants = selectTenantGrants(resolvedTenant, datasourceId, status);
-        if (!tenantGrants.isEmpty()) {
-            return tenantGrants;
-        }
         List<DataSourceTableGrant> datasourceGrants = selectDatasourceGrants(datasourceId, status);
         if (!datasourceGrants.isEmpty()) {
             log.debug("Using datasource-level table grants tenant={} datasource={} grantCount={}",

@@ -82,21 +82,21 @@ class DataSourceTableAccessServiceImplTest {
     }
 
     @Test
-    void readChecksFallBackToDatasourceGrantsWhenTenantHasNone() {
+    void readChecksUseDatasourceGrantsWhenTenantHasNone() {
         when(grantMapper.selectList(any()))
-                .thenReturn(List.of(), List.of(prefixGrant("hankel_")));
+                .thenReturn(List.of(prefixGrant("hankel_")));
 
         assertThat(service.isTableAuthorized("default", DATASOURCE_ID, null, "hankel_sales")).isTrue();
 
-        verify(grantMapper, times(2)).selectList(any());
+        verify(grantMapper).selectList(any());
     }
 
     @Test
-    void tenantGrantTakesPrecedenceOverDatasourceFallback() {
+    void readChecksDoNotLetTenantSpecificGrantsHideDatasourceGrants() {
         when(grantMapper.selectList(any()))
-                .thenReturn(List.of(prefixGrant("tenant_only_")));
+                .thenReturn(List.of(prefixGrantForTenant("default", "tenant_only_"), prefixGrant("hankel_")));
 
-        assertThat(service.isTableAuthorized("default", DATASOURCE_ID, null, "hankel_sales")).isFalse();
+        assertThat(service.isTableAuthorized("default", DATASOURCE_ID, null, "hankel_sales")).isTrue();
         assertThat(service.isTableAuthorized("default", DATASOURCE_ID, null, "tenant_only_sales")).isTrue();
 
         verify(grantMapper, times(2)).selectList(any());
@@ -226,9 +226,13 @@ class DataSourceTableAccessServiceImplTest {
     }
 
     private DataSourceTableGrant prefixGrant(String prefix) {
+        return prefixGrantForTenant("hankel", prefix);
+    }
+
+    private DataSourceTableGrant prefixGrantForTenant(String tenantId, String prefix) {
         DataSourceTableGrant grant = new DataSourceTableGrant();
         grant.setId(1L);
-        grant.setTenantId("hankel");
+        grant.setTenantId(tenantId);
         grant.setDatasourceId(DATASOURCE_ID);
         grant.setSchemaName("public");
         grant.setTablePattern(prefix);
