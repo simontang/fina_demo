@@ -41,6 +41,10 @@ metrics:
     key: ${ENCRYPT_KEY:fina-metrics-2024!}
   # Set true to skip loading dynamic HANA datasources on startup (dev mode without HANA)
   skip-init: ${SKIP_INIT:false}
+  meta-cache:
+    enabled: ${META_CACHE_ENABLED:true}
+    poll-interval-ms: ${META_CACHE_POLL_INTERVAL_MS:60000}
+    initial-delay-ms: ${META_CACHE_INITIAL_DELAY_MS:60000}
 
 management:
   endpoints:

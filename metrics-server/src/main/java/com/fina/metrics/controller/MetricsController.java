@@ -2,6 +2,7 @@ package com.fina.metrics.controller;
 
 import com.fina.metrics.dto.*;
 import com.fina.metrics.service.MetricsService;
+import com.fina.metrics.service.RuntimeMetaCache;
 import com.fina.metrics.util.TenantHeaderResolver;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ import java.util.List;
 public class MetricsController {
 
     private final MetricsService metricsService;
+    private final RuntimeMetaCache runtimeMetaCache;
 
     // ── Agent discovery ───────────────────────────────────────────────────────
 
@@ -75,7 +77,10 @@ public class MetricsController {
     public ApiResponse<MetricsMetaFullResponse> getMetricsMeta(
             @PathVariable Long dsId,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
-        return ApiResponse.ok(metricsService.getMetricsMeta(dsId, resolveTenant(tenantId)));
+        String resolvedTenant = resolveTenant(tenantId);
+        return ApiResponse.ok(runtimeMetaCache.get(
+                dsId,
+                () -> metricsService.getMetricsMeta(dsId, resolvedTenant)));
     }
 
     // ── Query execution ───────────────────────────────────────────────────────
