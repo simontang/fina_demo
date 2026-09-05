@@ -15,8 +15,8 @@ importers:
         specifier: ^1.6.1
         version: 1.6.1(antd@5.28.1(date-fns@2.30.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@axiom-lattice/react-sdk':
-        specifier: ^3.3.0
-        version: 3.3.0(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(@types/react@19.2.4)(date-fns@2.30.0)(express@4.21.2)(i18next@25.6.3(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(zod@3.25.76)
+        specifier: ^3.3.1
+        version: 3.3.1(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(@types/react@19.2.4)(date-fns@2.30.0)(express@4.21.2)(i18next@25.6.3(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(zod@3.25.76)
       '@refinedev/antd':
         specifier: ^6.0.1
         version: 6.0.3(@refinedev/core@5.0.6(@tanstack/react-query@5.90.8(react@19.2.0))(@types/react-dom@19.2.3(@types/react@19.2.4))(@types/react@19.2.4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@types/react-dom@19.2.3(@types/react@19.2.4))(@types/react@19.2.4)(antd@5.28.1(date-fns@2.30.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(dayjs@1.11.23)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -267,8 +267,8 @@ packages:
   '@antv/util@3.3.11':
     resolution: {integrity: sha512-FII08DFM4ABh2q5rPYdr0hMtKXRgeZazvXaFYCs7J7uTcWDHUhczab2qOCJLNDugoj8jFag1djb7wS9ehaRYBg==}
 
-  '@axiom-lattice/client-sdk@4.3.0':
-    resolution: {integrity: sha512-QW6hgInR8t956PsQqziCn+ISEZ0zqVdbdq2cceEcRVOdAlJENjI9n3qY1Fl/OUCHuYyf+8cz3WCzE1Volc4ODQ==}
+  '@axiom-lattice/client-sdk@4.3.1':
+    resolution: {integrity: sha512-EgmCziyEeTuh4ymSq4VwP/skxcSyleBG8vLETFqlnbfmYLwKOK8VSqbyiWOxkyOxdcTM2gd6vA0xnnpYNZ8sPQ==}
 
   '@axiom-lattice/protocols@4.1.2':
     resolution: {integrity: sha512-NwPmq+vWU01JgyqiyAI016N3AAJbocv40aI5jYrPl1vtG5wBQpfEVhQ5VVKkmoR+3O3oaobgPD+UyqUBqwOW7g==}
@@ -277,8 +277,8 @@ packages:
       '@langchain/langgraph': 1.0.4
       zod: 3.25.76
 
-  '@axiom-lattice/react-sdk@3.3.0':
-    resolution: {integrity: sha512-Rcrod7uqmtL/vC/qN6VNwqobNxWgNupl6S9FSSrAqV0rmlUuIeU7fAVTmnramfhhtFrLB/0CAuJzppCBsww9QQ==}
+  '@axiom-lattice/react-sdk@3.3.1':
+    resolution: {integrity: sha512-dqAbp6xdiCSuS2tkXqR+7vULbOBsMicNO08ea7hwQYZKTRMpicBe8ItGNKIQ2iJ4lWzcNn8LzWbcRuFJbGTdlg==}
     peerDependencies:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
@@ -5472,7 +5472,7 @@ snapshots:
       gl-matrix: 3.4.4
       tslib: 2.8.1
 
-  '@axiom-lattice/client-sdk@4.3.0(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(express@4.21.2)(zod@3.25.76)':
+  '@axiom-lattice/client-sdk@4.3.1(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(express@4.21.2)(zod@3.25.76)':
     dependencies:
       '@axiom-lattice/protocols': 4.1.2(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(express@4.21.2)(zod@3.25.76)
       best-effort-json-parser: 1.5.1
@@ -5495,14 +5495,14 @@ snapshots:
       - '@grpc/grpc-js'
       - express
 
-  '@axiom-lattice/react-sdk@3.3.0(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(@types/react@19.2.4)(date-fns@2.30.0)(express@4.21.2)(i18next@25.6.3(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(zod@3.25.76)':
+  '@axiom-lattice/react-sdk@3.3.1(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(@types/react@19.2.4)(date-fns@2.30.0)(express@4.21.2)(i18next@25.6.3(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(zod@3.25.76)':
     dependencies:
       '@alexbruf/react-diff-viewer': 3.1.5(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@ant-design/icons': 6.3.4(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@ant-design/x': 2.9.0(antd@5.28.1(date-fns@2.30.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@ant-design/x-markdown': 2.9.0(@types/react@19.2.4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@antv/infographic': 0.2.20
-      '@axiom-lattice/client-sdk': 4.3.0(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(express@4.21.2)(zod@3.25.76)
+      '@axiom-lattice/client-sdk': 4.3.1(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(express@4.21.2)(zod@3.25.76)
       '@axiom-lattice/protocols': 4.1.2(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(express@4.21.2)(zod@3.25.76)
       '@types/dagre': 0.7.54
       '@xyflow/react': 12.10.0(@types/react@19.2.4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
