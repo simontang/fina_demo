@@ -36,7 +36,7 @@ public class RuntimeMetaCacheInvalidator {
             lastFingerprint = currentFingerprint;
 
             if (previousFingerprint == null) {
-                runtimeMetaCache.invalidateAll("meta change baseline initialized");
+                log.info("Runtime meta change baseline initialized");
             } else if (!previousFingerprint.equals(currentFingerprint)) {
                 runtimeMetaCache.invalidateAll("published meta changed");
             }

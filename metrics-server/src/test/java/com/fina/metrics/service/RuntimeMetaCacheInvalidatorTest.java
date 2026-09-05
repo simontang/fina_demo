@@ -21,8 +21,7 @@ class RuntimeMetaCacheInvalidatorTest {
         when(mapper.selectRuntimeMetaChangeState()).thenReturn(initial, initial, changed);
 
         invalidator.pollForChanges();
-        verify(cache).invalidateAll("meta change baseline initialized");
-        clearInvocations(cache);
+        verifyNoInteractions(cache);
 
         invalidator.pollForChanges();
         verifyNoInteractions(cache);
@@ -32,7 +31,7 @@ class RuntimeMetaCacheInvalidatorTest {
     }
 
     @Test
-    void clearsCacheWhenPollingRecoversWithoutBaseline() {
+    void establishesBaselineWithoutClearingCacheWhenPollingRecovers() {
         RuntimeMetaChangeMapper mapper = mock(RuntimeMetaChangeMapper.class);
         RuntimeMetaCache cache = mock(RuntimeMetaCache.class);
         RuntimeMetaCacheInvalidator invalidator = new RuntimeMetaCacheInvalidator(mapper, cache);
@@ -45,7 +44,7 @@ class RuntimeMetaCacheInvalidatorTest {
 
         invalidator.pollForChanges();
 
-        verify(cache).invalidateAll("meta change baseline initialized");
+        verifyNoInteractions(cache);
     }
 
     private RuntimeMetaChangeState state(Long activeCount, LocalDateTime updatedAt, String contentFingerprint) {
