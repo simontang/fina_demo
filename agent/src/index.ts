@@ -78,22 +78,22 @@ import "./tools/metricsTools";
 
 // 如果设置了 MODEL_LIST 环境变量，则跳过所有代码注册
 if (!process.env.MODEL_LIST) {
-  registerModelLattice(
-    "deepseek-v4-pro",
-
-    {
-      model: "deepseek-v4-pro",
-      displayName: "deepseek-v4-pro",
-      provider: "openai",
-      streaming: true,
-      apiKeyEnvName: "API_KEY3",
-      baseURL: baseURL,
-      modelKwargs: {
-        "enable_thinking": false,
-        "thinking": { "type": "disabled" }
-      }
-    }
-  );
+  // registerModelLattice(
+  //   "deepseek-v4-pro",
+  //
+  //   {
+  //     model: "deepseek-v4-pro",
+  //     displayName: "deepseek-v4-pro",
+  //     provider: "openai",
+  //     streaming: true,
+  //     apiKeyEnvName: "API_KEY3",
+  //     baseURL: baseURL,
+  //     modelKwargs: {
+  //       "enable_thinking": false,
+  //       "thinking": { "type": "disabled" }
+  //     }
+  //   }
+  // );
   registerModelLattice(
     "qwen3.8-flash",
 
@@ -119,7 +119,9 @@ if (!process.env.MODEL_LIST) {
       streaming: true,
       apiKeyEnvName: "API_KEY3",
       baseURL: baseURL,
-
+      modelKwargs: {
+        "enable_thinking": false
+      }
     }
   );
   registerModelLattice(
@@ -132,15 +134,78 @@ if (!process.env.MODEL_LIST) {
       streaming: true,
       apiKeyEnvName: "API_KEY3",
       baseURL: baseURL,
+      modelKwargs: {
+        "enable_thinking": false
+      }
+    }
+  );
+  registerModelLattice(
+    "qwen3.7-plus",
 
+    {
+      model: "qwen3.7-plus",
+      displayName: "qwen3.7-plus",
+      provider: "openai",
+      streaming: true,
+      apiKeyEnvName: "API_KEY3",
+      baseURL: baseURL,
+      modelKwargs: {
+        "enable_thinking": false
+      }
+    }
+  );
+  registerModelLattice(
+    "qwen3.6-plus",
+
+    {
+      model: "qwen3.6-plus",
+      displayName: "qwen3.6-plus",
+      provider: "openai",
+      streaming: true,
+      apiKeyEnvName: "API_KEY3",
+      baseURL: baseURL,
+      modelKwargs: {
+        "enable_thinking": false
+      }
+    }
+  );
+  registerModelLattice(
+    "qwen3.8-max",
+
+    {
+      model: "qwen3.8-max",
+      displayName: "qwen3.8-max",
+      provider: "openai",
+      streaming: true,
+      apiKeyEnvName: "API_KEY3",
+      baseURL: baseURL,
+      modelKwargs: {
+        "enable_thinking": false
+      }
+    }
+  );
+  registerModelLattice(
+    "deepseek-v4-flash",
+
+    {
+      model: "deepseek-v4-flash",
+      displayName: "deepseek-v4-flash",
+      provider: "openai",
+      streaming: true,
+      apiKeyEnvName: "API_KEY3",
+      baseURL: baseURL,
+      modelKwargs: {
+        "enable_thinking": false,
+        "thinking": { "type": "disabled" }
+      }
     }
   );
   registerModelLattice(
     "default",
 
     {
-      model: "deepseek-v4-flash",
-      displayName: "deepseek-v4-flash",
+      model: "deepseek-v4-pro",
+      displayName: "deepseek-v4-pro",
       provider: "openai",
       streaming: true,
       apiKeyEnvName: "API_KEY3",
