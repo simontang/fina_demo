@@ -210,7 +210,14 @@ public class DynamicDataSourceManager {
 
     private boolean matchesDatasourceType(DataSourceConfig config) {
         String type = config.getInstanceType();
-        return StringUtils.hasText(type) && datasourceType.equalsIgnoreCase(type.trim());
+        if (!StringUtils.hasText(type) || !datasourceType.equalsIgnoreCase(type.trim())) {
+            return false;
+        }
+        if ("SQLSERVER".equalsIgnoreCase(datasourceType)) {
+            return StringUtils.hasText(config.getUrl())
+                    && config.getUrl().trim().toLowerCase().startsWith("jdbc:sqlserver:");
+        }
+        return true;
     }
 
     private static String quoteSqlServerIdentifier(String identifier) {
