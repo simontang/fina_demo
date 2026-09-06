@@ -1,5 +1,6 @@
 Field ID	Field Name	Description	Type
 b94c1aa7-2af2-47f2-8e2e-8bf6adbbdd25	ShortName	ShortName	NVARCHAR
+generated-VW_CUSTBAL-CardCode	CardCode	Customer code	NVARCHAR
 b5883680-be94-4fbd-a5c9-772ddd9b3be8	CardName	Business partner name e.g. Acme Ltd	NVARCHAR
 e7da9637-4586-4408-9d9e-5c5f28d635a3	Province	Province e.g. Guangdong	NVARCHAR
 5c459645-226d-414d-a362-90ab1da17cdc	Region	Region e.g. South China	NVARCHAR
@@ -16,5 +17,12 @@ e2480b4d-e670-43c0-9aad-9386aae721ba	BalDue	BalDue	DECIMAL
 4475c8a4-83b4-4a32-9e95-0c5443219d03	FCAmount	FCAmount	DECIMAL
 0d22d9c5-5a91-478f-90a5-d5ba681e6491	BalFcDue	BalFcDue	DECIMAL
 dabe0323-6741-47a1-bb17-2655819fdc35	Aging	Aging	VARCHAR
+generated-VW_CUSTBAL-AgingDays	AgingDays	Days from due date to current date	INTEGER
 66e511d4-e76e-41fa-82e7-30a4b18756f1	BPLId	BPLId	INTEGER
 0851ff1c-914f-4b1b-ac88-d3016ff0455c	BPLName	BPLName	NVARCHAR
+generated-VW_CUSTBAL-Balance	Balance	Current customer balance	DECIMAL
+generated-VW_CUSTBAL-CreditLine	CreditLine	Customer credit limit	DECIMAL
+generated-VW_CUSTBAL-CreditLimit	CreditLimit	Alias of CreditLine for compatibility	DECIMAL
+generated-VW_CUSTBAL-GroupNum	GroupNum	Payment terms group code	INTEGER
+generated-VW_CUSTBAL-PymntGroup	PymntGroup	Payment terms description	NVARCHAR
+generated-VW_CUSTBAL-PaymentTermDays	PaymentTermDays	Approximate payment term days; one month is normalized to 30 days	INTEGER

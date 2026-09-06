@@ -270,8 +270,7 @@ public class MetricsServiceImpl implements MetricsService {
         // ── Ad-hoc SQL ───────────────────────────────────────────────────────
         if (StringUtils.hasText(request.getCustomSql())) {
             log.info("Ad-hoc query datasource={}", request.getDatasourceId());
-            // For customSql we delegate LIMIT / TOP handling to the caller's SQL.
-            // request.limit is ignored here to avoid generating dialect-specific syntax.
+            // request.limit is ignored here; the SQL translator normalizes an explicit LIMIT/TOP.
             String sqlToRun = viewTranslationService.translateSql(request.getCustomSql());
             Map<String, Object> params = request.getParams() != null ? request.getParams() : Map.of();
             QueryResult qr = executeQuery(request.getDatasourceId(), sqlToRun, params);

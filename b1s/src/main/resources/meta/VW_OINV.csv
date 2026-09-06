@@ -2,8 +2,14 @@ Field ID	Field Name	Description	Type
 840dbecd-59bd-42c5-9327-2d8727dee78f	DocEntry	Internal ID e.g. 1029	INTEGER
 e3e1f7cc-5b47-4c8f-8052-5036f5a034fc	DocNum	AR invoice no. e.g. 1029	INTEGER
 7fa748af-6c2a-431a-be13-ef62a1950bd4	DocDate	Document date e.g. 2024-05-30	TIMESTAMP
+generated-VW_OINV-DocDueDate	DocDueDate	Document due date e.g. 2024-06-30	TIMESTAMP
 16868aa4-eaa9-4038-a589-ed12702dcc9b	CardCode	Customer code e.g. C19001	NVARCHAR
 61759ad0-1af8-4867-9b6d-01230d737b1b	CardName	Customer name e.g. Acme Ltd	NVARCHAR
+generated-VW_OINV-DocCurrency	DocCurrency	Document currency e.g. AUD; USD; EUR	NVARCHAR
+generated-VW_OINV-DocTotal	DocTotal	Document total including tax	DECIMAL
+generated-VW_OINV-PaidToDate	PaidToDate	Amount paid against the invoice	DECIMAL
+generated-VW_OINV-DocStatus	DocStatus	Document status e.g. O-Open; C-Closed	NVARCHAR
+generated-VW_OINV-CANCELED	CANCELED	Cancellation flag e.g. Y-Yes; N-No	NVARCHAR
 generated-VW_OINV-SlpCode	SlpCode	SlpCode	NVARCHAR
 generated-VW_OINV-U_YWLX	U_YWLX	U_YWLX	NVARCHAR
 b6c497ec-9f9b-4b74-b5b6-cfcd0b2b4947	LineNum	Line no. e.g. 0; 1; 2	INTEGER

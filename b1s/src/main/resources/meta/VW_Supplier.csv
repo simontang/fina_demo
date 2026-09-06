@@ -26,6 +26,7 @@ f28cbf3f-2e30-4c56-9196-dcf7292341bd	Address	Address	NVARCHAR
 e0a6c99b-d95e-49aa-b06e-08e37166916f	CntAddress	CntAddress	NVARCHAR
 d132d437-ce55-447e-b38e-83de7ee6aab7	MailAddres	MailAddres	NVARCHAR
 c84dab35-32e9-4d29-b653-6955ee846525	PymntGroup	PymntGroup	NVARCHAR
+generated-VW_Supplier-PaymentTermDays	PaymentTermDays	Approximate payment term days; one month is normalized to 30 days	INTEGER
 44fef2a8-a8d4-43e5-887f-b38f73605881	ListName	ListName	NVARCHAR
 7e037b06-d5f5-45aa-a329-9f29f59ddae4	BankCountr	BP bank country/region e.g. CN	NVARCHAR
 fba0e1a0-a476-45f7-9182-085d55172705	BankCode	BP bank code e.g. ABC	NVARCHAR
@@ -39,5 +40,8 @@ b819994b-de73-4088-b121-8941d74ae25f	UseShpdGd	UseShpdGd	NVARCHAR
 ddd999c5-b715-4b2c-9ced-ce340fe096b2	FatherType	FatherType	NVARCHAR
 43604a37-b588-4569-be61-f5a736b08cad	FatherCard	FatherCard	NVARCHAR
 082b75a1-da73-499a-9233-0a462cf12fee	FatherName	FatherName	NVARCHAR
+generated-VW_Supplier-GroupNum	GroupNum	Payment terms group code	INTEGER
+generated-VW_Supplier-Balance	Balance	Current business partner balance	DECIMAL
+generated-VW_Supplier-CreditLine	CreditLine	Business partner credit limit	DECIMAL
 9094fdac-443b-4791-820b-cdd44bb77b16	CreateDate	CreateDate	TIMESTAMP
 9d7d1091-187c-475d-9c5c-0f0ff16bcdc1	UpdateDate	UpdateDate	TIMESTAMP

@@ -1,5 +1,6 @@
 Field ID	Field Name	Description	Type
 6c4e10c3-3ec1-4708-9066-59d8b7782ffd	ShortName	ShortName	NVARCHAR
+generated-VW_DEALBAL-CardCode	CardCode	Supplier code	NVARCHAR
 e3efa503-0c01-437b-9cbf-56d2b9cd0f7f	CardName	Business partner name e.g. Acme Ltd	NVARCHAR
 604844a0-5f3f-4b0f-8f84-3081637adf82	Province	Province e.g. Guangdong	NVARCHAR
 13138d6d-430d-4194-a2d3-f61c658ba4f6	Region	Region e.g. South China	NVARCHAR
@@ -16,5 +17,12 @@ f65dae75-6149-4fec-ba40-bcf9d8e2d087	DueDate	DueDate	TIMESTAMP
 f91101db-7cff-40bb-854b-940636409102	FCAmount	FCAmount	DECIMAL
 6dde0063-b247-447d-9155-463fd7ae00f8	BalFcDue	BalFcDue	DECIMAL
 3ec862d1-42dc-42b7-b35e-2883118c35dc	Aging	Aging	VARCHAR
+generated-VW_DEALBAL-AgingDays	AgingDays	Days from due date to current date	INTEGER
 67fa4534-dff4-4d78-bc9b-e5ace8343faa	BPLId	BPLId	INTEGER
 b0aeb367-dc8a-4aca-8733-4341b79c522d	BPLName	BPLName	NVARCHAR
+generated-VW_DEALBAL-Balance	Balance	Current supplier balance	DECIMAL
+generated-VW_DEALBAL-CreditLine	CreditLine	Supplier credit limit	DECIMAL
+generated-VW_DEALBAL-CreditLimit	CreditLimit	Alias of CreditLine for compatibility	DECIMAL
+generated-VW_DEALBAL-GroupNum	GroupNum	Payment terms group code	INTEGER
+generated-VW_DEALBAL-PymntGroup	PymntGroup	Payment terms description	NVARCHAR
+generated-VW_DEALBAL-PaymentTermDays	PaymentTermDays	Approximate payment term days; one month is normalized to 30 days	INTEGER
