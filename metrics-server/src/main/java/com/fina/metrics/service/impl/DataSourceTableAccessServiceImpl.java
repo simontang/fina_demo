@@ -10,6 +10,7 @@ import com.fina.metrics.mapper.DataSourceConfigMapper;
 import com.fina.metrics.mapper.DataSourceTableGrantMapper;
 import com.fina.metrics.service.DataSourceTableAccessService;
 import com.fina.metrics.util.ReadOnlySqlValidator;
+import com.fina.metrics.util.JdbcValueNormalizer;
 import com.fina.metrics.util.SqlTableReferenceExtractor;
 import com.fina.metrics.util.TenantHeaderResolver;
 import lombok.RequiredArgsConstructor;
@@ -340,7 +341,7 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
         while (rs.next()) {
             List<Object> row = new ArrayList<>(n);
             for (int i = 1; i <= n; i++) {
-                row.add(rs.getObject(i));
+                row.add(JdbcValueNormalizer.normalize(rs.getObject(i)));
             }
             rows.add(row);
         }
