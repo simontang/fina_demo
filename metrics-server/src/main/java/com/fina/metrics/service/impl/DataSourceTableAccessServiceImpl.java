@@ -301,15 +301,15 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
         try {
             List<ColumnMeta> columns = new ArrayList<>();
             ResultSetExtractor<List<List<Object>>> extractor = rs -> readRows(rs, columns);
-            List<List<Object>> rows = jdbc.query(
-                    request.getSql(),
-                    new MapSqlParameterSource(request.getParams() != null ? request.getParams() : Map.of()),
-                    extractor);
+            Map<String, Object> params = request.getParams() != null ? request.getParams() : Map.of();
+            List<List<Object>> rows = params.isEmpty()
+                    ? jdbc.getJdbcTemplate().query(request.getSql(), extractor)
+                    : jdbc.query(request.getSql(), new MapSqlParameterSource(params), extractor);
             Map<String, Object> debug = null;
             if (Boolean.TRUE.equals(request.getDebug())) {
                 debug = new LinkedHashMap<>();
                 debug.put("sql", request.getSql());
-                debug.put("params", request.getParams() != null ? request.getParams() : Map.of());
+                debug.put("params", params);
                 debug.put("maxRows", maxRows);
                 if (extraDebug != null) {
                     debug.putAll(extraDebug);

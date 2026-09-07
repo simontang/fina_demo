@@ -6,6 +6,7 @@ import com.fina.metrics.dto.SemanticQueryRequest;
 import com.fina.metrics.service.SemanticQueryBuilder;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -173,6 +174,97 @@ class SemanticQueryBuilderImplTest {
         assertThat(result.sql()).contains("ORDER BY \"hankel_sell_in_nes\" DESC");
         assertThat(result.sql()).contains("LIMIT 20");
         assertThat(result.params()).containsEntry("f0_v0", 2026);
+    }
+
+    @Test
+    void coercesDateFilterValuesFromIsoStrings() throws Exception {
+        SemanticQueryRequest request = new SemanticQueryRequest();
+        request.setGroupBy(List.of("period_date__month"));
+        SemanticQueryRequest.FilterItem filter = new SemanticQueryRequest.FilterItem();
+        filter.setDimension("period_date");
+        filter.setOperator("BETWEEN");
+        filter.setValues(List.of("2025-01-01", "2025-12-31"));
+        request.setFilters(List.of(filter));
+
+        JsonNode detail = mapper.readTree("""
+                {
+                  "metric_name": "hankel_sell_out_value",
+                  "source_type": "cdp_postgres",
+                  "default_time_context": {
+                    "time_dimension": "period_date",
+                    "supported_grains": ["month", "year"]
+                  },
+                  "source": {"table_view": "public.hankel_view_distr_sell_out", "base_filters": []},
+                  "calculation": {
+                    "type": "aggregate",
+                    "aggregation": "sum",
+                    "measure": "sell_out_value"
+                  },
+                  "supported_dimensions": [
+                    {"dim_id": "period_date", "field_name": "period_date", "type": "date"}
+                  ]
+                }
+                """);
+
+        SemanticQueryBuilder.BuildResult result = builder.buildMulti(
+                List.of("hankel_sell_out_value"),
+                request,
+                List.of(detail),
+                "cdp_postgres");
+
+        assertThat(result.sql()).contains("\"period_date\" BETWEEN :f0_v0 AND :f0_v1");
+        assertThat(result.params())
+                .containsEntry("f0_v0", LocalDate.parse("2025-01-01"))
+                .containsEntry("f0_v1", LocalDate.parse("2025-12-31"));
+    }
+
+    @Test
+    void coercesTextFilterValuesFromNumbers() throws Exception {
+        SemanticQueryRequest request = new SemanticQueryRequest();
+        SemanticQueryRequest.FilterItem filter = new SemanticQueryRequest.FilterItem();
+        filter.setDimension("customer_code");
+        filter.setOperator("EQ");
+        filter.setValues(List.of(100125));
+        request.setFilters(List.of(filter));
+
+        JsonNode detail = mapper.readTree("""
+                {
+                  "metric_name": "hankel_sell_out_value",
+                  "source_type": "cdp_postgres",
+                  "source": {"table_view": "public.hankel_view_distr_sell_out", "base_filters": []},
+                  "calculation": {"type": "aggregate", "aggregation": "sum", "measure": "sell_out_value"},
+                  "supported_dimensions": [
+                    {"dim_id": "customer_code", "field_name": "customer_code", "type": "text"}
+                  ]
+                }
+                """);
+
+        SemanticQueryBuilder.BuildResult result = builder.buildMulti(
+                List.of("hankel_sell_out_value"),
+                request,
+                List.of(detail),
+                "cdp_postgres");
+
+        assertThat(result.params()).containsEntry("f0_v0", "100125");
+    }
+
+    @Test
+    void rejectsMissingFilterValuesBeforeBuildingSql() throws Exception {
+        SemanticQueryRequest request = new SemanticQueryRequest();
+        SemanticQueryRequest.FilterItem filter = new SemanticQueryRequest.FilterItem();
+        filter.setDimension("sales_team");
+        filter.setOperator("BETWEEN");
+        filter.setValues(List.of("2025-01-01"));
+        request.setFilters(List.of(filter));
+        JsonNode detail = aggregateMetric("hankel_sell_in_nes", "sum", "nes");
+
+        assertThatThrownBy(() -> builder.buildMulti(
+                List.of("hankel_sell_in_nes"),
+                request,
+                List.of(detail),
+                "cdp_postgres"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("requires at least 2 value");
     }
 
     @Test

@@ -183,7 +183,7 @@ class DataSourceTableAccessServiceImplTest {
         when(dsManager.getNamedJdbcTemplate(DATASOURCE_ID)).thenReturn(named);
         when(named.getJdbcTemplate()).thenReturn(jdbcTemplate);
         when(jdbcTemplate.getMaxRows()).thenReturn(0);
-        when(named.query(eq("SELECT * FROM hankel_sales"), any(MapSqlParameterSource.class), any(ResultSetExtractor.class)))
+        when(jdbcTemplate.query(eq("SELECT * FROM hankel_sales"), any(ResultSetExtractor.class)))
                 .thenReturn(List.of());
         SqlProbeRequest request = new SqlProbeRequest();
         request.setSql("SELECT * FROM hankel_sales");
@@ -193,7 +193,8 @@ class DataSourceTableAccessServiceImplTest {
 
         verify(jdbcTemplate).setMaxRows(25);
         verify(jdbcTemplate).setMaxRows(0);
-        verify(named).query(eq("SELECT * FROM hankel_sales"), any(MapSqlParameterSource.class), any(ResultSetExtractor.class));
+        verify(jdbcTemplate).query(eq("SELECT * FROM hankel_sales"), any(ResultSetExtractor.class));
+        verify(named, never()).query(anyString(), any(MapSqlParameterSource.class), any(ResultSetExtractor.class));
         assertThat(result.getRowCount()).isZero();
     }
 
@@ -205,7 +206,7 @@ class DataSourceTableAccessServiceImplTest {
         when(dsManager.getNamedJdbcTemplate(DATASOURCE_ID)).thenReturn(named);
         when(named.getJdbcTemplate()).thenReturn(jdbcTemplate);
         when(jdbcTemplate.getMaxRows()).thenReturn(0);
-        when(named.query(eq("SELECT * FROM t_datasource_config"), any(MapSqlParameterSource.class), any(ResultSetExtractor.class)))
+        when(jdbcTemplate.query(eq("SELECT * FROM t_datasource_config"), any(ResultSetExtractor.class)))
                 .thenReturn(List.of());
         SqlProbeRequest request = new SqlProbeRequest();
         request.setSql("SELECT * FROM t_datasource_config");
@@ -217,6 +218,27 @@ class DataSourceTableAccessServiceImplTest {
         assertThat(result.getRowCount()).isZero();
         verify(jdbcTemplate).setMaxRows(10);
         verify(jdbcTemplate).setMaxRows(0);
+        verify(jdbcTemplate).query(eq("SELECT * FROM t_datasource_config"), any(ResultSetExtractor.class));
+        verify(named, never()).query(anyString(), any(MapSqlParameterSource.class), any(ResultSetExtractor.class));
+    }
+
+    @Test
+    void queryDatasourceWithoutParamsDoesNotParseNamedParameters() {
+        NamedParameterJdbcTemplate named = mock(NamedParameterJdbcTemplate.class);
+        JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
+        when(dsManager.getNamedJdbcTemplate(DATASOURCE_ID)).thenReturn(named);
+        when(named.getJdbcTemplate()).thenReturn(jdbcTemplate);
+        when(jdbcTemplate.getMaxRows()).thenReturn(0);
+        String sql = "SELECT ARRAY[1, 2, 3] AS sample_values";
+        when(jdbcTemplate.query(eq(sql), any(ResultSetExtractor.class))).thenReturn(List.of());
+        SqlProbeRequest request = new SqlProbeRequest();
+        request.setSql(sql);
+
+        MetricsQueryData result = service.queryDatasource(DATASOURCE_ID, request);
+
+        assertThat(result.getRowCount()).isZero();
+        verify(jdbcTemplate).query(eq(sql), any(ResultSetExtractor.class));
+        verify(named, never()).query(anyString(), any(MapSqlParameterSource.class), any(ResultSetExtractor.class));
     }
 
     private DataSourceConfig datasource() {

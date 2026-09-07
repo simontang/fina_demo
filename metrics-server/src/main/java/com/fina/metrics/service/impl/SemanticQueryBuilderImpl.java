@@ -9,6 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -98,6 +101,7 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
 
         // Build dim_id → field_name lookup map for this metric
         Map<String, String> dimMap = buildDimMap(dimNodes, timeDimNode);
+        Map<String, String> dimTypeMap = buildDimTypeMap(dimNodes, timeDimNode);
 
         List<String> groupByItems = request.getGroupBy() != null
                 ? request.getGroupBy() : List.of();
@@ -143,56 +147,68 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
         for (int i = 0; i < filters.size(); i++) {
             SemanticQueryRequest.FilterItem f = filters.get(i);
             String fieldName = resolveFieldName(f.getDimension(), dimMap);
+            String valueType = resolveDimensionType(f.getDimension(), dimTypeMap);
             String quotedField = quoteColumn(fieldName);
             String op = f.getOperator().toUpperCase();
             List<Object> values = f.getValues() != null ? f.getValues() : List.of();
 
             switch (op) {
                 case "BETWEEN" -> {
+                    requireFilterValueCount(f, values, 2);
                     String p0 = "f" + i + "_v0", p1 = "f" + i + "_v1";
                     whereParts.add(quotedField + " BETWEEN :" + p0 + " AND :" + p1);
-                    params.put(p0, values.get(0));
-                    params.put(p1, values.get(1));
+                    params.put(p0, coerceFilterValue(valueType, values.get(0)));
+                    params.put(p1, coerceFilterValue(valueType, values.get(1)));
                 }
                 case "IN" -> {
+                    requireFilterValueCount(f, values, 1);
                     String pKey = "f" + i + "_vals";
                     whereParts.add(quotedField + " IN (:" + pKey + ")");
-                    params.put(pKey, values);
+                    params.put(pKey, values.stream()
+                            .map(value -> coerceFilterValue(valueType, value))
+                            .toList());
                 }
                 case "EQ" -> {
+                    requireFilterValueCount(f, values, 1);
                     String pKey = "f" + i + "_v0";
                     whereParts.add(quotedField + " = :" + pKey);
-                    params.put(pKey, values.get(0));
+                    params.put(pKey, coerceFilterValue(valueType, values.get(0)));
                 }
                 case "NEQ" -> {
+                    requireFilterValueCount(f, values, 1);
                     String pKey = "f" + i + "_v0";
                     whereParts.add(quotedField + " != :" + pKey);
-                    params.put(pKey, values.get(0));
+                    params.put(pKey, coerceFilterValue(valueType, values.get(0)));
                 }
                 case "GT" -> {
+                    requireFilterValueCount(f, values, 1);
                     String pKey = "f" + i + "_v0";
                     whereParts.add(quotedField + " > :" + pKey);
-                    params.put(pKey, values.get(0));
+                    params.put(pKey, coerceFilterValue(valueType, values.get(0)));
                 }
                 case "GTE" -> {
+                    requireFilterValueCount(f, values, 1);
                     String pKey = "f" + i + "_v0";
                     whereParts.add(quotedField + " >= :" + pKey);
-                    params.put(pKey, values.get(0));
+                    params.put(pKey, coerceFilterValue(valueType, values.get(0)));
                 }
                 case "LT" -> {
+                    requireFilterValueCount(f, values, 1);
                     String pKey = "f" + i + "_v0";
                     whereParts.add(quotedField + " < :" + pKey);
-                    params.put(pKey, values.get(0));
+                    params.put(pKey, coerceFilterValue(valueType, values.get(0)));
                 }
                 case "LTE" -> {
+                    requireFilterValueCount(f, values, 1);
                     String pKey = "f" + i + "_v0";
                     whereParts.add(quotedField + " <= :" + pKey);
-                    params.put(pKey, values.get(0));
+                    params.put(pKey, coerceFilterValue(valueType, values.get(0)));
                 }
                 case "LIKE" -> {
+                    requireFilterValueCount(f, values, 1);
                     String pKey = "f" + i + "_v0";
                     whereParts.add(quotedField + " LIKE :" + pKey);
-                    params.put(pKey, values.get(0));
+                    params.put(pKey, coerceFilterValue("text", values.get(0)));
                 }
                 case "NOT_NULL" ->
                     whereParts.add(quotedField + " IS NOT NULL");
@@ -264,6 +280,7 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
         JsonNode baseFilters = first.path("source").path("base_filters");
 
         Map<String, String> dimMap = buildDimMap(dimNodes, timeDimNode);
+        Map<String, String> dimTypeMap = buildDimTypeMap(dimNodes, timeDimNode);
         List<String> groupByItems = request.getGroupBy() != null ? request.getGroupBy() : List.of();
         validateRequiredGroupBy(
                 metricNames.stream().map(metricDetailsByName::get).filter(Objects::nonNull).toList(),
@@ -309,56 +326,68 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
         for (int i = 0; i < filters.size(); i++) {
             SemanticQueryRequest.FilterItem f = filters.get(i);
             String fieldName = resolveFieldName(f.getDimension(), dimMap);
+            String valueType = resolveDimensionType(f.getDimension(), dimTypeMap);
             String quotedField = quoteColumn(fieldName);
             String op = f.getOperator().toUpperCase();
             List<Object> values = f.getValues() != null ? f.getValues() : List.of();
 
             switch (op) {
                 case "BETWEEN" -> {
+                    requireFilterValueCount(f, values, 2);
                     String p0 = "f" + i + "_v0", p1 = "f" + i + "_v1";
                     whereParts.add(quotedField + " BETWEEN :" + p0 + " AND :" + p1);
-                    params.put(p0, values.get(0));
-                    params.put(p1, values.get(1));
+                    params.put(p0, coerceFilterValue(valueType, values.get(0)));
+                    params.put(p1, coerceFilterValue(valueType, values.get(1)));
                 }
                 case "IN" -> {
+                    requireFilterValueCount(f, values, 1);
                     String pKey = "f" + i + "_vals";
                     whereParts.add(quotedField + " IN (:" + pKey + ")");
-                    params.put(pKey, values);
+                    params.put(pKey, values.stream()
+                            .map(value -> coerceFilterValue(valueType, value))
+                            .toList());
                 }
                 case "EQ" -> {
+                    requireFilterValueCount(f, values, 1);
                     String pKey = "f" + i + "_v0";
                     whereParts.add(quotedField + " = :" + pKey);
-                    params.put(pKey, values.get(0));
+                    params.put(pKey, coerceFilterValue(valueType, values.get(0)));
                 }
                 case "NEQ" -> {
+                    requireFilterValueCount(f, values, 1);
                     String pKey = "f" + i + "_v0";
                     whereParts.add(quotedField + " != :" + pKey);
-                    params.put(pKey, values.get(0));
+                    params.put(pKey, coerceFilterValue(valueType, values.get(0)));
                 }
                 case "GT" -> {
+                    requireFilterValueCount(f, values, 1);
                     String pKey = "f" + i + "_v0";
                     whereParts.add(quotedField + " > :" + pKey);
-                    params.put(pKey, values.get(0));
+                    params.put(pKey, coerceFilterValue(valueType, values.get(0)));
                 }
                 case "GTE" -> {
+                    requireFilterValueCount(f, values, 1);
                     String pKey = "f" + i + "_v0";
                     whereParts.add(quotedField + " >= :" + pKey);
-                    params.put(pKey, values.get(0));
+                    params.put(pKey, coerceFilterValue(valueType, values.get(0)));
                 }
                 case "LT" -> {
+                    requireFilterValueCount(f, values, 1);
                     String pKey = "f" + i + "_v0";
                     whereParts.add(quotedField + " < :" + pKey);
-                    params.put(pKey, values.get(0));
+                    params.put(pKey, coerceFilterValue(valueType, values.get(0)));
                 }
                 case "LTE" -> {
+                    requireFilterValueCount(f, values, 1);
                     String pKey = "f" + i + "_v0";
                     whereParts.add(quotedField + " <= :" + pKey);
-                    params.put(pKey, values.get(0));
+                    params.put(pKey, coerceFilterValue(valueType, values.get(0)));
                 }
                 case "LIKE" -> {
+                    requireFilterValueCount(f, values, 1);
                     String pKey = "f" + i + "_v0";
                     whereParts.add(quotedField + " LIKE :" + pKey);
-                    params.put(pKey, values.get(0));
+                    params.put(pKey, coerceFilterValue("text", values.get(0)));
                 }
                 case "NOT_NULL" -> whereParts.add(quotedField + " IS NOT NULL");
                 default -> log.warn("Unknown filter operator '{}' — skipped", op);
@@ -426,6 +455,35 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
         return map;
     }
 
+    private Map<String, String> buildDimTypeMap(JsonNode dimNodes, JsonNode timeDimNode) {
+        Map<String, String> map = new LinkedHashMap<>();
+        if (timeDimNode != null && !timeDimNode.isMissingNode()) {
+            String fieldName = timeDimNode.path("time_dimension").asText(null);
+            if (StringUtils.hasText(fieldName)) {
+                map.put(fieldName, "date");
+            }
+        }
+        if (dimNodes != null && dimNodes.isArray()) {
+            dimNodes.forEach(d -> {
+                String dimId = d.path("dim_id").asText(null);
+                String fieldName = d.path("field_name").asText(null);
+                String type = firstNonBlank(
+                        d.path("type").asText(null),
+                        d.path("data_type").asText(null),
+                        d.path("value_type").asText(null));
+                if (StringUtils.hasText(type)) {
+                    if (StringUtils.hasText(dimId)) {
+                        map.put(dimId, type);
+                    }
+                    if (StringUtils.hasText(fieldName)) {
+                        map.put(fieldName, type);
+                    }
+                }
+            });
+        }
+        return map;
+    }
+
     /**
      * Resolve a group_by item to SELECT and GROUP BY expressions.
      * Handles "field__grain" notation for time truncation.
@@ -458,6 +516,97 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
             return requireDimensionField(dimPart, dimMap);
         }
         return requireDimensionField(dimension, dimMap);
+    }
+
+    private String resolveDimensionType(String dimension, Map<String, String> dimTypeMap) {
+        if (!StringUtils.hasText(dimension)) {
+            return null;
+        }
+        int dunder = dimension.lastIndexOf("__");
+        String key = dunder > 0 ? dimension.substring(0, dunder) : dimension;
+        return dimTypeMap.get(key);
+    }
+
+    private void requireFilterValueCount(
+            SemanticQueryRequest.FilterItem filter,
+            List<Object> values,
+            int requiredCount) {
+        int actualCount = values != null ? values.size() : 0;
+        if (actualCount < requiredCount) {
+            throw new IllegalArgumentException(
+                    "Filter '" + filter.getDimension() + "' with operator '"
+                            + filter.getOperator() + "' requires at least "
+                            + requiredCount + " value(s)");
+        }
+    }
+
+    private Object coerceFilterValue(String type, Object value) {
+        if (value == null || type == null) {
+            return value;
+        }
+        String normalizedType = type.toLowerCase(Locale.ROOT);
+        if (isTextType(normalizedType)) {
+            return value instanceof String ? value : String.valueOf(value);
+        }
+        if (isDateType(normalizedType)) {
+            return coerceDateValue(value);
+        }
+        if (isNumericType(normalizedType) && value instanceof String text) {
+            try {
+                return new BigDecimal(text.trim());
+            } catch (NumberFormatException ignored) {
+                return value;
+            }
+        }
+        if (isBooleanType(normalizedType) && value instanceof String text) {
+            if ("true".equalsIgnoreCase(text) || "false".equalsIgnoreCase(text)) {
+                return Boolean.parseBoolean(text);
+            }
+        }
+        return value;
+    }
+
+    private boolean isTextType(String normalizedType) {
+        return normalizedType.contains("char")
+                || normalizedType.contains("text")
+                || normalizedType.contains("string")
+                || normalizedType.contains("varchar")
+                || normalizedType.contains("category");
+    }
+
+    private boolean isDateType(String normalizedType) {
+        return normalizedType.contains("date") || normalizedType.contains("time");
+    }
+
+    private boolean isNumericType(String normalizedType) {
+        return normalizedType.contains("number")
+                || normalizedType.contains("numeric")
+                || normalizedType.contains("decimal")
+                || normalizedType.contains("double")
+                || normalizedType.contains("float")
+                || normalizedType.contains("int");
+    }
+
+    private boolean isBooleanType(String normalizedType) {
+        return normalizedType.contains("bool");
+    }
+
+    private Object coerceDateValue(Object value) {
+        if (!(value instanceof String text)) {
+            return value;
+        }
+        String trimmed = text.trim();
+        if (!StringUtils.hasText(trimmed)) {
+            return value;
+        }
+        try {
+            if (trimmed.length() == 10) {
+                return LocalDate.parse(trimmed);
+            }
+            return LocalDateTime.parse(trimmed);
+        } catch (RuntimeException ignored) {
+            return value;
+        }
     }
 
     private String requireDimensionField(String dimension, Map<String, String> dimMap) {
