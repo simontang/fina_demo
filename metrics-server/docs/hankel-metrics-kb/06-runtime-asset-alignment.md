@@ -30,10 +30,10 @@ tags: [runtime, views, metrics, alignment, lineage]
 | `hankel_sell_in_gross_margin` | Gross Margin | pending | 字段来源和生产过滤仍待确认 |
 | `hankel_sell_in_gross_margin_rate` | Gross Margin / NES | pending | 使用加权比率，不平均行百分比；依赖 Gross Margin 确认 |
 | `hankel_sell_in_contribution` | Product Contribution | pending | `15*` 字段业务含义待确认 |
-| `hankel_view_distr_sell_out` | Territory Sell-out | foundation | 金额和数量独立质量门槛；正常负数保留 |
-| `hankel_sell_out_value` | Territory Sell-out Amount | confirmed | 数量异常不会排除有效金额 |
+| `hankel_view_distr_sell_out` | Territory Sell-out | foundation | 数量极端、金额极端或金额不可解析行会排除默认金额指标；正常负数保留 |
+| `hankel_sell_out_value` | Territory Sell-out Amount | confirmed | 排除任一 Sell-out 质量规则命中的分摊金额 |
 | `hankel_sell_out_quantity` | Territory Sell-out Quantity | confirmed | 金额异常不会排除有效数量；属于当前 River POC |
-| `hankel_sell_out_excluded_value` | Demo quality | quality | 仅记录金额规则排除值 |
+| `hankel_sell_out_excluded_value` | Demo quality | quality | 记录默认金额指标排除值 |
 | `hankel_sell_out_quality_issue_count` | Demo quality | quality | 记录触发任一质量规则的行数 |
 | `hankel_view_distr_inventory_monthly` | Territory Inventory | foundation | 月末快照，不跨月累计 |
 | `hankel_view_distr_inventory_current` | Latest Inventory | foundation | 只取最新有效日期序列对应快照 |
@@ -86,7 +86,7 @@ metric meta 更新后，验证结果如下：
 | 检查 | 结果 |
 |---|---|
 | Sell-in 范围 | PASS；NES `1,607,161,170.4347694`，Quantity `17,673,540.187` |
-| Sell-out 独立质量门槛 | PASS；数量异常不会排除有效金额，amount/quantity leak 均为 0 |
+| Sell-out 质量门槛 | PASS；任一质量规则命中都会排除默认金额指标，amount/quantity leak 均为 0 |
 | Validated Won 粒度 | PASS；去重后的 Passed Opportunity 为 `782` |
 | Overall 排行资格 | PASS；排行榜 `7` 行，未入围行 `0` |
 | Segment 排行资格 | PASS；排行榜 `7` 行，未入围行 `0` |

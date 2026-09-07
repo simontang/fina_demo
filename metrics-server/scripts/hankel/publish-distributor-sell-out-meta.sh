@@ -212,13 +212,13 @@ metric_specs = [
     {
         "name": "hankel_sell_out_value",
         "display": "Sell-out 出货金额",
-        "description": "Sell-out 金额（人民币）：汇总 Territory 分摊金额，只应用金额质量规则，不受数量异常影响。",
+        "description": "Sell-out 金额（人民币）：汇总 Territory 分摊金额，排除数量极端、金额极端或 Territory 金额不可解析的质量异常行。",
         "measure": "sell_out_value",
         "format": "currency",
         "polarity": "positive",
         "synonyms": ["sell-out amount", "出货金额", "终端出货金额"],
         "business_status": "customer_confirmed",
-        "business_note": "Territory amount is customer-confirmed; demo amount guardrails remain separately disclosed.",
+        "business_note": "Territory amount is customer-confirmed; rows failing demo quality guardrails are excluded from default amount and disclosed separately.",
     },
     {
         "name": "hankel_sell_out_quantity",
@@ -234,7 +234,7 @@ metric_specs = [
     {
         "name": "hankel_sell_out_excluded_value",
         "display": "Sell-out 质量规则排除金额",
-        "description": "因金额异常或 Territory 金额不可解析而被金额指标排除的 Sell-out 分摊金额。",
+        "description": "因数量极端、金额极端或 Territory 金额不可解析而被金额指标排除的 Sell-out 分摊金额。",
         "measure": "excluded_sell_out_value",
         "format": "currency",
         "polarity": "negative",

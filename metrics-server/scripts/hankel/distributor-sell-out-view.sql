@@ -67,7 +67,7 @@ SELECT
         ELSE q.territory_sales_quantity
     END AS sell_out_quantity,
     CASE
-        WHEN q.is_amount_outlier OR q.has_invalid_allocation_value
+        WHEN q.is_quantity_outlier OR q.is_amount_outlier OR q.has_invalid_allocation_value
         THEN NULL
         ELSE q.parsed_territory_sell_out
     END AS sell_out_value,
@@ -77,7 +77,7 @@ SELECT
         ELSE 0::numeric
     END AS excluded_sell_out_quantity,
     CASE
-        WHEN q.is_amount_outlier OR q.has_invalid_allocation_value
+        WHEN q.is_quantity_outlier OR q.is_amount_outlier OR q.has_invalid_allocation_value
         THEN COALESCE(q.parsed_territory_sell_out, 0)
         ELSE 0::numeric
     END AS excluded_sell_out_value,
@@ -111,5 +111,6 @@ SELECT
         ELSE NULL
     END AS period_date,
     q.is_quantity_outlier AS is_quantity_quality_excluded,
-    q.is_amount_outlier OR q.has_invalid_allocation_value AS is_value_quality_excluded
+    q.is_quantity_outlier OR q.is_amount_outlier OR q.has_invalid_allocation_value
+        AS is_value_quality_excluded
 FROM quality q;

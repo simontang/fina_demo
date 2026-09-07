@@ -21,7 +21,7 @@
 - 分摊字段：`allocated_sales_quantity`、`allocated_sell_out_value`
 - 默认指标字段：`sell_out_quantity`、`sell_out_value`
 
-默认指标字段按指标分别应用质量规则：数量异常只影响 `sell_out_quantity`，金额异常或金额不可解析只影响 `sell_out_value`。被排除值仍保存在 `excluded_sell_out_quantity` 和 `excluded_sell_out_value` 中。
+默认指标字段应用质量规则：数量异常行会排除 `sell_out_quantity`，并且也会排除对应 `sell_out_value`，因为极端数量通常意味着该基础交易整体不可信。金额异常或金额不可解析同样会排除 `sell_out_value`。被排除值仍保存在 `excluded_sell_out_quantity` 和 `excluded_sell_out_value` 中。
 
 ## 当前质量规则
 
@@ -50,7 +50,7 @@
 | 沈阳赛福化工材料有限公司 | 2026-02 | 20,000,203 | 3,203,122,511.36 | 3 |
 | 江苏梅珀尔润滑油有限公司 | 2025-05 | 20,010,065 | 710,838,216.06 | 1 |
 
-这些记录仍保留在原始表和视图的 raw/allocated 字段中。金额和数量分别决定是否从对应业务指标排除。例如江苏梅珀尔记录只触发数量阈值，其 Territory 金额仍计入 Sell-out Value。
+这些记录仍保留在原始表和视图的 raw/allocated 字段中。默认业务指标会排除触发任一质量规则的行，同时用 excluded 字段保留被排除的数量和金额。例如江苏梅珀尔记录虽然 raw 金额低于 10 亿阈值，但 raw 数量超过 1,000 万，整行从默认 Sell-out Quantity 和 Sell-out Value 中排除。
 
 ## Runtime Metrics
 
