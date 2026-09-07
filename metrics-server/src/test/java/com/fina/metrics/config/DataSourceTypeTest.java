@@ -19,13 +19,19 @@ class DataSourceTypeTest {
     }
 
     @Test
-    void infersPostgresAndHanaFromJdbcUrlWhenSourceTypeIsMissing() {
+    void infersPostgresHanaAndSqlServerFromJdbcUrlWhenSourceTypeIsMissing() {
         assertThat(DataSourceType.resolve(null, "jdbc:postgresql://db.example.com:5432/postgres"))
                 .isEqualTo(DataSourceType.CDP_POSTGRES);
 
         assertThat(DataSourceType.resolve("", "jdbc:sap://hana.example.com:30015"))
                 .isEqualTo(DataSourceType.SAP_B1_HANA);
         assertThat(DataSourceType.SAP_B1_HANA.getTransactionIsolationName()).isNull();
+
+        assertThat(DataSourceType.resolve(null, "jdbc:sqlserver://db.example.com:1433;databaseName=SBODemoUS"))
+                .isEqualTo(DataSourceType.SAP_B1_SQLSERVER);
+        assertThat(DataSourceType.SAP_B1_SQLSERVER.getDriverClassName())
+                .isEqualTo("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+        assertThat(DataSourceType.SAP_B1_SQLSERVER.buildConnectionInitSql("dbo")).isNull();
     }
 
     @Test
@@ -34,5 +40,16 @@ class DataSourceTypeTest {
 
         assertThat(type.buildConnectionInitSql(null)).isNull();
         assertThat(type.buildConnectionInitSql("")).isNull();
+    }
+
+    @Test
+    void sqlServerJdbcUrlCorrectsLegacyB1HanaSourceType() {
+        assertThat(DataSourceType.resolve(
+                "sap_b1_hana",
+                "jdbc:sqlserver://db.example.com:1433;databaseName=SBODemoUS"))
+                .isEqualTo(DataSourceType.SAP_B1_SQLSERVER);
+
+        assertThat(DataSourceType.resolve("mssql", null))
+                .isEqualTo(DataSourceType.SAP_B1_SQLSERVER);
     }
 }

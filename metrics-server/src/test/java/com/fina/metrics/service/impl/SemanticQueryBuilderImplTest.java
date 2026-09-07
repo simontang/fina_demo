@@ -75,6 +75,37 @@ class SemanticQueryBuilderImplTest {
     }
 
     @Test
+    void rendersSqlServerTimeGrainAndTopForSapB1SqlServerDatasource() throws Exception {
+        SemanticQueryRequest request = new SemanticQueryRequest();
+        request.setGroupBy(List.of("DocDate__month"));
+        request.setLimit(25);
+
+        JsonNode detail = mapper.readTree("""
+                {
+                  "metric_name": "order_amt_tax_inc",
+                  "default_time_context": {
+                    "time_dimension": "DocDate",
+                    "supported_grains": ["day", "month", "year"]
+                  },
+                  "calculation": {"sql_expression": "SUM(\\"GTotal\\")"},
+                  "source": {"table_view": "MTC_VW_AI_ORDR", "base_filters": []},
+                  "supported_dimensions": []
+                }
+                """);
+
+        SemanticQueryBuilder.BuildResult result = builder.buildMulti(
+                List.of("order_amt_tax_inc"),
+                request,
+                List.of(detail),
+                "sap_b1_sqlserver");
+
+        assertThat(result.sql()).startsWith("SELECT TOP 25");
+        assertThat(result.sql()).contains("FORMAT(\"DocDate\", 'yyyy-MM') AS \"DocDate__month\"");
+        assertThat(result.sql()).doesNotContain("TO_NVARCHAR");
+        assertThat(result.sql()).doesNotContain("LIMIT");
+    }
+
+    @Test
     void quotesSchemaQualifiedTableViewByIdentifierPart() throws Exception {
         SemanticQueryRequest request = new SemanticQueryRequest();
 

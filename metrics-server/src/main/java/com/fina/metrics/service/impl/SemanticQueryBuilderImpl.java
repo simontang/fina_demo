@@ -65,6 +65,12 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
             "day",   "'YYYY-MM-DD'"
     );
 
+    private static final Map<String, String> SQLSERVER_GRAIN_FORMAT = Map.of(
+            "year",  "'yyyy'",
+            "month", "'yyyy-MM'",
+            "day",   "'yyyy-MM-dd'"
+    );
+
     @Override
     public BuildResult build(String metricName,
                              SemanticQueryRequest request,
@@ -209,7 +215,7 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
         // ── Assemble SQL ──────────────────────────────────────────────────────
         int limit = resolveLimit(request.getLimit());
         StringBuilder sql = new StringBuilder();
-        sql.append("SELECT\n  ");
+        sql.append(selectKeyword(dataSourceType, limit)).append("\n  ");
         sql.append(String.join(",\n  ", selectExprs));
         sql.append("\nFROM ").append(SqlIdentifierUtils.quoteQualified(tableView));
 
@@ -222,7 +228,7 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
         if (!orderByParts.isEmpty()) {
             sql.append("\nORDER BY ").append(String.join(", ", orderByParts));
         }
-        sql.append("\nLIMIT ").append(limit);
+        appendLimitClause(sql, dataSourceType, limit);
 
         log.debug("Built SQL for metric={}: {}", metricName, sql);
         return new BuildResult(sql.toString(), params, columnLabels);
@@ -370,7 +376,7 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
 
         int limit = resolveLimit(request.getLimit());
         StringBuilder sql = new StringBuilder();
-        sql.append("SELECT\n  ");
+        sql.append(selectKeyword(dataSourceType, limit)).append("\n  ");
         sql.append(String.join(",\n  ", selectExprs));
         sql.append("\nFROM ").append(SqlIdentifierUtils.quoteQualified(tableView));
         if (!whereParts.isEmpty()) {
@@ -382,7 +388,7 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
         if (!orderByParts.isEmpty()) {
             sql.append("\nORDER BY ").append(String.join(", ", orderByParts));
         }
-        sql.append("\nLIMIT ").append(limit);
+        appendLimitClause(sql, dataSourceType, limit);
 
         log.debug("Built multi-metric SQL for metrics={}: {}", metricNames, sql);
         return new BuildResult(sql.toString(), params, columnLabels);
@@ -430,15 +436,9 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
         if (dunder > 0) {
             String dimPart   = gbItem.substring(0, dunder);
             String grainPart = gbItem.substring(dunder + 2).toLowerCase();
-            String fmt = sourceType == DataSourceType.CDP_POSTGRES
-                    ? POSTGRES_GRAIN_FORMAT.get(grainPart)
-                    : HANA_GRAIN_FORMAT.get(grainPart);
-            if (fmt != null) {
-                // Resolve the dim part to a field name
-                String fieldName = requireDimensionField(dimPart, dimMap);
-                String expr = sourceType == DataSourceType.CDP_POSTGRES
-                        ? "to_char(" + quoteColumn(fieldName) + ", " + fmt + ")"
-                        : "TO_NVARCHAR(" + quoteColumn(fieldName) + ", " + fmt + ")";
+            String fieldName = requireDimensionField(dimPart, dimMap);
+            String expr = timeGrainExpression(sourceType, quoteColumn(fieldName), grainPart);
+            if (expr != null) {
                 return new DimRef(expr, expr);
             }
         }
@@ -514,6 +514,37 @@ public class SemanticQueryBuilderImpl implements SemanticQueryBuilder {
     private int resolveLimit(Integer requested) {
         if (requested == null || requested <= 0) return 1000;
         return Math.min(requested, 10000);
+    }
+
+    private String selectKeyword(DataSourceType sourceType, int limit) {
+        if (sourceType == DataSourceType.SAP_B1_SQLSERVER) {
+            return "SELECT TOP " + limit;
+        }
+        return "SELECT";
+    }
+
+    private void appendLimitClause(StringBuilder sql, DataSourceType sourceType, int limit) {
+        if (sourceType != DataSourceType.SAP_B1_SQLSERVER) {
+            sql.append("\nLIMIT ").append(limit);
+        }
+    }
+
+    private String timeGrainExpression(DataSourceType sourceType, String quotedField, String grainPart) {
+        if (sourceType == DataSourceType.CDP_POSTGRES) {
+            String fmt = POSTGRES_GRAIN_FORMAT.get(grainPart);
+            return fmt != null ? "to_char(" + quotedField + ", " + fmt + ")" : null;
+        }
+        if (sourceType == DataSourceType.SAP_B1_SQLSERVER) {
+            if ("week".equals(grainPart)) {
+                return "CONCAT(DATEPART(year, " + quotedField + "), '-W', "
+                        + "RIGHT('0' + CAST(DATEPART(iso_week, " + quotedField
+                        + ") AS varchar(2)), 2))";
+            }
+            String fmt = SQLSERVER_GRAIN_FORMAT.get(grainPart);
+            return fmt != null ? "FORMAT(" + quotedField + ", " + fmt + ")" : null;
+        }
+        String fmt = HANA_GRAIN_FORMAT.get(grainPart);
+        return fmt != null ? "TO_NVARCHAR(" + quotedField + ", " + fmt + ")" : null;
     }
 
     /** Holds the SELECT expression and GROUP BY expression for one dimension */

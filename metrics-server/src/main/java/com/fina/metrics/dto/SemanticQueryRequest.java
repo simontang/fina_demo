@@ -1,5 +1,7 @@
 package com.fina.metrics.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -31,7 +33,8 @@ import java.util.Map;
 @Data
 public class SemanticQueryRequest {
 
-    @NotNull(message = "datasource_id is required")
+    @JsonAlias({"datasource_id", "dataSourceId", "data_source_id"})
+    @NotNull(message = "datasourceId/datasource_id is required")
     private Long datasourceId;
 
     // ── Semantic mode ─────────────────────────────────────────────────────────
@@ -43,6 +46,8 @@ public class SemanticQueryRequest {
      * New DB-backed metrics can resolve from SQL-free calculation metadata
      * such as aggregate measure or derived ratio definitions.
      */
+    @JsonAlias({"metric", "metricNames", "metric_names"})
+    @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
     private List<String> metrics;
 
     /**
@@ -50,17 +55,23 @@ public class SemanticQueryRequest {
      * Use dim_id from supported_dimensions (e.g. "org_region")
      * or "fieldName__granularity" for time dims (e.g. "DocDate__month").
      */
+    @JsonAlias({"group_by", "dimensions"})
+    @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
     private List<String> groupBy;
 
     /** Structured filter conditions applied to every metric query */
     @Valid
+    @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
     private List<FilterItem> filters;
 
     /** Sort order applied to every metric result set */
     @Valid
+    @JsonAlias({"order_by", "sortBy", "sort_by", "sort"})
+    @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
     private List<OrderByItem> orderBy;
 
     /** Max rows per metric result (default 1000, max 10000) */
+    @JsonAlias({"maxRows", "max_rows"})
     private Integer limit;
 
     /** When true, includes executed_sqls in the response for debugging */
@@ -73,6 +84,7 @@ public class SemanticQueryRequest {
      * When set, metrics / groupBy / filters / orderBy are ignored.
      * Use :paramName placeholders; supply values in params.
      */
+    @JsonAlias({"custom_sql", "sql"})
     private String customSql;
 
     /** Named parameter values for customSql, e.g. {"startDate": "2025-01-01"} */
@@ -107,6 +119,7 @@ public class SemanticQueryRequest {
     @Data
     public static class OrderByItem {
 
+        @JsonAlias({"metric", "metricName", "metric_name", "column", "dimension"})
         @NotNull(message = "orderBy field is required")
         private String field;
 

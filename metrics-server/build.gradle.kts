@@ -32,6 +32,8 @@ dependencies {
 
     // Dynamic datasources: SAP HANA (B1)
     implementation("com.sap.cloud.db.jdbc:ngdbc:$ngdbcVersion")
+    // Dynamic datasources: SAP B1 on Microsoft SQL Server
+    implementation("com.microsoft.sqlserver:mssql-jdbc")
 
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
