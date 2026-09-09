@@ -23,10 +23,10 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "@axiom-lattice/core": "^4.2.4",
-    "@axiom-lattice/gateway": "^4.1.5",
-    "@axiom-lattice/pg-stores": "^3.1.4",
-    "@axiom-lattice/protocols": "^4.1.2",
+    "@axiom-lattice/core": "^4.2.6",
+    "@axiom-lattice/gateway": "^4.1.7",
+    "@axiom-lattice/pg-stores": "^3.1.6",
+    "@axiom-lattice/protocols": "^4.1.4",
     "@fastify/cors": "^11.1.0",
     "@fastify/multipart": "^9.3.0",
     "@fastify/swagger": "^9.5.1",
