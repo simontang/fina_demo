@@ -39,9 +39,11 @@ services:
       # 模型列表
       MODEL_LIST: qwen3.6-27b,qwen3.6-35b-a3b
       DEFAULT_MODEL: qwen3.6-27b
-      # Sandbox configuration
-      SANDBOX_PROVIDER_TYPE: remote
-      SANDBOX_BASE_URL: http://sandbox:8080
+      # Sandbox configuration（沙盒独立部署，agent 通过 microsandbox-remote 协议调用）
+      SANDBOX_PROVIDER_TYPE: ${SANDBOX_PROVIDER_TYPE:-microsandbox-remote}
+      MICROSANDBOX_SERVICE_BASE_URL: ${MICROSANDBOX_SERVICE_BASE_URL:-http://127.0.0.1:4002}
+      MICROSANDBOX_API_KEY: ${MICROSANDBOX_API_KEY:-qwertyuiop1234567890}
+      MICROSANDBOX_MEMORY: ${MICROSANDBOX_MEMORY:-1024}
       VOICE_WELCOME_MESSAGE: "Hello! I'm here to help with B2B order status, credit limits, and stock transfers—let's optimize your operations!"
       AUTH_REQUIRED: "false"
       LATTICE_ENCRYPTION_KEY: deep-research-encryption-key-change-in-production!
@@ -51,15 +53,6 @@ services:
       - ./logs:/app/agent/logs
     ports:
       - "5702:5702"
-    restart: unless-stopped
-
-  sandbox:
-    image: fina-offline/all-in-one-sandbox:latest
-    container_name: fina-sandbox
-    ports:
-      - "8080:8080"
-    security_opt:
-      - seccomp:unconfined
     restart: unless-stopped
 
   ai_web_fina:

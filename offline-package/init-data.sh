@@ -98,12 +98,14 @@ if [ -z "$TOKEN" ]; then
     exit 1
 fi
 
-# 等待沙盒服务就绪
+# 等待独立部署的沙盒服务就绪（Microsandbox，默认 127.0.0.1:4002）
+SAND_BASE_URL=$(grep "^MICROSANDBOX_SERVICE_BASE_URL=" .env 2>/dev/null | cut -d '=' -f2- | tr -d '"' || true)
+SAND_BASE_URL="${SAND_BASE_URL:-http://127.0.0.1:4002}"
 SAND_MAX_WAIT=60
 SAND_WAITED=0
 while [ $SAND_WAITED -lt $SAND_MAX_WAIT ]; do
-    if curl -sf -o /dev/null http://localhost:8080/; then
-        echo "   ✅ 沙盒就绪"
+    if curl -sf -o /dev/null "$SAND_BASE_URL/health"; then
+        echo "   ✅ 沙盒就绪 ($SAND_BASE_URL)"
         break
     fi
     sleep 2
@@ -112,7 +114,7 @@ while [ $SAND_WAITED -lt $SAND_MAX_WAIT ]; do
 done
 
 if [ $SAND_WAITED -ge $SAND_MAX_WAIT ]; then
-    echo "   ⚠️  沙盒服务超时，跳过 Skill 初始化"
+    echo "   ⚠️  沙盒服务 ($SAND_BASE_URL) 不可达，跳过 Skill 初始化"
     exit 1
 fi
 

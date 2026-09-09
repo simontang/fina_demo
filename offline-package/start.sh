@@ -24,7 +24,6 @@ required_images=(
     "fina-offline/postgres:15-alpine"
     "fina-offline/agent:latest"
     "fina-offline/ai-web:latest"
-    "fina-offline/all-in-one-sandbox:latest"
 )
 
 missing_images=()
@@ -115,6 +114,12 @@ echo "📝 写入 .env 文件..."
 cat > .env << EOF
 LLM_BASE_URL=$NEW_LLM_URL
 API_KEY3=$NEW_API_KEY
+
+# Sandbox Remote Configuration
+SANDBOX_PROVIDER_TYPE=microsandbox-remote
+MICROSANDBOX_SERVICE_BASE_URL=http://127.0.0.1:4002
+MICROSANDBOX_API_KEY=qwertyuiop1234567890
+MICROSANDBOX_MEMORY=1024
 EOF
 
 echo "✅ 配置已写入 .env"
@@ -134,8 +139,8 @@ echo ""
 echo "访问地址："
 echo "  🌐 Web 界面:    http://localhost:5701"
 echo "  🤖 Agent API:   http://localhost:5702"
-echo "  📦 Sandbox:     http://localhost:8080"
 echo "  🐘 PostgreSQL:  localhost:5432"
+echo "  📦 Sandbox:     独立部署的 Microsandbox 服务（默认 http://127.0.0.1:4002）"
 echo ""
 echo "初始化数据（首次运行需要）："
 echo "  ./init-data.sh"
@@ -146,9 +151,6 @@ echo ""
 echo "停止服务："
 echo "  docker compose -f docker-compose.offline.yml down"
 echo ""
-
-
-docker compose -f docker-compose.offline.yml --env-file .env up -d
 
 # ============================================
 # 等待 Agent 就绪并初始化默认数据
@@ -215,12 +217,14 @@ done
 if [ -z "$TOKEN" ]; then
     echo "   ⚠️  鉴权服务超时，跳过 Skill 初始化"
 else
-    # 等待沙盒服务就绪
+    # 等待独立部署的沙盒服务就绪（Microsandbox，默认 127.0.0.1:4002）
+    SAND_BASE_URL=$(grep "^MICROSANDBOX_SERVICE_BASE_URL=" .env | cut -d '=' -f2- | tr -d '"' || true)
+    SAND_BASE_URL="${SAND_BASE_URL:-http://127.0.0.1:4002}"
     SAND_MAX_WAIT=60
     SAND_WAITED=0
     while [ $SAND_WAITED -lt $SAND_MAX_WAIT ]; do
-        if curl -sf http://localhost:8080/health &> /dev/null; then
-            echo "   ✅ 沙盒就绪"
+        if curl -sf "$SAND_BASE_URL/health" &> /dev/null; then
+            echo "   ✅ 沙盒就绪 ($SAND_BASE_URL)"
             break
         fi
         sleep 2
@@ -228,7 +232,7 @@ else
         echo "   已等待 ${SAND_WAITED}s..."
     done
     if [ $SAND_WAITED -ge $SAND_MAX_WAIT ]; then
-        echo "   ⚠️  沙盒服务超时，跳过 Skill 初始化"
+        echo "   ⚠️  沙盒服务 ($SAND_BASE_URL) 不可达，跳过 Skill 初始化"
     else
     # 创建 chart-markdown skill
     HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "http://localhost:5702/api/skills/chart-markdown" \
@@ -253,8 +257,8 @@ echo ""
 echo "访问地址："
 echo "  🌐 Web 界面:    http://localhost:5701"
 echo "  🤖 Agent API:   http://localhost:5702"
-echo "  📦 Sandbox:     http://localhost:8080"
 echo "  🐘 PostgreSQL:  localhost:5432"
+echo "  📦 Sandbox:     独立部署的 Microsandbox 服务（默认 http://127.0.0.1:4002）"
 echo ""
 echo "查看日志："
 echo "  docker compose -f docker-compose.offline.yml logs -f"
