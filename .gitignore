@@ -84,3 +84,9 @@ __pycache__/
 # mp
 apps/mp/unpackage/dist
 .omx/
+
+# scratch workspace, generated outputs, vendored research repos
+tmp/
+output/
+artifacts/
+docs/architecture-discussions/semantic-service-layer/cubejs/
