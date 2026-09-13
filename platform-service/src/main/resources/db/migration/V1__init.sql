@@ -1,5 +1,6 @@
 -- file_service metadata schema
--- Target: document-postgres / database `file_service`
+-- V1 baseline schema. Applied automatically by Flyway on startup.
+-- Target: SPRING_DATASOURCE_URL database (document-postgres/file_service in dev, RDS in prod)
 -- Apply once: psql "$FILE_SERVICE_PG_URL" -f ddl/file_service.sql
 
 CREATE TABLE IF NOT EXISTS file_objects (

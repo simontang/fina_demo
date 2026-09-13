@@ -22,6 +22,14 @@ spring:
   jackson:
     default-property-inclusion: always
     time-zone: Asia/Shanghai
+  flyway:
+    # V* files under classpath:db/migration apply automatically at startup.
+    # baseline-on-migrate lets an existing (pre-Flyway) database adopt
+    # cleanly: its schema is stamped at version 1 (V1 skipped there) while
+    # fresh databases run V1 from scratch.
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 1
 
 mybatis-plus:
   global-config:

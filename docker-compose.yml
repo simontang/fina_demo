@@ -167,15 +167,14 @@ services:
 
   platform-db-init:
     image: postgres:16
+    # Only creates the databases — table migrations are applied by Flyway
+    # inside platform-service at startup (db/migration/V*).
     command: >
       sh -c "sleep 4;
       psql -h document-postgres -U document -d document_service -c 'CREATE DATABASE file_service' || true;
-      psql -h document-postgres -U document -d document_service -c 'CREATE DATABASE svix' || true;
-      psql -h document-postgres -U document -d file_service -f /ddl/file_service.sql || true"
+      psql -h document-postgres -U document -d document_service -c 'CREATE DATABASE svix' || true"
     environment:
       PGPASSWORD: document
-    volumes:
-      - ./platform-service/ddl:/ddl:ro
     depends_on:
       document-postgres:
         condition: service_started

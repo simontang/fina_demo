@@ -26,6 +26,9 @@ dependencies {
 
     implementation("com.baomidou:mybatis-plus-spring-boot3-starter:3.5.5")
 
+    // Auto DB migration on startup (V* files in classpath:db/migration)
+    implementation("org.flywaydb:flyway-core")
+
     // Metadata storage: PostgreSQL
     runtimeOnly("org.postgresql:postgresql")
 

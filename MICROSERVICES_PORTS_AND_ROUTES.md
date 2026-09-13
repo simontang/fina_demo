@@ -250,8 +250,11 @@ self-hosted Svix (MIT) behind a tenant-model facade.
 
 - Local API: `http://localhost:5707`
 - Compose: built from `./platform-service`; sidecars `svix-server` (image
-  `svix/svix-server`, internal only) and `platform-db-init` (creates
-  `file_service` + `svix` databases, applies DDL)
+  `svix/svix-server`, internal only) and `platform-db-init` (creates the
+  `file_service` + `svix` databases). Schema migrations are automatic:
+  Flyway (`db/migration/V*`) runs at startup — fresh databases get V1 from
+  scratch, pre-Flyway databases are baselined without touching existing
+  tables; svix-server runs its own migrations on start
 - Metadata in `document-postgres` db `file_service`; objects in
   `document-minio` bucket `files` (override with `FILE_OBJECT_STORAGE_*` for
   TOS/S3); Svix state in `document-postgres` db `svix` + `document-redis` db 3
