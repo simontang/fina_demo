@@ -78,9 +78,18 @@ public class FileObjectService {
                 return FileReceipt.from(latest, true);
             }
 
+            // Discrete storage strategy (fina-ai style): the physical key is
+            // opaque and independent of the logical path. Path / rename /
+            // version live purely as DB metadata (1 row = 1 object), so
+            // renaming never moves data and GC is a simple row-object pair.
+            // Two-level hex fan-out from the uuid front: 256 x 256 = 65,536
+            // buckets per tenant, uniformly filled regardless of import
+            // bursts — keeps listings/admin sane at tens of millions of
+            // objects and stays flat enough for filesystem-style backends.
+            String uuid = UUID.randomUUID().toString().replace("-", "");
             String storageKey = tenant + "/"
-                    + (dir.isEmpty() ? "" : dir + "/")
-                    + name + "@" + hashes.sha256().substring(0, 8);
+                    + uuid.substring(0, 2) + "/" + uuid.substring(2, 4) + "/"
+                    + uuid;
             storage.put(storageKey, tmp, size, file.getContentType());
 
             FileObject row = new FileObject();
@@ -94,12 +103,12 @@ public class FileObjectService {
             row.setMime(file.getContentType());
             row.setFileCategory(fileCategory);
             row.setUsage(usage);
-            row.setUuid(UUID.randomUUID().toString().replace("-", ""));
+            row.setUuid(uuid);
             row.setMeta(meta);
             row.setStorageKey(storageKey);
             row.setStatus("active");
             mapper.insert(row);
-            log.info("stored {} v{} as {}", row.fullPath(), row.getVersion(), storageKey);
+            log.info("stored {} v{} at discrete key {}", row.fullPath(), row.getVersion(), storageKey);
             return FileReceipt.from(row, false);
         } catch (Exception e) {
             if (e instanceof ApiException api) {
