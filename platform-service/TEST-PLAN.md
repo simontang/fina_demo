@@ -41,6 +41,8 @@
 | L-02 | 免鉴权下载 | 不带任何租户/鉴权头，凭票据 URL 取得正确内容 |
 | L-03 | 篡改票据 | 403 LINK_INVALID |
 | L-04 | 过期票据（ttl=1s） | 410 LINK_EXPIRED |
+| L-05 | auto 模式：内网存储端点（document-minio） | 返回自有 ticket 链接 |
+| L-06 | auto 模式：公网存储端点（TOS） | 返回 storage 原生 presigned URL（X-Amz-Signature） |
 
 ### B. 多租户与鉴权（7 例）
 

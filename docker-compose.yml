@@ -213,6 +213,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-document}
       FILE_SERVICE_API_KEY: ${FILE_SERVICE_API_KEY:-}
       FILE_SERVICE_DEFAULT_TENANT: ${FILE_SERVICE_DEFAULT_TENANT:-}
+      # Self-hosted MinIO lives on the compose network, unreachable by
+      # browsers — hand out our own platform link.
+      FILE_LINK_MODE: ${FILE_LINK_MODE:-ticket}
       OBJECT_STORAGE_ENDPOINT: ${FILE_OBJECT_STORAGE_ENDPOINT:-http://document-minio:9000}
       OBJECT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-us-east-1}
       OBJECT_STORAGE_BUCKET: ${FILE_OBJECT_STORAGE_BUCKET:-files}

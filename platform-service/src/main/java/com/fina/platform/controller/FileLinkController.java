@@ -4,6 +4,7 @@ import com.fina.platform.dto.FileReceipt;
 import com.fina.platform.exception.ApiException;
 import com.fina.platform.service.FileLinkService;
 import com.fina.platform.service.FileObjectService;
+import com.fina.platform.service.LinkModeResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,11 +38,9 @@ public class FileLinkController {
 
     private final FileLinkService linkService;
     private final FileObjectService fileObjectService;
+    private final LinkModeResolver modeResolver;
     private final S3Presigner presigner;
     private final com.fina.platform.config.StorageProperties storage;
-
-    @Value("${file.link.mode:ticket}")
-    private String mode;
 
     public record LinkRequest(String path, String uuid, Integer version, Long ttlSeconds) {
     }
@@ -50,7 +49,7 @@ public class FileLinkController {
     public Map<String, Object> link(@RequestBody LinkRequest req) {
         long ttl = req.ttlSeconds() == null ? -1
                 : Math.min(Math.max(req.ttlSeconds(), 1), 604800);
-        boolean presign = "presign".equalsIgnoreCase(mode);
+        boolean presign = modeResolver.usePresign();
 
         if (presign) {
             String storageKey = req.uuid() != null
@@ -64,7 +63,8 @@ public class FileLinkController {
                                     .key(storageKey)
                                     .build())
                             .build());
-            return Map.of("url", pre.url().toString(), "kind", "presigned");
+            return Map.of("url", modeResolver.rewritePublic(pre.url().toString()),
+                    "kind", "presigned");
         }
 
         FileLinkService.Ticket t = req.uuid() != null

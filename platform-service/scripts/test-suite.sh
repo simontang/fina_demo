@@ -179,6 +179,50 @@ sleep 2
 C=$(curl -s -o /dev/null -w "%{http_code}" -m 60 "$BASE$URL2")
 [[ "$C" == "410" ]] && ok L-04 "expired ticket 410" || bad L-04 "got $C"
 
+# L-05 auto mode: internal storage endpoint (document-minio) → our own link
+FILE_SERVICE_PORT=5708 FILE_LINK_MODE=auto \
+  OBJECT_STORAGE_ENDPOINT="http://document-minio:9000" \
+  OBJECT_STORAGE_FORCE_PATH_STYLE=true \
+  SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5433/postgres?stringtype=unspecified" \
+  SPRING_DATASOURCE_USERNAME=document SPRING_DATASOURCE_PASSWORD=document \
+  SVIX_SERVER_URL="http://localhost:8071" \
+  nohup java -jar "$(cd "$SUITE_DIR/.." && pwd)/build/libs/platform-service.jar" > /tmp/suite-ticket.log 2>&1 &
+SPARE_PID=$!
+POK=0
+for _ in $(seq 1 45); do curl -sf -m 5 "$SPARE/actuator/health" >/dev/null && POK=1 && break; sleep 1; done
+if [[ "$POK" == "1" ]]; then
+  B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -H "Content-Type: application/json" \
+    -d '{"path":"a/docs/f02.csv","ttlSeconds":300}' "$SPARE/api/v1/files/link")
+  K=$(jget "$B" "d['kind']")
+  [[ "$K" == "ticket" ]] && ok L-05 "auto mode: internal storage → own link" || bad L-05 "kind=$K"
+else
+  bad L-05 "ticket instance failed to start"
+fi
+kill -9 "$SPARE_PID" 2>/dev/null; wait "$SPARE_PID" 2>/dev/null; SPARE_PID=""
+
+# L-06 auto mode: public storage endpoint (TOS) → presigned url
+FILE_SERVICE_PORT=5708 FILE_LINK_MODE=auto \
+  OBJECT_STORAGE_ENDPOINT="https://tos-s3-cn-beijing.volces.com" \
+  OBJECT_STORAGE_BUCKET="finademo" OBJECT_STORAGE_FORCE_PATH_STYLE=false \
+  SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5433/postgres?stringtype=unspecified" \
+  SPRING_DATASOURCE_USERNAME=document SPRING_DATASOURCE_PASSWORD=document \
+  SVIX_SERVER_URL="http://localhost:8071" \
+  nohup java -jar "$(cd "$SUITE_DIR/.." && pwd)/build/libs/platform-service.jar" > /tmp/suite-presign.log 2>&1 &
+SPARE_PID=$!
+POK=0
+for _ in $(seq 1 45); do curl -sf -m 5 "$SPARE/actuator/health" >/dev/null && POK=1 && break; sleep 1; done
+if [[ "$POK" == "1" ]]; then
+  B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -H "Content-Type: application/json" \
+    -d '{"path":"a/docs/f02.csv","ttlSeconds":300}' "$SPARE/api/v1/files/link")
+  K=$(jget "$B" "d['kind']")
+  U=$(jget "$B" "d['url']")
+  [[ "$K" == "presigned" && "$U" == *"X-Amz-Signature"* ]] \
+    && ok L-06 "auto mode: public storage → presigned url" || bad L-06 "kind=$K url=${U:0:80}"
+else
+  bad L-06 "presign instance failed to start"
+fi
+kill -9 "$SPARE_PID" 2>/dev/null; wait "$SPARE_PID" 2>/dev/null; SPARE_PID=""
+
 echo "=== B. 多租户与鉴权 ==="
 
 # T-01

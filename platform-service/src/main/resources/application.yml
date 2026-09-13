@@ -56,10 +56,14 @@ file:
     # X-Tenant-Id are attributed to this tenant. Keep blank in production.
     default-tenant: ${FILE_SERVICE_DEFAULT_TENANT:}
   link:
-    # Download-link mode: "ticket" (platform streams, works with any storage)
-    # or "presign" (storage-native signed URL, offloads bandwidth — use when
-    # the storage endpoint is reachable by the downloader, e.g. TOS in prod).
-    mode: ${FILE_LINK_MODE:ticket}
+    # Download-link mode:
+    #   auto    (default) presign for internet-reachable storage (TOS/S3),
+    #                     our own ticket link for self-hosted/internal
+    #                     endpoints (e.g. document-minio) — decided per
+    #                     request from the storage host + PUBLIC_FILE_BASE_URL
+    #   presign           always storage-native signed URL
+    #   ticket            always our own platform link
+    mode: ${FILE_LINK_MODE:auto}
     # HMAC secret for ticket tokens. CHANGE IN PRODUCTION.
     secret: ${FILE_LINK_SECRET:file-link-demo-secret-change-me}
     # Default/max TTL for links (seconds).

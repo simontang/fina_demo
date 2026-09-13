@@ -218,6 +218,11 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:?SPRING_DATASOURCE_PASSWORD is required}
       FILE_SERVICE_API_KEY: ${FILE_SERVICE_API_KEY:-}
       FILE_SERVICE_DEFAULT_TENANT: ${FILE_SERVICE_DEFAULT_TENANT:-}
+      # Cloud object storage (TOS) is internet-reachable → storage-native
+      # presigned URLs, so downloads bypass this service.
+      FILE_LINK_MODE: ${FILE_LINK_MODE:-presign}
+      # Set when presigned URLs must be rewritten to a published host.
+      PUBLIC_FILE_BASE_URL: ${PUBLIC_FILE_BASE_URL:-}
       OBJECT_STORAGE_ENDPOINT: ${FILE_OBJECT_STORAGE_ENDPOINT:-https://tos-s3-cn-beijing.volces.com}
       OBJECT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-cn-beijing}
       OBJECT_STORAGE_BUCKET: ${FILE_OBJECT_STORAGE_BUCKET:-finademo}
