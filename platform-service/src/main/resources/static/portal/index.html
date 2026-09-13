@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Webhook Portal · platform-service</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --line: #e4e7ec;
+    --text: #1f2430; --muted: #6b7280;
+    --accent: #2563eb; --accent-soft: #eff6ff;
+    --ok: #16a34a; --bad: #dc2626; --warn: #d97706;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px; background: var(--bg); color: var(--text);
+    font: 14px/1.5 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin-bottom: 16px; font-size: 13px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 16px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 15px; margin: 0 0 12px; }
+  input, button {
+    font: inherit; padding: 7px 10px; border: 1px solid var(--line);
+    border-radius: 8px; background: #fff; color: var(--text);
+  }
+  input:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  button { cursor: pointer; background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.ghost { background: #fff; color: var(--accent); }
+  button.danger { background: #fff; color: var(--bad); border-color: var(--bad); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  code, .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
+  .badge {
+    display: inline-block; padding: 1px 8px; border-radius: 99px;
+    font-size: 12px; background: var(--accent-soft); color: var(--accent); margin: 0 2px;
+  }
+  .badge.ok { background: #ecfdf5; color: var(--ok); }
+  .badge.bad { background: #fef2f2; color: var(--bad); }
+  .badge.off { background: #f3f4f6; color: var(--muted); }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .muted { color: var(--muted); }
+  .err { color: var(--bad); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--bad); }
+  .dot.on { background: var(--ok); }
+  tr.clickable { cursor: pointer; }
+  tr.clickable:hover td { background: var(--accent-soft); }
+  tr.selected td { background: var(--accent-soft); }
+  .grow { flex: 1; min-width: 200px; }
+</style>
+</head>
+<body>
+  <h1>Webhook Portal</h1>
+  <div class="sub">platform-service · webhooks 模块 · 租户视角的目标管理、事件与投递观测</div>
+
+  <div class="card">
+    <div class="row">
+      <span class="dot" id="connDot"></span>
+      <input class="grow" id="tenant" placeholder="租户 ID（X-Tenant-Id），例如 hankel">
+      <input id="apiKey" placeholder="X-Api-Key（未启用鉴权可留空）" style="width: 260px">
+      <button id="connect">连接</button>
+      <button class="ghost" id="refreshAll">刷新全部</button>
+    </div>
+    <div class="muted" id="connMsg" style="margin-top:8px">输入租户 ID 后点击连接。</div>
+  </div>
+
+  <div class="card">
+    <h2>投递目标 Destinations</h2>
+    <table id="destTable">
+      <thead><tr><th style="width:180px">Endpoint</th><th>URL</th><th>Topics</th><th style="width:90px">状态</th><th style="width:70px"></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div class="row" style="margin-top:12px">
+      <input class="grow" id="destUrl" placeholder="目标 URL，例如 http://host.docker.internal:5909/catch">
+      <input id="destTopics" placeholder="topics（逗号分隔，留空=全部）" style="width:320px">
+      <button id="destAdd">新增目标</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>最近事件 Messages <span class="muted" style="font-weight:400">（点击行查看投递记录）</span></h2>
+    <table id="msgTable">
+      <thead><tr><th style="width:260px">Message</th><th style="width:220px">Topic</th><th>时间</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>投递记录 Attempts <span class="muted" id="attFor" style="font-weight:400"></span></h2>
+    <table id="attTable">
+      <thead><tr><th style="width:180px">Endpoint</th><th style="width:100px">尝试</th><th style="width:120px">结果</th><th style="width:120px">HTTP</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const shortId = (s) => String(s || '').replace(/^(ep_|msg_)/, '').slice(0, 14);
+const fmtTime = (ts) => {
+  const n = Number(ts);
+  return isNaN(n) ? esc(ts) : new Date(n * 1000).toLocaleString('zh-CN', { hour12: false });
+};
+
+let connected = false;
+
+function headers() {
+  const h = { 'X-Tenant-Id': $('tenant').value.trim() };
+  const key = $('apiKey').value.trim();
+  if (key) h['X-Api-Key'] = key;
+  return h;
+}
+
+async function api(path, options = {}) {
+  const resp = await fetch('/api/v1/webhooks' + path, {
+    headers: { 'Content-Type': 'application/json', ...headers() },
+    ...options,
+  });
+  const body = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(body.message || body.detail || ('HTTP ' + resp.status));
+  return body;
+}
+
+function setConn(ok, msg, err) {
+  connected = ok;
+  $('connDot').className = 'dot' + (ok ? ' on' : '');
+  $('connMsg').innerHTML = err ? ('<span class="err">' + esc(msg) + '</span>') : esc(msg);
+}
+
+async function loadDestinations() {
+  const list = await api('/destinations');
+  const tb = $('destTable').querySelector('tbody');
+  tb.innerHTML = '';
+  if (!list.length) {
+    tb.innerHTML = '<tr><td colspan="5" class="muted">暂无目标 — 用下方表单新增。</td></tr>';
+  }
+  for (const d of list) {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td class="mono">' + esc(shortId(d.endpointId)) + '</td>' +
+      '<td class="mono">' + esc(d.url) + '</td>' +
+      '<td>' + (d.topics || []).map(t => '<span class="badge">' + esc(t) + '</span>').join('') + '</td>' +
+      '<td>' + (d.disabled ? '<span class="badge off">disabled</span>' : '<span class="badge ok">active</span>') + '</td>' +
+      '<td><button class="danger" data-del="' + esc(d.endpointId) + '">删除</button></td>';
+    tb.appendChild(tr);
+  }
+  tb.querySelectorAll('button[data-del]').forEach(b => b.onclick = async () => {
+    if (!confirm('删除该投递目标？')) return;
+    await api('/destinations/' + b.dataset.del, { method: 'DELETE' });
+    await loadDestinations();
+  });
+}
+
+async function loadMessages() {
+  const list = await api('/messages?limit=20');
+  const tb = $('msgTable').querySelector('tbody');
+  tb.innerHTML = '';
+  if (!list.length) {
+    tb.innerHTML = '<tr><td colspan="3" class="muted">暂无事件 — 由工厂各环节发布（job.completed / gate.passed / …）。</td></tr>';
+  }
+  for (const m of list) {
+    const tr = document.createElement('tr');
+    tr.className = 'clickable';
+    tr.innerHTML =
+      '<td class="mono">' + esc(shortId(m.messageId)) + '</td>' +
+      '<td><span class="badge">' + esc(m.topic) + '</span></td>' +
+      '<td class="mono">' + fmtTime(m.timestamp) + '</td>';
+    tr.onclick = () => {
+      tb.querySelectorAll('tr').forEach(r => r.classList.remove('selected'));
+      tr.classList.add('selected');
+      loadAttempts(m.messageId);
+    };
+    tb.appendChild(tr);
+  }
+}
+
+async function loadAttempts(messageId) {
+  $('attFor').textContent = '· message ' + shortId(messageId);
+  const rows = await api('/messages/' + encodeURIComponent(messageId) + '/attempts');
+  const tb = $('attTable').querySelector('tbody');
+  tb.innerHTML = '';
+  if (!rows.length) {
+    tb.innerHTML = '<tr><td colspan="4" class="muted">该消息暂无投递尝试（可能没有匹配的目标订阅）。</td></tr>';
+    return;
+  }
+  for (const a of rows) {
+    const ok = String(a.status).toLowerCase() === 'success';
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td class="mono">' + esc(shortId(a.endpointId)) + '</td>' +
+      '<td class="mono">#' + esc(a.attempt) + '</td>' +
+      '<td><span class="badge ' + (ok ? 'ok' : 'bad') + '">' + esc(a.status) + '</span></td>' +
+      '<td class="mono">' + esc(a.responseStatusCode) + '</td>';
+    tb.appendChild(tr);
+  }
+}
+
+async function connect() {
+  const tenant = $('tenant').value.trim();
+  if (!tenant) { setConn(false, '请输入租户 ID', true); return; }
+  localStorage.setItem('portal.tenant', tenant);
+  localStorage.setItem('portal.apiKey', $('apiKey').value.trim());
+  try {
+    const dests = await api('/destinations');
+    setConn(true, '已连接（' + dests.length + ' 个目标）');
+    await Promise.all([loadDestinations(), loadMessages()]);
+  } catch (e) {
+    setConn(false, '连接失败：' + e.message, true);
+  }
+}
+
+$('connect').onclick = connect;
+$('refreshAll').onclick = () => connected && connect();
+$('destAdd').onclick = async () => {
+  const url = $('destUrl').value.trim();
+  if (!url) { alert('请输入目标 URL'); return; }
+  const topics = $('destTopics').value.split(',').map(s => s.trim()).filter(Boolean);
+  try {
+    await api('/destinations', { method: 'POST', body: JSON.stringify({ url, topics, description: 'added via portal' }) });
+    $('destUrl').value = ''; $('destTopics').value = '';
+    await loadDestinations();
+  } catch (e) { alert('新增失败：' + e.message); }
+};
+
+$('tenant').value = localStorage.getItem('portal.tenant') || '';
+$('apiKey').value = localStorage.getItem('portal.apiKey') || '';
+if ($('tenant').value) connect();
+</script>
+</body>
+</html>

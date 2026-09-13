@@ -154,9 +154,14 @@ public class SvixServerClient {
         List<Map<String, Object>> out = new ArrayList<>();
         if (node != null && node.has("data")) {
             for (JsonNode ep : node.get("data")) {
+                List<String> topics = new ArrayList<>();
+                if (ep.has("filterTypes") && ep.get("filterTypes").isArray()) {
+                    ep.get("filterTypes").forEach(t -> topics.add(t.asText()));
+                }
                 out.add(Map.of(
                         "endpointId", ep.get("id").asText(),
                         "url", ep.get("url").asText(),
+                        "topics", topics,
                         "disabled", ep.hasNonNull("disabled") && ep.get("disabled").asBoolean()));
             }
         }

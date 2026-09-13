@@ -4,6 +4,7 @@ import com.fina.platform.tenant.TenantContextInterceptor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
@@ -22,6 +23,13 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new TenantContextInterceptor(apiKey, defaultTenant))
                 .addPathPatterns("/**")
-                .excludePathPatterns("/actuator/**", "/error");
+                // portal pages are tenant-agnostic shells; their API calls carry
+                // the tenant header per request
+                .excludePathPatterns("/actuator/**", "/error", "/portal", "/portal/**");
+    }
+
+    @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+        registry.addViewController("/portal").setViewName("forward:/portal/index.html");
     }
 }

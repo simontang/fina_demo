@@ -153,6 +153,8 @@ svix-server：SVIX_DB_DSN=document-postgres/svix，SVIX_REDIS_DSN=document-redis
 - `POST /api/v1/webhooks/publish` {topic, data} → {messageId, topic}
 - `GET /api/v1/webhooks/messages?limit=` / `GET /api/v1/webhooks/messages/{messageId}/attempts`
 
+**Portal**：`http://localhost:5707/portal` —— 自包含静态单页（原生 JS，零构建链），输入租户 ID 即可管理目标（增删）、浏览事件、逐消息查看投递尝试与 HTTP 状态。Svix 官方 Portal 是 `@svix/react` 托管生态组件，对自托管兼容未验证且需要 React 工具链；自建轻量版与"Java 可复用组件"定位一致，`@svix/react` 留作 ai_web（React）集成时的升级路径。门户是租户无关的静态壳，其 API 调用按请求携带租户头；生产外露时应在 nginx 加 `/portal/` 路由并叠加平台鉴权。
+
 **实现细节**：svix-server 鉴权 token 由 `SvixTokenService` 用共享 `SVIX_JWT_SECRET` 现场铸造 HS256 JWT（sub=orgId，10 年期，demo 够用；生产接平台签发后收紧）；EventType 发布时懒注册；`SVIX_WHITELIST_SUBNETS` demo 默认放行私网段（host.docker.internal 收端需要），生产留空保持 SSRF 严格。
 
 **合并的代价与兜底**：两个能力的发布节奏被绑在一起（可接受——都是平台基座、同一团队）；存储带宽与投递吞吐互相影响（demo 规模无关；未来拆分沿模块线）。
