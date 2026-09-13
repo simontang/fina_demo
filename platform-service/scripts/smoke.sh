@@ -96,11 +96,11 @@ pass "tenants isolated at the same path"
 echo "== receipt by path and by id =="
 R=$(curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/receipt?path=demo%2Fdocs%2Fdata.csv")
 SHA=$(echo "$R" | jqget - "d['sha256']")
-ID=$(echo "$R" | jqget - "d['id']")
+U=$(echo "$R" | jqget - "d['uuid']")
 [[ ${#SHA} == "64" ]] || fail "receipt sha256 missing"
-curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/${ID}/receipt" | grep -q "$SHA" \
-  || fail "receipt by id mismatch"
-pass "receipts by path and id"
+curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/uuid/$U/receipt" | grep -q "$SHA" \
+  || fail "receipt by uuid mismatch"
+pass "receipts by path and uuid"
 
 echo "== soft delete removes from download, history kept =="
 R=$(curl -sf -X DELETE -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files?path=demo%2Fdocs%2Fdata.csv")
