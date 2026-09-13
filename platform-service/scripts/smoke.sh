@@ -93,14 +93,27 @@ BODY=$(curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} 
 echo "$BODY" | grep -q "only-b" && fail "tenant-a leaked tenant-b content!"
 pass "tenants isolated at the same path"
 
-echo "== receipt by path and by id =="
-R=$(curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/receipt?path=demo%2Fdocs%2Fdata.csv")
-SHA=$(echo "$R" | jqget - "d['sha256']")
-U=$(echo "$R" | jqget - "d['uuid']")
-[[ ${#SHA} == "64" ]] || fail "receipt sha256 missing"
-curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/uuid/$U/receipt" | grep -q "$SHA" \
-  || fail "receipt by uuid mismatch"
-pass "receipts by path and uuid"
+echo "== HEAD metadata =="
+HDR=$(curl -s -I -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/demo/docs/data.csv")
+echo "$HDR" | grep -qi "^etag:" || fail "HEAD missing ETag"
+pass "HEAD metadata (ETag)"
+
+echo "== presign (download url per storage reachability) =="
+B=$(curl -sf -X POST -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} \
+  -H "Content-Type: application/json" -d '{"path":"demo/docs/data.csv","ttlSeconds":300}' \
+  "${BASE}/api/v1/files/presign")
+K=$(echo "$B" | jqget - "d['kind']")
+U=$(echo "$B" | jqget - "d['url']")
+case "$K" in
+  direct)
+    curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "$U" | grep -q foo \
+      || fail "direct url download failed"
+    pass "presign → own download url (internal storage)" ;;
+  presigned)
+    echo "$U" | grep -q "X-Amz-Signature" || fail "presigned url missing signature"
+    pass "presign → storage presigned url (reachable storage)" ;;
+  *) fail "unexpected kind=$K" ;;
+esac
 
 echo "== soft delete removes from download, history kept =="
 R=$(curl -sf -X DELETE -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/demo/docs/data.csv")

@@ -208,7 +208,7 @@ jget "$B" "d['messageId']" >/dev/null 2>&1 && ok S-01b "recovers after svix rest
 pkill -f "platform-service.jar" 2>/dev/null; sleep 3
 ( cd "$SUITE_DIR/.." && set -a && . "$SUITE_DIR/../../document_service/.env" && set +a && SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5433/postgres?stringtype=unspecified" \
   SPRING_DATASOURCE_USERNAME=document SPRING_DATASOURCE_PASSWORD=document \
-  SVIX_SERVER_URL="http://localhost:8071" \
+  SVIX_SERVER_URL="http://localhost:8071" FILE_LINK_MODE="${FILE_LINK_MODE:-ticket}" \
   nohup java -jar build/libs/platform-service.jar > /tmp/platform-service.log 2>&1 & )
 PERSIST_OK=0
 for _ in $(seq 1 30); do curl -sf -m 60 "$BASE/actuator/health" >/dev/null && { PERSIST_OK=1; break; }; sleep 1; done
