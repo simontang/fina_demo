@@ -103,15 +103,16 @@ PLATFORM_SERVICE_URL=http://127.0.0.1:5707 bash platform-service/scripts/webhook
 
 ## 6. Portal 的暴露方式
 
-Portal 由 platform-service 直接托管（`/portal`，自包含静态页），部署服务即部署门户。三种暴露方式按需选：
+Portal 由 platform-service 直接托管（`/portal`，自包含静态页），部署服务即部署门户。nginx 已配置好 `location /portal/`（80 与 443 两个 server 块各一份），转发到 `127.0.0.1:5707/portal/`。
 
-| 方式 | 做法 | 适用 |
+访问方式：
+
+| 方式 | 做法 | 说明 |
 |---|---|---|
-| 内部使用（默认） | `ssh -L 5707:127.0.0.1:5707 root@<host>` 后访问 `http://localhost:5707/portal` | 最安全，日常运维 |
-| 公网只读/受控 | nginx 加 `location /portal/ { proxy_pass http://127.0.0.1:5707/portal/; }` + Basic Auth 或平台鉴权 | 给客户演示 |
-| 完全内网 | 不加任何路由，仅 127.0.0.1 | 生产建议 |
+| 公网/内网经 nginx | `http://<host>/portal/` | 页面调用 `/api/webhooks/*`（同一 nginx 已转发到本服务），因此经代理可用 |
+| 直连服务 | `http://127.0.0.1:5707/portal` | 需 ssh 隧道；页面同样可用（服务同时挂载 `/api/v1/webhooks` 与 `/api/webhooks`） |
 
-注意：Portal 是**控制面**（可增删投递目标），公网暴露必须叠认证；当前版本门户本身无登录（与整个 demo 栈一致）。
+**安全提醒**：Portal 是控制面（可增删投递目标），且它本身不做登录。经 nginx 暴露时请叠加认证（Basic Auth 或接入网关的运维通道）；等 api/mcp 网关接入后，建议改走网关统一鉴权，详见 [GATEWAY-INTEGRATION.md](./GATEWAY-INTEGRATION.md) §5。
 
 ## 7. 常见问题
 

@@ -18,7 +18,11 @@ import java.util.Map;
  * topics are our factory event names. Svix stays behind this facade.
  */
 @RestController
-@RequestMapping("/api/v1/webhooks")
+// Two mount points on purpose: the service's canonical path (/api/v1/webhooks)
+// and the public prefix nginx exposes (/api/webhooks). The portal page calls
+// the public one so the same code works both when it is served directly and
+// when it sits behind the reverse proxy.
+@RequestMapping({"/api/v1/webhooks", "/api/webhooks"})
 @RequiredArgsConstructor
 public class WebhookController {
 

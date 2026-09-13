@@ -117,7 +117,7 @@ function headers() {
 }
 
 async function api(path, options = {}) {
-  const resp = await fetch('/api/v1/webhooks' + path, {
+  const resp = await fetch('/api/webhooks' + path, {
     headers: { 'Content-Type': 'application/json', ...headers() },
     ...options,
   });

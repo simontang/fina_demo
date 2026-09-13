@@ -335,7 +335,8 @@ Svix's retry schedule and default SSRF protection.
   `webhook-smoke.sh` — **full delivery+signature pass verified locally on
   2026-09-13** (svix-server image pulled via the `docker.1panel.live` mirror;
   note `SVIX_WHITELIST_SUBNETS` must be a JSON array)
-- Portal: `http://localhost:5707/portal` — self-contained static page (no JS
-  toolchain): enter a tenant id to manage destinations, browse events, and
-  inspect delivery attempts. Internal tool served by the service itself; add
-  an nginx `/portal/` route only if external access is wanted
+- Portal: `http://localhost:5707/portal` (or `/portal/` through nginx) —
+  self-contained static page: enter a tenant id to manage destinations,
+  browse events, inspect delivery attempts. Served by platform-service, and
+  the page calls `/api/webhooks/*`, a mount point the service also exposes so
+  the same page works both directly and behind the reverse proxy
