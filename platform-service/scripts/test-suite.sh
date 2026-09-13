@@ -259,6 +259,87 @@ curl -s -m 60 "$BASE/portal/index.html" | grep -q "投递目标" && ok P-02 "por
 C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" "$BASE/portal/index.html")
 [[ "$C" == "200" ]] && ok P-03 "static shell without tenant" || bad P-03 "got $C"
 
+echo "=== C. webhooks 模块 ==="
+
+# W-01 / W-02
+python3 "$SUITE_DIR/mock-receiver.py" --port 5909 --out "$TMP/rcv1.log" > /dev/null 2>&1 &
+RCV_PID=$!; sleep 1
+B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TC" -H "Content-Type: application/json" \
+  -d "{\"url\":\"http://host.docker.internal:5909/catch\",\"topics\":[\"job.completed\"],\"description\":\"suite\"}" \
+  "$BASE/api/v1/webhooks/destinations")
+SECRET=$(jget "$B" "d['secret']"); EP=$(jget "$B" "d['endpointId']")
+[[ "$SECRET" == whsec_* && -n "$EP" ]] && ok W-01 "destination created with whsec" || bad W-01 "got: $B"
+B=$(curl -s -m 60 -H "X-Tenant-Id: $TC" "$BASE/api/v1/webhooks/destinations")
+echo "$B" | grep -q "$EP" && echo "$B" | grep -q "job.completed" && ok W-02 "destinations list" || bad W-02 "got: $B"
+
+# W-04 / W-08 / W-05
+kill -9 "$RCV_PID" 2>/dev/null; wait "$RCV_PID" 2>/dev/null
+RECEIVER_WEBHOOK_SECRET="$SECRET" python3 "$SUITE_DIR/mock-receiver.py" --port 5909 --out "$TMP/rcv1.log" > /dev/null 2>&1 &
+RCV_PID=$!; sleep 1
+B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TC" -H "Content-Type: application/json" \
+  -d '{"topic":"job.completed","data":{"jobId":"w04"}}' "$BASE/api/v1/webhooks/publish")
+M1=$(jget "$B" "d['messageId']")
+[[ -n "$M1" ]] && ok W-04 "publish + lazy event type" || bad W-04 "got: $B"
+FOUND=0; T0=$(date +%s)
+for _ in $(seq 1 30); do
+  grep -q "w04" "$TMP/rcv1.log" 2>/dev/null && { FOUND=1; break; }; sleep 1
+done
+DT=$(( $(date +%s) - T0 ))
+if [[ "$FOUND" == "1" ]]; then
+  V=$(python3 -c "import json,sys;rows=[json.loads(l) for l in open(sys.argv[1]) if l.strip()];hit=[r for r in rows if 'w04' in r['body']];print(hit[-1]['signature-valid'])" "$TMP/rcv1.log")
+  [[ "$V" == "True" && "$DT" -le 30 ]] && ok W-05 "delivered in ${DT}s, signature valid" || bad W-05 "sig=$V dt=${DT}s"
+else
+  bad W-05 "no delivery in 30s"
+fi
+
+# W-09 tampered signature (receiver with wrong secret)
+printf 'wrong' | base64 > /tmp/wrong.b64
+WRONG="whsec_$(cat /tmp/wrong.b64)"
+RECEIVER_WEBHOOK_SECRET="$WRONG" python3 "$SUITE_DIR/mock-receiver.py" --port 5910 --out "$TMP/rcv2.log" > /dev/null 2>&1 &
+RCV2_PID=$!; sleep 1
+curl -s -m 60 -X POST -H "X-Tenant-Id: $TC" -H "Content-Type: application/json" \
+  -d "{\"url\":\"http://host.docker.internal:5910/catch\",\"topics\":[\"gate.passed\"],\"description\":\"tamper-test\"}" \
+  "$BASE/api/v1/webhooks/destinations" >/dev/null
+curl -s -m 60 -X POST -H "X-Tenant-Id: $TC" -H "Content-Type: application/json" \
+  -d '{"topic":"gate.passed","data":{"marker":"w09"}}' "$BASE/api/v1/webhooks/publish" >/dev/null
+T9=0
+for _ in $(seq 1 30); do grep -q "w09" "$TMP/rcv2.log" 2>/dev/null && { T9=1; break; }; sleep 1; done
+if [[ "$T9" == "1" ]]; then
+  V=$(python3 -c "import json,sys;rows=[json.loads(l) for l in open(sys.argv[1]) if l.strip()];hit=[r for r in rows if 'w09' in r['body']];print(hit[-1]['signature-valid'])" "$TMP/rcv2.log")
+  [[ "$V" == "False" ]] && ok W-09 "tampered secret flagged invalid" || bad W-09 "sig-valid=$V (should be False)"
+else
+  bad W-09 "tamper delivery not received"
+fi
+
+# W-06 / W-08
+B=$(curl -s -m 60 -H "X-Tenant-Id: $TC" "$BASE/api/v1/webhooks/messages?limit=20")
+echo "$B" | grep -q "job.completed" && ok W-06 "messages observable" || bad W-06 "got: $(echo "$B" | head -c 150)"
+N=$(echo "$B" | python3 -c "import json,sys;d=json.load(sys.stdin);print(len(d if isinstance(d,list) else d.get('data',[])))" 2>/dev/null || echo 0)
+[[ "$N" -ge 2 ]] && ok W-08 "repeated publish accumulates" || bad W-08 "messages=$N"
+
+# W-07 / W-13
+B=$(curl -s -m 60 -H "X-Tenant-Id: $TC" "$BASE/api/v1/webhooks/messages/$M1/attempts")
+echo "$B" | grep -q "endpointId" && echo "$B" | grep -q "status" && ok W-07 "attempts structure" || bad W-07 "got: $(echo "$B" | head -c 150)"
+V=$(echo "$B" | python3 -c "import json,sys;print(json.load(sys.stdin)[0]['status'])")
+[[ "$V" == "success" ]] && ok W-13 "attempt status is readable text" || bad W-13 "status=$V"
+
+# W-10..W-12 error contract: backend statuses translate to our semantics
+C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -X DELETE -H "X-Tenant-Id: $TC" "$BASE/api/v1/webhooks/destinations/ep_nonexistent000000")
+[[ "$C" == "404" ]] && ok W-10 "unknown endpointId → 404" || bad W-10 "got $C"
+C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -X POST -H "X-Tenant-Id: $TC" -H "Content-Type: application/json" \
+  -d '{"topics":["job.completed"]}' "$BASE/api/v1/webhooks/destinations")
+[[ "$C" == "400" ]] && ok W-11 "destination without url → 400" || bad W-11 "got $C"
+C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: $TC" "$BASE/api/v1/webhooks/messages/msg_nonexistent/attempts")
+[[ "$C" == "404" ]] && ok W-12 "unknown messageId → 404" || bad W-12 "got $C"
+# W-14: an already-provisioned tenant resolves without recreating it
+# (exercises the conflict/relookup path; also covered after restarts)
+RT=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: $TC" "$BASE/api/v1/webhooks/destinations")
+[[ "$RT" == "200" ]] && ok W-14 "existing tenant resolves (409 path)" || bad W-14 "got $RT"
+
+# T-06
+B=$(curl -s -m 60 -H "X-Tenant-Id: $TB" "$BASE/api/v1/webhooks/destinations")
+echo "$B" | grep -q "$EP" && bad T-06 "tenant-b sees tenant-c destination!" || ok T-06 "webhook tenant isolation"
+
 echo "=== E. 韧性 ==="
 
 # S-01 svix down

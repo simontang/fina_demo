@@ -3,6 +3,7 @@ package com.fina.platform.webhooks;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fina.platform.exception.ApiException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -13,6 +14,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,6 +41,23 @@ public class SvixServerClient {
                 .baseUrl(props.getServerUrl())
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + tokenService.bearerToken())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                // Translate the webhook backend's statuses into our error
+                // contract: a missing destination/message is 404 (not 500), a
+                // rejected payload is 400, a duplicate creation is 409.
+                .defaultStatusHandler(org.springframework.http.HttpStatusCode::isError, (request, response) -> {
+                    int sc = response.getStatusCode().value();
+                    if (sc == 404) {
+                        throw ApiException.notFound("webhook resource not found");
+                    }
+                    if (sc == 400 || sc == 422) {
+                        throw ApiException.badRequest("webhook backend rejected the request");
+                    }
+                    if (sc == 409) {
+                        throw new ApiException(409, "CONFLICT", "webhook resource already exists");
+                    }
+                    throw new ApiException(502, "WEBHOOK_BACKEND_ERROR",
+                            "webhook backend returned HTTP " + sc);
+                })
                 .build();
     }
 
@@ -54,39 +73,62 @@ public class SvixServerClient {
         if (cached != null) {
             return cached;
         }
-        ObjectNode body = jsonMapper().createObjectNode();
-        body.put("name", tenantId);
-        body.put("uid", tenantId);
-        JsonNode created;
-        try {
-            created = restClient().post()
-                    .uri("/api/v1/app/")
-                    .body(body)
-                    .retrieve().body(JsonNode.class);
-        } catch (HttpClientErrorException.Conflict e) {
-            created = findApplicationByUid(tenantId);
-            if (created == null) {
-                throw new IllegalStateException(
-                        "svix reports application conflict but it cannot be found: " + tenantId, e);
-            }
-        }
-        String id = created.get("id").asText();
-        APP_ID_CACHE.put(tenantId, id);
-        log.info("resolved svix application for tenant {} -> {}", tenantId, id);
-        return id;
-    }
-
-    private JsonNode findApplicationByUid(String tenantId) {
-        JsonNode list = restClient().get()
-                .uri("/api/v1/app/100/")
-                .retrieve().body(JsonNode.class);
-        if (list != null && list.has("data")) {
-            for (JsonNode app : list.get("data")) {
-                if (tenantId.equals(app.path("uid").asText(null))) {
-                    return app;
+        JsonNode found = findApplicationByUid(tenantId);
+        if (found == null) {
+            ObjectNode body = jsonMapper().createObjectNode();
+            body.put("name", tenantId);
+            body.put("uid", tenantId);
+            try {
+                found = restClient().post()
+                        .uri("/api/v1/app/")
+                        .body(body)
+                        .retrieve().body(JsonNode.class);
+            } catch (ApiException e) {
+                if (e.getStatus() != 409) {
+                    throw e;
+                }
+                // lost a race with a concurrent create — look it up again
+                found = findApplicationByUid(tenantId);
+                if (found == null) {
+                    throw new IllegalStateException(
+                            "svix reports application conflict but it cannot be found: " + tenantId, e);
                 }
             }
         }
+        String id = found.get("id").asText();
+        APP_ID_CACHE.put(tenantId, id);
+        log.debug("resolved svix application for tenant {} -> {}", tenantId, id);
+        return id;
+    }
+
+    /**
+     * Resolves an existing application by uid. This svix-server build does not
+     * serve limit-as-path-segment routes (`/app/{limit}/`), so we page the list
+     * endpoint with `?limit=` (`iterator` is the continuation token) and match
+     * on uid client-side.
+     */
+    private JsonNode findApplicationByUid(String tenantId) {
+        String iterator = null;
+        for (int page = 0; page < 10; page++) {
+            String uri = "/api/v1/app/?limit=100" + (iterator == null ? "" : "&iterator=" + iterator);
+            JsonNode list = restClient().get().uri(uri).retrieve().body(JsonNode.class);
+            if (list == null) {
+                return null;
+            }
+            if (list.has("data")) {
+                for (JsonNode app : list.get("data")) {
+                    if (tenantId.equals(app.path("uid").asText(null))) {
+                        return app;
+                    }
+                }
+            }
+            boolean done = !list.hasNonNull("done") || list.get("done").asBoolean(true);
+            iterator = list.path("iterator").asText(null);
+            if (done || iterator == null) {
+                break;
+            }
+        }
+        log.warn("application for tenant {} not found in the first pages of the list", tenantId);
         return null;
     }
 
@@ -205,7 +247,11 @@ public class SvixServerClient {
         return out;
     }
 
-    /** Delivery status of one message across all of the tenant's endpoints. */
+    /**
+     * Delivery status of one message across all of the tenant's endpoints.
+     * Svix exposes a human-readable `statusText` (success/pending/failed/…)
+     * alongside the numeric enum — we surface the words, not the number.
+     */
     public List<Map<String, Object>> listAttempts(String appId, String messageId) {
         JsonNode node = restClient().get()
                 .uri("/api/v1/app/{appId}/msg/{messageId}/endpoint/?limit=50", appId, messageId)
@@ -213,10 +259,17 @@ public class SvixServerClient {
         List<Map<String, Object>> out = new ArrayList<>();
         if (node != null && node.has("data")) {
             for (JsonNode ep : node.get("data")) {
-                out.add(Map.of(
-                        "endpointId", ep.get("id").asText(),
-                        "url", ep.path("url").asText(""),
-                        "status", ep.path("status").asText("unknown")));
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("endpointId", ep.path("id").asText(""));
+                row.put("url", ep.path("url").asText(""));
+                row.put("status", ep.path("statusText").asText("unknown"));
+                if (ep.hasNonNull("nextAttempt")) {
+                    row.put("nextAttempt", ep.get("nextAttempt").asText());
+                }
+                if (ep.hasNonNull("disabled") && ep.get("disabled").asBoolean()) {
+                    row.put("disabled", true);
+                }
+                out.add(row);
             }
         }
         return out;
