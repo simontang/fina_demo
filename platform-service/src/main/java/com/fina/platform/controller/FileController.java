@@ -68,6 +68,11 @@ public class FileController {
         return service.receiptById(id);
     }
 
+    @GetMapping("/uuid/{uuid}/receipt")
+    public FileReceipt receiptByUuid(@PathVariable String uuid) {
+        return service.receiptByUuid(uuid);
+    }
+
     @GetMapping("/{id}/download")
     public void downloadById(@PathVariable long id,
                              @RequestParam(value = "bom", required = false, defaultValue = "false") boolean bom,

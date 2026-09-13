@@ -27,6 +27,7 @@ public class FileReceipt {
     private String mime;
     private String fileCategory;
     private String usage;
+    private String meta;
     private String status;
     private String createdBy;
     private LocalDateTime createdAt;
@@ -48,6 +49,7 @@ public class FileReceipt {
                 .mime(o.getMime())
                 .fileCategory(o.getFileCategory())
                 .usage(o.getUsage())
+                .meta(o.getMeta())
                 .status(o.getStatus())
                 .createdBy(o.getCreatedBy())
                 .createdAt(o.getCreatedAt())

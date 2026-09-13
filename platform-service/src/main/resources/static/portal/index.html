@@ -90,9 +90,9 @@
   </div>
 
   <div class="card">
-    <h2>投递记录 Attempts <span class="muted" id="attFor" style="font-weight:400"></span></h2>
+    <h2>投递状态 Delivery <span class="muted" id="attFor" style="font-weight:400"></span></h2>
     <table id="attTable">
-      <thead><tr><th style="width:180px">Endpoint</th><th style="width:100px">尝试</th><th style="width:120px">结果</th><th style="width:120px">HTTP</th></tr></thead>
+      <thead><tr><th style="width:180px">Endpoint</th><th>URL</th><th style="width:140px">投递状态</th></tr></thead>
       <tbody></tbody>
     </table>
   </div>
@@ -185,7 +185,7 @@ async function loadAttempts(messageId) {
   const tb = $('attTable').querySelector('tbody');
   tb.innerHTML = '';
   if (!rows.length) {
-    tb.innerHTML = '<tr><td colspan="4" class="muted">该消息暂无投递尝试（可能没有匹配的目标订阅）。</td></tr>';
+    tb.innerHTML = '<tr><td colspan="3" class="muted">该消息暂无投递记录（可能没有匹配的目标订阅）。</td></tr>';
     return;
   }
   for (const a of rows) {
@@ -193,9 +193,8 @@ async function loadAttempts(messageId) {
     const tr = document.createElement('tr');
     tr.innerHTML =
       '<td class="mono">' + esc(shortId(a.endpointId)) + '</td>' +
-      '<td class="mono">#' + esc(a.attempt) + '</td>' +
-      '<td><span class="badge ' + (ok ? 'ok' : 'bad') + '">' + esc(a.status) + '</span></td>' +
-      '<td class="mono">' + esc(a.responseStatusCode) + '</td>';
+      '<td class="mono">' + esc(a.url) + '</td>' +
+      '<td><span class="badge ' + (ok ? 'ok' : 'bad') + '">' + esc(a.status) + '</span></td>';
     tb.appendChild(tr);
   }
 }

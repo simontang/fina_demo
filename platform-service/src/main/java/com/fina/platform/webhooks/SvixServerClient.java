@@ -205,27 +205,18 @@ public class SvixServerClient {
         return out;
     }
 
-    /** Delivery attempts of one message across all of the tenant's endpoints. */
+    /** Delivery status of one message across all of the tenant's endpoints. */
     public List<Map<String, Object>> listAttempts(String appId, String messageId) {
+        JsonNode node = restClient().get()
+                .uri("/api/v1/app/{appId}/msg/{messageId}/endpoint/?limit=50", appId, messageId)
+                .retrieve().body(JsonNode.class);
         List<Map<String, Object>> out = new ArrayList<>();
-        for (Map<String, Object> ep : listEndpoints(appId)) {
-            String endpointId = String.valueOf(ep.get("endpointId"));
-            try {
-                JsonNode node = restClient().get()
-                        .uri("/api/v1/app/{appId}/endpoint/{endpointId}/msg/{messageId}/attempt/",
-                                appId, endpointId, messageId, 20)
-                        .retrieve().body(JsonNode.class);
-                if (node != null && node.has("data")) {
-                    for (JsonNode attempt : node.get("data")) {
-                        out.add(Map.of(
-                                "endpointId", endpointId,
-                                "status", attempt.get("status").asText(),
-                                "responseStatusCode", attempt.get("responseStatusCodeValue").asInt(0),
-                                "attempt", attempt.get("attempt").asInt()));
-                    }
-                }
-            } catch (RestClientException e) {
-                log.debug("no attempts for message {} endpoint {}: {}", messageId, endpointId, e.getMessage());
+        if (node != null && node.has("data")) {
+            for (JsonNode ep : node.get("data")) {
+                out.add(Map.of(
+                        "endpointId", ep.get("id").asText(),
+                        "url", ep.path("url").asText(""),
+                        "status", ep.path("status").asText("unknown")));
             }
         }
         return out;
