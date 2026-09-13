@@ -38,6 +38,12 @@ public class StorageProperties {
                 .serviceConfiguration(S3Configuration.builder()
                         .pathStyleAccessEnabled(forcePathStyle)
                         .build())
+                // Never let a flaky object storage stall startup or request
+                // threads indefinitely.
+                .overrideConfiguration(software.amazon.awssdk.core.client.config.ClientOverrideConfiguration.builder()
+                        .apiCallTimeout(java.time.Duration.ofSeconds(10))
+                        .apiCallAttemptTimeout(java.time.Duration.ofSeconds(10))
+                        .build())
                 .build();
     }
 }

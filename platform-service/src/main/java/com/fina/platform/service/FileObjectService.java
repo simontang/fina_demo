@@ -44,24 +44,38 @@ public class FileObjectService {
     private final S3StorageService storage;
 
     public FileReceipt upload(MultipartFile file, String pathDir, String fileName,
-                              String fileCategory, String usage, String meta) {
+                              String fileCategory, String usage, String meta) throws IOException {
         if (file == null || file.isEmpty()) {
             throw ApiException.badRequest("file part is empty");
         }
+        String[] parts = splitLogicalPath(pathDir, fileName != null && !fileName.isBlank()
+                ? fileName : file.getOriginalFilename());
+        return store(parts[0], parts[1], fileCategory, usage, meta,
+                file.getContentType(), file.getSize(), file.getInputStream());
+    }
+
+    /** Core store: hashes, dedupes, versions and persists one object. */
+    public FileReceipt store(String pathDir, String fileName, String fileCategory, String usage, String meta,
+                             String contentType, long declaredSize, InputStream stream) {
+        if (stream == null) {
+            throw ApiException.badRequest("empty stream");
+        }
         String tenant = requireTenant();
         String dir = normalizeDir(pathDir);
-        String name = sanitizeFilename(fileName != null && !fileName.isBlank()
-                ? fileName : file.getOriginalFilename());
+        String name = sanitizeFilename(fileName);
 
         Path temp = null;
         try {
             Hashes hashes;
             long size;
             Path tmp = temp = Files.createTempFile("upload-", ".bin");
-            try (InputStream in = file.getInputStream()) {
+            try (InputStream in = stream) {
                 MessageDigest sha = MessageDigest.getInstance("SHA-256");
                 DigestInputStream shaIn = new DigestInputStream(in, sha);
                 size = IoUtils.copy(shaIn, Files.newOutputStream(tmp));
+                if (size == 0) {
+                    throw ApiException.badRequest("file is empty");
+                }
                 hashes = new Hashes(HexFormat.of().formatHex(sha.digest()), null);
             }
             try (InputStream in = Files.newInputStream(tmp)) {
@@ -90,7 +104,7 @@ public class FileObjectService {
             String storageKey = tenant + "/"
                     + uuid.substring(0, 2) + "/" + uuid.substring(2, 4) + "/"
                     + uuid;
-            storage.put(storageKey, tmp, size, file.getContentType());
+            storage.put(storageKey, tmp, size, contentType);
 
             FileObject row = new FileObject();
             row.setTenantId(tenant);
@@ -100,7 +114,7 @@ public class FileObjectService {
             row.setSha256(hashes.sha256());
             row.setMd5(hashes.md5());
             row.setSize(size);
-            row.setMime(file.getContentType());
+            row.setMime(contentType);
             row.setFileCategory(fileCategory);
             row.setUsage(usage);
             row.setUuid(uuid);
@@ -258,6 +272,15 @@ public class FileObjectService {
             throw ApiException.badRequest("path too long");
         }
         return cleaned;
+    }
+
+    /** Resolve a request into {directory, filename}: fileName wins when
+     *  given, otherwise fullPath is the complete logical path. */
+    public String[] splitLogicalPath(String pathDir, String fileName) {
+        if (fileName != null && !fileName.isBlank()) {
+            return new String[]{normalizeDir(pathDir), sanitizeFilename(fileName)};
+        }
+        return splitPath(normalizeDir(pathDir));
     }
 
     /** Full logical path → {directory, filename}. */

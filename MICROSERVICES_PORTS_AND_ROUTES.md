@@ -274,14 +274,16 @@ self-hosted Svix (MIT) behind a tenant-model facade.
 - Addressing: full logical path `{dir}/{filename}`. Immutable versioning:
   re-upload appends a version, identical content dedupes; no folder entities —
   directories are path-prefix aggregates
-- Key APIs (addressing: full logical `path` primary, `uuid` as the opaque
-  handle; sequential numeric ids are never exposed — internal DB key only):
+- Key APIs — S3-style resource addressing (object key is the URL path),
+  merged with fina-ai interactions; no sequential ids exposed:
   - `POST /api/v1/files/upload` — multipart (`path`, `fileName?`, `fileCategory?`, `usage?`, `meta?`)
-  - `GET /api/v1/files/download?path=…&version=&bom=`
-  - `GET /api/v1/files?prefix=…` — pseudo-directory listing
-  - `GET /api/v1/files/receipt?path=…`, `GET /api/v1/files/uuid/{uuid}/receipt`
-  - `GET /api/v1/files/uuid/{uuid}/download?bom=`
-  - `DELETE /api/v1/files?path=…` — soft delete
+  - `PUT /api/v1/files/{key…}` — raw-stream upload; metadata via `X-File-Category/Usage/Meta` headers
+  - `GET /api/v1/files/{key…}?version=&bom=` — download
+  - `HEAD /api/v1/files/{key…}` — metadata as headers (`ETag`=sha256, `X-File-Md5/Uuid/Version/Meta`)
+  - `DELETE /api/v1/files/{key…}?version=` — soft delete
+  - `GET /api/v1/files?prefix=&delimiter=/` — pseudo-directory listing
+  - `POST /api/v1/files/receipt` {path, version?} — JSON receipt (fina-ai download2ByPath style)
+  - `GET /api/v1/files/uuid/{uuid}` / `…/receipt` — uuid handle download/receipt
 - Smoke: `platform-service/scripts/smoke.sh` — 11/11 passed against a TOS
   S3-compatible bucket (2026-09-13)
 

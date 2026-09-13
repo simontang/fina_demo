@@ -56,19 +56,19 @@ V=$(echo "$R" | jqget - "d['version']")
 pass "re-upload appends version 2"
 
 echo "== download by path returns latest version =="
-BODY=$(curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/download?path=demo%2Fdocs%2Fdata.csv")
+BODY=$(curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/demo/docs/data.csv")
 echo "$BODY" | grep -q "bar,2" || fail "latest download missing v2 content"
 echo "$BODY" | grep -q "foo,1" || fail "latest download missing base content"
 pass "path download returns v2"
 
 echo "== download specific version 1 =="
-BODY=$(curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/download?path=demo%2Fdocs%2Fdata.csv&version=1")
+BODY=$(curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/demo/docs/data.csv?version=1")
 [[ "$BODY" == "$(printf 'name,amount\nfoo,1\n')" ]] || fail "version=1 content mismatch: $BODY"
 pass "version=1 download intact (old row immutable)"
 
 echo "== bom=true prepends UTF-8 BOM =="
 BOM=$(curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} \
-  "${BASE}/api/v1/files/download?path=demo%2Fdocs%2Fdata.csv&version=1&bom=true" | xxd -p -l 3)
+  "${BASE}/api/v1/files/demo/docs/data.csv?version=1&bom=true" | xxd -p -l 3)
 [[ "$BOM" == "efbbbf" ]] || fail "expected BOM efbbbf, got $BOM"
 pass "bom=true prepends UTF-8 BOM"
 
@@ -87,9 +87,9 @@ R=$(curl -sf -H "X-Tenant-Id: ${TENANT_B:-tenant-b}" ${AUTH[@]+"${AUTH[@]}"} \
   "${BASE}/api/v1/files/upload")
 V=$(echo "$R" | jqget - "d['version']")
 [[ "$V" == "1" ]] || fail "tenant-b expected own version 1, got $V"
-BODY=$(curl -sf -H "X-Tenant-Id: ${TENANT_B:-tenant-b}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/download?path=demo%2Fdocs%2Fdata.csv")
+BODY=$(curl -sf -H "X-Tenant-Id: ${TENANT_B:-tenant-b}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/demo/docs/data.csv")
 echo "$BODY" | grep -q "only-b" || fail "tenant-b should read its own content"
-BODY=$(curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/download?path=demo%2Fdocs%2Fdata.csv")
+BODY=$(curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/demo/docs/data.csv")
 echo "$BODY" | grep -q "only-b" && fail "tenant-a leaked tenant-b content!"
 pass "tenants isolated at the same path"
 
@@ -103,11 +103,11 @@ curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE
 pass "receipts by path and uuid"
 
 echo "== soft delete removes from download, history kept =="
-R=$(curl -sf -X DELETE -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files?path=demo%2Fdocs%2Fdata.csv")
+R=$(curl -sf -X DELETE -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/demo/docs/data.csv")
 N=$(echo "$R" | jqget - "d['deleted']")
 [[ "$N" == "2" ]] || fail "expected 2 soft-deleted rows, got $N"
 CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} \
-  "${BASE}/api/v1/files/download?path=demo%2Fdocs%2Fdata.csv")
+  "${BASE}/api/v1/files/demo/docs/data.csv")
 [[ "$CODE" == "404" ]] || fail "expected 404 after delete, got $CODE"
 pass "soft delete + 404"
 
