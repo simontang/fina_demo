@@ -13,6 +13,7 @@
 | [开发 Data Agent 指南](./DEVELOPING_A_DATA_AGENT.md) | 如何在本项目中开发一个 Data Agent（业务数据分析智能体） |
 | [Data Agent 提示词整理](./DATA_AGENT_PROMPTS.md) | Data Agent 主/子代理及全部技能的提示词汇总 |
 | [Deep Research 提示词整理](./DEEP_RESEARCH_PROMPTS.md) | Deep Research Agent 主/子代理的提示词汇总 |
+| [Agentic CDP Draft](./architecture-discussions/agentic-cdp/README.md) | Agentic CDP 草案：Bitable 规格、零售 CDP 样例数据、场景和实现路径 |
 | [微服务、端口与路由](../MICROSERVICES_PORTS_AND_ROUTES.md) | 服务划分、端口、API 命名空间与 URL 设计 |
 | [环境变量文件管理](../ENV_FILE_GUIDE.md) | 开发/生产环境变量、部署时 .env 优先级与安全 |
 

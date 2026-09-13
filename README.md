@@ -4,6 +4,8 @@ Demo repository that combines:
 - **agent/**：Node.js (Fastify) 网关与 Agent 编排（含 Data Agent、Research Agent、Voice Agent 等）
 - **prediction_app/**：Python (FastAPI) 数据集与预测 API（销售预测、RFM、库存等）
 - **ai_web/**：React (Refine) 管理端 UI
+- **metrics-server/**：Java (Spring Boot) 指标与语义查询服务
+- **b1s/**：Java (Spring Boot) SAP B1 Service Layer 代理与 B1 指标服务
 - **cdp-service/**：Java (Spring Boot) CDP 分群定义、分群数据与 SQL processing 服务
 - **document_service/**：Python (FastAPI + Celery) 文档解析统一 IO 服务，上传文件后异步分发到 Datalab、MinerU、TextIn、Qwen OCR、PaddleOCR 等远程 engine，并输出 Markdown/JSON。
 
@@ -71,9 +73,12 @@ Notes:
 - If you update CSVs or model files locally, re-run `docker compose up --build`.
 
 Services:
-- Admin UI: http://localhost:3201/admin/
-- Agent gateway: http://localhost:6203
-- Python API (debug): http://localhost:8000
+- Fina Admin UI: http://localhost:5701/admin/
+- Evario Admin UI: http://localhost:5711/admin/
+- Agent gateway: http://localhost:5702
+- Python API (debug): http://localhost:5703
+- Metrics server: http://localhost:5704
+- B1S service: http://localhost:5705
 - CDP service: http://localhost:5706
 - Document service: http://localhost:5710/docs
 - Document API via nginx: `/api/documents/v1/*`
@@ -86,7 +91,6 @@ export VOLCENGINE_API_KEY2=...
 docker compose up --build
 ```
 
-Document service uses `document_service/.env.example` for engine credentials,
-object storage, Redis, and database settings. The root compose file provides
-local defaults for Postgres, Redis, and MinIO; production compose files expect
-managed database/object storage credentials via environment variables.
+Document service uses `document_service/.env` for engine credentials, object
+storage, Redis, and database settings. Create it from
+`document_service/.env.example` before starting the full stack if it is missing.

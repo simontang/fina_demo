@@ -56,7 +56,7 @@ River 尚无正式 Sales Type 映射资产。三个事实的 `sales_team` 只能
 | `hankel_required_new_order_value` | Sales summary | confirmed | 精确 Check-period Won Y1 × 50% |
 | `hankel_matched_new_order_value` | Sales summary | confirmed | 目标自然年精确 Match Key 订单金额 |
 | `hankel_order_coverage_rate` | Sales summary | confirmed | Matched / Check-period Won Y1，不封顶 |
-| `hankel_validation_won_y1` | Sales summary | pending | 公式确认；Won 候选起始日待确认 |
+| `hankel_validation_won_y1` | Sales summary | reference | Run for Gold 使用 Competition Start 至 Report Cut-off，与 Golden Report QA 对齐 |
 | `hankel_new_order_gap` | Sales summary | pending | 兼容名称，明确表示非负 Action Gap |
 | `hankel_new_order_signed_gap` | Match Key | pending | Required - Matched，负值表示超额覆盖 |
 | `hankel_validated_won_count` | Sales summary | reference | 去重 Opportunity，而不是 Match Key |
@@ -72,7 +72,7 @@ River 尚无正式 Sales Type 映射资产。三个事实的 `sales_team` 只能
 ## 仍未闭环
 
 1. River Sales Type 映射表尚未提供，跨 Sell-in、Sell-out、Inventory 的统一区域分析不可用。
-2. Won 候选起始日仍有 `Competition Start` 与目标年年初两种版本；当前 View 使用目标年年初。
+2. Run for Gold 使用 `Competition Start` 至 Report Cut-off；全年 YTD Won 仅作为通用 Project 分析标记保留，两个范围不得混用。
 3. Action Gap 与 Signed Gap 均已显式发布，但对外默认口径仍需客户选择。
 4. Run for Gold 参数集中到单行 View，但尚未实现真正的 run-scoped 参数化。
 5. Generic Project Dashboard 书面规范指标尚未完整发布；不属于当前客户确认 POC。

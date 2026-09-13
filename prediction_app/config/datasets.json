@@ -50,6 +50,172 @@
       "tags": ["order", "bulk", "pre-season", "deckers"],
       "time_column": "ordered_date",
       "csv_path": "raw_data/deckers_order_data.csv"
+    },
+    {
+      "id": "agentic_cdp_customers",
+      "name": "Agentic CDP Customers",
+      "description": "Synthetic retail Customer 360 profile and feature snapshot for Agentic CDP scenarios",
+      "table_name": "agentic_cdp_customers",
+      "type": "agentic_cdp",
+      "created_at": "2026-07-02T00:00:00Z",
+      "updated_at": "2026-07-02T00:00:00Z",
+      "tags": ["agentic-cdp", "customer-360", "retail", "synthetic-pii"],
+      "time_column": "created_at",
+      "csv_path": "raw_data/agentic_cdp/customers.csv"
+    },
+    {
+      "id": "agentic_cdp_consents",
+      "name": "Agentic CDP Consents",
+      "description": "Customer marketing consent states used by policy and activation agents",
+      "table_name": "agentic_cdp_consents",
+      "type": "agentic_cdp",
+      "created_at": "2026-07-02T00:00:00Z",
+      "updated_at": "2026-07-02T00:00:00Z",
+      "tags": ["agentic-cdp", "consent", "governance"],
+      "time_column": "updated_at",
+      "csv_path": "raw_data/agentic_cdp/consents.csv"
+    },
+    {
+      "id": "agentic_cdp_loyalty_accounts",
+      "name": "Agentic CDP Loyalty Accounts",
+      "description": "Loyalty tier, points, anniversary, and next-tier gap data for customer value workflows",
+      "table_name": "agentic_cdp_loyalty_accounts",
+      "type": "agentic_cdp",
+      "created_at": "2026-07-02T00:00:00Z",
+      "updated_at": "2026-07-02T00:00:00Z",
+      "tags": ["agentic-cdp", "loyalty", "customer-value"],
+      "csv_path": "raw_data/agentic_cdp/loyalty_accounts.csv"
+    },
+    {
+      "id": "agentic_cdp_transactions",
+      "name": "Agentic CDP Transactions",
+      "description": "Retail transaction headers for RFM, reactivation, attribution, and next-best-action analysis",
+      "table_name": "agentic_cdp_transactions",
+      "type": "agentic_cdp_transactions",
+      "created_at": "2026-07-02T00:00:00Z",
+      "updated_at": "2026-07-02T00:00:00Z",
+      "tags": ["agentic-cdp", "transactions", "rfm", "retail"],
+      "time_column": "transaction_date",
+      "csv_path": "raw_data/agentic_cdp/transactions.csv",
+      "rfm": {
+        "user_id_column": "customer_id",
+        "order_id_column": "transaction_id",
+        "order_date_column": "transaction_date",
+        "monetary": {
+          "type": "column",
+          "column": "total_amount"
+        },
+        "filters": [
+          { "column": "total_amount", "op": ">", "value": 0 }
+        ]
+      }
+    },
+    {
+      "id": "agentic_cdp_transaction_items",
+      "name": "Agentic CDP Transaction Items",
+      "description": "Retail transaction lines joining orders to products for basket, replenishment, and recommendation workflows",
+      "table_name": "agentic_cdp_transaction_items",
+      "type": "agentic_cdp",
+      "created_at": "2026-07-02T00:00:00Z",
+      "updated_at": "2026-07-02T00:00:00Z",
+      "tags": ["agentic-cdp", "basket", "recommendation", "retail"],
+      "csv_path": "raw_data/agentic_cdp/transaction_items.csv"
+    },
+    {
+      "id": "agentic_cdp_behavior_events",
+      "name": "Agentic CDP Behavior Events",
+      "description": "Digital behavior stream for audience discovery, intent scoring, replenishment, and journey triggers",
+      "table_name": "agentic_cdp_behavior_events",
+      "type": "agentic_cdp",
+      "created_at": "2026-07-02T00:00:00Z",
+      "updated_at": "2026-07-02T00:00:00Z",
+      "tags": ["agentic-cdp", "behavior", "events", "intent"],
+      "time_column": "event_timestamp",
+      "csv_path": "raw_data/agentic_cdp/behavior_events.csv"
+    },
+    {
+      "id": "agentic_cdp_products",
+      "name": "Agentic CDP Products",
+      "description": "Product catalog with category, season, price, replenishment cycle, and hero SKU flags",
+      "table_name": "agentic_cdp_products",
+      "type": "agentic_cdp",
+      "created_at": "2026-07-02T00:00:00Z",
+      "updated_at": "2026-07-02T00:00:00Z",
+      "tags": ["agentic-cdp", "products", "catalog", "retail"],
+      "time_column": "launch_date",
+      "csv_path": "raw_data/agentic_cdp/products.csv"
+    },
+    {
+      "id": "agentic_cdp_inventory",
+      "name": "Agentic CDP Inventory",
+      "description": "Store-product inventory availability used to block or adjust next-best-action recommendations",
+      "table_name": "agentic_cdp_inventory",
+      "type": "agentic_cdp",
+      "created_at": "2026-07-02T00:00:00Z",
+      "updated_at": "2026-07-02T00:00:00Z",
+      "tags": ["agentic-cdp", "inventory", "replenishment", "guardrail"],
+      "time_column": "last_stocktake_date",
+      "csv_path": "raw_data/agentic_cdp/inventory.csv"
+    },
+    {
+      "id": "agentic_cdp_stores",
+      "name": "Agentic CDP Stores",
+      "description": "Retail store dimension for region, city tier, store type, and manager context",
+      "table_name": "agentic_cdp_stores",
+      "type": "agentic_cdp",
+      "created_at": "2026-07-02T00:00:00Z",
+      "updated_at": "2026-07-02T00:00:00Z",
+      "tags": ["agentic-cdp", "stores", "retail"],
+      "time_column": "opening_date",
+      "csv_path": "raw_data/agentic_cdp/stores.csv"
+    },
+    {
+      "id": "agentic_cdp_campaigns",
+      "name": "Agentic CDP Campaigns",
+      "description": "Campaign definitions mapped to Agentic CDP scenario IDs and activation objectives",
+      "table_name": "agentic_cdp_campaigns",
+      "type": "agentic_cdp",
+      "created_at": "2026-07-02T00:00:00Z",
+      "updated_at": "2026-07-02T00:00:00Z",
+      "tags": ["agentic-cdp", "campaigns", "activation"],
+      "time_column": "start_date",
+      "csv_path": "raw_data/agentic_cdp/campaigns.csv"
+    },
+    {
+      "id": "agentic_cdp_campaign_interactions",
+      "name": "Agentic CDP Campaign Interactions",
+      "description": "Campaign delivery and response events for activation measurement and revenue attribution",
+      "table_name": "agentic_cdp_campaign_interactions",
+      "type": "agentic_cdp",
+      "created_at": "2026-07-02T00:00:00Z",
+      "updated_at": "2026-07-02T00:00:00Z",
+      "tags": ["agentic-cdp", "campaigns", "measurement", "attribution"],
+      "time_column": "sent_date",
+      "csv_path": "raw_data/agentic_cdp/campaign_interactions.csv"
+    },
+    {
+      "id": "agentic_cdp_service_tickets",
+      "name": "Agentic CDP Service Tickets",
+      "description": "Customer service tickets for sentiment, recovery, SLA, and churn-risk workflows",
+      "table_name": "agentic_cdp_service_tickets",
+      "type": "agentic_cdp",
+      "created_at": "2026-07-02T00:00:00Z",
+      "updated_at": "2026-07-02T00:00:00Z",
+      "tags": ["agentic-cdp", "service", "churn-risk", "recovery"],
+      "time_column": "created_date",
+      "csv_path": "raw_data/agentic_cdp/service_tickets.csv"
+    },
+    {
+      "id": "agentic_cdp_agent_runs",
+      "name": "Agentic CDP Agent Runs",
+      "description": "Synthetic agent execution telemetry for latency, cost, evaluation, and approval monitoring",
+      "table_name": "agentic_cdp_agent_runs",
+      "type": "agentic_cdp_observability",
+      "created_at": "2026-07-02T00:00:00Z",
+      "updated_at": "2026-07-02T00:00:00Z",
+      "tags": ["agentic-cdp", "agent-observability", "evals", "cost"],
+      "time_column": "timestamp",
+      "csv_path": "raw_data/agentic_cdp/agent_runs.csv"
     }
   ]
 }

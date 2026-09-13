@@ -29,12 +29,12 @@ Run for Gold 排名、Final Score、奖项和 Sales Edition 当前属于书面�
 | Competition Start | 当前 Demo 为 `2026-07-01` |
 | Report Cut-off | 每次运行由用户手工提供，例如 `2026-08-31` |
 | New Project 范围 | `Competition Start <= Creation Date <= Report Cut-off` |
-| Won 验证范围 | `Status='Won'`；起始日期存在版本差异，见下方说明 |
+| Won 验证范围 | `Status='Won'` 且 `Competition Start <= Close Date <= Report Cut-off` |
 | New Order 范围 | 目标自然年 `01-01` 至 `12-31`，不受 Report Cut-off 限制 |
 
 `competition.yaml` 中“New Order 从 2026-07-01 起且无结束上限”是被客户最终答复覆盖的旧口径，不得使用。
 
-Won 候选范围没有出现在客户最终答复中。旧 KPI 文件要求 `Close Year=目标年` 且 `Close Date >= Competition Start`，当前 runtime 使用目标年 `01-01` 至 Report Cut-off。该差异必须由业务确认；在确认前，回答应明确报告实际采用的日期范围。
+Run for Gold Runtime 与 Golden Report 对账统一使用 Competition Start 至 Report Cut-off。全年 YTD Won 可用于通用 Project 分析，但不得混入 H2 竞赛验证或 Golden Report QA。
 
 ## 身份标准化
 

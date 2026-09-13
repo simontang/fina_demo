@@ -83,6 +83,31 @@ FROM actual CROSS JOIN expected;
 
 WITH actual AS (
     SELECT
+        COUNT(*) FILTER (
+            WHERE close_date < competition_start_date
+              AND check_period_won_y1 <> 0
+        ) AS pre_competition_value_rows,
+        COUNT(*) FILTER (
+            WHERE is_won_competition_to_cutoff
+              AND NOT is_won_2026_ytd
+        ) AS competition_rows_outside_target_ytd
+    FROM public.hankel_view_project_opportunity_line
+)
+SELECT
+    'run_for_gold_won_scope' AS check_name,
+    CASE
+        WHEN pre_competition_value_rows = 0
+         AND competition_rows_outside_target_ytd = 0
+        THEN 'PASS' ELSE 'FAIL'
+    END AS status,
+    JSONB_BUILD_OBJECT(
+        'preCompetitionValueRows', pre_competition_value_rows,
+        'competitionRowsOutsideTargetYtd', competition_rows_outside_target_ytd
+    ) AS details
+FROM actual;
+
+WITH actual AS (
+    SELECT
         (SELECT COUNT(*) FROM public.hankel_view_run_for_gold_leaderboard) AS overall_rows,
         (SELECT COUNT(*) FROM public.hankel_view_run_for_gold_leaderboard WHERE NOT is_qualified) AS overall_unqualified_rows,
         (SELECT COUNT(*) FROM public.hankel_view_run_for_gold_segment_leaderboard) AS segment_rows,

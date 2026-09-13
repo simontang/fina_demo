@@ -325,6 +325,7 @@ tables = [
             col("creation_date", "date"), col("close_date", "date"), col("y1_value", "number"),
             col("new_project_y1_value", "number"), col("check_period_won_y1", "number"),
             col("has_sales_mapping", "boolean"), col("is_valid_match_key", "boolean"),
+            col("is_won_2026_ytd", "boolean"), col("is_won_competition_to_cutoff", "boolean"),
             col("quality_issues"),
         ],
         "normalized view",
@@ -669,8 +670,8 @@ metric_governance = {
         "Counts distinct Opportunity IDs, but the metric is outside the customer-confirmed current POC.",
     ),
     "hankel_validation_won_y1": (
-        "pending_business_confirmation",
-        "The formula is confirmed; the Won candidate start date still requires business confirmation.",
+        "written_spec_reference",
+        "Run for Gold Won candidates use Competition Start through Report Cut-off so runtime and golden-report QA share the same scope.",
     ),
     "hankel_required_new_order_value": (
         "customer_confirmed",

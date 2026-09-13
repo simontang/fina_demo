@@ -65,7 +65,7 @@ tags: [quality, privacy, availability, open-questions, runtime-alignment]
 | Project→River 归因 | 跨域映射键缺失 | 禁止数值归因 |
 | Required 展示取整 | 黄金样例有整数，但函数未确认 | 判定用精确值 |
 | New Order Gap | 允许负值还是仅展示正缺口 | 明确 Signed Gap/Action Gap |
-| Won 候选起始日 | 旧 Ontology 使用 Competition Start，当前 runtime 使用目标年年初 | 每次回答披露实际日期范围，等待业务确认 |
+| Won 日期范围 | Run for Gold 使用 Competition Start；通用 Project YTD 使用目标年年初 | 回答时明确场景和实际日期范围，不混用两个范围 |
 | 排名和奖项 | 当前客户最终答复未纳入 POC | 标为 Demo/reference |
 
 ## Ontology 与当前 Runtime 的对齐结果

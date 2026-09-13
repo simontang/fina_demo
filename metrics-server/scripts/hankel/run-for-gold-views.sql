@@ -147,7 +147,8 @@ SELECT
     CASE WHEN s.is_new_project_h2_to_cutoff THEN s.opportunity_id END AS new_project_opportunity_id,
     CASE WHEN s.is_new_project_h2_to_cutoff THEN s.y1_value ELSE 0 END AS new_project_y1_value,
     CASE
-        WHEN s.is_won_2026_ytd
+        WHEN LOWER(COALESCE(s.status, '')) = 'won'
+         AND s.close_date BETWEEN s.competition_start_date AND s.report_cutoff_date
          AND s.close_year_total_months > 0
         THEN s.y1_value / s.close_year_total_months * s.report_recognized_months
         ELSE 0
@@ -157,8 +158,17 @@ SELECT
         CASE WHEN s.sold_to_idh IS NULL THEN 'missing sold_to_idh' END,
         CASE WHEN s.product_idh IS NULL THEN 'missing product_idh' END,
         CASE WHEN s.opportunity_id IS NULL THEN 'missing opportunity_id' END,
-        CASE WHEN s.is_won_2026_ytd AND COALESCE(s.y1_value, 0) = 0 THEN 'won y1 value is zero' END
-    ], NULL), '; ') AS quality_issues
+        CASE
+            WHEN LOWER(COALESCE(s.status, '')) = 'won'
+             AND s.close_date BETWEEN s.competition_start_date AND s.report_cutoff_date
+             AND COALESCE(s.y1_value, 0) = 0
+            THEN 'won y1 value is zero'
+        END
+    ], NULL), '; ') AS quality_issues,
+    (
+        LOWER(COALESCE(s.status, '')) = 'won'
+        AND s.close_date BETWEEN s.competition_start_date AND s.report_cutoff_date
+    ) AS is_won_competition_to_cutoff
 FROM scored s;
 
 CREATE OR REPLACE VIEW hankel_view_new_project_opportunity AS
@@ -323,7 +333,7 @@ WITH project_agg AS (
         SUM(y1_qty) AS won_y1_qty,
         STRING_AGG(DISTINCT quality_issues, '; ' ORDER BY quality_issues) FILTER (WHERE quality_issues IS NOT NULL AND quality_issues <> '') AS quality_issues
     FROM hankel_view_project_opportunity_line
-    WHERE is_won_2026_ytd
+    WHERE is_won_competition_to_cutoff
       AND is_valid_match_key
     GROUP BY canonical_sales_name, sold_to_idh, product_idh
 ),
@@ -434,7 +444,7 @@ JOIN hankel_view_won_validation_match_key m
   ON p.canonical_sales_name = m.canonical_sales_name
  AND p.sold_to_idh = m.sold_to_idh
  AND p.product_idh = m.product_idh
-WHERE p.is_won_2026_ytd
+WHERE p.is_won_competition_to_cutoff
   AND p.is_valid_match_key
   AND p.opportunity_id IS NOT NULL
 GROUP BY p.canonical_sales_name, p.opportunity_id;

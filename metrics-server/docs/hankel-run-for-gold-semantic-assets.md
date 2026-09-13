@@ -78,7 +78,9 @@ canonical_sales_name + sold_to_idh + product_idh
 Project 侧规则：
 
 - `status = 'Won'`
-- `close_date` 在 `2026-01-01` 到 `2026-08-31`
+- Run for Gold 验证使用 `close_date` 在 `2026-07-01` 到 `2026-08-31`
+- `is_won_2026_ytd` 继续保留全年 YTD 标记，但不用于 Run for Gold 或 Golden Report 对账
+- `is_won_competition_to_cutoff` 是 Run for Gold 实际使用的范围标记
 - 必须有 sales mapping、sold-to、product，才能进入有效 match key
 - 纯数字标识符会移除 Excel 产生的尾部 `.0`，其余标识符保持原样
 
@@ -244,6 +246,7 @@ Expected behavior:
 
 - `PASS` rows mean the raw-derived semantic view matches the imported report at that check grain.
 - `KEY_MISMATCH`, `ROW_COUNT_MISMATCH`, `AMOUNT_MISMATCH`, and `RANK_MISMATCH` rows are not hidden. They identify where the current raw tables differ from the imported `hankel_report_*` snapshot.
+- Raw-derived Won rows and the Golden Report are compared with the same Competition Start to Report Cut-off scope. Target-year rows before Competition Start must not enter this QA comparison.
 - Earlier exploration found that the report and current raw data are not a perfect same-snapshot pair, so the QA view is intentionally diagnostic rather than forced to zero difference.
 
 ## Design Boundary
