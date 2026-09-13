@@ -90,3 +90,6 @@ tmp/
 output/
 artifacts/
 docs/architecture-discussions/semantic-service-layer/cubejs/
+
+# local agent session data
+.zcode/
