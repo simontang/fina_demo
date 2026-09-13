@@ -9,8 +9,8 @@ spring:
       max-file-size: ${FILE_MAX_SIZE:512MB}
       max-request-size: ${FILE_MAX_REQUEST_SIZE:512MB}
   datasource:
-    # Metadata storage (PostgreSQL). In the fina_demo compose stack this is the
-    # shared document-postgres instance with a dedicated `file_service` database.
+    # Metadata storage (PostgreSQL). Shared database, same pattern as
+    # metrics-server / document_service; tables managed by Flyway.
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://document-postgres:5432/file_service?stringtype=unspecified}
     driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
     username: ${SPRING_DATASOURCE_USERNAME:document}

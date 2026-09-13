@@ -255,9 +255,10 @@ self-hosted Svix (MIT) behind a tenant-model facade.
   Flyway (`db/migration/V*`) runs at startup — fresh databases get V1 from
   scratch, pre-Flyway databases are baselined without touching existing
   tables; svix-server runs its own migrations on start
-- Metadata in `document-postgres` db `file_service`; objects in
-  `document-minio` bucket `files` (override with `FILE_OBJECT_STORAGE_*` for
-  TOS/S3); Svix state in `document-postgres` db `svix` + `document-redis` db 3
+- Metadata in `document-postgres` shared `postgres` db (Flyway-managed,
+  same pattern as metrics-server); objects in `document-minio` bucket `files`
+  (override with `FILE_OBJECT_STORAGE_*` for TOS/S3); Svix state in its own
+  `svix` database + dedicated `svix-redis` (prod) / `document-redis` db 3 (dev)
 - Nginx routes: `/api/filesvc/*` → `5707 /api/v1/*` (agent BFF owns
   `/api/files/*`); `/api/webhooks/*` → `5707 /api/v1/webhooks/*`
 - Auth: `X-Tenant-Id` header (required; `FILE_SERVICE_DEFAULT_TENANT` provides

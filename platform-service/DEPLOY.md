@@ -54,17 +54,14 @@ FILE_SERVICE_API_KEY=<随机串>                 # 建议生产启用机器鉴�
 # 可选：FILE_OBJECT_STORAGE_BUCKET（默认 finademo）、SVIX_ORG_ID
 ```
 
-RDS 上一次性建库（用有建库权限的账号；表结构**不需要**手工建——
-platform-service 启动时 Flyway 自动执行 `db/migration/V*`，存量库会自动
-baseline 接管，全新库从头执行）：
+RDS 上一次性建库（只需 **`svix`** 一个：file_objects 表由 platform-service
+启动时 Flyway 自动建在 `postgres` 库，与 metrics-server / document_service
+同库同模式；svix-server 的表为通用名，保留独立库作失败域隔离）：
 
 ```bash
 psql "host=pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com user=postgres_fuli dbname=postgres" \
-  -c "CREATE DATABASE svix" \
-  -c "CREATE DATABASE file_service"
+  -c "CREATE DATABASE svix"
 ```
-
-（RDS 账号若无建库权限，在阿里云控制台建 `svix`、`file_service` 两个库。）
 
 ## 3. 启动
 

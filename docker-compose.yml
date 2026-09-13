@@ -167,11 +167,11 @@ services:
 
   platform-db-init:
     image: postgres:16
-    # Only creates the databases — table migrations are applied by Flyway
-    # inside platform-service at startup (db/migration/V*).
+    # Only creates the svix database — file tables are created by Flyway
+    # inside platform-service at startup (db/migration/V*), in the shared
+    # postgres database, consistent with metrics-server / document_service.
     command: >
       sh -c "sleep 4;
-      psql -h document-postgres -U document -d document_service -c 'CREATE DATABASE file_service' || true;
       psql -h document-postgres -U document -d document_service -c 'CREATE DATABASE svix' || true"
     environment:
       PGPASSWORD: document
@@ -208,7 +208,7 @@ services:
       dockerfile: Dockerfile
     environment:
       FILE_SERVICE_PORT: "5707"
-      SPRING_DATASOURCE_URL: ${FILE_SERVICE_DATASOURCE_URL:-jdbc:postgresql://document-postgres:5432/file_service?stringtype=unspecified}
+      SPRING_DATASOURCE_URL: ${FILE_SERVICE_DATASOURCE_URL:-jdbc:postgresql://document-postgres:5432/postgres?stringtype=unspecified}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-document}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-document}
       FILE_SERVICE_API_KEY: ${FILE_SERVICE_API_KEY:-}
