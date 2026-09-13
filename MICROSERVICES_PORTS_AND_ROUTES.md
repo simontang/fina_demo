@@ -259,8 +259,12 @@ self-hosted Svix (MIT) behind a tenant-model facade.
   same pattern as metrics-server); objects in `document-minio` bucket `files`
   (override with `FILE_OBJECT_STORAGE_*` for TOS/S3); Svix state in its own
   `svix` database + dedicated `svix-redis` (prod) / `document-redis` db 3 (dev)
-- Nginx routes: `/api/filesvc/*` → `5707 /api/v1/*` (agent BFF owns
-  `/api/files/*`); `/api/webhooks/*` → `5707 /api/v1/webhooks/*`
+- Routing: platform-service is an **internal service behind the api/mcp
+  gateway** — the gateway authenticates, resolves the tenant, and sets
+  `X-Tenant-Id`. See [`platform-service/GATEWAY-INTEGRATION.md`](platform-service/GATEWAY-INTEGRATION.md)
+  for the handoff contract (route mapping, headers, error envelope, and what
+  the gateway must strip). Current test setup routes nginx straight to
+  `127.0.0.1:5707` without stripping the header — test-only
 - Auth: `X-Tenant-Id` header (required; `FILE_SERVICE_DEFAULT_TENANT` provides
   a dev default) + optional `X-Api-Key` (`FILE_SERVICE_API_KEY`)
 - Contract: the tenant rides ONLY in the `X-Tenant-Id` header — never in the
