@@ -1,0 +1,145 @@
+﻿sqlite_table,column_name,sql_type,key_type,nullable,description
+customers,customer_id,TEXT,PK,N,customer id
+customers,name,TEXT,,Y,name
+customers,gender,TEXT,,Y,gender
+customers,age,INTEGER,,Y,age
+customers,city,TEXT,,Y,city
+customers,province,TEXT,,Y,province
+customers,region,TEXT,,Y,region
+customers,city_tier,TEXT,,Y,city tier
+customers,join_date,TEXT,,Y,join date
+customers,member_level,TEXT,,Y,member level
+customers,lifecycle_stage,INTEGER,,Y,lifecycle stage
+customers,preferred_channel,TEXT,,Y,preferred channel
+customers,home_store_id,TEXT,,N,home store id
+customers,category_affinity,TEXT,,Y,category affinity
+customers,size_profile,TEXT,,Y,size profile
+customers,price_sensitivity,REAL,,Y,price sensitivity
+customers,discount_affinity,REAL,,Y,discount affinity
+customers,private_domain_status,TEXT,,Y,private domain status
+customers,acquisition_channel,TEXT,,Y,acquisition channel
+customers,mobile_hash,TEXT,,Y,mobile hash
+customers,email_hash,TEXT,,Y,email hash
+customers,wechat_openid_hash,TEXT,,Y,wechat openid hash
+customers,consent_marketing,TEXT,,Y,consent marketing
+customers,consent_sms,TEXT,,Y,consent sms
+customers,consent_wechat,TEXT,,Y,consent wechat
+customers,consent_email,TEXT,,Y,consent email
+customers,last_purchase_date,TEXT,,Y,last purchase date
+customers,days_since_purchase,INTEGER,,Y,days since purchase
+customers,orders_365,INTEGER,,Y,orders 365
+customers,total_spend_365,REAL,,Y,total spend 365
+customers,avg_order_value,REAL,,Y,avg order value
+customers,rfm_segment,TEXT,,Y,rfm segment
+customers,churn_risk_score,REAL,,Y,churn risk score
+customers,replenishment_due_score,REAL,,Y,replenishment due score
+customers,vip_score,REAL,,Y,vip score
+customers,return_rate,REAL,,Y,return rate
+customers,complaint_count,INTEGER,,Y,complaint count
+customers,created_at,TEXT,,Y,created at
+consents,customer_id,TEXT,FK customers.customer_id,N,customer id
+consents,marketing_consent,TEXT,,Y,marketing consent
+consents,sms_consent,TEXT,,Y,sms consent
+consents,wechat_consent,TEXT,,Y,wechat consent
+consents,email_consent,TEXT,,Y,email consent
+consents,consent_source,TEXT,,Y,consent source
+consents,updated_at,TEXT,,Y,updated at
+loyalty_accounts,customer_id,TEXT,FK customers.customer_id,N,customer id
+loyalty_accounts,loyalty_id,TEXT,,N,loyalty id
+loyalty_accounts,tier,TEXT,,Y,tier
+loyalty_accounts,points_balance,INTEGER,,Y,points balance
+loyalty_accounts,points_expiring_90d,INTEGER,,Y,points expiring 90d
+loyalty_accounts,anniversary_month,INTEGER,,Y,anniversary month
+loyalty_accounts,next_tier_gap_amount,REAL,,Y,next tier gap amount
+products,product_id,TEXT,PK,N,product id
+products,sku,TEXT,,Y,sku
+products,product_name,TEXT,,Y,product name
+products,category,TEXT,,Y,category
+products,subcategory,TEXT,,Y,subcategory
+products,brand_line,TEXT,,Y,brand line
+products,gender,TEXT,,Y,gender
+products,season,TEXT,,Y,season
+products,unit_price,REAL,,Y,unit price
+products,replenishment_cycle_days,INTEGER,,Y,replenishment cycle days
+products,launch_date,TEXT,,Y,launch date
+products,is_hero_sku,TEXT,,Y,is hero sku
+stores,store_id,TEXT,PK,N,store id
+stores,store_name,TEXT,,Y,store name
+stores,city,TEXT,,Y,city
+stores,province,TEXT,,Y,province
+stores,region,TEXT,,Y,region
+stores,city_tier,TEXT,,Y,city tier
+stores,store_type,TEXT,,Y,store type
+stores,manager,INTEGER,,Y,manager
+stores,opening_date,TEXT,,Y,opening date
+campaigns,campaign_id,TEXT,PK,N,campaign id
+campaigns,scenario_id,TEXT,,N,scenario id
+campaigns,campaign_name,TEXT,,Y,campaign name
+campaigns,objective,TEXT,,Y,objective
+campaigns,channel_mix,TEXT,,Y,channel mix
+campaigns,start_date,TEXT,,Y,start date
+campaigns,end_date,TEXT,,Y,end date
+campaigns,budget,REAL,,Y,budget
+campaigns,status,TEXT,,Y,status
+transactions,transaction_id,TEXT,PK,N,transaction id
+transactions,customer_id,TEXT,FK customers.customer_id,N,customer id
+transactions,transaction_date,TEXT,,Y,transaction date
+transactions,channel,TEXT,,Y,channel
+transactions,store_id,TEXT,FK stores.store_id,N,store id
+transactions,total_amount,REAL,,Y,total amount
+transactions,discount_amount,REAL,,Y,discount amount
+transactions,payment_method,TEXT,,Y,payment method
+transactions,order_status,TEXT,,Y,order status
+transactions,campaign_id,TEXT,FK campaigns.campaign_id,N,campaign id
+transaction_items,item_id,TEXT,PK,N,item id
+transaction_items,transaction_id,TEXT,,N,transaction id
+transaction_items,product_id,TEXT,FK products.product_id,N,product id
+transaction_items,quantity,INTEGER,,Y,quantity
+transaction_items,unit_price,REAL,,Y,unit price
+transaction_items,discount_rate,REAL,,Y,discount rate
+transaction_items,net_amount,REAL,,Y,net amount
+behavior_events,event_id,TEXT,PK,N,event id
+behavior_events,customer_id,TEXT,FK customers.customer_id,N,customer id
+behavior_events,event_timestamp,TEXT,,Y,event timestamp
+behavior_events,event_type,TEXT,,Y,event type
+behavior_events,channel,TEXT,,Y,channel
+behavior_events,product_id,TEXT,FK products.product_id,N,product id
+behavior_events,session_id,TEXT,,N,session id
+behavior_events,value,REAL,,Y,value
+campaign_interactions,interaction_id,TEXT,PK,N,interaction id
+campaign_interactions,campaign_id,TEXT,FK campaigns.campaign_id,N,campaign id
+campaign_interactions,customer_id,TEXT,FK customers.customer_id,N,customer id
+campaign_interactions,sent_date,TEXT,,Y,sent date
+campaign_interactions,channel,TEXT,,Y,channel
+campaign_interactions,event_status,TEXT,,Y,event status
+campaign_interactions,revenue_attributed,REAL,,Y,revenue attributed
+campaign_interactions,suppression_reason,TEXT,,Y,suppression reason
+service_tickets,ticket_id,TEXT,PK,N,ticket id
+service_tickets,customer_id,TEXT,FK customers.customer_id,N,customer id
+service_tickets,created_date,TEXT,,Y,created date
+service_tickets,channel,TEXT,,Y,channel
+service_tickets,issue_type,TEXT,,Y,issue type
+service_tickets,sentiment,TEXT,,Y,sentiment
+service_tickets,sla_hours,INTEGER,,Y,sla hours
+service_tickets,resolution_status,TEXT,,Y,resolution status
+service_tickets,compensation_amount,REAL,,Y,compensation amount
+inventory,inventory_id,TEXT,,N,inventory id
+inventory,store_id,TEXT,FK stores.store_id,N,store id
+inventory,product_id,TEXT,FK products.product_id,N,product id
+inventory,stock_on_hand,INTEGER,,Y,stock on hand
+inventory,reserved_qty,INTEGER,,Y,reserved qty
+inventory,available_qty,INTEGER,,Y,available qty
+inventory,reorder_point,INTEGER,,Y,reorder point
+inventory,last_stocktake_date,TEXT,,Y,last stocktake date
+agent_runs,run_id,TEXT,PK,N,run id
+agent_runs,timestamp,TEXT,,Y,timestamp
+agent_runs,agent_id,TEXT,,N,agent id
+agent_runs,scenario_id,TEXT,,N,scenario id
+agent_runs,status,TEXT,,Y,status
+agent_runs,latency_ms,REAL,,Y,latency ms
+agent_runs,input_tokens,INTEGER,,Y,input tokens
+agent_runs,output_tokens,INTEGER,,Y,output tokens
+agent_runs,tool_calls,INTEGER,,Y,tool calls
+agent_runs,estimated_cost_usd,REAL,,Y,estimated cost usd
+agent_runs,eval_score,REAL,,Y,eval score
+agent_runs,human_approval_required,TEXT,,Y,human approval required

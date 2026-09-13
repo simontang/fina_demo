@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agentic CDP - 沉睡会员唤醒 Use Case</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fa;
+      --panel: #ffffff;
+      --ink: #1d2433;
+      --muted: #5f6b7a;
+      --line: #d9dee7;
+      --accent: #0f766e;
+      --accent-soft: #e6f5f2;
+      --warn: #9a3412;
+      --warn-soft: #fff3e8;
+      --code: #263238;
+    }
+
+    @page {
+      size: A4;
+      margin: 14mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.65;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 40px 28px 56px;
+    }
+
+    header {
+      margin-bottom: 28px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 24px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(30px, 4vw, 48px);
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+
+    .summary {
+      max-width: 920px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    section {
+      margin: 28px 0;
+      padding: 24px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 24px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 22px 0 8px;
+      font-size: 18px;
+      line-height: 1.3;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 12px;
+    }
+
+    ul,
+    ol {
+      margin: 10px 0 0;
+      padding-left: 22px;
+    }
+
+    li {
+      margin: 5px 0;
+    }
+
+    table {
+      width: 100%;
+      margin-top: 14px;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #eef2f6;
+      font-weight: 700;
+    }
+
+    code {
+      color: var(--code);
+      background: #edf1f5;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92em;
+    }
+
+    .callout {
+      padding: 14px 16px;
+      border-left: 4px solid var(--accent);
+      background: var(--accent-soft);
+      border-radius: 6px;
+    }
+
+    .warning {
+      border-left-color: var(--warn);
+      background: var(--warn-soft);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .tile {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfd;
+    }
+
+    .tile h3 {
+      margin-top: 0;
+    }
+
+    .flow {
+      counter-reset: step;
+      display: grid;
+      gap: 10px;
+      padding-left: 0;
+      list-style: none;
+    }
+
+    .flow li {
+      counter-increment: step;
+      position: relative;
+      padding: 12px 14px 12px 48px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfd;
+    }
+
+    .flow li::before {
+      content: counter(step);
+      position: absolute;
+      left: 14px;
+      top: 13px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 24px;
+      text-align: center;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 760px) {
+      main {
+        padding: 28px 16px 40px;
+      }
+
+      section {
+        padding: 18px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+      }
+
+      main {
+        padding: 0;
+      }
+
+      header,
+      section,
+      .tile,
+      tr,
+      .callout {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .flow li {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">Agentic CDP Use Case</p>
+      <h1>沉睡会员唤醒与复购提升</h1>
+      <p class="summary">
+        每天找出 120 天以上未购、仍可触达、且有复购机会的会员，按价值、风险、偏好分层，生成差异化权益和内容，先创建可审计活动草案，再灰度执行和复盘。
+      </p>
+    </header>
+
+    <section>
+      <h2>定位</h2>
+      <div class="callout">
+        这个 use case 不应被设计成简单的“发券自动化”。它是一个跨 Data Agent、Process Agent、Governance、Measurement 的闭环：先找到值得唤醒的人，再判断是否允许触达，然后生成策略、内容、草案、审批包和复盘报告。
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>项目</th>
+            <th>定义</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Scenario ID</td>
+            <td><code>SCN_DORMANT_REACTIVATION</code></td>
+          </tr>
+          <tr>
+            <td>Primary Orchestrator</td>
+            <td><code>ORCH_DORMANT_REACTIVATION</code></td>
+          </tr>
+          <tr>
+            <td>Trigger</td>
+            <td>每日 09:00 调度，或运营输入目标人群、预算、渠道和约束。</td>
+          </tr>
+          <tr>
+            <td>核心输出</td>
+            <td><code>segment_rule</code>, <code>campaign_brief</code>, <code>content_variants</code>, <code>approval_packet</code>, <code>execution_tasks</code>, <code>measurement_report</code></td>
+          </tr>
+          <tr>
+            <td>审批门槛</td>
+            <td>预算超过 50,000 或包含现金券时，需要 CRM Owner 审批。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Agent 分层</h2>
+      <div class="grid">
+        <div class="tile">
+          <h3>Orchestrator</h3>
+          <p><code>ORCH_DORMANT_REACTIVATION</code></p>
+          <p>负责整体编排：确认目标、预算、约束、成功指标，调用 task agents，并最终产出场景计划、审批包和执行 trace。</p>
+        </div>
+        <div class="tile">
+          <h3>Governance</h3>
+          <p><code>TASK_CONSENT_POLICY_CHECK</code></p>
+          <p>在任何触达前检查 consent、退订、频控、预算和审批门槛。它是硬门禁，不是建议项。</p>
+        </div>
+      </div>
+
+      <h3>Data Agent Platform</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Agent</th>
+            <th>职责</th>
+            <th>输出</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>TASK_AUDIENCE_DISCOVERY</code></td>
+            <td>把“沉睡会员”转成可解释、可物化、可复跑的人群规则。</td>
+            <td><code>segment_spec</code>, <code>sql_condition</code>, <code>population_count</code>, evidence</td>
+          </tr>
+          <tr>
+            <td><code>TASK_CHURN_RISK_SCORING</code></td>
+            <td>计算流失风险、沉睡原因和召回优先级，结合 RFM、消费、投诉和行为信号。</td>
+            <td><code>ranked_customer_list</code>, reason codes</td>
+          </tr>
+          <tr>
+            <td><code>TASK_EFFECT_MEASUREMENT</code></td>
+            <td>衡量活动效果、归因收入、holdout 增量、异常和 agent 运行质量。</td>
+            <td><code>measurement_report</code>, metric queries</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Process Agent Platform</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Agent</th>
+            <th>职责</th>
+            <th>输出</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>TASK_OFFER_OPTIMIZATION</code></td>
+            <td>在预算、毛利、权益等级和风险约束下生成优惠、补偿或权益策略。</td>
+            <td><code>offer_plan</code>, budget impact, approval flag</td>
+          </tr>
+          <tr>
+            <td><code>TASK_CHANNEL_TIMING_SELECTION</code></td>
+            <td>选择短信、微信、邮件、导购跟进等渠道和触达时间，并做频控。</td>
+            <td><code>channel_plan</code>, suppression list</td>
+          </tr>
+          <tr>
+            <td><code>TASK_CONTENT_GENERATION</code></td>
+            <td>生成多渠道文案、A/B 版本和导购话术，并执行合规检查。</td>
+            <td><code>content_variants</code>, policy flags</td>
+          </tr>
+          <tr>
+            <td><code>TASK_CAMPAIGN_EXECUTION</code></td>
+            <td>创建活动草案、灰度执行计划和调度任务。第一版不直接发送。</td>
+            <td><code>campaign_draft</code>, journey steps, schedule jobs</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>数据层</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>数据表</th>
+            <th>关键字段/用途</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>customers</code></td>
+            <td>会员画像、生命周期、<code>days_since_purchase</code>、<code>orders_365</code>、<code>total_spend_365</code>、<code>rfm_segment</code>、<code>churn_risk_score</code>、<code>discount_affinity</code>、<code>preferred_channel</code>。</td>
+          </tr>
+          <tr>
+            <td><code>transactions</code></td>
+            <td>最近购买时间、频次、金额、渠道、门店和活动归因。当前已注册为 <code>agentic_cdp_transactions</code>，可跑 RFM。</td>
+          </tr>
+          <tr>
+            <td><code>transaction_items</code></td>
+            <td>品类偏好、篮子结构、商品复购周期和推荐候选。</td>
+          </tr>
+          <tr>
+            <td><code>behavior_events</code></td>
+            <td>最近浏览、搜索、加购等弱意图信号，用于判断“沉睡但有兴趣”。</td>
+          </tr>
+          <tr>
+            <td><code>consents</code></td>
+            <td>营销、短信、微信、邮件许可。不可触达用户必须被拦截。</td>
+          </tr>
+          <tr>
+            <td><code>campaign_interactions</code></td>
+            <td>历史触达、转化、退订、suppression reason 和收入归因。</td>
+          </tr>
+          <tr>
+            <td><code>products</code></td>
+            <td>推荐商品、品类、价格、补货周期和 hero SKU。</td>
+          </tr>
+          <tr>
+            <td><code>service_tickets</code></td>
+            <td>投诉、负面情绪、SLA 和服务恢复信号。高服务风险用户不应直接营销。</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout warning" style="margin-top: 16px;">
+        必须区分“候选沉睡人群”和“可执行触达人群”。前者用于分析，后者必须通过 consent、频控、预算和风险检查。
+      </div>
+    </section>
+
+    <section>
+      <h2>指标层</h2>
+      <div class="grid">
+        <div class="tile">
+          <h3>输入诊断指标</h3>
+          <ul>
+            <li>沉睡会员数：<code>days_since_purchase &gt;= 120</code></li>
+            <li>可触达率：有 marketing/channel consent 的比例</li>
+            <li>高价值沉睡数：高历史消费或高 LTV</li>
+            <li>平均流失风险：<code>MET_CHURN_RISK_AVG</code></li>
+            <li>最近弱意图比例：沉睡但近期有浏览、搜索或加购</li>
+            <li>历史活动疲劳：近期触达次数、退订、未响应次数</li>
+          </ul>
+        </div>
+        <div class="tile">
+          <h3>成功指标</h3>
+          <ul>
+            <li><code>MET_REACTIVATION_RATE</code>：唤醒转化率</li>
+            <li><code>MET_INCREMENTAL_REVENUE</code>：活动归因收入</li>
+            <li>复购率、首单回流金额、AOV、毛利贡献</li>
+            <li>渠道 CTR / CVR</li>
+            <li>导购任务完成率</li>
+          </ul>
+        </div>
+        <div class="tile">
+          <h3>护栏指标</h3>
+          <ul>
+            <li>退订率</li>
+            <li>投诉率</li>
+            <li>policy block rate</li>
+            <li>预算消耗</li>
+            <li>低库存推荐阻断数</li>
+            <li>频控拦截数</li>
+          </ul>
+        </div>
+        <div class="tile">
+          <h3>Agent 运行指标</h3>
+          <ul>
+            <li>latency</li>
+            <li>tool calls</li>
+            <li>eval score</li>
+            <li>human approval required</li>
+            <li>estimated cost USD</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>策略分层</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>人群</th>
+            <th>识别信号</th>
+            <th>建议策略</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>高价值高风险会员</td>
+            <td>历史消费高、VIP 分高、120 天以上未购、churn risk 高。</td>
+            <td>高优先级，导购或微信优先，权益更强；超预算或现金券进入审批。</td>
+          </tr>
+          <tr>
+            <td>有近期意图的沉睡会员</td>
+            <td>未购 120 天以上，但最近有浏览、搜索、加购。</td>
+            <td>推荐最近行为相关品类，轻权益，强调新品、库存、搭配。</td>
+          </tr>
+          <tr>
+            <td>折扣敏感会员</td>
+            <td><code>discount_affinity</code> 高，历史促销响应好。</td>
+            <td>券或满减，但设置毛利底线和预算 cap。</td>
+          </tr>
+          <tr>
+            <td>品类周期复购会员</td>
+            <td>买过有补货周期的品类，当前接近或超过周期。</td>
+            <td>补货提醒和相关商品推荐，不做泛泛召回。</td>
+          </tr>
+          <tr>
+            <td>服务风险会员</td>
+            <td>近期投诉、负面 sentiment、未解决 ticket。</td>
+            <td>不直接营销，转服务恢复：补偿、客服或导购跟进、满意度修复。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>执行流程</h2>
+      <ol class="flow">
+        <li><strong>Trigger:</strong> 每天 09:00 调度，或运营输入目标、预算、渠道和业务约束。</li>
+        <li><strong>Orchestrator 建立上下文:</strong> 生成 <code>business_goal</code>、预算、渠道范围、审批规则和成功指标。</li>
+        <li><strong>Audience Discovery:</strong> 查询候选人群，输出 <code>segment_rule</code>、<code>population_count</code>、样本用户和 SQL evidence。</li>
+        <li><strong>Consent & Policy Check:</strong> 过滤无许可、退订、频控冲突、投诉未解决或黑名单用户。</li>
+        <li><strong>Churn Risk Scoring:</strong> 用 RFM、沉睡天数、历史价值、投诉、弱意图和促销敏感度打分。</li>
+        <li><strong>Offer Optimization:</strong> 按 segment 分配权益，控制预算、毛利和审批门槛。</li>
+        <li><strong>Channel & Timing:</strong> 根据 preferred channel、consent、历史互动和频控输出触达计划。</li>
+        <li><strong>Content Generation:</strong> 生成微信、短信、邮件和导购话术，不暴露敏感推断。</li>
+        <li><strong>Campaign Execution:</strong> 第一版只创建 draft、journey steps、approval packet 和 schedule jobs。</li>
+        <li><strong>Measurement:</strong> 设置 holdout group，7/14/30 天复盘转化、收入、退订、投诉和渠道表现。</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>MVP 范围</h2>
+      <p>第一版建议只做 dry-run artifacts，不真实发送：</p>
+      <p>
+        <code>ORCH_DORMANT_REACTIVATION</code>
+        → <code>TASK_AUDIENCE_DISCOVERY</code>
+        → <code>TASK_CONSENT_POLICY_CHECK</code>
+        → <code>TASK_CHURN_RISK_SCORING</code>
+        → <code>TASK_OFFER_OPTIMIZATION</code>
+        → <code>TASK_CONTENT_GENERATION</code>
+        → <code>TASK_CAMPAIGN_EXECUTION</code>
+        → <code>TASK_EFFECT_MEASUREMENT</code>
+      </p>
+      <div class="callout">
+        等策略、审批、指标和审计链路跑顺后，再接真实 MA/CRM connector。默认行为应是“创建草案”，不是“直接发送”。
+      </div>
+    </section>
+
+    <p class="meta">Source: Agentic CDP draft under <code>docs/architecture-discussions/agentic-cdp</code> and registered datasets under <code>raw_data/agentic_cdp</code>.</p>
+  </main>
+</body>
+</html>

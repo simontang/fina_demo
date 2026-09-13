@@ -1,0 +1,11 @@
+﻿metric_id,metric_name,definition,grain,query_sql,owner_agent,alert_threshold,widget_enabled
+MET_REACTIVATION_RATE,沉睡唤醒转化率,converted / sent for CMP001,"campaign_id, channel","SELECT event_status, COUNT(*) FROM campaign_interactions WHERE campaign_id='CMP001' GROUP BY event_status;",ORCH_DORMANT_REACTIVATION,< 4% for 7 days,Y
+MET_INCREMENTAL_REVENUE,活动归因收入,sum revenue_attributed,campaign_id,"SELECT campaign_id, SUM(revenue_attributed) FROM campaign_interactions GROUP BY campaign_id;",TASK_EFFECT_MEASUREMENT,below plan by 20%,Y
+MET_CHURN_RISK_AVG,平均流失风险,avg churn_risk_score,lifecycle_stage,"SELECT lifecycle_stage, AVG(churn_risk_score) FROM customers GROUP BY lifecycle_stage;",TASK_CHURN_RISK_SCORING,> 0.62,Y
+MET_REPLENISHMENT_DUE,补货到期人群数,count score>=0.62 and consent,category_affinity,"SELECT category_affinity, COUNT(*) FROM customers WHERE replenishment_due_score>=0.62 AND consent_marketing='Y' GROUP BY category_affinity;",ORCH_REPLENISHMENT_NBA,drop >30% vs baseline,Y
+MET_VIP_TASK_COMPLETION,VIP导购任务完成率,completed CRM tasks / created tasks,store_id,"SELECT agent_id, status, COUNT(*) FROM agent_runs WHERE agent_id='TASK_SA_FOLLOWUP_TASKING' GROUP BY status;",ORCH_VIP_CLIENTELING,< 85%,Y
+MET_SERVICE_SLA,售后SLA风险单数,open/escalated tickets,issue_type,"SELECT issue_type, COUNT(*) FROM service_tickets WHERE resolution_status IN ('Open','Escalated') GROUP BY issue_type;",ORCH_SERVICE_RECOVERY,> 20 open cases,Y
+MET_CONSENT_BLOCK_RATE,许可阻断率,suppressed / targeted,campaign_id,"SELECT campaign_id, SUM(CASE WHEN event_status='suppressed' THEN 1 ELSE 0 END)*1.0/COUNT(*) FROM campaign_interactions GROUP BY campaign_id;",TASK_CONSENT_POLICY_CHECK,> 12%,Y
+MET_AGENT_SUCCESS_RATE,Agent运行成功率,success runs / all runs,agent_id,"SELECT agent_id, AVG(CASE WHEN status='success' THEN 1.0 ELSE 0 END) FROM agent_runs GROUP BY agent_id;",UTIL_METRIC_LOGGER,< 95%,Y
+MET_AGENT_LATENCY_P95,Agent P95延迟,approx p95 latency_ms,agent_id,"SELECT agent_id, MAX(latency_ms) FROM agent_runs GROUP BY agent_id;",UTIL_METRIC_LOGGER,> 12000ms,Y
+MET_POLICY_BLOCK_COUNT,策略阻断次数,policy_blocked run count,scenario_id,"SELECT scenario_id, COUNT(*) FROM agent_runs WHERE status='policy_blocked' GROUP BY scenario_id;",TASK_CONSENT_POLICY_CHECK,spike > 2x,Y

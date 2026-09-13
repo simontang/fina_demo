@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>B1 AI Semantic Layer Capability and Architecture Requirements</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --paper: #ffffff;
+      --ink: #172033;
+      --muted: #5b667a;
+      --line: #d9e1ef;
+      --accent: #0f6b64;
+      --accent-2: #2454a6;
+      --accent-soft: #e7f3f1;
+      --code: #f2f5fa;
+      --shadow: 0 18px 50px rgba(23, 32, 51, 0.10);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.62;
+    }
+    a { color: var(--accent-2); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+      min-height: 100vh;
+    }
+    aside {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      padding: 28px 22px;
+      border-right: 1px solid var(--line);
+      background: #eef3f8;
+    }
+    aside h2 {
+      margin: 0 0 14px;
+      font-size: 14px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .toc a {
+      display: block;
+      padding: 7px 8px;
+      border-radius: 8px;
+      color: #273248;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+    .toc a:hover { background: #ffffff; text-decoration: none; }
+    .toc-l3 { padding-left: 22px !important; color: var(--muted) !important; }
+    main { padding: 38px min(5vw, 70px) 70px; }
+    article {
+      max-width: 1120px;
+      margin: 0 auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      padding: 48px;
+    }
+    .hero {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 26px;
+      margin-bottom: 34px;
+    }
+    .eyebrow {
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    h1, h2, h3, h4 { line-height: 1.22; color: #111827; }
+    h1 { font-size: clamp(32px, 4vw, 54px); margin: 0 0 14px; letter-spacing: -0.02em; }
+    h2 { margin-top: 42px; padding-top: 10px; font-size: 28px; border-top: 1px solid var(--line); }
+    h3 { margin-top: 30px; font-size: 21px; }
+    h4 { margin-top: 24px; font-size: 17px; }
+    p { margin: 14px 0; }
+    .subtitle { font-size: 18px; color: var(--muted); max-width: 860px; }
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      border: 1px solid var(--line);
+      background: #fbfcff;
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .diagram-card {
+      margin: 28px 0 36px;
+      padding: 22px;
+      border: 1px solid #cfe3df;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #f7fcfb 0%, #ffffff 100%);
+    }
+    .diagram-card h2 {
+      margin-top: 0;
+      border-top: 0;
+      padding-top: 0;
+    }
+    .diagram-shell {
+      margin: 18px 0;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow-x: auto;
+      background: #ffffff;
+    }
+    ul, ol { padding-left: 24px; }
+    li + li { margin-top: 5px; }
+    blockquote {
+      margin: 20px 0;
+      padding: 14px 18px;
+      border-left: 4px solid var(--accent);
+      background: var(--accent-soft);
+      color: #183b38;
+      font-weight: 600;
+    }
+    code {
+      padding: 2px 5px;
+      border-radius: 5px;
+      background: var(--code);
+      color: #9a3412;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: .92em;
+    }
+    pre {
+      overflow: auto;
+      padding: 16px;
+      border-radius: 10px;
+      background: #111827;
+      color: #e5e7eb;
+    }
+    pre code { background: transparent; color: inherit; padding: 0; }
+    .table-wrap { overflow-x: auto; margin: 18px 0 26px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+      font-size: 14px;
+    }
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+    }
+    th { background: #f0f5fb; color: #243049; font-weight: 700; }
+    td { background: #ffffff; }
+    @media (max-width: 980px) {
+      .layout { display: block; }
+      aside { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+      main { padding: 18px; }
+      article { padding: 28px 20px; }
+      table { min-width: 640px; }
+    }
+    @media print {
+      body { background: #fff; }
+      aside { display: none; }
+      .layout { display: block; }
+      main { padding: 0; }
+      article { box-shadow: none; border: 0; border-radius: 0; max-width: none; }
+      a { color: inherit; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside>
+      <h2>Contents</h2>
+      <nav class="toc"><a class="toc-l2" href="#executive-summary">Executive Summary</a>
+<a class="toc-l2" href="#reference-patterns">Reference Patterns</a>
+<a class="toc-l3" href="#cube-js-reference-points">Cube.js Reference Points</a>
+<a class="toc-l3" href="#dbt-semantic-layer-reference-points">dbt Semantic Layer Reference Points</a>
+<a class="toc-l3" href="#looker-lookml-reference-points">Looker / LookML Reference Points</a>
+<a class="toc-l3" href="#snowflake-semantic-views-reference-points">Snowflake Semantic Views Reference Points</a>
+<a class="toc-l2" href="#b1-semantic-layer-target-architecture">B1 Semantic Layer Target Architecture</a>
+<a class="toc-l3" href="#layer-1-semantic-manifest">Layer 1: Semantic Manifest</a>
+<a class="toc-l3" href="#layer-2-semantic-object">Layer 2: Semantic Object</a>
+<a class="toc-l3" href="#layer-3-semantic-view">Layer 3: Semantic View</a>
+<a class="toc-l3" href="#layer-4-metric-catalog">Layer 4: Metric Catalog</a>
+<a class="toc-l2" href="#data-layer-view-strategy">Data Layer View Strategy</a>
+<a class="toc-l2" href="#core-capability-requirements">Core Capability Requirements</a>
+<a class="toc-l3" href="#1-semantic-manifest-and-package-system">1. Semantic Manifest and Package System</a>
+<a class="toc-l3" href="#2-core-industry-customer-overlay-model">2. Core / Industry / Customer Overlay Model</a>
+<a class="toc-l3" href="#3-semantic-object-view-metric-separation">3. Semantic Object / View / Metric Separation</a>
+<a class="toc-l3" href="#4-query-planner-and-dialect-compiler">4. Query Planner and Dialect Compiler</a>
+<a class="toc-l3" href="#5-abac-masking-and-policy-engine">5. ABAC, Masking, and Policy Engine</a>
+<a class="toc-l3" href="#6-udf-udt-addon-extension-system">6. UDF / UDT / Addon Extension System</a>
+<a class="toc-l3" href="#7-external-schema-and-data-federation">7. External Schema and Data Federation</a>
+<a class="toc-l3" href="#8-metadata-and-introspection-api">8. Metadata and Introspection API</a>
+<a class="toc-l3" href="#9-explain-lineage-and-evidence">9. Explain, Lineage, and Evidence</a>
+<a class="toc-l3" href="#10-cache-pre-aggregation-and-freshness">10. Cache, Pre-Aggregation, and Freshness</a>
+<a class="toc-l3" href="#11-test-and-certification-suite">11. Test and Certification Suite</a>
+<a class="toc-l3" href="#12-governance-versioning-and-publishing">12. Governance, Versioning, and Publishing</a>
+<a class="toc-l2" href="#standard-core-model">Standard Core Model</a>
+<a class="toc-l2" href="#extension-model">Extension Model</a>
+<a class="toc-l3" href="#industry-packages">Industry Packages</a>
+<a class="toc-l3" href="#customer-overlays">Customer Overlays</a>
+<a class="toc-l3" href="#overlay-rules">Overlay Rules</a>
+<a class="toc-l2" href="#security-and-governance">Security and Governance</a>
+<a class="toc-l3" href="#required-policy-dimensions">Required Policy Dimensions</a>
+<a class="toc-l3" href="#required-protection-modes">Required Protection Modes</a>
+<a class="toc-l3" href="#governance-workflow">Governance Workflow</a>
+<a class="toc-l2" href="#acceptance-criteria">Acceptance Criteria</a>
+<a class="toc-l2" href="#open-questions-for-sap-b1">Open Questions For SAP/B1</a>
+<a class="toc-l2" href="#source-references">Source References</a></nav>
+    </aside>
+    <main>
+      <article>
+        <section class="hero">
+          <div class="eyebrow">Semantic Layer Specification</div>
+          <h1>B1 AI Semantic Layer Capability and Architecture Requirements</h1>
+          <p class="subtitle">A standalone product capability and architecture requirement document for a governed, extensible, AI-ready SAP Business One semantic layer.</p>
+          <div class="meta-row">
+            <span class="pill">Semantic layer only</span>
+            <span class="pill">HANA + SQL Server</span>
+            <span class="pill">ABAC + lineage</span>
+            <span class="pill">Core + industry + customer overlay</span>
+          </div>
+        </section>
+
+        <section class="diagram-card" id="architecture-diagram">
+          <h2>B1 AI Semantic Layer Architecture Diagram</h2>
+          <p>The semantic layer is a governed runtime between AI/BI consumers and B1 or external analytical sources. The versioned semantic model defines objects, views, metrics, policies, and extension packages; the runtime compiles logical semantic queries into governed HANA or SQL Server queries.</p>
+          <div class="diagram-shell"><div class="mermaid" data-processed="true"><svg id="mermaid-1780304798764" width="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" class="flowchart" style="max-width: 2882.4765625px;" viewBox="0 0 2882.4765625 936" role="graphics-document document" aria-roledescription="flowchart-v2"><style>#mermaid-1780304798764{font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:16px;fill:#172033;}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#mermaid-1780304798764 .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#mermaid-1780304798764 .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#mermaid-1780304798764 .error-icon{fill:#ffffff;}#mermaid-1780304798764 .error-text{fill:#000000;stroke:#000000;}#mermaid-1780304798764 .edge-thickness-normal{stroke-width:1px;}#mermaid-1780304798764 .edge-thickness-thick{stroke-width:3.5px;}#mermaid-1780304798764 .edge-pattern-solid{stroke-dasharray:0;}#mermaid-1780304798764 .edge-thickness-invisible{stroke-width:0;fill:none;}#mermaid-1780304798764 .edge-pattern-dashed{stroke-dasharray:3;}#mermaid-1780304798764 .edge-pattern-dotted{stroke-dasharray:2;}#mermaid-1780304798764 .marker{fill:#5b667a;stroke:#5b667a;}#mermaid-1780304798764 .marker.cross{stroke:#5b667a;}#mermaid-1780304798764 svg{font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:16px;}#mermaid-1780304798764 p{margin:0;}#mermaid-1780304798764 .label{font-family:"trebuchet ms",verdana,arial,sans-serif;color:#172033;}#mermaid-1780304798764 .cluster-label text{fill:#000000;}#mermaid-1780304798764 .cluster-label span{color:#000000;}#mermaid-1780304798764 .cluster-label span p{background-color:transparent;}#mermaid-1780304798764 .label text,#mermaid-1780304798764 span{fill:#172033;color:#172033;}#mermaid-1780304798764 .node rect,#mermaid-1780304798764 .node circle,#mermaid-1780304798764 .node ellipse,#mermaid-1780304798764 .node polygon,#mermaid-1780304798764 .node path{fill:#e7f3f1;stroke:#0f6b64;stroke-width:1px;}#mermaid-1780304798764 .rough-node .label text,#mermaid-1780304798764 .node .label text,#mermaid-1780304798764 .image-shape .label,#mermaid-1780304798764 .icon-shape .label{text-anchor:middle;}#mermaid-1780304798764 .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#mermaid-1780304798764 .rough-node .label,#mermaid-1780304798764 .node .label,#mermaid-1780304798764 .image-shape .label,#mermaid-1780304798764 .icon-shape .label{text-align:center;}#mermaid-1780304798764 .node.clickable{cursor:pointer;}#mermaid-1780304798764 .root .anchor path{fill:#5b667a!important;stroke-width:0;stroke:#5b667a;}#mermaid-1780304798764 .arrowheadPath{fill:#0b0b0b;}#mermaid-1780304798764 .edgePath .path{stroke:#5b667a;stroke-width:1px;}#mermaid-1780304798764 .flowchart-link{stroke:#5b667a;fill:none;}#mermaid-1780304798764 .edgeLabel{background-color:#eef3f8;text-align:center;}#mermaid-1780304798764 .edgeLabel p{background-color:#eef3f8;}#mermaid-1780304798764 .edgeLabel rect{opacity:0.5;background-color:#eef3f8;fill:#eef3f8;}#mermaid-1780304798764 .labelBkg{background-color:rgba(238, 243, 248, 0.5);}#mermaid-1780304798764 .cluster rect{fill:#ffffff;stroke:hsl(0, 0%, 90%);stroke-width:1px;}#mermaid-1780304798764 .cluster text{fill:#000000;}#mermaid-1780304798764 .cluster span{color:#000000;}#mermaid-1780304798764 div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:12px;background:#ffffff;border:1px solid hsl(0, 0%, 90%);border-radius:2px;pointer-events:none;z-index:100;}#mermaid-1780304798764 .flowchartTitleText{text-anchor:middle;font-size:18px;fill:#172033;}#mermaid-1780304798764 rect.text{fill:none;stroke-width:0;}#mermaid-1780304798764 .icon-shape,#mermaid-1780304798764 .image-shape{background-color:#eef3f8;text-align:center;}#mermaid-1780304798764 .icon-shape p,#mermaid-1780304798764 .image-shape p{background-color:#eef3f8;padding:2px;}#mermaid-1780304798764 .icon-shape .label rect,#mermaid-1780304798764 .image-shape .label rect{opacity:0.5;background-color:#eef3f8;fill:#eef3f8;}#mermaid-1780304798764 .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#mermaid-1780304798764 .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#mermaid-1780304798764 .node .neo-node{stroke:#0f6b64;}#mermaid-1780304798764 [data-look="neo"].node rect,#mermaid-1780304798764 [data-look="neo"].cluster rect,#mermaid-1780304798764 [data-look="neo"].node polygon{stroke:url(#mermaid-1780304798764-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-1780304798764 [data-look="neo"].node path{stroke:url(#mermaid-1780304798764-gradient);stroke-width:1px;}#mermaid-1780304798764 [data-look="neo"].node .outer-path{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-1780304798764 [data-look="neo"].node .neo-line path{stroke:#0f6b64;filter:none;}#mermaid-1780304798764 [data-look="neo"].node circle{stroke:url(#mermaid-1780304798764-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-1780304798764 [data-look="neo"].node circle .state-start{fill:#000000;}#mermaid-1780304798764 [data-look="neo"].icon-shape .icon{fill:url(#mermaid-1780304798764-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-1780304798764 [data-look="neo"].icon-shape .icon-neo path{stroke:url(#mermaid-1780304798764-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-1780304798764 :root{--mermaid-font-family:"trebuchet ms",verdana,arial,sans-serif;}</style><g><marker id="mermaid-1780304798764_flowchart-v2-pointEnd" class="marker flowchart-v2" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"></path></marker><marker id="mermaid-1780304798764_flowchart-v2-pointStart" class="marker flowchart-v2" viewBox="0 0 10 10" refX="4.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 5 L 10 10 L 10 0 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"></path></marker><marker id="mermaid-1780304798764_flowchart-v2-pointEnd-margin" class="marker flowchart-v2" viewBox="0 0 11.5 14" refX="11.5" refY="7" markerUnits="userSpaceOnUse" markerWidth="10.5" markerHeight="14" orient="auto"><path d="M 0 0 L 11.5 7 L 0 14 z" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"></path></marker><marker id="mermaid-1780304798764_flowchart-v2-pointStart-margin" class="marker flowchart-v2" viewBox="0 0 11.5 14" refX="1" refY="7" markerUnits="userSpaceOnUse" markerWidth="11.5" markerHeight="14" orient="auto"><polygon points="0,7 11.5,14 11.5,0" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"></polygon></marker><marker id="mermaid-1780304798764_flowchart-v2-circleEnd" class="marker flowchart-v2" viewBox="0 0 10 10" refX="11" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"></circle></marker><marker id="mermaid-1780304798764_flowchart-v2-circleStart" class="marker flowchart-v2" viewBox="0 0 10 10" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"></circle></marker><marker id="mermaid-1780304798764_flowchart-v2-circleEnd-margin" class="marker flowchart-v2" viewBox="0 0 10 10" refY="5" refX="12.25" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"></circle></marker><marker id="mermaid-1780304798764_flowchart-v2-circleStart-margin" class="marker flowchart-v2" viewBox="0 0 10 10" refX="-2" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"></circle></marker><marker id="mermaid-1780304798764_flowchart-v2-crossEnd" class="marker cross flowchart-v2" viewBox="0 0 11 11" refX="12" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"></path></marker><marker id="mermaid-1780304798764_flowchart-v2-crossStart" class="marker cross flowchart-v2" viewBox="0 0 11 11" refX="-1" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"></path></marker><marker id="mermaid-1780304798764_flowchart-v2-crossEnd-margin" class="marker cross flowchart-v2" viewBox="0 0 15 15" refX="17.7" refY="7.5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 1,1 L 14,14 M 1,14 L 14,1" class="arrowMarkerPath" style="stroke-width: 2.5;"></path></marker><marker id="mermaid-1780304798764_flowchart-v2-crossStart-margin" class="marker cross flowchart-v2" viewBox="0 0 15 15" refX="-3.5" refY="7.5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 1,1 L 14,14 M 1,14 L 14,1" class="arrowMarkerPath" style="stroke-width: 2.5; stroke-dasharray: 1, 0;"></path></marker><g class="root"><g class="clusters"><g class="cluster " id="mermaid-1780304798764-Sources" data-look="classic"><rect style="" x="8" y="647" width="696.40625" height="128"></rect><g class="cluster-label " transform="translate(310.125, 647)"><foreignObject width="92.15625" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5;"><span class="nodeLabel "><p>Data Sources</p></span></div></foreignObject></g></g><g class="cluster " id="mermaid-1780304798764-Model" data-look="classic"><rect style="" x="724.40625" y="647" width="1000.828125" height="281"></rect><g class="cluster-label " transform="translate(1131.3515625, 647)"><foreignObject width="186.9375" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5;"><span class="nodeLabel "><p>Versioned Semantic Model</p></span></div></foreignObject></g></g><g class="cluster " id="mermaid-1780304798764-SemanticLayer" data-look="classic"><rect style="" x="1745.234375" y="494" width="1129.2421875" height="281"></rect><g class="cluster-label " transform="translate(2234.88671875, 494)"><foreignObject width="149.9375" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5;"><span class="nodeLabel "><p>B1 AI Semantic Layer</p></span></div></foreignObject></g></g></g><g class="edgePaths"><path d="M1910.234,597L1910.234,601.167C1910.234,605.333,1910.234,613.667,1910.234,622C1910.234,630.333,1910.234,638.667,1783.473,652.266C1656.711,665.865,1403.188,684.73,1276.426,694.163L1149.665,703.596" id="mermaid-1780304798764-L_Catalog_Manifest_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Catalog_Manifest_0" data-points="W3sieCI6MTkxMC4yMzQzNzUsInkiOjU5N30seyJ4IjoxOTEwLjIzNDM3NSwieSI6NjIyfSx7IngiOjE5MTAuMjM0Mzc1LCJ5Ijo2NDd9LHsieCI6MTE0NS42NzU3ODEyNSwieSI6NzAzLjg5MjQ3Mzg1MDgyMTR9XQ==" data-look="classic" marker-end="url(#mermaid-1780304798764_flowchart-v2-pointEnd)"></path><path d="M2289.99,585L2308.237,591.167C2326.485,597.333,2362.981,609.667,2381.229,620C2399.477,630.333,2399.477,638.667,2399.477,646.333C2399.477,654,2399.477,661,2399.477,664.5L2399.477,668" id="mermaid-1780304798764-L_Runtime_Policy_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Runtime_Policy_0" data-points="W3sieCI6MjI4OS45ODk2MjQwMjM0Mzc1LCJ5Ijo1ODV9LHsieCI6MjM5OS40NzY1NjI1LCJ5Ijo2MjJ9LHsieCI6MjM5OS40NzY1NjI1LCJ5Ijo2NDd9LHsieCI6MjM5OS40NzY1NjI1LCJ5Ijo2NzJ9XQ==" data-look="classic" marker-end="url(#mermaid-1780304798764_flowchart-v2-pointEnd)"></path><path d="M2328.578,573.185L2392.061,581.321C2455.544,589.456,2582.51,605.728,2645.993,618.031C2709.477,630.333,2709.477,638.667,2709.477,646.333C2709.477,654,2709.477,661,2709.477,664.5L2709.477,668" id="mermaid-1780304798764-L_Runtime_Cache_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Runtime_Cache_0" data-points="W3sieCI6MjMyOC41NzgxMjUsInkiOjU3My4xODQ3NDM2Njc5NjUxfSx7IngiOjI3MDkuNDc2NTYyNSwieSI6NjIyfSx7IngiOjI3MDkuNDc2NTYyNSwieSI6NjQ3fSx7IngiOjI3MDkuNDc2NTYyNSwieSI6NjcyfV0=" data-look="classic" marker-end="url(#mermaid-1780304798764_flowchart-v2-pointEnd)"></path><path d="M2159.208,585L2147.586,591.167C2135.964,597.333,2112.72,609.667,2101.099,620C2089.477,630.333,2089.477,638.667,2089.477,646.333C2089.477,654,2089.477,661,2089.477,664.5L2089.477,668" id="mermaid-1780304798764-L_Runtime_Explain_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Runtime_Explain_0" data-points="W3sieCI6MjE1OS4yMDgzNzQwMjM0Mzc1LCJ5Ijo1ODV9LHsieCI6MjA4OS40NzY1NjI1LCJ5Ijo2MjJ9LHsieCI6MjA4OS40NzY1NjI1LCJ5Ijo2NDd9LHsieCI6MjA4OS40NzY1NjI1LCJ5Ijo2NzJ9XQ==" data-look="classic" marker-end="url(#mermaid-1780304798764_flowchart-v2-pointEnd)"></path><path d="M2150.771,585L2137.222,591.167C2123.673,597.333,2096.575,609.667,2083.026,620C2069.477,630.333,2069.477,638.667,1916.175,652.459C1762.874,666.251,1456.271,685.501,1302.969,695.127L1149.668,704.752" id="mermaid-1780304798764-L_Runtime_Manifest_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Runtime_Manifest_0" data-points="W3sieCI6MjE1MC43NzA4NzQwMjM0Mzc1LCJ5Ijo1ODV9LHsieCI6MjA2OS40NzY1NjI1LCJ5Ijo2MjJ9LHsieCI6MjA2OS40NzY1NjI1LCJ5Ijo2NDd9LHsieCI6MTE0NS42NzU3ODEyNSwieSI6NzA1LjAwMjg0MzUxMTA4NDd9XQ==" data-look="classic" marker-end="url(#mermaid-1780304798764_flowchart-v2-pointEnd)"></path><path d="M966.634,738L947.557,744.167C928.48,750.333,890.326,762.667,871.249,773C852.172,783.333,852.172,791.667,852.172,801.333C852.172,811,852.172,822,852.172,827.5L852.172,833" id="mermaid-1780304798764-L_Manifest_Objects_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Manifest_Objects_0" data-points="W3sieCI6OTY2LjYzMzg1MDA5NzY1NjIsInkiOjczOH0seyJ4Ijo4NTIuMTcxODc1LCJ5Ijo3NzV9LHsieCI6ODUyLjE3MTg3NSwieSI6ODAwfSx7IngiOjg1Mi4xNzE4NzUsInkiOjgzN31d" data-look="classic" marker-end="url(#mermaid-1780304798764_flowchart-v2-pointEnd)"></path><path d="M1062.993,738L1065.924,744.167C1068.855,750.333,1074.716,762.667,1077.647,773C1080.578,783.333,1080.578,791.667,1080.578,801.333C1080.578,811,1080.578,822,1080.578,827.5L1080.578,833" id="mermaid-1780304798764-L_Manifest_Views_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Manifest_Views_0" data-points="W3sieCI6MTA2Mi45OTI3MzY4MTY0MDYyLCJ5Ijo3Mzh9LHsieCI6MTA4MC41NzgxMjUsInkiOjc3NX0seyJ4IjoxMDgwLjU3ODEyNSwieSI6ODAwfSx7IngiOjEwODAuNTc4MTI1LCJ5Ijo4Mzd9XQ==" data-look="classic" marker-end="url(#mermaid-1780304798764_flowchart-v2-pointEnd)"></path><path d="M1145.676,735.643L1171.101,742.202C1196.526,748.762,1247.376,761.881,1272.801,772.607C1298.227,783.333,1298.227,791.667,1298.227,801.333C1298.227,811,1298.227,822,1298.227,827.5L1298.227,833" id="mermaid-1780304798764-L_Manifest_Metrics_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Manifest_Metrics_0" data-points="W3sieCI6MTE0NS42NzU3ODEyNSwieSI6NzM1LjY0MjU5NTA3MTI1NDN9LHsieCI6MTI5OC4yMjY1NjI1LCJ5Ijo3NzV9LHsieCI6MTI5OC4yMjY1NjI1LCJ5Ijo4MDB9LHsieCI6MTI5OC4yMjY1NjI1LCJ5Ijo4Mzd9XQ==" data-look="classic" marker-end="url(#mermaid-1780304798764_flowchart-v2-pointEnd)"></path><path d="M1145.676,722.985L1214.769,731.654C1283.862,740.323,1422.048,757.662,1491.141,770.497C1560.234,783.333,1560.234,791.667,1560.234,799.333C1560.234,807,1560.234,814,1560.234,817.5L1560.234,821" id="mermaid-1780304798764-L_Manifest_Packages_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Manifest_Packages_0" data-points="W3sieCI6MTE0NS42NzU3ODEyNSwieSI6NzIyLjk4NDUzMDQzNzUxM30seyJ4IjoxNTYwLjIzNDM3NSwieSI6Nzc1fSx7IngiOjE1NjAuMjM0Mzc1LCJ5Ijo4MDB9LHsieCI6MTU2MC4yMzQzNzUsInkiOjgyNX1d" data-look="classic" marker-end="url(#mermaid-1780304798764_flowchart-v2-pointEnd)"></path><path d="M2091.609,576.846L2044.297,584.372C1996.984,591.898,1902.359,606.949,1855.047,618.641C1807.734,630.333,1807.734,638.667,1535.968,653.067C1264.202,667.466,720.67,687.933,448.904,698.166L177.138,708.399" id="mermaid-1780304798764-L_Runtime_HANA_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Runtime_HANA_0" data-points="W3sieCI6MjA5MS42MDkzNzUsInkiOjU3Ni44NDYzMzYwNjQ2MTg5fSx7IngiOjE4MDcuNzM0Mzc1LCJ5Ijo2MjJ9LHsieCI6MTgwNy43MzQzNzUsInkiOjY0N30seyJ4IjoxNzMuMTQwNjI1LCJ5Ijo3MDguNTQ5ODA5OTM0ODY3N31d" data-look="classic" marker-end="url(#mermaid-1780304798764_flowchart-v2-pointEnd)"></path><path d="M2091.609,577.832L2047.63,585.193C2003.651,592.555,1915.693,607.277,1871.714,618.805C1827.734,630.333,1827.734,638.667,1583.679,652.999C1339.624,667.332,851.513,687.664,607.458,697.83L363.403,707.996" id="mermaid-1780304798764-L_Runtime_SQLServer_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Runtime_SQLServer_0" data-points="W3sieCI6MjA5MS42MDkzNzUsInkiOjU3Ny44MzIxMjc4MjQ3NzIyfSx7IngiOjE4MjcuNzM0Mzc1LCJ5Ijo2MjJ9LHsieCI6MTgyNy43MzQzNzUsInkiOjY0N30seyJ4IjozNTkuNDA2MjUsInkiOjcwOC4xNjE5ODQ0NzEyMTI4fV0=" data-look="classic" marker-end="url(#mermaid-1780304798764_flowchart-v2-pointEnd)"></path><path d="M2091.609,578.927L2050.964,586.106C2010.318,593.284,1929.026,607.642,1888.38,618.988C1847.734,630.333,1847.734,638.667,1652.012,652.408C1456.29,666.148,1064.846,685.297,869.124,694.871L673.401,704.445" id="mermaid-1780304798764-L_Runtime_External_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Runtime_External_0" data-points="W3sieCI6MjA5MS42MDkzNzUsInkiOjU3OC45MjY3Mzg4MjEwOTQ0fSx7IngiOjE4NDcuNzM0Mzc1LCJ5Ijo2MjJ9LHsieCI6MTg0Ny43MzQzNzUsInkiOjY0N30seyJ4Ijo2NjkuNDA2MjUsInkiOjcwNC42NDA3MzkwMTU2ODA4fV0=" data-look="classic" marker-end="url(#mermaid-1780304798764_flowchart-v2-pointEnd)"></path><path d="M1911.405,444L1911.21,448.167C1911.015,452.333,1910.624,460.667,1910.429,469C1910.234,477.333,1910.234,485.667,1910.234,493.333C1910.234,501,1910.234,508,1910.234,511.5L1910.234,515" id="mermaid-1780304798764-L_Consumers_Catalog_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Consumers_Catalog_0" data-points="W3sieCI6MTkxMS40MDQ2NDI0ODk3MTIsInkiOjQ0NH0seyJ4IjoxOTEwLjIzNDM3NSwieSI6NDY5fSx7IngiOjE5MTAuMjM0Mzc1LCJ5Ijo0OTR9LHsieCI6MTkxMC4yMzQzNzUsInkiOjUxOX1d" data-look="classic" marker-end="url(#mermaid-1780304798764_flowchart-v2-pointEnd)"></path><path d="M2055.555,338.827L2081.311,360.522C2107.068,382.218,2158.581,425.609,2184.337,451.471C2210.094,477.333,2210.094,485.667,2210.094,495.333C2210.094,505,2210.094,516,2210.094,521.5L2210.094,527" id="mermaid-1780304798764-L_Consumers_Runtime_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Consumers_Runtime_0" data-points="W3sieCI6MjA1NS41NTQ2ODc1LCJ5IjozMzguODI2NTk5MTQ0MjM0NH0seyJ4IjoyMjEwLjA5Mzc1LCJ5Ijo0Njl9LHsieCI6MjIxMC4wOTM3NSwieSI6NDk0fSx7IngiOjIyMTAuMDkzNzUsInkiOjUzMX1d" data-look="classic" marker-end="url(#mermaid-1780304798764_flowchart-v2-pointEnd)"></path></g><g class="edgeLabels"><g class="edgeLabel"><g class="label" data-id="L_Catalog_Manifest_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Runtime_Policy_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Runtime_Cache_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Runtime_Explain_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Runtime_Manifest_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Manifest_Objects_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Manifest_Views_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Manifest_Metrics_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Manifest_Packages_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Runtime_HANA_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Runtime_SQLServer_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Runtime_External_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Consumers_Catalog_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Consumers_Runtime_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g></g><g class="nodes"><g class="root" transform="translate(1779.6640625, 0)"><g class="clusters"><g class="cluster " id="mermaid-1780304798764-Consumers" data-look="classic"><rect style="" x="8" y="8" width="267.890625" height="436"></rect><g class="cluster-label " transform="translate(103.53125, 8)"><foreignObject width="76.828125" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5;"><span class="nodeLabel "><p>Consumers</p></span></div></foreignObject></g></g></g><g class="edgePaths"></g><g class="edgeLabels"></g><g class="nodes"><g class="node default  " id="mermaid-1780304798764-flowchart-AI-0" data-look="classic" transform="translate(141.9453125, 70)"><rect class="basic label-container" style="" x="-62.796875" y="-27" width="125.59375" height="54"></rect><g class="label" style="" transform="translate(-32.796875, -12)"><rect></rect><foreignObject width="65.59375" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>AI Agents</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304798764-flowchart-BI-1" data-look="classic" transform="translate(141.9453125, 174)"><rect class="basic label-container" style="" x="-56.8515625" y="-27" width="113.703125" height="54"></rect><g class="label" style="" transform="translate(-26.8515625, -12)"><rect></rect><foreignObject width="53.703125" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>BI Tools</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304798764-flowchart-Apps-2" data-look="classic" transform="translate(141.9453125, 278)"><rect class="basic label-container" style="" x="-46.875" y="-27" width="93.75" height="54"></rect><g class="label" style="" transform="translate(-16.875, -12)"><rect></rect><foreignObject width="33.75" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>Apps</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304798764-flowchart-Partners-3" data-look="classic" transform="translate(141.9453125, 382)"><rect class="basic label-container" style="" x="-96.4453125" y="-27" width="192.890625" height="54"></rect><g class="label" style="" transform="translate(-66.4453125, -12)"><rect></rect><foreignObject width="132.890625" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>Partner Extensions</p></span></div></foreignObject></g></g></g></g><g class="node default  " id="mermaid-1780304798764-flowchart-Catalog-4" data-look="classic" transform="translate(1910.234375, 558)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"></rect><g class="label" style="" transform="translate(-100, -24)"><rect></rect><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel "><p>Metadata / Catalog / Introspection</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304798764-flowchart-Runtime-5" data-look="classic" transform="translate(2210.09375, 558)"><rect class="basic label-container" style="" x="-118.484375" y="-27" width="236.96875" height="54"></rect><g class="label" style="" transform="translate(-88.484375, -12)"><rect></rect><foreignObject width="176.96875" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>Semantic Query Runtime</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304798764-flowchart-Explain-6" data-look="classic" transform="translate(2089.4765625, 711)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"></rect><g class="label" style="" transform="translate(-100, -24)"><rect></rect><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel "><p>Explain / Lineage / Evidence</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304798764-flowchart-Policy-7" data-look="classic" transform="translate(2399.4765625, 711)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"></rect><g class="label" style="" transform="translate(-100, -24)"><rect></rect><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel "><p>ABAC / Masking Policy Engine</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304798764-flowchart-Cache-8" data-look="classic" transform="translate(2709.4765625, 711)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"></rect><g class="label" style="" transform="translate(-100, -24)"><rect></rect><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel "><p>Pre-aggregation / Freshness</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304798764-flowchart-Manifest-9" data-look="classic" transform="translate(1050.16015625, 711)"><rect class="basic label-container" style="" x="-95.515625" y="-27" width="191.03125" height="54"></rect><g class="label" style="" transform="translate(-65.515625, -12)"><rect></rect><foreignObject width="131.03125" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>Semantic Manifest</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304798764-flowchart-Objects-10" data-look="classic" transform="translate(852.171875, 864)"><rect class="basic label-container" style="" x="-92.765625" y="-27" width="185.53125" height="54"></rect><g class="label" style="" transform="translate(-62.765625, -12)"><rect></rect><foreignObject width="125.53125" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>Semantic Objects</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304798764-flowchart-Views-11" data-look="classic" transform="translate(1080.578125, 864)"><rect class="basic label-container" style="" x="-85.640625" y="-27" width="171.28125" height="54"></rect><g class="label" style="" transform="translate(-55.640625, -12)"><rect></rect><foreignObject width="111.28125" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>Semantic Views</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304798764-flowchart-Metrics-12" data-look="classic" transform="translate(1298.2265625, 864)"><rect class="basic label-container" style="" x="-82.0078125" y="-27" width="164.015625" height="54"></rect><g class="label" style="" transform="translate(-52.0078125, -12)"><rect></rect><foreignObject width="104.015625" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>Metric Catalog</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304798764-flowchart-Packages-13" data-look="classic" transform="translate(1560.234375, 864)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"></rect><g class="label" style="" transform="translate(-100, -24)"><rect></rect><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel "><p>Core + Industry + Customer Overlay</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304798764-flowchart-HANA-14" data-look="classic" transform="translate(108.0703125, 711)"><rect class="basic label-container" style="" x="-65.0703125" y="-27" width="130.140625" height="54"></rect><g class="label" style="" transform="translate(-35.0703125, -12)"><rect></rect><foreignObject width="70.140625" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>SAP HANA</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304798764-flowchart-SQLServer-15" data-look="classic" transform="translate(291.2734375, 711)"><rect class="basic label-container" style="" x="-68.1328125" y="-27" width="136.265625" height="54"></rect><g class="label" style="" transform="translate(-38.1328125, -12)"><rect></rect><foreignObject width="76.265625" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>SQL Server</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304798764-flowchart-External-16" data-look="classic" transform="translate(539.40625, 711)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"></rect><g class="label" style="" transform="translate(-100, -24)"><rect></rect><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel "><p>External CRM / WMS / Ecommerce Schemas</p></span></div></foreignObject></g></g></g></g></g><defs><filter id="mermaid-1780304798764-drop-shadow" height="130%" width="130%"><feDropShadow dx="4" dy="4" stdDeviation="0" flood-opacity="0.06" flood-color="#000000"></feDropShadow></filter></defs><defs><filter id="mermaid-1780304798764-drop-shadow-small" height="150%" width="150%"><feDropShadow dx="2" dy="2" stdDeviation="0" flood-opacity="0.06" flood-color="#000000"></feDropShadow></filter></defs><linearGradient id="mermaid-1780304798764-gradient" gradientUnits="objectBoundingBox" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#0f6b64" stop-opacity="1"></stop><stop offset="100%" stop-color="hsl(210, 1.6666666667%, 85.2941176471%)" stop-opacity="1"></stop></linearGradient></svg></div></div>
+          <h3>Package and Overlay Model</h3>
+          <div class="diagram-shell"><div class="mermaid" data-processed="true"><svg id="mermaid-1780304799290" width="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" class="flowchart" style="max-width: 872.96875px;" viewBox="0 0 872.96875 422" role="graphics-document document" aria-roledescription="flowchart-v2"><style>#mermaid-1780304799290{font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:16px;fill:#172033;}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#mermaid-1780304799290 .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#mermaid-1780304799290 .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#mermaid-1780304799290 .error-icon{fill:#ffffff;}#mermaid-1780304799290 .error-text{fill:#000000;stroke:#000000;}#mermaid-1780304799290 .edge-thickness-normal{stroke-width:1px;}#mermaid-1780304799290 .edge-thickness-thick{stroke-width:3.5px;}#mermaid-1780304799290 .edge-pattern-solid{stroke-dasharray:0;}#mermaid-1780304799290 .edge-thickness-invisible{stroke-width:0;fill:none;}#mermaid-1780304799290 .edge-pattern-dashed{stroke-dasharray:3;}#mermaid-1780304799290 .edge-pattern-dotted{stroke-dasharray:2;}#mermaid-1780304799290 .marker{fill:#5b667a;stroke:#5b667a;}#mermaid-1780304799290 .marker.cross{stroke:#5b667a;}#mermaid-1780304799290 svg{font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:16px;}#mermaid-1780304799290 p{margin:0;}#mermaid-1780304799290 .label{font-family:"trebuchet ms",verdana,arial,sans-serif;color:#172033;}#mermaid-1780304799290 .cluster-label text{fill:#000000;}#mermaid-1780304799290 .cluster-label span{color:#000000;}#mermaid-1780304799290 .cluster-label span p{background-color:transparent;}#mermaid-1780304799290 .label text,#mermaid-1780304799290 span{fill:#172033;color:#172033;}#mermaid-1780304799290 .node rect,#mermaid-1780304799290 .node circle,#mermaid-1780304799290 .node ellipse,#mermaid-1780304799290 .node polygon,#mermaid-1780304799290 .node path{fill:#e7f3f1;stroke:#0f6b64;stroke-width:1px;}#mermaid-1780304799290 .rough-node .label text,#mermaid-1780304799290 .node .label text,#mermaid-1780304799290 .image-shape .label,#mermaid-1780304799290 .icon-shape .label{text-anchor:middle;}#mermaid-1780304799290 .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#mermaid-1780304799290 .rough-node .label,#mermaid-1780304799290 .node .label,#mermaid-1780304799290 .image-shape .label,#mermaid-1780304799290 .icon-shape .label{text-align:center;}#mermaid-1780304799290 .node.clickable{cursor:pointer;}#mermaid-1780304799290 .root .anchor path{fill:#5b667a!important;stroke-width:0;stroke:#5b667a;}#mermaid-1780304799290 .arrowheadPath{fill:#0b0b0b;}#mermaid-1780304799290 .edgePath .path{stroke:#5b667a;stroke-width:1px;}#mermaid-1780304799290 .flowchart-link{stroke:#5b667a;fill:none;}#mermaid-1780304799290 .edgeLabel{background-color:#eef3f8;text-align:center;}#mermaid-1780304799290 .edgeLabel p{background-color:#eef3f8;}#mermaid-1780304799290 .edgeLabel rect{opacity:0.5;background-color:#eef3f8;fill:#eef3f8;}#mermaid-1780304799290 .labelBkg{background-color:rgba(238, 243, 248, 0.5);}#mermaid-1780304799290 .cluster rect{fill:#ffffff;stroke:hsl(0, 0%, 90%);stroke-width:1px;}#mermaid-1780304799290 .cluster text{fill:#000000;}#mermaid-1780304799290 .cluster span{color:#000000;}#mermaid-1780304799290 div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:12px;background:#ffffff;border:1px solid hsl(0, 0%, 90%);border-radius:2px;pointer-events:none;z-index:100;}#mermaid-1780304799290 .flowchartTitleText{text-anchor:middle;font-size:18px;fill:#172033;}#mermaid-1780304799290 rect.text{fill:none;stroke-width:0;}#mermaid-1780304799290 .icon-shape,#mermaid-1780304799290 .image-shape{background-color:#eef3f8;text-align:center;}#mermaid-1780304799290 .icon-shape p,#mermaid-1780304799290 .image-shape p{background-color:#eef3f8;padding:2px;}#mermaid-1780304799290 .icon-shape .label rect,#mermaid-1780304799290 .image-shape .label rect{opacity:0.5;background-color:#eef3f8;fill:#eef3f8;}#mermaid-1780304799290 .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#mermaid-1780304799290 .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#mermaid-1780304799290 .node .neo-node{stroke:#0f6b64;}#mermaid-1780304799290 [data-look="neo"].node rect,#mermaid-1780304799290 [data-look="neo"].cluster rect,#mermaid-1780304799290 [data-look="neo"].node polygon{stroke:url(#mermaid-1780304799290-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-1780304799290 [data-look="neo"].node path{stroke:url(#mermaid-1780304799290-gradient);stroke-width:1px;}#mermaid-1780304799290 [data-look="neo"].node .outer-path{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-1780304799290 [data-look="neo"].node .neo-line path{stroke:#0f6b64;filter:none;}#mermaid-1780304799290 [data-look="neo"].node circle{stroke:url(#mermaid-1780304799290-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-1780304799290 [data-look="neo"].node circle .state-start{fill:#000000;}#mermaid-1780304799290 [data-look="neo"].icon-shape .icon{fill:url(#mermaid-1780304799290-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-1780304799290 [data-look="neo"].icon-shape .icon-neo path{stroke:url(#mermaid-1780304799290-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-1780304799290 :root{--mermaid-font-family:"trebuchet ms",verdana,arial,sans-serif;}</style><g><marker id="mermaid-1780304799290_flowchart-v2-pointEnd" class="marker flowchart-v2" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"></path></marker><marker id="mermaid-1780304799290_flowchart-v2-pointStart" class="marker flowchart-v2" viewBox="0 0 10 10" refX="4.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 5 L 10 10 L 10 0 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"></path></marker><marker id="mermaid-1780304799290_flowchart-v2-pointEnd-margin" class="marker flowchart-v2" viewBox="0 0 11.5 14" refX="11.5" refY="7" markerUnits="userSpaceOnUse" markerWidth="10.5" markerHeight="14" orient="auto"><path d="M 0 0 L 11.5 7 L 0 14 z" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"></path></marker><marker id="mermaid-1780304799290_flowchart-v2-pointStart-margin" class="marker flowchart-v2" viewBox="0 0 11.5 14" refX="1" refY="7" markerUnits="userSpaceOnUse" markerWidth="11.5" markerHeight="14" orient="auto"><polygon points="0,7 11.5,14 11.5,0" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"></polygon></marker><marker id="mermaid-1780304799290_flowchart-v2-circleEnd" class="marker flowchart-v2" viewBox="0 0 10 10" refX="11" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"></circle></marker><marker id="mermaid-1780304799290_flowchart-v2-circleStart" class="marker flowchart-v2" viewBox="0 0 10 10" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"></circle></marker><marker id="mermaid-1780304799290_flowchart-v2-circleEnd-margin" class="marker flowchart-v2" viewBox="0 0 10 10" refY="5" refX="12.25" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"></circle></marker><marker id="mermaid-1780304799290_flowchart-v2-circleStart-margin" class="marker flowchart-v2" viewBox="0 0 10 10" refX="-2" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"></circle></marker><marker id="mermaid-1780304799290_flowchart-v2-crossEnd" class="marker cross flowchart-v2" viewBox="0 0 11 11" refX="12" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"></path></marker><marker id="mermaid-1780304799290_flowchart-v2-crossStart" class="marker cross flowchart-v2" viewBox="0 0 11 11" refX="-1" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"></path></marker><marker id="mermaid-1780304799290_flowchart-v2-crossEnd-margin" class="marker cross flowchart-v2" viewBox="0 0 15 15" refX="17.7" refY="7.5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 1,1 L 14,14 M 1,14 L 14,1" class="arrowMarkerPath" style="stroke-width: 2.5;"></path></marker><marker id="mermaid-1780304799290_flowchart-v2-crossStart-margin" class="marker cross flowchart-v2" viewBox="0 0 15 15" refX="-3.5" refY="7.5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 1,1 L 14,14 M 1,14 L 14,1" class="arrowMarkerPath" style="stroke-width: 2.5; stroke-dasharray: 1, 0;"></path></marker><g class="root"><g class="clusters"></g><g class="edgePaths"><path d="M268,59L272.167,59C276.333,59,284.667,59,307.562,77.367C330.458,95.733,367.916,132.466,386.645,150.833L405.374,169.199" id="mermaid-1780304799290-L_Core_Validated_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Core_Validated_0" data-points="W3sieCI6MjY4LCJ5Ijo1OX0seyJ4IjoyOTMsInkiOjU5fSx7IngiOjQwOC4yMzAyNjMxNTc4OTQ3NCwieSI6MTcyfV0=" data-look="classic" marker-end="url(#mermaid-1780304799290_flowchart-v2-pointEnd)"></path><path d="M268,211L272.167,211C276.333,211,284.667,211,292.333,211C300,211,307,211,310.5,211L314,211" id="mermaid-1780304799290-L_Industry_Validated_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Industry_Validated_0" data-points="W3sieCI6MjY4LCJ5IjoyMTF9LHsieCI6MjkzLCJ5IjoyMTF9LHsieCI6MzE4LCJ5IjoyMTF9XQ==" data-look="classic" marker-end="url(#mermaid-1780304799290_flowchart-v2-pointEnd)"></path><path d="M268,363L272.167,363C276.333,363,284.667,363,307.562,344.633C330.458,326.267,367.916,289.534,386.645,271.167L405.374,252.801" id="mermaid-1780304799290-L_Customer_Validated_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Customer_Validated_0" data-points="W3sieCI6MjY4LCJ5IjozNjN9LHsieCI6MjkzLCJ5IjozNjN9LHsieCI6NDA4LjIzMDI2MzE1Nzg5NDc0LCJ5IjoyNTB9XQ==" data-look="classic" marker-end="url(#mermaid-1780304799290_flowchart-v2-pointEnd)"></path><path d="M578,211L582.167,211C586.333,211,594.667,211,602.333,211C610,211,617,211,620.5,211L624,211" id="mermaid-1780304799290-L_Validated_Runtime_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Validated_Runtime_0" data-points="W3sieCI6NTc4LCJ5IjoyMTF9LHsieCI6NjAzLCJ5IjoyMTF9LHsieCI6NjI4LCJ5IjoyMTF9XQ==" data-look="classic" marker-end="url(#mermaid-1780304799290_flowchart-v2-pointEnd)"></path></g><g class="edgeLabels"><g class="edgeLabel"><g class="label" data-id="L_Core_Validated_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Industry_Validated_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Customer_Validated_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Validated_Runtime_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g></g><g class="nodes"><g class="node default  " id="mermaid-1780304799290-flowchart-Core-0" data-look="classic" transform="translate(138, 59)"><rect class="basic label-container" style="" x="-130" y="-51" width="260" height="102"></rect><g class="label" style="" transform="translate(-100, -36)"><rect></rect><foreignObject width="200" height="72"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel "><p>b1-core package<br>Official stable objects and metrics</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304799290-flowchart-Industry-1" data-look="classic" transform="translate(138, 211)"><rect class="basic label-container" style="" x="-130" y="-51" width="260" height="102"></rect><g class="label" style="" transform="translate(-100, -36)"><rect></rect><foreignObject width="200" height="72"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel "><p>b1-industry-* packages<br>Industry views, metrics, rules</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304799290-flowchart-Customer-2" data-look="classic" transform="translate(138, 363)"><rect class="basic label-container" style="" x="-130" y="-51" width="260" height="102"></rect><g class="label" style="" transform="translate(-100, -36)"><rect></rect><foreignObject width="200" height="72"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel "><p>customer-overlay<br>UDF / UDT / addon / external schema</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304799290-flowchart-Validated-3" data-look="classic" transform="translate(448, 211)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"></rect><g class="label" style="" transform="translate(-100, -24)"><rect></rect><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel "><p>Validated Semantic Manifest</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304799290-flowchart-Runtime-4" data-look="classic" transform="translate(746.484375, 211)"><rect class="basic label-container" style="" x="-118.484375" y="-27" width="236.96875" height="54"></rect><g class="label" style="" transform="translate(-88.484375, -12)"><rect></rect><foreignObject width="176.96875" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>Semantic Query Runtime</p></span></div></foreignObject></g></g></g></g></g><defs><filter id="mermaid-1780304799290-drop-shadow" height="130%" width="130%"><feDropShadow dx="4" dy="4" stdDeviation="0" flood-opacity="0.06" flood-color="#000000"></feDropShadow></filter></defs><defs><filter id="mermaid-1780304799290-drop-shadow-small" height="150%" width="150%"><feDropShadow dx="2" dy="2" stdDeviation="0" flood-opacity="0.06" flood-color="#000000"></feDropShadow></filter></defs><linearGradient id="mermaid-1780304799290-gradient" gradientUnits="objectBoundingBox" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#0f6b64" stop-opacity="1"></stop><stop offset="100%" stop-color="hsl(210, 1.6666666667%, 85.2941176471%)" stop-opacity="1"></stop></linearGradient></svg></div></div>
+        </section>
+
+        <h1 id="b1-ai-semantic-layer-capability-and-architecture-requirements">B1 AI Semantic Layer Capability and Architecture Requirements</h1>
+<p>Last refreshed: 2026-06-01</p>
+<h2 id="executive-summary">Executive Summary</h2>
+<p>SAP Business One already exposes rich business data through database tables, views, and OData metadata. However, these raw technical surfaces are not enough for AI, BI, embedded analytics, or partner-built analytical applications.</p>
+<p>AI-ready analytics needs a stable semantic layer above physical tables and database-specific SQL. The semantic layer should define business objects, metrics, dimensions, relationships, access policies, lineage, and query behavior in a machine-readable, versioned contract. It should let consumers ask for business concepts such as sales amount, open order value, inventory availability, customer lifecycle, AR aging, document flow, and margin without memorizing SAP B1 table joins, field names, dialect-specific SQL, or customer-specific customizations.</p>
+<p>This document focuses only on the <strong>Semantic Layer</strong>. It does not define Service Layer command APIs, document creation workflows, draft posting, or other write/action interfaces.</p>
+<p>The requested outcome is a B1 product capability that provides:</p>
+<ul>
+<li>a versioned semantic manifest;</li>
+<li>fixed core semantic objects and views;</li>
+<li>metric definitions with clear business semantics;</li>
+<li>HANA and SQL Server compatibility from one logical contract;</li>
+<li>ABAC, masking, and explainable permission enforcement;</li>
+<li>UDF, UDT, addon table, custom view, custom table, custom metric, and external schema extension support;</li>
+<li>metadata introspection for AI, BI, applications, and partner tooling;</li>
+<li>lineage, explain, freshness, validation, and certification mechanisms.</li>
+</ul>
+<h2 id="reference-patterns">Reference Patterns</h2>
+<p>The target B1 semantic layer should not copy any one platform directly. The useful pattern is to combine the best parts of several mature semantic-layer designs.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Reference</th><th>Useful pattern</th><th>B1 semantic layer implication</th></tr></thead>
+<tbody>
+<tr><td>Cube.js</td><td>Runtime with cubes, views, measures, joins, access policies, pre-aggregations, and meta API.</td><td>B1 should provide a governed semantic runtime, not only generated SQL views.</td></tr>
+<tr><td>dbt Semantic Layer</td><td>YAML semantic models, entities, metrics, MetricFlow SQL generation, APIs, and CLI workflows.</td><td>B1 should define a versioned semantic manifest and compile logical metric queries into HANA/SQL Server SQL.</td></tr>
+<tr><td>Looker / LookML</td><td>Project/model/view/explore structure, Git-based governance, and curated user-facing query entrypoints.</td><td>B1 should separate internal objects from consumer-facing semantic views and package them by core, industry, and customer overlays.</td></tr>
+<tr><td>Snowflake Semantic Views</td><td>Database-level semantic objects with facts, metrics, dimensions, and introspection commands.</td><td>B1 should support first-class semantic objects that can be described, validated, shown, queried, and audited.</td></tr>
+</tbody></table></div>
+<h3 id="cube-js-reference-points">Cube.js Reference Points</h3>
+<p>Cube's data model distinguishes the underlying graph from consumer-facing facades:</p>
+<ul>
+<li><code>cube</code> represents a data table or logical dataset and defines dimensions, measures, joins, segments, pre-aggregations, and access policies.</li>
+<li><code>view</code> sits on top of cubes and exposes a curated facade to consumers, including selected members and specific join paths.</li>
+<li><code>measure</code> is a named aggregation with its own title, description, visibility, SQL expression, type, and metadata.</li>
+<li>joins include relationship semantics such as one-to-one, one-to-many, and many-to-one.</li>
+<li>multi-fact query planning avoids row multiplication by aggregating facts separately and joining results on shared dimensions.</li>
+<li>access policies can apply row-level, member-level, and masking rules at the model layer.</li>
+<li>pre-aggregations provide performance and cost controls.</li>
+<li>metadata APIs let frontends and AI tools discover available members before querying.</li>
+</ul>
+<p>For B1, the key lesson is that semantic views should not merely mirror physical SQL views. They should control the query surface, join path, visibility, governance, and ambiguity boundaries.</p>
+<h3 id="dbt-semantic-layer-reference-points">dbt Semantic Layer Reference Points</h3>
+<p>dbt separates model authoring from query execution:</p>
+<ul>
+<li>semantic models define entities, dimensions, measures, defaults, and joins.</li>
+<li>metrics define reusable business calculations.</li>
+<li>MetricFlow generates SQL from semantic definitions and query requests.</li>
+<li>semantic APIs and CLI tools let downstream consumers discover and query metrics.</li>
+</ul>
+<p>For B1, the key lesson is to make the semantic manifest the source of truth. AI should express intent against objects, metrics, dimensions, and filters; the runtime should generate the database-specific SQL.</p>
+<h3 id="looker-lookml-reference-points">Looker / LookML Reference Points</h3>
+<p>Looker uses project files to govern what users can query:</p>
+<ul>
+<li>views define fields and measures on top of database tables or derived tables.</li>
+<li>models decide which views and explores are exposed to which users.</li>
+<li>explores act as curated query entrypoints.</li>
+<li>projects can be version-controlled and reviewed.</li>
+</ul>
+<p>For B1, the key lesson is to provide curated semantic entrypoints. Not every physical table, customer table, or field should be automatically exposed to every consumer.</p>
+<h3 id="snowflake-semantic-views-reference-points">Snowflake Semantic Views Reference Points</h3>
+<p>Snowflake treats semantic views as first-class database objects:</p>
+<ul>
+<li>semantic views can define facts, dimensions, metrics, and relationships.</li>
+<li>they can be created and managed with SQL or YAML.</li>
+<li>metadata can be shown and inspected.</li>
+<li>AI tools can use these semantic definitions to produce governed SQL.</li>
+</ul>
+<p>For B1, the key lesson is that semantic objects should be discoverable and inspectable as product-level artifacts, not only hidden implementation files.</p>
+<h2 id="b1-semantic-layer-target-architecture">B1 Semantic Layer Target Architecture</h2>
+<p>The proposed B1 semantic layer has four core model layers plus a runtime and governance system.</p>
+<div class="diagram-shell"><div class="mermaid" data-processed="true"><svg id="mermaid-1780304799315" width="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" class="flowchart" style="max-width: 1898.640625px;" viewBox="0 0 1898.640625 406" role="graphics-document document" aria-roledescription="flowchart-v2"><style>#mermaid-1780304799315{font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:16px;fill:#172033;}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#mermaid-1780304799315 .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#mermaid-1780304799315 .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#mermaid-1780304799315 .error-icon{fill:#ffffff;}#mermaid-1780304799315 .error-text{fill:#000000;stroke:#000000;}#mermaid-1780304799315 .edge-thickness-normal{stroke-width:1px;}#mermaid-1780304799315 .edge-thickness-thick{stroke-width:3.5px;}#mermaid-1780304799315 .edge-pattern-solid{stroke-dasharray:0;}#mermaid-1780304799315 .edge-thickness-invisible{stroke-width:0;fill:none;}#mermaid-1780304799315 .edge-pattern-dashed{stroke-dasharray:3;}#mermaid-1780304799315 .edge-pattern-dotted{stroke-dasharray:2;}#mermaid-1780304799315 .marker{fill:#5b667a;stroke:#5b667a;}#mermaid-1780304799315 .marker.cross{stroke:#5b667a;}#mermaid-1780304799315 svg{font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:16px;}#mermaid-1780304799315 p{margin:0;}#mermaid-1780304799315 .label{font-family:"trebuchet ms",verdana,arial,sans-serif;color:#172033;}#mermaid-1780304799315 .cluster-label text{fill:#000000;}#mermaid-1780304799315 .cluster-label span{color:#000000;}#mermaid-1780304799315 .cluster-label span p{background-color:transparent;}#mermaid-1780304799315 .label text,#mermaid-1780304799315 span{fill:#172033;color:#172033;}#mermaid-1780304799315 .node rect,#mermaid-1780304799315 .node circle,#mermaid-1780304799315 .node ellipse,#mermaid-1780304799315 .node polygon,#mermaid-1780304799315 .node path{fill:#e7f3f1;stroke:#0f6b64;stroke-width:1px;}#mermaid-1780304799315 .rough-node .label text,#mermaid-1780304799315 .node .label text,#mermaid-1780304799315 .image-shape .label,#mermaid-1780304799315 .icon-shape .label{text-anchor:middle;}#mermaid-1780304799315 .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#mermaid-1780304799315 .rough-node .label,#mermaid-1780304799315 .node .label,#mermaid-1780304799315 .image-shape .label,#mermaid-1780304799315 .icon-shape .label{text-align:center;}#mermaid-1780304799315 .node.clickable{cursor:pointer;}#mermaid-1780304799315 .root .anchor path{fill:#5b667a!important;stroke-width:0;stroke:#5b667a;}#mermaid-1780304799315 .arrowheadPath{fill:#0b0b0b;}#mermaid-1780304799315 .edgePath .path{stroke:#5b667a;stroke-width:1px;}#mermaid-1780304799315 .flowchart-link{stroke:#5b667a;fill:none;}#mermaid-1780304799315 .edgeLabel{background-color:#eef3f8;text-align:center;}#mermaid-1780304799315 .edgeLabel p{background-color:#eef3f8;}#mermaid-1780304799315 .edgeLabel rect{opacity:0.5;background-color:#eef3f8;fill:#eef3f8;}#mermaid-1780304799315 .labelBkg{background-color:rgba(238, 243, 248, 0.5);}#mermaid-1780304799315 .cluster rect{fill:#ffffff;stroke:hsl(0, 0%, 90%);stroke-width:1px;}#mermaid-1780304799315 .cluster text{fill:#000000;}#mermaid-1780304799315 .cluster span{color:#000000;}#mermaid-1780304799315 div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:12px;background:#ffffff;border:1px solid hsl(0, 0%, 90%);border-radius:2px;pointer-events:none;z-index:100;}#mermaid-1780304799315 .flowchartTitleText{text-anchor:middle;font-size:18px;fill:#172033;}#mermaid-1780304799315 rect.text{fill:none;stroke-width:0;}#mermaid-1780304799315 .icon-shape,#mermaid-1780304799315 .image-shape{background-color:#eef3f8;text-align:center;}#mermaid-1780304799315 .icon-shape p,#mermaid-1780304799315 .image-shape p{background-color:#eef3f8;padding:2px;}#mermaid-1780304799315 .icon-shape .label rect,#mermaid-1780304799315 .image-shape .label rect{opacity:0.5;background-color:#eef3f8;fill:#eef3f8;}#mermaid-1780304799315 .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#mermaid-1780304799315 .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#mermaid-1780304799315 .node .neo-node{stroke:#0f6b64;}#mermaid-1780304799315 [data-look="neo"].node rect,#mermaid-1780304799315 [data-look="neo"].cluster rect,#mermaid-1780304799315 [data-look="neo"].node polygon{stroke:url(#mermaid-1780304799315-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-1780304799315 [data-look="neo"].node path{stroke:url(#mermaid-1780304799315-gradient);stroke-width:1px;}#mermaid-1780304799315 [data-look="neo"].node .outer-path{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-1780304799315 [data-look="neo"].node .neo-line path{stroke:#0f6b64;filter:none;}#mermaid-1780304799315 [data-look="neo"].node circle{stroke:url(#mermaid-1780304799315-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-1780304799315 [data-look="neo"].node circle .state-start{fill:#000000;}#mermaid-1780304799315 [data-look="neo"].icon-shape .icon{fill:url(#mermaid-1780304799315-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-1780304799315 [data-look="neo"].icon-shape .icon-neo path{stroke:url(#mermaid-1780304799315-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-1780304799315 :root{--mermaid-font-family:"trebuchet ms",verdana,arial,sans-serif;}</style><g><marker id="mermaid-1780304799315_flowchart-v2-pointEnd" class="marker flowchart-v2" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"></path></marker><marker id="mermaid-1780304799315_flowchart-v2-pointStart" class="marker flowchart-v2" viewBox="0 0 10 10" refX="4.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 5 L 10 10 L 10 0 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"></path></marker><marker id="mermaid-1780304799315_flowchart-v2-pointEnd-margin" class="marker flowchart-v2" viewBox="0 0 11.5 14" refX="11.5" refY="7" markerUnits="userSpaceOnUse" markerWidth="10.5" markerHeight="14" orient="auto"><path d="M 0 0 L 11.5 7 L 0 14 z" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"></path></marker><marker id="mermaid-1780304799315_flowchart-v2-pointStart-margin" class="marker flowchart-v2" viewBox="0 0 11.5 14" refX="1" refY="7" markerUnits="userSpaceOnUse" markerWidth="11.5" markerHeight="14" orient="auto"><polygon points="0,7 11.5,14 11.5,0" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"></polygon></marker><marker id="mermaid-1780304799315_flowchart-v2-circleEnd" class="marker flowchart-v2" viewBox="0 0 10 10" refX="11" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"></circle></marker><marker id="mermaid-1780304799315_flowchart-v2-circleStart" class="marker flowchart-v2" viewBox="0 0 10 10" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"></circle></marker><marker id="mermaid-1780304799315_flowchart-v2-circleEnd-margin" class="marker flowchart-v2" viewBox="0 0 10 10" refY="5" refX="12.25" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"></circle></marker><marker id="mermaid-1780304799315_flowchart-v2-circleStart-margin" class="marker flowchart-v2" viewBox="0 0 10 10" refX="-2" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"></circle></marker><marker id="mermaid-1780304799315_flowchart-v2-crossEnd" class="marker cross flowchart-v2" viewBox="0 0 11 11" refX="12" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"></path></marker><marker id="mermaid-1780304799315_flowchart-v2-crossStart" class="marker cross flowchart-v2" viewBox="0 0 11 11" refX="-1" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"></path></marker><marker id="mermaid-1780304799315_flowchart-v2-crossEnd-margin" class="marker cross flowchart-v2" viewBox="0 0 15 15" refX="17.7" refY="7.5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 1,1 L 14,14 M 1,14 L 14,1" class="arrowMarkerPath" style="stroke-width: 2.5;"></path></marker><marker id="mermaid-1780304799315_flowchart-v2-crossStart-margin" class="marker cross flowchart-v2" viewBox="0 0 15 15" refX="-3.5" refY="7.5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 1,1 L 14,14 M 1,14 L 14,1" class="arrowMarkerPath" style="stroke-width: 2.5; stroke-dasharray: 1, 0;"></path></marker><g class="root"><g class="clusters"></g><g class="edgePaths"><path d="M808.496,48.029L745.079,54.524C681.663,61.019,554.829,74.01,491.413,84.005C427.996,94,427.996,101,427.996,104.5L427.996,108" id="mermaid-1780304799315-L_Consumer_Metadata_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Consumer_Metadata_0" data-points="W3sieCI6ODA4LjQ5NjA5Mzc1LCJ5Ijo0OC4wMjkwMDU4MDExNjAyM30seyJ4Ijo0MjcuOTk2MDkzNzUsInkiOjg3fSx7IngiOjQyNy45OTYwOTM3NSwieSI6MTEyfV0=" data-look="classic" marker-end="url(#mermaid-1780304799315_flowchart-v2-pointEnd)"></path><path d="M1062.918,49.65L1116.972,55.875C1171.026,62.1,1279.134,74.55,1333.188,84.275C1387.242,94,1387.242,101,1387.242,104.5L1387.242,108" id="mermaid-1780304799315-L_Consumer_Query_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Consumer_Query_0" data-points="W3sieCI6MTA2Mi45MTc5Njg3NSwieSI6NDkuNjQ5OTUyODUxODE2Mjl9LHsieCI6MTM4Ny4yNDIxODc1LCJ5Ijo4N30seyJ4IjoxMzg3LjI0MjE4NzUsInkiOjExMn1d" data-look="classic" marker-end="url(#mermaid-1780304799315_flowchart-v2-pointEnd)"></path><path d="M427.996,166L427.996,170.167C427.996,174.333,427.996,182.667,428.857,192.341C429.717,202.016,431.439,213.032,432.299,218.54L433.16,224.048" id="mermaid-1780304799315-L_Metadata_Manifest_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Metadata_Manifest_0" data-points="W3sieCI6NDI3Ljk5NjA5Mzc1LCJ5IjoxNjZ9LHsieCI6NDI3Ljk5NjA5Mzc1LCJ5IjoxOTF9LHsieCI6NDMzLjc3NzM0Mzc1LCJ5IjoyMjh9XQ==" data-look="classic" marker-end="url(#mermaid-1780304799315_flowchart-v2-pointEnd)"></path><path d="M1268.758,149.714L1192.665,156.595C1116.572,163.476,964.385,177.238,842.502,191.951C720.618,206.663,629.036,222.326,583.245,230.158L537.454,237.99" id="mermaid-1780304799315-L_Query_Manifest_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Query_Manifest_0" data-points="W3sieCI6MTI2OC43NTc4MTI1LCJ5IjoxNDkuNzE0MzA4MDM0MDQ2Mzh9LHsieCI6ODEyLjE5OTIxODc1LCJ5IjoxOTF9LHsieCI6NTMzLjUxMTcxODc1LCJ5IjoyMzguNjYzOTUyNTY1ODY5MTJ9XQ==" data-look="classic" marker-end="url(#mermaid-1780304799315_flowchart-v2-pointEnd)"></path><path d="M1268.758,163.984L1247.405,168.487C1226.052,172.99,1183.346,181.995,1161.993,189.997C1140.641,198,1140.641,205,1140.641,208.5L1140.641,212" id="mermaid-1780304799315-L_Query_Planner_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Query_Planner_0" data-points="W3sieCI6MTI2OC43NTc4MTI1LCJ5IjoxNjMuOTg0MzgxNDM1MTMzODZ9LHsieCI6MTE0MC42NDA2MjUsInkiOjE5MX0seyJ4IjoxMTQwLjY0MDYyNSwieSI6MjE2fV0=" data-look="classic" marker-end="url(#mermaid-1780304799315_flowchart-v2-pointEnd)"></path><path d="M1420.161,166L1425.241,170.167C1430.321,174.333,1440.481,182.667,1445.561,190.333C1450.641,198,1450.641,205,1450.641,208.5L1450.641,212" id="mermaid-1780304799315-L_Query_Policy_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Query_Policy_0" data-points="W3sieCI6MTQyMC4xNjA2MDY5NzExNTM4LCJ5IjoxNjZ9LHsieCI6MTQ1MC42NDA2MjUsInkiOjE5MX0seyJ4IjoxNDUwLjY0MDYyNSwieSI6MjE2fV0=" data-look="classic" marker-end="url(#mermaid-1780304799315_flowchart-v2-pointEnd)"></path><path d="M1505.727,155.5L1548.212,161.417C1590.698,167.334,1675.669,179.167,1718.155,188.583C1760.641,198,1760.641,205,1760.641,208.5L1760.641,212" id="mermaid-1780304799315-L_Query_Cache_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Query_Cache_0" data-points="W3sieCI6MTUwNS43MjY1NjI1LCJ5IjoxNTUuNTAwMzAzMzc5MDE0NTV9LHsieCI6MTc2MC42NDA2MjUsInkiOjE5MX0seyJ4IjoxNzYwLjY0MDYyNSwieSI6MjE2fV0=" data-look="classic" marker-end="url(#mermaid-1780304799315_flowchart-v2-pointEnd)"></path><path d="M342.48,273.127L302.195,280.773C261.909,288.418,181.337,303.709,141.051,314.855C100.766,326,100.766,333,100.766,336.5L100.766,340" id="mermaid-1780304799315-L_Manifest_Object_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Manifest_Object_0" data-points="W3sieCI6MzQyLjQ4MDQ2ODc1LCJ5IjoyNzMuMTI3MDY5MDcxMzY0OX0seyJ4IjoxMDAuNzY1NjI1LCJ5IjozMTl9LHsieCI6MTAwLjc2NTYyNSwieSI6MzQ0fV0=" data-look="classic" marker-end="url(#mermaid-1780304799315_flowchart-v2-pointEnd)"></path><path d="M392.086,282L381.6,288.167C371.115,294.333,350.143,306.667,339.658,316.333C329.172,326,329.172,333,329.172,336.5L329.172,340" id="mermaid-1780304799315-L_Manifest_View_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Manifest_View_0" data-points="W3sieCI6MzkyLjA4NTg3NjQ2NDg0Mzc1LCJ5IjoyODJ9LHsieCI6MzI5LjE3MTg3NSwieSI6MzE5fSx7IngiOjMyOS4xNzE4NzUsInkiOjM0NH1d" data-look="classic" marker-end="url(#mermaid-1780304799315_flowchart-v2-pointEnd)"></path><path d="M483.906,282L494.392,288.167C504.878,294.333,525.849,306.667,536.335,316.333C546.82,326,546.82,333,546.82,336.5L546.82,340" id="mermaid-1780304799315-L_Manifest_Metric_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Manifest_Metric_0" data-points="W3sieCI6NDgzLjkwNjMxMTAzNTE1NjI1LCJ5IjoyODJ9LHsieCI6NTQ2LjgyMDMxMjUsInkiOjMxOX0seyJ4Ijo1NDYuODIwMzEyNSwieSI6MzQ0fV0=" data-look="classic" marker-end="url(#mermaid-1780304799315_flowchart-v2-pointEnd)"></path><path d="M533.512,271.593L578.993,279.494C624.474,287.396,715.436,303.198,760.917,314.599C806.398,326,806.398,333,806.398,336.5L806.398,340" id="mermaid-1780304799315-L_Manifest_Extension_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Manifest_Extension_0" data-points="W3sieCI6NTMzLjUxMTcxODc1LCJ5IjoyNzEuNTkzMjcxMTk4NDgxNn0seyJ4Ijo4MDYuMzk4NDM3NSwieSI6MzE5fSx7IngiOjgwNi4zOTg0Mzc1LCJ5IjozNDR9XQ==" data-look="classic" marker-end="url(#mermaid-1780304799315_flowchart-v2-pointEnd)"></path><path d="M1084.821,294L1078.857,298.167C1072.894,302.333,1060.966,310.667,1055.003,318.333C1049.039,326,1049.039,333,1049.039,336.5L1049.039,340" id="mermaid-1780304799315-L_Planner_HANA_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Planner_HANA_0" data-points="W3sieCI6MTA4NC44MjA5MjI4NTE1NjI1LCJ5IjoyOTR9LHsieCI6MTA0OS4wMzkwNjI1LCJ5IjozMTl9LHsieCI6MTA0OS4wMzkwNjI1LCJ5IjozNDR9XQ==" data-look="classic" marker-end="url(#mermaid-1780304799315_flowchart-v2-pointEnd)"></path><path d="M1196.46,294L1202.424,298.167C1208.388,302.333,1220.315,310.667,1226.279,318.333C1232.242,326,1232.242,333,1232.242,336.5L1232.242,340" id="mermaid-1780304799315-L_Planner_SQLServer_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Planner_SQLServer_0" data-points="W3sieCI6MTE5Ni40NjAzMjcxNDg0Mzc1LCJ5IjoyOTR9LHsieCI6MTIzMi4yNDIxODc1LCJ5IjozMTl9LHsieCI6MTIzMi4yNDIxODc1LCJ5IjozNDR9XQ==" data-look="classic" marker-end="url(#mermaid-1780304799315_flowchart-v2-pointEnd)"></path><path d="M1270.641,282.491L1299.414,288.576C1328.188,294.661,1385.734,306.83,1414.508,316.415C1443.281,326,1443.281,333,1443.281,336.5L1443.281,340" id="mermaid-1780304799315-L_Planner_External_0" class=" edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Planner_External_0" data-points="W3sieCI6MTI3MC42NDA2MjUsInkiOjI4Mi40OTEzNTIxNjA2NjkxfSx7IngiOjE0NDMuMjgxMjUsInkiOjMxOX0seyJ4IjoxNDQzLjI4MTI1LCJ5IjozNDR9XQ==" data-look="classic" marker-end="url(#mermaid-1780304799315_flowchart-v2-pointEnd)"></path></g><g class="edgeLabels"><g class="edgeLabel"><g class="label" data-id="L_Consumer_Metadata_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Consumer_Query_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Metadata_Manifest_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Query_Manifest_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Query_Planner_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Query_Policy_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Query_Cache_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Manifest_Object_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Manifest_View_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Manifest_Metric_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Manifest_Extension_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Planner_HANA_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Planner_SQLServer_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_Planner_External_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel "></span></div></foreignObject></g></g></g><g class="nodes"><g class="node default  " id="mermaid-1780304799315-flowchart-Consumer-0" data-look="classic" transform="translate(935.70703125, 35)"><rect class="basic label-container" style="" x="-127.2109375" y="-27" width="254.421875" height="54"></rect><g class="label" style="" transform="translate(-97.2109375, -12)"><rect></rect><foreignObject width="194.421875" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>AI / BI / App / Partner Tool</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304799315-flowchart-Metadata-1" data-look="classic" transform="translate(427.99609375, 139)"><rect class="basic label-container" style="" x="-128.609375" y="-27" width="257.21875" height="54"></rect><g class="label" style="" transform="translate(-98.609375, -12)"><rect></rect><foreignObject width="197.21875" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>Metadata and Introspection</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304799315-flowchart-Query-3" data-look="classic" transform="translate(1387.2421875, 139)"><rect class="basic label-container" style="" x="-118.484375" y="-27" width="236.96875" height="54"></rect><g class="label" style="" transform="translate(-88.484375, -12)"><rect></rect><foreignObject width="176.96875" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>Semantic Query Runtime</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304799315-flowchart-Manifest-5" data-look="classic" transform="translate(437.99609375, 255)"><rect class="basic label-container" style="" x="-95.515625" y="-27" width="191.03125" height="54"></rect><g class="label" style="" transform="translate(-65.515625, -12)"><rect></rect><foreignObject width="131.03125" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>Semantic Manifest</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304799315-flowchart-Planner-9" data-look="classic" transform="translate(1140.640625, 255)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"></rect><g class="label" style="" transform="translate(-100, -24)"><rect></rect><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel "><p>Query Planner and Compiler</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304799315-flowchart-Policy-11" data-look="classic" transform="translate(1450.640625, 255)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"></rect><g class="label" style="" transform="translate(-100, -24)"><rect></rect><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel "><p>ABAC and Masking Policy Engine</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304799315-flowchart-Cache-13" data-look="classic" transform="translate(1760.640625, 255)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"></rect><g class="label" style="" transform="translate(-100, -24)"><rect></rect><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel "><p>Pre-aggregation / Cache / Freshness</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304799315-flowchart-Object-15" data-look="classic" transform="translate(100.765625, 371)"><rect class="basic label-container" style="" x="-92.765625" y="-27" width="185.53125" height="54"></rect><g class="label" style="" transform="translate(-62.765625, -12)"><rect></rect><foreignObject width="125.53125" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>Semantic Objects</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304799315-flowchart-View-17" data-look="classic" transform="translate(329.171875, 371)"><rect class="basic label-container" style="" x="-85.640625" y="-27" width="171.28125" height="54"></rect><g class="label" style="" transform="translate(-55.640625, -12)"><rect></rect><foreignObject width="111.28125" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>Semantic Views</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304799315-flowchart-Metric-19" data-look="classic" transform="translate(546.8203125, 371)"><rect class="basic label-container" style="" x="-82.0078125" y="-27" width="164.015625" height="54"></rect><g class="label" style="" transform="translate(-52.0078125, -12)"><rect></rect><foreignObject width="104.015625" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>Metric Catalog</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304799315-flowchart-Extension-21" data-look="classic" transform="translate(806.3984375, 371)"><rect class="basic label-container" style="" x="-127.5703125" y="-27" width="255.140625" height="54"></rect><g class="label" style="" transform="translate(-97.5703125, -12)"><rect></rect><foreignObject width="195.140625" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>Package and Overlay Model</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304799315-flowchart-HANA-23" data-look="classic" transform="translate(1049.0390625, 371)"><rect class="basic label-container" style="" x="-65.0703125" y="-27" width="130.140625" height="54"></rect><g class="label" style="" transform="translate(-35.0703125, -12)"><rect></rect><foreignObject width="70.140625" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>SAP HANA</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304799315-flowchart-SQLServer-25" data-look="classic" transform="translate(1232.2421875, 371)"><rect class="basic label-container" style="" x="-68.1328125" y="-27" width="136.265625" height="54"></rect><g class="label" style="" transform="translate(-38.1328125, -12)"><rect></rect><foreignObject width="76.265625" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>SQL Server</p></span></div></foreignObject></g></g><g class="node default  " id="mermaid-1780304799315-flowchart-External-27" data-look="classic" transform="translate(1443.28125, 371)"><rect class="basic label-container" style="" x="-92.90625" y="-27" width="185.8125" height="54"></rect><g class="label" style="" transform="translate(-62.90625, -12)"><rect></rect><foreignObject width="125.8125" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel "><p>External Schemas</p></span></div></foreignObject></g></g></g></g></g><defs><filter id="mermaid-1780304799315-drop-shadow" height="130%" width="130%"><feDropShadow dx="4" dy="4" stdDeviation="0" flood-opacity="0.06" flood-color="#000000"></feDropShadow></filter></defs><defs><filter id="mermaid-1780304799315-drop-shadow-small" height="150%" width="150%"><feDropShadow dx="2" dy="2" stdDeviation="0" flood-opacity="0.06" flood-color="#000000"></feDropShadow></filter></defs><linearGradient id="mermaid-1780304799315-gradient" gradientUnits="objectBoundingBox" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#0f6b64" stop-opacity="1"></stop><stop offset="100%" stop-color="hsl(210, 1.6666666667%, 85.2941176471%)" stop-opacity="1"></stop></linearGradient></svg></div></div>
+<h3 id="layer-1-semantic-manifest">Layer 1: Semantic Manifest</h3>
+<p>The semantic manifest is the versioned source of truth. It defines:</p>
+<ul>
+<li>semantic packages and versions;</li>
+<li>semantic objects and their grain;</li>
+<li>semantic views and their exposed members;</li>
+<li>metrics and calculation policies;</li>
+<li>dimensions and allowed filters/group-bys;</li>
+<li>joins and relationship cardinality;</li>
+<li>source lineage;</li>
+<li>HANA and SQL Server dialect support;</li>
+<li>ABAC and masking hooks;</li>
+<li>custom UDF, UDT, addon, and external schema extensions;</li>
+<li>metadata for AI and BI consumers.</li>
+</ul>
+<p>The manifest should be machine-readable and suitable for validation, diff, testing, and publication.</p>
+<h3 id="layer-2-semantic-object">Layer 2: Semantic Object</h3>
+<p>A semantic object is a stable business fact or dimension with a declared grain. Examples:</p>
+<ul>
+<li><code>SalesOrderLine</code></li>
+<li><code>DeliveryLine</code></li>
+<li><code>ARInvoiceLine</code></li>
+<li><code>PurchaseOrderLine</code></li>
+<li><code>InventoryPosition</code></li>
+<li><code>DocumentFlow</code></li>
+<li><code>BusinessPartner</code></li>
+<li><code>Item</code></li>
+<li><code>JournalEntryLine</code></li>
+</ul>
+<p>Semantic objects are not automatically identical to physical tables. For example, <code>SalesOrderLine</code> may be sourced from <code>ORDR</code>, <code>RDR1</code>, <code>OCRD</code>, <code>OITM</code>, <code>OSLP</code>, and <code>OWHS</code>, but it should expose one stable business grain: one row per sales order line.</p>
+<h3 id="layer-3-semantic-view">Layer 3: Semantic View</h3>
+<p>A semantic view is a consumer-facing facade over one or more semantic objects. It should:</p>
+<ul>
+<li>expose only selected members;</li>
+<li>control join paths;</li>
+<li>hide ambiguous or unsafe relationships;</li>
+<li>organize fields into business folders;</li>
+<li>apply view-level visibility and access policies;</li>
+<li>provide labels, descriptions, examples, synonyms, and caveats.</li>
+</ul>
+<p>Examples:</p>
+<ul>
+<li><code>SalesAnalysis</code></li>
+<li><code>Customer360</code></li>
+<li><code>InventoryHealth</code></li>
+<li><code>ARCollectionRisk</code></li>
+<li><code>PurchaseFulfillment</code></li>
+<li><code>DocumentFlowAnalysis</code></li>
+</ul>
+<p>Semantic views answer the question: "What should a user, AI agent, BI tool, or partner app be allowed to query as a coherent business dataset?"</p>
+<h3 id="layer-4-metric-catalog">Layer 4: Metric Catalog</h3>
+<p>Metrics should be defined independently from physical views. Each metric should declare:</p>
+<ul>
+<li>metric name and display name;</li>
+<li>source semantic object or view;</li>
+<li>formula or aggregation;</li>
+<li>additive, semi-additive, or non-additive behavior;</li>
+<li>default time dimension;</li>
+<li>supported grains;</li>
+<li>supported filters and group-bys;</li>
+<li>currency policy;</li>
+<li>tax policy;</li>
+<li>UOM policy;</li>
+<li>status inclusion/exclusion rules;</li>
+<li>lineage;</li>
+<li>warnings and business caveats.</li>
+</ul>
+<p>Examples:</p>
+<ul>
+<li><code>sales_order_amount_net</code></li>
+<li><code>sales_order_amount_gross</code></li>
+<li><code>invoice_revenue_net</code></li>
+<li><code>gross_margin_amount</code></li>
+<li><code>gross_margin_rate</code></li>
+<li><code>open_order_amount</code></li>
+<li><code>available_inventory_quantity</code></li>
+<li><code>ar_overdue_amount</code></li>
+<li><code>inventory_turnover_rate</code></li>
+</ul>
+<h2 id="data-layer-view-strategy">Data Layer View Strategy</h2>
+<p>B1 should support a mixed strategy: fixed core views plus controlled extensions.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>View type</th><th>Ownership</th><th>Stability</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>Core semantic views</td><td>SAP/B1 official</td><td>Stable and versioned</td><td>Common B1 analytics across customers.</td></tr>
+<tr><td>Industry semantic views</td><td>SAP/B1 or certified partner</td><td>Versioned package</td><td>Manufacturing, retail, wholesale, project, service, and other industry variants.</td></tr>
+<tr><td>Customer semantic views</td><td>Customer / implementation partner</td><td>Customer overlay</td><td>UDF, UDT, addon, custom process, and external schema requirements.</td></tr>
+<tr><td>Physical implementation views</td><td>Runtime / generated / database admin</td><td>Internal</td><td>Optional physical acceleration or compatibility layer.</td></tr>
+</tbody></table></div>
+<p>The key rule is:</p>
+<blockquote>Core semantic contracts should be fixed; industry and customer overlays may extend them under explicit version and validation rules.</blockquote>
+<p>Customer custom views should not silently override core metric semantics. If a customer changes the meaning of a core metric, the overlay must publish a new metric name or versioned override with visible lineage and caveats.</p>
+<h2 id="core-capability-requirements">Core Capability Requirements</h2>
+<h3 id="1-semantic-manifest-and-package-system">1. Semantic Manifest and Package System</h3>
+<p><strong>Problem:</strong> B1 metadata is currently scattered across physical tables, OData metadata, views, UDF definitions, addon tables, and partner-specific documentation.</p>
+<p><strong>Required capability:</strong> Provide a versioned semantic manifest and package system. The manifest should support official core packages, industry packages, and customer overlays.</p>
+<p><strong>B1-specific considerations:</strong></p>
+<ul>
+<li>B1 deployments differ by country, localization, industry, database type, addon footprint, and customer UDF/UDT usage.</li>
+<li>The manifest must represent both standard B1 objects and customer extensions.</li>
+<li>The same manifest shape should work for HANA and SQL Server.</li>
+</ul>
+<p><strong>Acceptance criteria:</strong></p>
+<ul>
+<li>A consumer can list installed semantic packages and versions.</li>
+<li>A package can declare objects, views, metrics, dimensions, relationships, policies, lineage, and dialect support.</li>
+<li>Customer overlays can extend but not silently break core contracts.</li>
+<li>Manifest validation catches duplicate names, missing lineage, unsupported join paths, and broken metric references.</li>
+</ul>
+<h3 id="2-core-industry-customer-overlay-model">2. Core / Industry / Customer Overlay Model</h3>
+<p><strong>Problem:</strong> A single fixed semantic model cannot cover every B1 industry and customer, while a fully free-form model is not governable.</p>
+<p><strong>Required capability:</strong> Support a layered overlay model:</p>
+<ul>
+<li><code>b1-core</code></li>
+<li><code>b1-industry-*</code></li>
+<li><code>customer-overlay</code></li>
+</ul>
+<p><strong>B1-specific considerations:</strong></p>
+<ul>
+<li>Manufacturing may require production order, BOM, issue/receipt, and variance views.</li>
+<li>Retail may require store, POS, promotion, and stock aging views.</li>
+<li>Wholesale may require customer item codes, price lists, rebates, and warehouse allocation.</li>
+<li>Project businesses may require project, cost center, milestone, WIP, and billing views.</li>
+</ul>
+<p><strong>Acceptance criteria:</strong></p>
+<ul>
+<li>Core package names and semantics remain stable.</li>
+<li>Industry packages can add views and metrics without forking the core model.</li>
+<li>Customer overlays can add UDF, UDT, custom views, and external tables.</li>
+<li>The runtime can explain which package contributed each object, field, or metric.</li>
+</ul>
+<h3 id="3-semantic-object-view-metric-separation">3. Semantic Object / View / Metric Separation</h3>
+<p><strong>Problem:</strong> If semantic views and metrics are bound directly to physical views, the model becomes brittle and hard to extend.</p>
+<p><strong>Required capability:</strong> Separate semantic objects, semantic views, and metrics.</p>
+<p><strong>B1-specific considerations:</strong></p>
+<ul>
+<li>A single object such as <code>SalesOrderLine</code> may support many views and metrics.</li>
+<li>A view such as <code>SalesAnalysis</code> may include measures from orders, deliveries, invoices, and returns.</li>
+<li>A metric such as <code>gross_margin_rate</code> may require revenue and cost objects and must avoid fanout.</li>
+</ul>
+<p><strong>Acceptance criteria:</strong></p>
+<ul>
+<li>A metric can be reused across multiple views where valid.</li>
+<li>A semantic view can expose selected fields from multiple objects through explicit join paths.</li>
+<li>The model rejects unsupported object/metric/dimension combinations.</li>
+<li>The manifest declares object grain separately from consumer-facing view names.</li>
+</ul>
+<h3 id="4-query-planner-and-dialect-compiler">4. Query Planner and Dialect Compiler</h3>
+<p><strong>Problem:</strong> AI and BI consumers should not hand-write SQL for B1 physical tables, and they should not manage HANA vs SQL Server dialect differences.</p>
+<p><strong>Required capability:</strong> Provide a semantic query planner and compiler that turns logical metric queries into executable HANA or SQL Server SQL.</p>
+<p><strong>B1-specific considerations:</strong></p>
+<ul>
+<li>HANA and SQL Server differ in date functions, quoting, pagination, string conversion, null handling, and SQL syntax.</li>
+<li>B1 facts often require header-line joins and status filters.</li>
+<li>Multi-fact analysis can produce row multiplication if planned naively.</li>
+</ul>
+<p><strong>Acceptance criteria:</strong></p>
+<ul>
+<li>The same logical semantic query can run on HANA and SQL Server.</li>
+<li>Generated SQL includes source lineage and dialect in explain output.</li>
+<li>The planner handles date grains, join paths, fanout protection, and multi-fact query cases.</li>
+<li>Unsupported combinations are rejected with clear validation messages before execution.</li>
+</ul>
+<h3 id="5-abac-masking-and-policy-engine">5. ABAC, Masking, and Policy Engine</h3>
+<p><strong>Problem:</strong> AI queries can expose sensitive data if security is applied outside the semantic model or only in application prompts.</p>
+<p><strong>Required capability:</strong> Define ABAC policies in the semantic layer and enforce them during planning and query execution.</p>
+<p><strong>B1-specific considerations:</strong></p>
+<ul>
+<li>Policies may depend on company DB, branch, warehouse, salesperson, BP group, project, department, cost center, item group, or user attributes.</li>
+<li>Sensitive fields may include cost, margin, credit limit, bank details, contact information, and employee data.</li>
+<li>Some users may see aggregate metrics but not underlying document-level detail.</li>
+</ul>
+<p><strong>Acceptance criteria:</strong></p>
+<ul>
+<li>The model supports row-level, member-level, metric-level, and masking rules.</li>
+<li>Policy evaluation is deterministic and not bypassable by custom filters.</li>
+<li>Explain output shows applied policy filters and masked members.</li>
+<li>Test suites can verify permission behavior for different user attributes.</li>
+</ul>
+<h3 id="6-udf-udt-addon-extension-system">6. UDF / UDT / Addon Extension System</h3>
+<p><strong>Problem:</strong> Real B1 customers rely heavily on UDFs, UDTs, and addon tables. A semantic layer that ignores them will not fit production usage.</p>
+<p><strong>Required capability:</strong> Provide a formal extension model for custom fields and custom tables.</p>
+<p><strong>B1-specific considerations:</strong></p>
+<ul>
+<li>UDFs may exist on header tables, line tables, BP master, item master, and other objects.</li>
+<li>UDTs may represent domain entities not known to core B1.</li>
+<li>Addon tables may use custom keys and non-standard naming.</li>
+</ul>
+<p><strong>Acceptance criteria:</strong></p>
+<ul>
+<li>UDFs can be attached to core semantic objects with labels, types, sensitivity, filter/group/aggregate permissions, and examples.</li>
+<li>UDT/addon tables can declare grain, join key, owner, lineage, freshness, and allowed consumers.</li>
+<li>Custom fields and tables can be included in customer overlays.</li>
+<li>Invalid or ambiguous custom joins fail validation before publication.</li>
+</ul>
+<h3 id="7-external-schema-and-data-federation">7. External Schema and Data Federation</h3>
+<p><strong>Problem:</strong> Customers may copy CRM, ecommerce, WMS, or other operational data into adjacent schemas and expect analysis across B1 and external data.</p>
+<p><strong>Required capability:</strong> Support controlled federation with external schemas and tables.</p>
+<p><strong>B1-specific considerations:</strong></p>
+<ul>
+<li>CRM account may need identity mapping to B1 <code>BusinessPartner</code>.</li>
+<li>Ecommerce SKU may need mapping to B1 <code>Item</code>.</li>
+<li>External data freshness and ownership may differ from B1 data.</li>
+<li>Cross-schema joins may have performance and security implications.</li>
+</ul>
+<p><strong>Acceptance criteria:</strong></p>
+<ul>
+<li>External tables can be registered in customer overlays.</li>
+<li>Each external object declares source schema, owner, grain, freshness, identity mapping, and security policy.</li>
+<li>Only approved external joins can be used in semantic views.</li>
+<li>Query explain identifies external sources and freshness timestamps.</li>
+</ul>
+<h3 id="8-metadata-and-introspection-api">8. Metadata and Introspection API</h3>
+<p><strong>Problem:</strong> AI and BI consumers need to discover available objects, metrics, dimensions, filters, joins, caveats, and permissions before querying.</p>
+<p><strong>Required capability:</strong> Provide metadata introspection for semantic consumers.</p>
+<p><strong>B1-specific considerations:</strong></p>
+<ul>
+<li>Metadata must be compact enough for AI use.</li>
+<li>Metadata must include business descriptions, synonyms, examples, safe defaults, and caveats.</li>
+<li>Domain-specific metadata packs should be available for sales, purchasing, inventory, finance, production, and master data.</li>
+</ul>
+<p><strong>Acceptance criteria:</strong></p>
+<ul>
+<li>Consumers can list semantic objects, views, metrics, dimensions, filters, and packages.</li>
+<li>Consumers can describe a single object, view, or metric.</li>
+<li>Metadata includes visibility after policy evaluation.</li>
+<li>AI-facing metadata can be requested by domain to avoid oversized contexts.</li>
+</ul>
+<h3 id="9-explain-lineage-and-evidence">9. Explain, Lineage, and Evidence</h3>
+<p><strong>Problem:</strong> Business users and auditors need to understand how a semantic answer was produced.</p>
+<p><strong>Required capability:</strong> Provide explain and lineage outputs for every semantic query.</p>
+<p><strong>B1-specific considerations:</strong></p>
+<ul>
+<li>B1 users often need to trace metrics back to documents, document lines, journals, warehouses, or master data.</li>
+<li>Custom UDF/UDT/addon fields need explicit source attribution.</li>
+<li>Currency, tax, UOM, status, and cancellation policies affect trust.</li>
+</ul>
+<p><strong>Acceptance criteria:</strong></p>
+<ul>
+<li>Explain output includes selected semantic view, objects, metrics, filters, policies, source tables, dialect, generated SQL, and cache/freshness details.</li>
+<li>Metric lineage identifies formula, source fields, joins, and package source.</li>
+<li>Results can include warnings for currency, tax, UOM, status, or freshness caveats.</li>
+<li>Consumers can trace aggregate metrics to valid drilldown dimensions where permissions allow.</li>
+</ul>
+<h3 id="10-cache-pre-aggregation-and-freshness">10. Cache, Pre-Aggregation, and Freshness</h3>
+<p><strong>Problem:</strong> AI and BI workflows require interactive performance, but direct analytical queries over B1 production databases may be slow or expensive.</p>
+<p><strong>Required capability:</strong> Support cache and pre-aggregation definitions in the semantic model.</p>
+<p><strong>B1-specific considerations:</strong></p>
+<ul>
+<li>Some metrics should be near real-time; others can be refreshed hourly, daily, or after period close.</li>
+<li>Accounting periods, canceled documents, and reposting can affect metric stability.</li>
+<li>Inventory and AR aging may need explicit freshness timestamps.</li>
+</ul>
+<p><strong>Acceptance criteria:</strong></p>
+<ul>
+<li>Metrics and views can declare caching/pre-aggregation eligibility.</li>
+<li>Refresh policy and freshness are visible in metadata and query results.</li>
+<li>Query explain says whether data came from live source, materialized view, or cache.</li>
+<li>Stale or partially refreshed data produces explicit warnings.</li>
+</ul>
+<h3 id="11-test-and-certification-suite">11. Test and Certification Suite</h3>
+<p><strong>Problem:</strong> Semantic models can drift as fields, joins, customizations, or metrics change.</p>
+<p><strong>Required capability:</strong> Provide semantic validation, regression testing, and certification.</p>
+<p><strong>B1-specific considerations:</strong></p>
+<ul>
+<li>HANA and SQL Server results must match for the same logical query.</li>
+<li>Customer overlays must not break core package assumptions.</li>
+<li>UDF/UDT/addon joins can introduce fanout or invalid grain.</li>
+</ul>
+<p><strong>Acceptance criteria:</strong></p>
+<ul>
+<li>The suite includes grain tests, metric snapshot tests, dialect parity tests, ABAC tests, masking tests, extension validation tests, and query explain golden tests.</li>
+<li>Packages must pass validation before publication.</li>
+<li>Breaking changes are identified by semantic diff.</li>
+<li>Certified packages expose compatibility metadata.</li>
+</ul>
+<h3 id="12-governance-versioning-and-publishing">12. Governance, Versioning, and Publishing</h3>
+<p><strong>Problem:</strong> Without governance, semantic layers become a collection of undocumented local patches.</p>
+<p><strong>Required capability:</strong> Provide a formal governance and publishing workflow for semantic packages.</p>
+<p><strong>B1-specific considerations:</strong></p>
+<ul>
+<li>SAP/B1 may own core packages.</li>
+<li>Certified partners may publish industry packages.</li>
+<li>Customers and implementation partners may maintain overlays.</li>
+<li>AI-generated model suggestions should not directly publish to production.</li>
+</ul>
+<p><strong>Acceptance criteria:</strong></p>
+<ul>
+<li>Packages have owners, versions, changelogs, compatibility metadata, and publication status.</li>
+<li>Metric changes require review and tests.</li>
+<li>Consumers can query package versions and object provenance.</li>
+<li>Deprecated objects or metrics have migration guidance.</li>
+</ul>
+<h2 id="standard-core-model">Standard Core Model</h2>
+<p>The first B1 semantic layer should include a small, stable core model rather than trying to cover all B1 tables.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Core object</th><th>Proposed grain</th><th>Responsibility</th></tr></thead>
+<tbody>
+<tr><td><code>SalesOrderLine</code></td><td><code>ORDR.DocEntry + RDR1.LineNum</code></td><td>Sales order demand, amount, customer, item, warehouse, status, open quantity.</td></tr>
+<tr><td><code>DeliveryLine</code></td><td><code>ODLN.DocEntry + DLN1.LineNum</code></td><td>Delivery fulfillment, shipment quantity, warehouse, delivery timing.</td></tr>
+<tr><td><code>ARInvoiceLine</code></td><td><code>OINV.DocEntry + INV1.LineNum</code></td><td>Invoiced revenue, tax, customer, item, settlement context.</td></tr>
+<tr><td><code>PurchaseOrderLine</code></td><td><code>OPOR.DocEntry + POR1.LineNum</code></td><td>Purchase demand, vendor, item, quantity, expected receipt.</td></tr>
+<tr><td><code>InventoryPosition</code></td><td><code>ItemCode + WhsCode</code> plus batch/serial where applicable</td><td>On hand, committed, ordered, available, warehouse-level position.</td></tr>
+<tr><td><code>DocumentFlow</code></td><td>Source document line to target document line edge</td><td>Order-delivery-invoice-return-credit memo lineage.</td></tr>
+<tr><td><code>BusinessPartner</code></td><td><code>CardCode</code></td><td>Customer/vendor master, grouping, payment terms, credit, lifecycle dimensions.</td></tr>
+<tr><td><code>Item</code></td><td><code>ItemCode</code></td><td>Item master, item group, UOM, sales/purchase/inventory flags.</td></tr>
+<tr><td><code>JournalEntryLine</code></td><td><code>OJDT.TransId + JDT1.Line_ID</code></td><td>Financial postings, account, cost center, project, debit/credit, period.</td></tr>
+</tbody></table></div>
+<p>The core model should define grain and responsibility first. Detailed field lists can evolve through versioned package metadata.</p>
+<h2 id="extension-model">Extension Model</h2>
+<h3 id="industry-packages">Industry Packages</h3>
+<p>Industry packages extend the core model without forking it.</p>
+<p>Examples:</p>
+<ul>
+<li>Manufacturing: production order, BOM, issue for production, receipt from production, WIP, variance.</li>
+<li>Retail: store, POS transaction, promotion, stock aging, sell-through.</li>
+<li>Wholesale: customer item code, price list, rebates, fulfillment allocation.</li>
+<li>Project-based business: project, milestone, WIP, billing, cost center, contract margin.</li>
+</ul>
+<h3 id="customer-overlays">Customer Overlays</h3>
+<p>Customer overlays support:</p>
+<ul>
+<li>UDFs attached to core objects;</li>
+<li>UDT and addon tables;</li>
+<li>customer-defined semantic views;</li>
+<li>customer-defined metrics;</li>
+<li>external schemas such as CRM, ecommerce, or warehouse systems;</li>
+<li>custom labels, synonyms, examples, and caveats.</li>
+</ul>
+<h3 id="overlay-rules">Overlay Rules</h3>
+<p>Customer overlays may:</p>
+<ul>
+<li>add fields;</li>
+<li>add dimensions;</li>
+<li>add metrics;</li>
+<li>add semantic views;</li>
+<li>add allowed joins;</li>
+<li>hide fields from default exposure;</li>
+<li>add stricter policies.</li>
+</ul>
+<p>Customer overlays must not:</p>
+<ul>
+<li>silently change core object grain;</li>
+<li>silently change official metric meaning;</li>
+<li>expose sensitive fields without policy metadata;</li>
+<li>introduce unvalidated many-to-many joins;</li>
+<li>bypass HANA/SQL Server dialect validation.</li>
+</ul>
+<h2 id="security-and-governance">Security and Governance</h2>
+<p>ABAC and governance should be treated as part of the semantic model, not as optional API-layer logic.</p>
+<h3 id="required-policy-dimensions">Required Policy Dimensions</h3>
+<p>B1 semantic policies should support:</p>
+<ul>
+<li>company DB;</li>
+<li>branch;</li>
+<li>warehouse;</li>
+<li>salesperson;</li>
+<li>BP group;</li>
+<li>item group;</li>
+<li>project;</li>
+<li>department;</li>
+<li>cost center;</li>
+<li>account group;</li>
+<li>user role;</li>
+<li>user attributes;</li>
+<li>purpose or consumption mode where applicable.</li>
+</ul>
+<h3 id="required-protection-modes">Required Protection Modes</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Protection mode</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>Row-level filter</td><td>Salesperson only sees own customers or orders.</td></tr>
+<tr><td>Member-level access</td><td>User can see sales amount but not margin.</td></tr>
+<tr><td>Metric-level access</td><td>Finance can see gross margin rate; sales can only see revenue.</td></tr>
+<tr><td>Masking</td><td>Contact phone, bank details, or credit limit is masked.</td></tr>
+<tr><td>Drilldown restriction</td><td>User can see aggregate but not document-line details.</td></tr>
+</tbody></table></div>
+<h3 id="governance-workflow">Governance Workflow</h3>
+<p>The semantic layer should support:</p>
+<ul>
+<li>package ownership;</li>
+<li>package versioning;</li>
+<li>semantic diff;</li>
+<li>review and approval;</li>
+<li>automated tests;</li>
+<li>publish and rollback;</li>
+<li>deprecation policy;</li>
+<li>compatibility matrix by B1 version, localization, and database type.</li>
+</ul>
+<h2 id="acceptance-criteria">Acceptance Criteria</h2>
+<p>A B1 semantic layer is acceptable for AI/BI use when the following are true:</p>
+<ol>
+<li>Consumers can discover official semantic objects, views, metrics, and dimensions without reading physical table documentation.</li>
+<li>The same logical query can run against HANA and SQL Server.</li>
+<li>Core business objects declare grain, source lineage, relations, and supported filters/group-bys.</li>
+<li>Metrics declare formula, additivity, time dimension, currency/tax/UOM policy, and caveats.</li>
+<li>Core semantic views are stable; industry and customer overlays can extend them under validation rules.</li>
+<li>ABAC policies are enforced inside the semantic runtime and appear in explain output.</li>
+<li>UDF, UDT, addon table, custom view, custom table, and custom metric extensions are represented in the manifest.</li>
+<li>External schema data can be federated only through declared identity mapping, ownership, freshness, and join rules.</li>
+<li>Query explain includes lineage, generated dialect, applied policy, source objects, cache/freshness, and warnings.</li>
+<li>Semantic packages pass grain, metric, dialect parity, ABAC, masking, and extension tests before publication.</li>
+<li>AI-facing metadata can be retrieved by compact domain packs.</li>
+<li>Deprecated objects, fields, or metrics have versioned migration guidance.</li>
+</ol>
+<h2 id="open-questions-for-sap-b1">Open Questions For SAP/B1</h2>
+<ol>
+<li>Will B1 provide official core semantic objects and views, or only metadata for partners to generate them?</li>
+<li>Can the same logical semantic contract support both HANA and SQL Server?</li>
+<li>Will B1 expose semantic package versions and compatibility metadata?</li>
+<li>Can UDF, UDT, addon table, and localization-specific metadata be included in the same manifest shape?</li>
+<li>Can ABAC, member-level security, masking, and metric-level access be declared in the semantic model?</li>
+<li>Can B1 provide semantic explain and lineage outputs for generated SQL?</li>
+<li>Can the semantic layer define pre-aggregation and freshness policies?</li>
+<li>Can custom external schemas be registered as governed semantic extensions?</li>
+<li>Can B1 support certified industry packages or a partner package marketplace?</li>
+<li>Can semantic package validation include HANA/SQL Server parity and policy tests?</li>
+</ol>
+<h2 id="source-references">Source References</h2>
+<ul>
+<li>Cube documentation: https://cube.dev/docs</li>
+<li>Cube local clone: <code>docs/architecture-discussions/semantic-service-layer/cubejs</code></li>
+<li>dbt Semantic Layer architecture: https://docs.getdbt.com/docs/use-dbt-semantic-layer/sl-architecture</li>
+<li>dbt semantic models: https://docs.getdbt.com/docs/build/semantic-models</li>
+<li>LookML terms and concepts: https://cloud.google.com/looker/docs/lookml-terms-and-concepts</li>
+<li>Snowflake semantic views: https://docs.snowflake.com/en/user-guide/views-semantic/overview</li>
+</ul>
+      </article>
+    </main>
+  </div>
+  
+
+
+<div class="mermaidTooltip" style="opacity: 0; position: absolute; text-align: center; max-width: 200px; padding: 2px; font-size: 12px; background: rgb(255, 255, 222); border: 1px solid rgb(51, 51, 51); border-radius: 2px; pointer-events: none; z-index: 100;"></div></body></html>

@@ -1,0 +1,14 @@
+﻿table_name,csv_file,sqlite_table,row_count,grain,primary_business_use,contains_synthetic_pii,scenario_coverage
+customers,csv/customers.csv,customers,420,one row per customer profile and CDP feature snapshot,Supports Agentic CDP retail demo scenarios,Y,"Dormant, Replenishment, VIP, Service Recovery"
+consents,csv/consents.csv,consents,420,one row per customer consent state,Supports Agentic CDP retail demo scenarios,N,Shared reference/input data
+loyalty_accounts,csv/loyalty_accounts.csv,loyalty_accounts,420,one row per customer loyalty account,Supports Agentic CDP retail demo scenarios,N,Shared reference/input data
+products,csv/products.csv,products,72,one row per SKU/product,Supports Agentic CDP retail demo scenarios,N,Shared reference/input data
+stores,csv/stores.csv,stores,12,one row per retail store,Supports Agentic CDP retail demo scenarios,N,Shared reference/input data
+campaigns,csv/campaigns.csv,campaigns,6,one row per demo campaign,Supports Agentic CDP retail demo scenarios,N,Shared reference/input data
+transactions,csv/transactions.csv,transactions,1911,one row per order transaction,Supports Agentic CDP retail demo scenarios,N,"Dormant, Replenishment, VIP, Service Recovery"
+transaction_items,csv/transaction_items.csv,transaction_items,2912,one row per product line item,Supports Agentic CDP retail demo scenarios,N,Shared reference/input data
+behavior_events,csv/behavior_events.csv,behavior_events,3003,one row per digital or store behavior event,Supports Agentic CDP retail demo scenarios,N,Shared reference/input data
+campaign_interactions,csv/campaign_interactions.csv,campaign_interactions,335,one row per campaign-customer interaction,Supports Agentic CDP retail demo scenarios,N,"Dormant, Replenishment, VIP, Service Recovery"
+service_tickets,csv/service_tickets.csv,service_tickets,83,one row per customer service case,Supports Agentic CDP retail demo scenarios,N,Shared reference/input data
+inventory,csv/inventory.csv,inventory,864,one row per store-product inventory snapshot,Supports Agentic CDP retail demo scenarios,N,Shared reference/input data
+agent_runs,csv/agent_runs.csv,agent_runs,259,one row per synthetic Agent run event,Supports Agentic CDP retail demo scenarios,N,"Dormant, Replenishment, VIP, Service Recovery"
