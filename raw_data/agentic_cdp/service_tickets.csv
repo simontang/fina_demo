@@ -1,0 +1,84 @@
+﻿ticket_id,customer_id,created_date,channel,issue_type,sentiment,sla_hours,resolution_status,compensation_amount
+TCK000001,CUST00005,2026-04-11,Store,Product Quality,Neutral,8,Resolved,200.0
+TCK000002,CUST00016,2026-03-11,WeCom,Service Attitude,Positive,24,Escalated,50.0
+TCK000003,CUST00018,2026-06-09,WeCom,Service Attitude,Neutral,48,Escalated,30.0
+TCK000004,CUST00018,2026-03-27,WeCom,Service Attitude,Negative,48,Escalated,50.0
+TCK000005,CUST00019,2026-04-10,CallCenter,Delivery Delay,Negative,8,Open,150.0
+TCK000006,CUST00024,2026-05-30,Store,Delivery Delay,Negative,8,Escalated,100.0
+TCK000007,CUST00044,2026-05-08,MiniProgram,Sizing,Neutral,48,Open,100.0
+TCK000008,CUST00044,2026-06-27,CallCenter,Product Quality,Neutral,8,Resolved,30.0
+TCK000009,CUST00048,2026-06-05,MiniProgram,Sizing,Positive,8,Escalated,150.0
+TCK000010,CUST00053,2026-04-03,Store,Refund,Negative,8,In Progress,80.0
+TCK000011,CUST00063,2026-06-06,MiniProgram,Delivery Delay,Neutral,12,Escalated,200.0
+TCK000012,CUST00074,2026-03-24,MiniProgram,Sizing,Neutral,12,Resolved,150.0
+TCK000013,CUST00080,2026-06-02,CallCenter,Sizing,Negative,8,Open,200.0
+TCK000014,CUST00085,2026-03-26,WeCom,Refund,Neutral,8,Open,100.0
+TCK000015,CUST00086,2026-03-30,MiniProgram,Product Quality,Neutral,24,Escalated,50.0
+TCK000016,CUST00086,2026-05-26,MiniProgram,Delivery Delay,Negative,8,Escalated,200.0
+TCK000017,CUST00087,2026-05-21,CallCenter,Sizing,Neutral,48,In Progress,50.0
+TCK000018,CUST00094,2026-06-16,MiniProgram,Refund,Positive,24,Resolved,100.0
+TCK000019,CUST00097,2026-04-13,MiniProgram,Delivery Delay,Positive,48,Open,80.0
+TCK000020,CUST00098,2026-04-08,Store,Refund,Negative,48,Escalated,200.0
+TCK000021,CUST00102,2026-03-29,MiniProgram,Product Quality,Positive,48,Open,100.0
+TCK000022,CUST00114,2026-03-15,WeCom,Service Attitude,Negative,24,Resolved,150.0
+TCK000023,CUST00114,2026-04-14,WeCom,Service Attitude,Neutral,24,In Progress,0.0
+TCK000024,CUST00118,2026-05-16,WeCom,Delivery Delay,Positive,24,Open,50.0
+TCK000025,CUST00122,2026-04-02,MiniProgram,Refund,Neutral,24,In Progress,200.0
+TCK000026,CUST00125,2026-06-15,WeCom,Service Attitude,Neutral,8,Escalated,30.0
+TCK000027,CUST00132,2026-05-27,WeCom,Delivery Delay,Positive,12,Escalated,100.0
+TCK000028,CUST00140,2026-05-23,CallCenter,Service Attitude,Neutral,48,Resolved,200.0
+TCK000029,CUST00148,2026-04-08,CallCenter,Delivery Delay,Negative,48,Resolved,30.0
+TCK000030,CUST00150,2026-05-25,CallCenter,Return,Negative,48,Escalated,150.0
+TCK000031,CUST00151,2026-05-20,Store,Sizing,Positive,24,In Progress,30.0
+TCK000032,CUST00155,2026-06-23,CallCenter,Sizing,Positive,48,Open,100.0
+TCK000033,CUST00155,2026-03-18,Store,Refund,Positive,48,Open,50.0
+TCK000034,CUST00158,2026-05-20,Store,Product Quality,Negative,12,Resolved,150.0
+TCK000035,CUST00160,2026-04-19,CallCenter,Sizing,Negative,48,Escalated,50.0
+TCK000036,CUST00160,2026-06-30,MiniProgram,Return,Negative,48,Escalated,50.0
+TCK000037,CUST00162,2026-03-06,CallCenter,Refund,Positive,24,Escalated,80.0
+TCK000038,CUST00163,2026-06-02,CallCenter,Delivery Delay,Neutral,24,Escalated,0.0
+TCK000039,CUST00170,2026-04-16,MiniProgram,Return,Positive,24,Escalated,80.0
+TCK000040,CUST00178,2026-04-09,CallCenter,Delivery Delay,Negative,8,Escalated,100.0
+TCK000041,CUST00180,2026-04-24,MiniProgram,Product Quality,Negative,48,In Progress,200.0
+TCK000042,CUST00180,2026-03-26,CallCenter,Refund,Neutral,12,Resolved,150.0
+TCK000043,CUST00185,2026-03-08,WeCom,Delivery Delay,Neutral,12,Escalated,150.0
+TCK000044,CUST00213,2026-04-18,Store,Sizing,Neutral,8,Resolved,200.0
+TCK000045,CUST00215,2026-06-03,WeCom,Delivery Delay,Negative,8,Escalated,150.0
+TCK000046,CUST00216,2026-06-21,Store,Product Quality,Negative,12,In Progress,200.0
+TCK000047,CUST00224,2026-05-14,Store,Return,Positive,24,Open,80.0
+TCK000048,CUST00224,2026-03-21,MiniProgram,Delivery Delay,Negative,24,Resolved,30.0
+TCK000049,CUST00230,2026-05-22,MiniProgram,Sizing,Neutral,8,Open,100.0
+TCK000050,CUST00231,2026-03-24,WeCom,Refund,Positive,12,Open,80.0
+TCK000051,CUST00232,2026-06-26,Store,Delivery Delay,Positive,24,Resolved,100.0
+TCK000052,CUST00233,2026-06-09,CallCenter,Delivery Delay,Positive,8,Escalated,80.0
+TCK000053,CUST00233,2026-04-11,CallCenter,Delivery Delay,Negative,8,Escalated,150.0
+TCK000054,CUST00234,2026-04-07,WeCom,Delivery Delay,Negative,12,In Progress,80.0
+TCK000055,CUST00250,2026-05-23,MiniProgram,Service Attitude,Positive,8,In Progress,50.0
+TCK000056,CUST00250,2026-05-23,WeCom,Product Quality,Positive,12,In Progress,50.0
+TCK000057,CUST00268,2026-03-06,CallCenter,Product Quality,Negative,8,Resolved,200.0
+TCK000058,CUST00270,2026-04-30,Store,Refund,Negative,8,Escalated,0.0
+TCK000059,CUST00271,2026-03-17,WeCom,Service Attitude,Positive,12,Open,30.0
+TCK000060,CUST00274,2026-06-09,MiniProgram,Return,Neutral,12,In Progress,200.0
+TCK000061,CUST00278,2026-03-31,Store,Refund,Negative,48,Resolved,50.0
+TCK000062,CUST00280,2026-03-15,MiniProgram,Delivery Delay,Positive,48,In Progress,200.0
+TCK000063,CUST00281,2026-06-27,Store,Product Quality,Negative,12,Open,30.0
+TCK000064,CUST00289,2026-06-07,CallCenter,Product Quality,Negative,24,In Progress,150.0
+TCK000065,CUST00292,2026-03-29,WeCom,Refund,Negative,8,In Progress,200.0
+TCK000066,CUST00305,2026-05-27,WeCom,Refund,Neutral,24,Resolved,150.0
+TCK000067,CUST00322,2026-06-25,WeCom,Sizing,Positive,24,Escalated,150.0
+TCK000068,CUST00324,2026-03-29,WeCom,Return,Negative,24,Resolved,150.0
+TCK000069,CUST00328,2026-03-28,Store,Product Quality,Negative,12,In Progress,0.0
+TCK000070,CUST00329,2026-04-17,MiniProgram,Return,Neutral,24,Open,30.0
+TCK000071,CUST00331,2026-03-22,MiniProgram,Refund,Positive,8,Escalated,150.0
+TCK000072,CUST00333,2026-05-28,CallCenter,Product Quality,Negative,24,Resolved,200.0
+TCK000073,CUST00340,2026-05-23,Store,Refund,Positive,8,In Progress,50.0
+TCK000074,CUST00345,2026-04-05,MiniProgram,Return,Negative,8,Resolved,30.0
+TCK000075,CUST00353,2026-03-06,MiniProgram,Refund,Negative,48,Escalated,150.0
+TCK000076,CUST00365,2026-03-24,WeCom,Product Quality,Neutral,48,In Progress,200.0
+TCK000077,CUST00374,2026-06-28,CallCenter,Return,Negative,48,In Progress,150.0
+TCK000078,CUST00383,2026-04-30,MiniProgram,Sizing,Negative,48,In Progress,80.0
+TCK000079,CUST00386,2026-04-06,Store,Service Attitude,Positive,8,Resolved,50.0
+TCK000080,CUST00389,2026-06-11,WeCom,Return,Positive,12,Open,30.0
+TCK000081,CUST00389,2026-05-04,Store,Service Attitude,Positive,48,Open,0.0
+TCK000082,CUST00408,2026-05-16,MiniProgram,Sizing,Positive,8,Open,0.0
+TCK000083,CUST00417,2026-06-19,MiniProgram,Service Attitude,Positive,8,Escalated,80.0

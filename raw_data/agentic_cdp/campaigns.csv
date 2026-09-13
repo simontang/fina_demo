@@ -1,0 +1,7 @@
+﻿campaign_id,scenario_id,campaign_name,objective,channel_mix,start_date,end_date,budget,status
+CMP001,SCN_DORMANT_REACTIVATION,沉睡会员夏季唤醒,召回120天以上未购会员并提升复购,"WeCom, SMS, MiniProgram",2026-06-10,2026-07-15,120000,Draft
+CMP002,SCN_REPLENISHMENT_NBA,周期购补货提醒,基于消费周期触发下一最佳商品推荐,"WeChat, AppPush",2026-06-01,2026-08-31,90000,Running
+CMP003,SCN_VIP_CLIENTELING,VIP新品预览与导购跟进,提升高价值客户新品试穿和连带购买,"SA Task, WeCom, Store Event",2026-06-20,2026-07-30,160000,Draft
+CMP004,SCN_MEMBER_GROWTH,会员日等级成长,促进会员升级和权益感知,"AppPush, WeChat, SMS",2026-06-25,2026-07-08,110000,Ready
+CMP005,SCN_SERVICE_RECOVERY,售后体验修复关怀,识别近期投诉客户并生成补救任务,"CallCenter, SA Task, WeCom",2026-06-05,2026-07-20,60000,Running
+CMP006,SCN_NEW_CUSTOMER_ONBOARDING,新客首购后培育,提升首购后30天二购率,"MiniProgram, WeChat, AppPush",2026-06-01,2026-08-15,80000,Running
