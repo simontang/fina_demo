@@ -23,6 +23,15 @@ public class GlobalExceptionHandler {
                 .body(Map.of("code", "BAD_REQUEST", "message", String.valueOf(e.getMessage())));
     }
 
+    /** Wrong content type (e.g. uploading without multipart) is 415, not 500. */
+    @ExceptionHandler({org.springframework.web.multipart.MultipartException.class,
+            org.springframework.web.HttpMediaTypeNotSupportedException.class,
+            org.springframework.web.HttpMediaTypeNotAcceptableException.class})
+    public ResponseEntity<Map<String, Object>> handleMediaType(Exception e) {
+        return ResponseEntity.status(415)
+                .body(Map.of("code", "UNSUPPORTED_MEDIA_TYPE", "message", String.valueOf(e.getMessage())));
+    }
+
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<Map<String, Object>> handleApi(ApiException e) {
         return ResponseEntity.status(e.getStatus())
