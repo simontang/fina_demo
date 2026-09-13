@@ -55,6 +55,19 @@ file:
     # When set (dev convenience, fuli_survey style), requests without
     # X-Tenant-Id are attributed to this tenant. Keep blank in production.
     default-tenant: ${FILE_SERVICE_DEFAULT_TENANT:}
+  link:
+    # Download-link mode: "ticket" (platform streams, works with any storage)
+    # or "presign" (storage-native signed URL, offloads bandwidth — use when
+    # the storage endpoint is reachable by the downloader, e.g. TOS in prod).
+    mode: ${FILE_LINK_MODE:ticket}
+    # HMAC secret for ticket tokens. CHANGE IN PRODUCTION.
+    secret: ${FILE_LINK_SECRET:file-link-demo-secret-change-me}
+    # Default/max TTL for links (seconds).
+    default-ttl-seconds: ${FILE_LINK_TTL:3600}
+    max-ttl-seconds: ${FILE_LINK_MAX_TTL:604800}
+    # Optional public host rewrite for presigned URLs (document_service's
+    # PUBLIC_PRESIGN_BASE_URL pattern).
+    public-base-url: ${PUBLIC_FILE_BASE_URL:}
 
 management:
   endpoints:

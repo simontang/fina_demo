@@ -284,6 +284,11 @@ self-hosted Svix (MIT) behind a tenant-model facade.
   - `GET /api/v1/files?prefix=&delimiter=/` — pseudo-directory listing
   - `POST /api/v1/files/receipt` {path, version?} — JSON receipt (fina-ai download2ByPath style)
   - `GET /api/v1/files/uuid/{uuid}` / `…/receipt` — uuid handle download/receipt
+  - `POST /api/v1/files/link` {path?/uuid?, version?, ttlSeconds?} — shareable
+    download link. Modes (`FILE_LINK_MODE`): `ticket` (default; HMAC token,
+    platform streams — works with any storage) / `presign` (storage-native
+    signed URL for TOS in prod, offloads bandwidth). `GET /api/v1/files/ticket/{token}`
+    redeems it header-free; invalid → 403, expired → 410
 - Smoke: `platform-service/scripts/smoke.sh` — 11/11 passed against a TOS
   S3-compatible bucket (2026-09-13)
 

@@ -37,6 +37,10 @@
 | F-24 | uuid 下载端点（兼容别名） | 与 path 下载内容一致 |
 | F-26 | PUT 原始流直传 `PUT /files/{key}`（S3 PutObject 风格，X-File-* 头携带元数据） | 回执正确，GET 内容一致 |
 | F-27 | HEAD 元数据 `HEAD /files/{key}`（S3 HeadObject 风格） | ETag=sha256、X-File-Version 等头正确 |
+| L-01 | 获取下载链接 `POST /files/link`（ticket 模式） | 返回 `/ticket/{token}` 形态 URL 与 expiresAt |
+| L-02 | 免鉴权下载 | 不带任何租户/鉴权头，凭票据 URL 取得正确内容 |
+| L-03 | 篡改票据 | 403 LINK_INVALID |
+| L-04 | 过期票据（ttl=1s） | 410 LINK_EXPIRED |
 
 ### B. 多租户与鉴权（7 例）
 

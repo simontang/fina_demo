@@ -163,6 +163,22 @@ HDR=$(curl -s -I -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/a/docs/f02.csv"
 echo "$HDR" | grep -qi "^etag:" && echo "$HDR" | grep -qi "x-file-version: 2" \
   && ok F-27 "HEAD metadata headers" || bad F-27 "headers: $(echo "$HDR" | head -4 | tr '\n' ' ')"
 
+echo "=== L. 下载链接（获取下载链接） ==="
+B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -H "Content-Type: application/json" \
+  -d '{"path":"a/docs/f02.csv","ttlSeconds":600}' "$BASE/api/v1/files/link")
+URL=$(jget "$B" "d['url']")
+[[ "$URL" == *"/ticket/"* ]] && ok L-01 "link issued (ticket form)" || bad L-01 "got: $B"
+BODY=$(curl -s -m 60 "$BASE$URL")
+echo "$BODY" | grep -q beta && ok L-02 "header-free download via ticket" || bad L-02 "got: $BODY"
+C=$(curl -s -o /dev/null -w "%{http_code}" -m 60 "${BASE}${URL}x")
+[[ "$C" == "403" ]] && ok L-03 "tampered ticket 403" || bad L-03 "got $C"
+B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -H "Content-Type: application/json" \
+  -d '{"path":"a/docs/f02.csv","ttlSeconds":1}' "$BASE/api/v1/files/link")
+URL2=$(jget "$B" "d['url']")
+sleep 2
+C=$(curl -s -o /dev/null -w "%{http_code}" -m 60 "$BASE$URL2")
+[[ "$C" == "410" ]] && ok L-04 "expired ticket 410" || bad L-04 "got $C"
+
 echo "=== B. 多租户与鉴权 ==="
 
 # T-01

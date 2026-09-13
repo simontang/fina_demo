@@ -142,6 +142,12 @@ public class FileObjectService {
     public void download(String fullPath, Integer version, boolean bom,
                          jakarta.servlet.http.HttpServletResponse response) throws IOException {
         FileObject row = resolveByPath(fullPath, version);
+        downloadRow(row, bom, response);
+    }
+
+    /** Stream one row (used by both path download and ticket redemption). */
+    public void downloadRow(FileObject row, boolean bom,
+                            jakarta.servlet.http.HttpServletResponse response) throws IOException {
         boolean addBom = bom && isTextLike(row);
 
         response.setContentType(row.getMime() != null ? row.getMime() : "application/octet-stream");
@@ -195,6 +201,20 @@ public class FileObjectService {
 
     public FileReceipt receiptByPath(String fullPath, Integer version) {
         return FileReceipt.from(resolveByPath(fullPath, version), false);
+    }
+
+    public String storageKeyByPath(String path, Integer version) {
+        return resolveByPath(path, version).getStorageKey();
+    }
+
+    /** Tenant-exempt row lookup for ticket redemption (uuid = capability). */
+    public FileObject activeRowByUuidIgnoreTenant(String uuid) {
+        return mapper.selectActiveByUuidIgnoreTenant(uuid);
+    }
+
+    public String storageKeyByUuid(String uuid) {
+        return requireRow(new LambdaQueryWrapper<FileObject>()
+                .eq(FileObject::getUuid, uuid)).getStorageKey();
     }
 
     public FileReceipt receiptByUuid(String uuid) {
