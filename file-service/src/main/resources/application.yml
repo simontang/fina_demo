@@ -1,0 +1,63 @@
+server:
+  port: ${FILE_SERVICE_PORT:5707}
+
+spring:
+  application:
+    name: file-service
+  servlet:
+    multipart:
+      max-file-size: ${FILE_MAX_SIZE:512MB}
+      max-request-size: ${FILE_MAX_REQUEST_SIZE:512MB}
+  datasource:
+    # Metadata storage (PostgreSQL). In the fina_demo compose stack this is the
+    # shared document-postgres instance with a dedicated `file_service` database.
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://document-postgres:5432/file_service?stringtype=unspecified}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    username: ${SPRING_DATASOURCE_USERNAME:document}
+    password: ${SPRING_DATASOURCE_PASSWORD:document}
+    hikari:
+      pool-name: file-service-pool
+      maximum-pool-size: ${FILE_POOL_MAX:10}
+      minimum-idle: ${FILE_POOL_MIN:2}
+  jackson:
+    default-property-inclusion: always
+    time-zone: Asia/Shanghai
+
+mybatis-plus:
+  global-config:
+    db-config:
+      id-type: auto
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+
+file:
+  # Shared secret for machine callers. Blank disables the check (local dev only).
+  api-key: ${FILE_SERVICE_API_KEY:}
+  # Storage backend. Env names mirror document_service so the same MinIO/S3
+  # settings can be shared across services.
+  storage:
+    endpoint: ${OBJECT_STORAGE_ENDPOINT:http://document-minio:9000}
+    region: ${OBJECT_STORAGE_REGION:us-east-1}
+    bucket: ${OBJECT_STORAGE_BUCKET:files}
+    access-key: ${OBJECT_STORAGE_ACCESS_KEY:minio}
+    secret-key: ${OBJECT_STORAGE_SECRET_KEY:minio123}
+    force-path-style: ${OBJECT_STORAGE_FORCE_PATH_STYLE:true}
+  tenant:
+    # When set (dev convenience, fuli_survey style), requests without
+    # X-Tenant-Id are attributed to this tenant. Keep blank in production.
+    default-tenant: ${FILE_SERVICE_DEFAULT_TENANT:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  level:
+    com.fina.file: ${LOG_LEVEL:INFO}

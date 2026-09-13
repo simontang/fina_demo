@@ -26,6 +26,15 @@ x-document-service-env: &document-service-env
   LOCAL_DOCX_TO_PDF_ENABLED: ${LOCAL_DOCX_TO_PDF_ENABLED:-true}
   LIBREOFFICE_BINARY: ${LIBREOFFICE_BINARY:-soffice}
 
+x-webhook-env: &webhook-env
+  API_KEY: ${WEBHOOK_SERVICE_API_KEY:-webhook-demo-key}
+  API_JWT_SECRET: ${WEBHOOK_JWT_SECRET:-webhook-demo-jwt-secret-change-me}
+  AES_ENCRYPTION_SECRET: ${WEBHOOK_AES_SECRET:-"webhook-demo-aes-secret-32chars!"}
+  REDIS_HOST: document-redis
+  REDIS_PORT: "6379"
+  REDIS_DATABASE: "2"
+  TOPICS: ${WEBHOOK_TOPICS:-import.completed,gate.passed,decision.captured,job.completed,run.published}
+
 services:
   prediction_app:
     build:
@@ -163,6 +172,92 @@ services:
       default:
         aliases:
           - cdp-service
+    restart: unless-stopped
+
+  file-service:
+    build:
+      context: ./file-service
+      dockerfile: Dockerfile
+    environment:
+      FILE_SERVICE_PORT: "5707"
+      SPRING_DATASOURCE_URL: ${FILE_SERVICE_DATASOURCE_URL:-jdbc:postgresql://document-postgres:5432/file_service?stringtype=unspecified}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-document}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-document}
+      FILE_SERVICE_API_KEY: ${FILE_SERVICE_API_KEY:-}
+      FILE_SERVICE_DEFAULT_TENANT: ${FILE_SERVICE_DEFAULT_TENANT:-}
+      OBJECT_STORAGE_ENDPOINT: ${FILE_OBJECT_STORAGE_ENDPOINT:-http://document-minio:9000}
+      OBJECT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-us-east-1}
+      OBJECT_STORAGE_BUCKET: ${FILE_OBJECT_STORAGE_BUCKET:-files}
+      OBJECT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY:-minio}
+      OBJECT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY:-minio123}
+      OBJECT_STORAGE_FORCE_PATH_STYLE: ${OBJECT_STORAGE_FORCE_PATH_STYLE:-true}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      document-postgres:
+        condition: service_started
+      document-minio:
+        condition: service_started
+    volumes:
+      - ./logs/file-service:/app/logs
+    ports:
+      - "5707:5707"
+    networks:
+      default:
+        aliases:
+          - file-service
+    restart: unless-stopped
+
+  webhook-migrate:
+    image: hookdeck/outpost:v1.3.0
+    command: migrate apply --yes
+    environment:
+      <<: *webhook-env
+      SERVICE: migrate
+    depends_on:
+      document-redis:
+        condition: service_started
+    restart: "no"
+
+  webhook-api:
+    image: hookdeck/outpost:v1.3.0
+    environment:
+      <<: *webhook-env
+      SERVICE: api
+    depends_on:
+      webhook-migrate:
+        condition: service_completed_successfully
+      document-redis:
+        condition: service_started
+    ports:
+      - "5708:3333"
+    networks:
+      default:
+        aliases:
+          - webhook-service
+    restart: unless-stopped
+
+  webhook-delivery:
+    image: hookdeck/outpost:v1.3.0
+    environment:
+      <<: *webhook-env
+      SERVICE: delivery
+    depends_on:
+      webhook-migrate:
+        condition: service_completed_successfully
+      document-redis:
+        condition: service_started
+    restart: unless-stopped
+
+  webhook-log:
+    image: hookdeck/outpost:v1.3.0
+    environment:
+      <<: *webhook-env
+      SERVICE: log
+    depends_on:
+      webhook-migrate:
+        condition: service_completed_successfully
+      document-redis:
+        condition: service_started
     restart: unless-stopped
 
   document-api:

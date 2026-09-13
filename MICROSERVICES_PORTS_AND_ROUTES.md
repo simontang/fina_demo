@@ -240,3 +240,54 @@ The service reads `document_service/.env` for third-party engine credentials,
 object storage, Redis, and database configuration. For production-style runs in
 this project, use Aliyun PostgreSQL and TOS-compatible object storage so
 URL-based engines such as MinerU and Qwen OCR can fetch presigned HTTPS files.
+
+## 8) File Service and Webhook Service
+
+Two multi-tenant reusable services from the platform base architecture
+(`docs/architecture-discussions/agentic-semantic-factory/`).
+
+### File Service (`file-service`, Spring Boot 3.2 / Java 17)
+
+- Local API: `http://localhost:5707`
+- Compose: built from `./file-service`; metadata in `document-postgres` db
+  `file_service`; objects in `document-minio` bucket `files` (override with
+  `FILE_OBJECT_STORAGE_*` to target TOS/S3 instead)
+- Nginx route: `/api/filesvc/*` → `5707 /api/v1/*`. Note: agent BFF owns
+  `/api/files/*`, hence the `filesvc` prefix
+- Auth: `X-Tenant-Id` header (required; `FILE_SERVICE_DEFAULT_TENANT` provides
+  a dev default) + optional `X-Api-Key` (`FILE_SERVICE_API_KEY`)
+- Addressing: full logical path `{dir}/{filename}`. Immutable versioning:
+  re-upload appends a version, identical content dedupes; no folder entities —
+  directories are path-prefix aggregates
+- Key APIs:
+  - `POST /api/v1/files/upload` — multipart (`path`, `fileName?`, `fileCategory?`, `usage?`, `meta?`)
+  - `GET /api/v1/files/download?path=…&version=&bom=`
+  - `GET /api/v1/files?prefix=…` — pseudo-directory listing
+  - `GET /api/v1/files/receipt?path=…`, `GET /api/v1/files/{id}/receipt`
+  - `GET /api/v1/files/{id}/download`, `GET /api/v1/files/uuid/{uuid}/download`
+  - `DELETE /api/v1/files?path=…` — soft delete
+- Smoke: `file-service/scripts/smoke.sh` (run against a reachable service with
+  `SPRING_DATASOURCE_*`/`OBJECT_STORAGE_*`; verified end-to-end against a TOS
+  S3-compatible bucket on 2026-09-13)
+
+### Webhook Service (`webhook-api`/`webhook-delivery`/`webhook-log`, Hookdeck Outpost v1.3.0)
+
+- Local management API: `http://localhost:5708`; nginx `/api/webhooks/*` →
+  `5708 /api/v1/*`
+- Runtime deps: Redis only (`document-redis`, db 2); `webhook-migrate` one-shot
+  job applies schema on `compose up`
+- Auth: `Authorization: Bearer $WEBHOOK_SERVICE_API_KEY` (default
+  `webhook-demo-key`)
+- Topics: `import.completed`, `gate.passed`, `decision.captured`,
+  `job.completed`, `run.published` (`WEBHOOK_TOPICS` overrides)
+- Deliveries use Standard Webhooks headers (`webhook-id`, `webhook-timestamp`,
+  `webhook-signature`) with a per-destination `whsec_...` secret; at-least-once
+  with automatic retries
+- Scripts (`webhook-service/`):
+  - `scripts/provision-tenant.sh <tenant> <dest-url> [topics]` — create tenant,
+    destination, and portal link
+  - `publish.py --tenant … --topic … --data …`
+  - `scripts/mock-receiver.py` — signature-verifying receiver
+  - `scripts/smoke.sh` — full delivery+signature pass (requires a running
+    Outpost; verify on the deploy target — the image is Linux-only and this
+    workstation cannot pull it)

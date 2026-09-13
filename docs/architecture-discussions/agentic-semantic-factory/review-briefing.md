@@ -138,9 +138,11 @@ L0 连接与落地（Excel/DB/文件/报表 → landing，留痕）→ L1 诊断
 | 平台组件 | 工厂落位 |
 |---|---|
 | Metrics Service（内部插件） | metrics-server 挂载为平台插件；L4 发布（meta/metrics、grants）在此落地 |
+| **File Service** | ✅ 已落地 `file-service/`（Spring Boot 3.2，5707，nginx `/api/filesvc/`）：path 寻址、不可变版本化、无 folder 表、透明多租户（TenantLine 拦截器）；设计对齐 fina-ai file 服务，见 [file-and-webhook-services](./file-and-webhook-services.md) |
+| **Webhook Service** | ✅ 已落地 `webhook-service/`（Hookdeck Outpost v1.3.0，5708，nginx `/api/webhooks/`）：tenant→destinations、Standard Webhooks 签名、Portal 链接；Outpost 冒烟待部署目标执行 |
 | Agent Service | PM agent 与各流水线 agent（Curator/Modeler/Publisher/Analysis）的运行位置，经 a2a/mcp 互调（D8 中"PM agent 长在已有工作流引擎上"的基座即此） |
-| File Service | landing 的文件入口（Excel 落地通道 M4 的上传面） |
-| Webhook Service + 外部插件（飞书） | 确认 gate 的通知与回调通道；"只给 key 不管实现"与 M2 确认 app 零服务端设计一致 |
+| File Service→landing 衔接 | M4 的 `import` 动词从 File Service 按 path 取原件再解析（loader 职责不变） |
+| Webhook Service + 外部插件（飞书） | 确认 gate 的通知与回调通道；Portal 链接 + whsec 签名密钥已具备，飞书"只给 key 不管实现"对接待接 |
 | Tenant Management / tenant-aware gateway | KB collection=tenant 强绑定（D5）、datasource grants、项目 manifest 隔离的平台级基础 |
 | customized service（A2A→REST） | Eto 等外部系统集成工厂能力的兼容通道 |
 
