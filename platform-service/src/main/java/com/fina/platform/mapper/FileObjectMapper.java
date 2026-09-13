@@ -23,29 +23,24 @@ public interface FileObjectMapper extends BaseMapper<FileObject> {
 
     /**
      * The one listing/search query: scope to a folder, optionally recurse,
-     * optionally filter by name substring / attributes / time, always
-     * newest-first with keyset pagination on id.
+     * optionally filter by name substring / attributes / time, newest first,
+     * offset-paginated.
      */
     @Select("""
             <script>
             SELECT * FROM file_objects
             WHERE status = 'active'
               <choose>
-                <when test="recursive">
-                  AND (path = #{path} OR path LIKE #{pathPrefix})
-                </when>
-                <otherwise>
-                  AND path = #{path}
-                </otherwise>
+                <when test="recursive">AND (path = #{path} OR path LIKE #{pathPrefix})</when>
+                <otherwise>AND path = #{path}</otherwise>
               </choose>
               <if test="q != null and q != ''">AND filename ILIKE '%' || #{q} || '%'</if>
               <if test="fileCategory != null and fileCategory != ''">AND file_category = #{fileCategory}</if>
               <if test="usage != null and usage != ''">AND usage = #{usage}</if>
               <if test="from != null">AND created_at &gt;= #{from}</if>
               <if test="to != null">AND created_at &lt;= #{to}</if>
-              <if test="beforeId != null">AND id &lt; #{beforeId}</if>
             ORDER BY id DESC
-            LIMIT #{limit}
+            LIMIT #{size} OFFSET #{offset}
             </script>
             """)
     List<FileObject> query(@Param("path") String path,
@@ -56,8 +51,33 @@ public interface FileObjectMapper extends BaseMapper<FileObject> {
                            @Param("usage") String usage,
                            @Param("from") java.time.LocalDateTime from,
                            @Param("to") java.time.LocalDateTime to,
-                           @Param("beforeId") Long beforeId,
-                           @Param("limit") int limit);
+                           @Param("size") int size,
+                           @Param("offset") int offset);
+
+    /** Total hits for the same filters, so a page-number UI can render. */
+    @Select("""
+            <script>
+            SELECT count(*) FROM file_objects
+            WHERE status = 'active'
+              <choose>
+                <when test="recursive">AND (path = #{path} OR path LIKE #{pathPrefix})</when>
+                <otherwise>AND path = #{path}</otherwise>
+              </choose>
+              <if test="q != null and q != ''">AND filename ILIKE '%' || #{q} || '%'</if>
+              <if test="fileCategory != null and fileCategory != ''">AND file_category = #{fileCategory}</if>
+              <if test="usage != null and usage != ''">AND usage = #{usage}</if>
+              <if test="from != null">AND created_at &gt;= #{from}</if>
+              <if test="to != null">AND created_at &lt;= #{to}</if>
+            </script>
+            """)
+    long countQuery(@Param("path") String path,
+                    @Param("pathPrefix") String pathPrefix,
+                    @Param("recursive") boolean recursive,
+                    @Param("q") String q,
+                    @Param("fileCategory") String fileCategory,
+                    @Param("usage") String usage,
+                    @Param("from") java.time.LocalDateTime from,
+                    @Param("to") java.time.LocalDateTime to);
 
     /** Next-level folder names under a path (used by the non-recursive view). */
     @Select("""

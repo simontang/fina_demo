@@ -130,8 +130,9 @@ public class FileController {
     /**
      * Find files under a folder. `path` picks the folder (default: root);
      * `q` filters by name substring; `recursive=true` includes descendants;
-     * the rest are attribute/time filters. Newest first, paginated with
-     * `limit` + `cursor` (cursor comes from the previous page's nextCursor).
+     * the rest are attribute/time filters. Newest first, page-number
+     * paginated (`page` is 1-based, `size` rows per page; `total` reports the
+     * full match count so a UI can render page links).
      */
     @GetMapping
     public PathListing list(@RequestParam(value = "path", required = false, defaultValue = "") String path,
@@ -141,9 +142,9 @@ public class FileController {
                             @RequestParam(value = "usage", required = false) String usage,
                             @RequestParam(value = "from", required = false) String from,
                             @RequestParam(value = "to", required = false) String to,
-                            @RequestParam(value = "limit", required = false) Integer limit,
-                            @RequestParam(value = "cursor", required = false) String cursor) {
-        return service.query(path, recursive, q, fileCategory, usage, from, to, limit, cursor);
+                            @RequestParam(value = "page", required = false) Integer page,
+                            @RequestParam(value = "size", required = false) Integer size) {
+        return service.query(path, recursive, q, fileCategory, usage, from, to, page, size);
     }
 
     private void requireUuid(String uuid) {

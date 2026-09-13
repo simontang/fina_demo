@@ -37,12 +37,12 @@
 | F-27 | HEAD 元数据 `HEAD /files/{uuid}` | ETag=sha256、X-File-Version/Path 等头正确 |
 | F-28 | `GET /files/{uuid}` 只返元数据 | 返回 JSON 回执，不返回文件内容 |
 | F-29 | 列表目录聚合（SQL 侧 DISTINCT） | 返回下一层子目录，不加载整个前缀 |
-| F-30 | 列表分页 | `limit` 生效，`truncated`/`nextCursor` 正确 |
-| F-31 | 游标续页 | 无重叠、无遗漏、按 filename 有序 |
-| F-32 | 子串搜索 `?q=&recursive=true` + 分页 | 命中数正确，`truncated`/`nextCursor` 生效 |
+| F-30 | 列表分页 | `page`/`size` 生效，`total`/`totalPages` 正确 |
+| F-31 | 页码翻页 | 各页不重叠，末页取余数 |
+| F-32 | 子串搜索 `?q=&recursive=true` + 分页 | 命中数与 `total`/`page`/`size` 正确 |
 | F-33 | 属性过滤组合（category+usage+q） | 交集正确 |
 | F-34 | 无命中 | 空页而非报错 |
-| F-35 | 搜索游标续页 | 不重复第一页 |
+| F-35 | 搜索返回 `total`/`totalPages` | 数值正确（20 条 → 4 页 @size=5） |
 | F-36 | 非法日期参数 | 400 |
 | F-37 | 目录前缀匹配走 btree（`text_pattern_ops`） | 非 C collation 下 `path LIKE 前缀%` 非全表扫描 |
 | L-01 | `POST /files/presign` {uuid}：auto + 内网存储（自托管 MinIO） | 返回自有下载 URL（kind=direct） |

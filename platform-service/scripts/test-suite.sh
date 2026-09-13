@@ -129,10 +129,10 @@ echo "$HDR" | grep -qi "content-type: text/csv" && echo "$HDR" | grep -qi "filen
 # F-19 / F-20
 B=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files?path=a")
 echo "$B" | grep -q '"docs"' && ok F-19a "prefix shows subdir" || bad F-19a "got: $B"
-B=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files?path=a/docs&limit=100")
+B=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files?path=a/docs&size=100")
 N=$(echo "$B" | python3 -c "import json,sys;print(len(json.load(sys.stdin)['files']))")
 [[ "$N" -ge 3 ]] && ok F-19b "prefix lists files" || bad F-19b "files=$N"
-B=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files?limit=100")
+B=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files?size=100")
 echo "$B" | grep -q '"a"' && ok F-20 "root listing" || bad F-20 "got: $(echo "$B" | head -c 120)"
 
 # F-22 / F-23
@@ -164,17 +164,17 @@ INSERT INTO file_objects (tenant_id, path, filename, version, sha256, size, stat
 SELECT '$LP', 'docs/2026-01', 'f-' || lpad(i::text,3,'0') || '.csv', 1, repeat('a',64), 10, 'active',
        '$LP/' || md5(random()::text), md5(random()::text)
 FROM generate_series(1,25) i;" >/dev/null 2>&1
-B=$(curl -s -m 60 -H "X-Tenant-Id: $LP" "$BASE/api/v1/files?path=docs")
+B=$(curl -s -m 60 -H "X-Tenant-Id: $LP" "$BASE/api/v1/files?path=docs&size=10")
 N=$(echo "$B" | python3 -c "import json,sys;print(len(json.load(sys.stdin)['directories']))")
 [[ "$N" == "1" ]] && ok F-29 "listing aggregates subdirectories in SQL" || bad F-29 "dirs=$N"
-B=$(curl -s -m 60 -H "X-Tenant-Id: $LP" "$BASE/api/v1/files?path=docs/2026-01&limit=10")
-T=$(echo "$B" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['truncated'],len(d['files']),bool(d['nextCursor']))")
-[[ "$T" == "True 10 True" ]] && ok F-30 "page + nextCursor" || bad F-30 "got: $T"
-CUR=$(echo "$B" | python3 -c "import json,sys;print(json.load(sys.stdin)['nextCursor'])")
-B=$(curl -s -m 60 -H "X-Tenant-Id: $LP" "$BASE/api/v1/files?path=docs/2026-01&limit=10&cursor=$CUR")
-N1=$(curl -s -m 60 -H "X-Tenant-Id: $LP" "$BASE/api/v1/files?path=docs/2026-01&limit=10" | python3 -c "import json,sys;print(len({f['uuid'] for f in json.load(sys.stdin)['files']}))")
-N2=$(echo "$B" | python3 -c "import json,sys;print(len({f['uuid'] for f in json.load(sys.stdin)['files']}))")
-[[ "$N1" == "10" && "$N2" == "10" ]] && ok F-31 "cursor pagination works" || bad F-31 "p1=$N1 p2=$N2"
+B=$(curl -s -m 60 -H "X-Tenant-Id: $LP" "$BASE/api/v1/files?path=docs/2026-01&page=1&size=10")
+T=$(echo "$B" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['page'],d['size'],len(d['files']),d['total'],d['totalPages'])")
+[[ "$T" == "1 10 10 25 3" ]] && ok F-30 "page 1 + total + totalPages" || bad F-30 "got: $T"
+P1=$(curl -s -m 60 -H "X-Tenant-Id: $LP" "$BASE/api/v1/files?path=docs/2026-01&page=1&size=10" | python3 -c "import json,sys;print(' '.join(f['uuid'] for f in json.load(sys.stdin)['files']))")
+P2=$(curl -s -m 60 -H "X-Tenant-Id: $LP" "$BASE/api/v1/files?path=docs/2026-01&page=2&size=10" | python3 -c "import json,sys;print(' '.join(f['uuid'] for f in json.load(sys.stdin)['files']))")
+P3=$(curl -s -m 60 -H "X-Tenant-Id: $LP" "$BASE/api/v1/files?path=docs/2026-01&page=3&size=10" | python3 -c "import json,sys;d=json.load(sys.stdin);print(len(d['files']))")
+SAME=0; for u in $P2; do case " $P1 " in *" $u "*) SAME=1;; esac; done
+[[ "$SAME" == "0" && "$P3" == "5" ]] && ok F-31 "pages disjoint, last page partial" || bad F-31 "overlap=$SAME last=$P3"
 
 # F-32..F-35: search (substring + attributes + paging)
 SP="search-$TS"
@@ -183,19 +183,19 @@ INSERT INTO file_objects (tenant_id, path, filename, version, sha256, size, file
 SELECT '$SP', 'sales/2026-01', 'stock-report-' || lpad(i::text,3,'0') || '.csv', 1, repeat('c',64), 9, 'report', 'import', 'active',
        '$SP/' || md5(random()::text), md5(random()::text), now() - (i || ' days')::interval
 FROM generate_series(1,20) i;" >/dev/null 2>&1
-B=$(curl -s -m 60 -H "X-Tenant-Id: $SP" "$BASE/api/v1/files?q=stock&recursive=true&limit=5")
-N=$(echo "$B" | python3 -c "import json,sys;d=json.load(sys.stdin);print(len(d['files']),d['truncated'])")
-[[ "$N" == "5 True" ]] && ok F-32 "substring search + page" || bad F-32 "got: $N"
+B=$(curl -s -m 60 -H "X-Tenant-Id: $SP" "$BASE/api/v1/files?q=stock&recursive=true&size=5")
+N=$(echo "$B" | python3 -c "import json,sys;d=json.load(sys.stdin);print(len(d['files']),d['total'],d['page'],d['size'])")
+[[ "$N" == "5 20 1 5" ]] && ok F-32 "substring search + pagination" || bad F-32 "got: $N"
 B=$(curl -s -m 60 -H "X-Tenant-Id: $SP" "$BASE/api/v1/files?q=stock&recursive=true&fileCategory=report&usage=import")
 N=$(echo "$B" | python3 -c "import json,sys;print(len(json.load(sys.stdin)['files']))")
 [[ "$N" == "20" ]] && ok F-33 "attribute filters combine with q" || bad F-33 "got $N"
 B=$(curl -s -m 60 -H "X-Tenant-Id: $SP" "$BASE/api/v1/files?q=nomatch-xyz&recursive=true")
 N=$(echo "$B" | python3 -c "import json,sys;print(len(json.load(sys.stdin)['files']))")
 [[ "$N" == "0" ]] && ok F-34 "no match returns empty page" || bad F-34 "got $N"
-CUR=$(curl -s -m 60 -H "X-Tenant-Id: $SP" "$BASE/api/v1/files?q=stock&recursive=true&limit=5" | python3 -c "import json,sys;print(json.load(sys.stdin)['nextCursor'])")
-B=$(curl -s -m 60 -H "X-Tenant-Id: $SP" "$BASE/api/v1/files?q=stock&recursive=true&limit=5&cursor=$CUR")
-FIRST=$(echo "$B" | python3 -c "import json,sys;print(json.load(sys.stdin)['files'][0]['filename'])")
-[[ "$FIRST" != "stock-report-020.csv" ]] && ok F-35 "search cursor does not repeat page 1" || bad F-35 "first=$FIRST"
+T=$(curl -s -m 60 -H "X-Tenant-Id: $SP" "$BASE/api/v1/files?q=stock&recursive=true&size=5" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['total'],d['totalPages'])")
+[[ "$T" == "20 4" ]] && ok F-35 "search reports total/totalPages" || bad F-35 "got: $T"
+
+
 C=$(curl -s -o /dev/null -w "%{http_code}" -m 60 -H "X-Tenant-Id: $SP" "$BASE/api/v1/files?from=bogus")
 [[ "$C" == "400" ]] && ok F-36 "invalid date 400" || bad F-36 "got $C"
 HDR=$(curl -s -I -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U2")

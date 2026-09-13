@@ -22,9 +22,11 @@ public class PathListing {
     /** next-level folder names; empty for recursive queries. */
     private List<String> directories;
     private List<FileReceipt> files;
-    private Integer limit;
-    /** true when more files exist — pass nextCursor back to continue. */
-    private boolean truncated;
-    /** opaque continuation handle (null when truncated=false). */
-    private String nextCursor;
+
+    /** 1-based page number of this result. */
+    private int page;
+    private int size;
+    /** total matching files across all pages (after filters). */
+    private long total;
+    private int totalPages;
 }

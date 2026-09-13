@@ -290,14 +290,15 @@ self-hosted Svix (MIT) behind a tenant-model facade.
   - `HEAD /api/v1/files/{uuid}` — metadata as headers (`ETag`=sha256,
     `X-File-Version`, `X-File-Path`, `X-File-Md5`, `X-File-Meta`)
   - `DELETE /api/v1/files/{uuid}` — soft delete (that version only)
-  - `GET /api/v1/files?path=&q=&recursive=&fileCategory=&usage=&from=&to=&limit=&cursor=`
+  - `GET /api/v1/files?path=&q=&recursive=&fileCategory=&usage=&from=&to=&page=&size=`
     — one endpoint for "find files under a folder": `path` scopes to a folder
     (default root), `q` filters by name substring, `recursive=true` includes
-    descendants, remaining params are filters; newest first with `nextCursor`
-    for the next page. Non-recursive responses also carry the next-level
-    `directories` for drill-down. Backed by PostgreSQL, not S3: flat
-    `{tenant}/{uuid}` keys carry no path, so the object store cannot answer
-    path or search queries
+    descendants, remaining params are filters. Newest first, page-number
+    paginated: `page` is 1-based, `size` defaults to 20 (max 1000), and the
+    response carries `total`/`totalPages` so a UI can render page links.
+    Non-recursive responses also carry the next-level `directories` for
+    drill-down. Backed by PostgreSQL, not S3: flat `{tenant}/{uuid}` keys
+    carry no path, so the object store cannot answer path or search queries
 - Indexes (Flyway-managed): btree `(tenant_id, path, filename)` and
   `(tenant_id, path text_pattern_ops)` — the `*_pattern_ops` variant is what
   lets `path LIKE 'folder/%'` use an index in a non-C collation;

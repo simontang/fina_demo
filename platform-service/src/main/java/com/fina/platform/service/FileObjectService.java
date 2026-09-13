@@ -175,62 +175,52 @@ public class FileObjectService {
         }
     }
 
-    /** Max files per page; caller may request fewer, never more. */
+    /** Default and maximum rows per page. */
+    public static final int DEFAULT_PAGE_SIZE = 20;
     public static final int MAX_PAGE_SIZE = 1000;
     private static final int MAX_DIRECTORIES = 1000;
 
     /**
      * One entry point for "find files under a folder": scope to a path,
      * optionally recurse into descendants, optionally filter by name
-     * substring / category / usage / time range. Newest first, keyset
-     * paginated (the cursor is the previous page's last id, base64-wrapped).
-     * Non-recursive calls also return the next-level folder names so a UI can
-     * drill down.
+     * substring / category / usage / time range. Newest first, page-number
+     * paginated (page is 1-based; total is returned so a UI can render page
+     * links). Non-recursive calls also return the next-level folder names so
+     * a UI can drill down.
      */
     public PathListing query(String path, Boolean recursive, String q, String fileCategory,
-                             String usage, String from, String to, Integer limit, String cursor) {
+                             String usage, String from, String to, Integer page, Integer size) {
         String dir = normalizeDir(path);
         boolean recurse = Boolean.TRUE.equals(recursive);
-        int pageSize = limit == null ? 100 : Math.min(Math.max(limit, 1), MAX_PAGE_SIZE);
+        int pageNum = page == null ? 1 : Math.max(page, 1);
+        int pageSize = size == null ? DEFAULT_PAGE_SIZE : Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+        String query = blankToNull(q);
+        String category = blankToNull(fileCategory);
+        String usageFilter = blankToNull(usage);
+        java.time.LocalDateTime fromTs = parseDate(from, false);
+        java.time.LocalDateTime toTs = parseDate(to, true);
+        String pathPrefix = dir.isEmpty() ? "%" : dir + "/%";
 
-        List<FileObject> rows = mapper.query(
-                dir,
-                dir.isEmpty() ? "%" : dir + "/%",
-                recurse,
-                blankToNull(q),
-                blankToNull(fileCategory),
-                blankToNull(usage),
-                parseDate(from, false),
-                parseDate(to, true),
-                decodeCursor(cursor),
-                pageSize + 1);
-        boolean truncated = rows.size() > pageSize;
-        if (truncated) {
-            rows = rows.subList(0, pageSize);
-        }
+        long total = mapper.countQuery(dir, pathPrefix, recurse, query, category, usageFilter, fromTs, toTs);
+        List<FileObject> rows = mapper.query(dir, pathPrefix, recurse, query, category, usageFilter,
+                fromTs, toTs, pageSize, (pageNum - 1) * pageSize);
 
         List<String> directories = List.of();
         if (!recurse) {
             int startPos = dir.isEmpty() ? 1 : dir.length() + 2;
-            List<String> found = mapper.listSubdirectories(
-                    startPos, dir.isEmpty() ? "%" : dir + "/%", MAX_DIRECTORIES + 1);
-            if (found.size() > MAX_DIRECTORIES) {
-                directories = found.subList(0, MAX_DIRECTORIES);
-                truncated = true;
-            } else {
-                directories = found;
-            }
+            directories = mapper.listSubdirectories(startPos, pathPrefix, MAX_DIRECTORIES);
         }
 
         return PathListing.builder()
                 .path(dir)
                 .recursive(recurse)
-                .query(blankToNull(q))
+                .query(query)
                 .directories(directories)
                 .files(rows.stream().map(r -> FileReceipt.from(r, false)).toList())
-                .limit(pageSize)
-                .truncated(truncated)
-                .nextCursor(rows.isEmpty() ? null : encodeCursor(rows.get(rows.size() - 1).getId()))
+                .page(pageNum)
+                .size(pageSize)
+                .total(total)
+                .totalPages((int) ((total + pageSize - 1) / pageSize))
                 .build();
     }
 
@@ -249,24 +239,6 @@ public class FileObjectService {
             return java.time.LocalDateTime.parse(v.replace(' ', 'T'));
         } catch (Exception e) {
             throw ApiException.badRequest("invalid date: " + value + " (expected YYYY-MM-DD)");
-        }
-    }
-
-    private String encodeCursor(Long id) {
-        return id == null ? null
-                : java.util.Base64.getUrlEncoder().withoutPadding()
-                        .encodeToString(String.valueOf(id).getBytes(java.nio.charset.StandardCharsets.UTF_8));
-    }
-
-    private Long decodeCursor(String cursor) {
-        if (cursor == null || cursor.isBlank()) {
-            return null;
-        }
-        try {
-            return Long.valueOf(new String(java.util.Base64.getUrlDecoder().decode(cursor),
-                    java.nio.charset.StandardCharsets.UTF_8));
-        } catch (Exception e) {
-            throw ApiException.badRequest("invalid cursor");
         }
     }
 
