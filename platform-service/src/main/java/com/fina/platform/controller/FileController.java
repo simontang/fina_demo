@@ -125,6 +125,23 @@ public class FileController {
         return Map.of("deleted", service.delete(uuid));
     }
 
+    // ── search ──────────────────────────────────────────────────────────
+
+    /** Substring/attribute search across the whole tree (recursive, newest
+     *  first) — complements the one-level directory listing. */
+    @GetMapping("/search")
+    public com.fina.platform.dto.FileSearchResult search(
+            @RequestParam(value = "q", required = false) String q,
+            @RequestParam(value = "prefix", required = false) String prefix,
+            @RequestParam(value = "fileCategory", required = false) String fileCategory,
+            @RequestParam(value = "usage", required = false) String usage,
+            @RequestParam(value = "from", required = false) String from,
+            @RequestParam(value = "to", required = false) String to,
+            @RequestParam(value = "limit", required = false) Integer limit,
+            @RequestParam(value = "cursor", required = false) String cursor) {
+        return service.search(q, prefix, fileCategory, usage, from, to, limit, cursor);
+    }
+
     // ── listing ─────────────────────────────────────────────────────────
 
     /** List by logical-path prefix (path is metadata; results carry uuids). */

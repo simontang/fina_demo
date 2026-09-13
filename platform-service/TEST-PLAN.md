@@ -39,6 +39,11 @@
 | F-29 | 列表目录聚合（SQL 侧 DISTINCT） | 返回下一层子目录，不加载整个前缀 |
 | F-30 | 列表分页 | `limit` 生效，`truncated`/`nextCursor` 正确 |
 | F-31 | 游标续页 | 无重叠、无遗漏、按 filename 有序 |
+| F-32 | 子串搜索 `?q=` + 分页 | 命中数正确，`truncated`/`nextCursor` 生效 |
+| F-33 | 属性过滤组合（category+usage+q） | 交集正确 |
+| F-34 | 无命中 | 空页而非报错 |
+| F-35 | 搜索游标续页 | 不重复第一页 |
+| F-36 | 非法日期参数 | 400 |
 | L-01 | `POST /files/presign` {uuid}：auto + 内网存储（自托管 MinIO） | 返回自有下载 URL（kind=direct） |
 | L-02 | presign 缺 uuid / uuid 格式非法 | 400 |
 | L-03 | `POST /files/presign` {uuid}：auto + 公网存储（TOS） | 返回 storage 原生 presigned URL（X-Amz-Signature） |
@@ -119,7 +124,7 @@
 ## 3. 执行结果
 
 - 执行时间：2026-09-13；执行器：`scripts/test-suite.sh`（本机全栈：postgres:15 + svix-server + platform-service，存储 TOS 真实 S3 端点）
-- **结果：43/43 全部通过**（S3 风格接口 v2 形态；含 F-11a/b、F-16a/b、F-22a/b、F-26b、T-05a~d 等子用例拆分）
+- **结果：48/48 全部通过**（S3 风格接口 v2 形态；含 F-11a/b、F-16a/b、F-22a/b、F-26b、T-05a~d 等子用例拆分）
 - 接口 v2 重设计（URL 路径寻址 + PUT/HEAD/DELETE + prefix/delimiter 列表）过程中，测试套件抓到并修复 4 个回归：multipart 缺省文件名丢失（控制器重构遗漏 originalFilename 回退）、空文件校验随重构失效、Unicode key 需 URL 解码（UriUtils）、nginx 公网前缀少映射 `/files` 段
 
 ### 3.1 测试发现并已修复的缺陷

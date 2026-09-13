@@ -174,6 +174,29 @@ CUR=$(echo "$B" | python3 -c "import json,sys;print(json.load(sys.stdin)['nextCu
 B=$(curl -s -m 60 -H "X-Tenant-Id: $LP" "$BASE/api/v1/files?prefix=docs/2026-01&limit=10&cursor=$CUR")
 FIRST=$(echo "$B" | python3 -c "import json,sys;print(json.load(sys.stdin)['files'][0]['filename'])")
 [[ "$FIRST" == "f-011.csv" ]] && ok F-31 "cursor continues without overlap" || bad F-31 "first=$FIRST"
+
+# F-32..F-35: search (substring + attributes + paging)
+SP="search-$TS"
+docker exec file-service-pg psql -U document -d postgres -q -c "
+INSERT INTO file_objects (tenant_id, path, filename, version, sha256, size, file_category, usage, status, storage_key, uuid, created_at)
+SELECT '$SP', 'sales/2026-01', 'stock-report-' || lpad(i::text,3,'0') || '.csv', 1, repeat('c',64), 9, 'report', 'import', 'active',
+       '$SP/' || md5(random()::text), md5(random()::text), now() - (i || ' days')::interval
+FROM generate_series(1,20) i;" >/dev/null 2>&1
+B=$(curl -s -m 60 -H "X-Tenant-Id: $SP" "$BASE/api/v1/files/search?q=stock&limit=5")
+N=$(echo "$B" | python3 -c "import json,sys;d=json.load(sys.stdin);print(len(d['files']),d['truncated'])")
+[[ "$N" == "5 True" ]] && ok F-32 "substring search + page" || bad F-32 "got: $N"
+B=$(curl -s -m 60 -H "X-Tenant-Id: $SP" "$BASE/api/v1/files/search?q=stock&fileCategory=report&usage=import")
+N=$(echo "$B" | python3 -c "import json,sys;print(len(json.load(sys.stdin)['files']))")
+[[ "$N" == "20" ]] && ok F-33 "attribute filters combine with q" || bad F-33 "got $N"
+B=$(curl -s -m 60 -H "X-Tenant-Id: $SP" "$BASE/api/v1/files/search?q=nomatch-xyz")
+N=$(echo "$B" | python3 -c "import json,sys;print(len(json.load(sys.stdin)['files']))")
+[[ "$N" == "0" ]] && ok F-34 "no match returns empty page" || bad F-34 "got $N"
+CUR=$(curl -s -m 60 -H "X-Tenant-Id: $SP" "$BASE/api/v1/files/search?q=stock&limit=5" | python3 -c "import json,sys;print(json.load(sys.stdin)['nextCursor'])")
+B=$(curl -s -m 60 -H "X-Tenant-Id: $SP" "$BASE/api/v1/files/search?q=stock&limit=5&cursor=$CUR")
+FIRST=$(echo "$B" | python3 -c "import json,sys;print(json.load(sys.stdin)['files'][0]['filename'])")
+[[ "$FIRST" != "stock-report-020.csv" ]] && ok F-35 "search cursor does not repeat page 1" || bad F-35 "first=$FIRST"
+C=$(curl -s -o /dev/null -w "%{http_code}" -m 60 -H "X-Tenant-Id: $SP" "$BASE/api/v1/files/search?from=bogus")
+[[ "$C" == "400" ]] && ok F-36 "invalid date 400" || bad F-36 "got $C"
 HDR=$(curl -s -I -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U2")
 echo "$HDR" | grep -qi "^etag:" && echo "$HDR" | grep -qi "x-file-version: 2" \
   && ok F-27 "HEAD metadata headers" || bad F-27 "headers: $(echo "$HDR" | head -4 | tr '\n' ' ')"

@@ -216,6 +216,76 @@ public class FileObjectService {
                 .build();
     }
 
+    /**
+     * Substring/attribute search across the tenant's tree, newest first.
+     * The cursor is the last id of the page, base64-wrapped so callers treat
+     * it as opaque rather than as an internal key.
+     */
+    public com.fina.platform.dto.FileSearchResult search(String q, String prefix, String fileCategory,
+                                                        String usage, String from, String to,
+                                                        Integer limit, String cursor) {
+        int pageSize = limit == null ? 100 : Math.min(Math.max(limit, 1), MAX_PAGE_SIZE);
+        Long beforeId = decodeCursor(cursor);
+        List<FileObject> rows = mapper.search(
+                blankToNull(q), prefix == null || prefix.isBlank() ? null : normalizeDir(prefix),
+                blankToNull(fileCategory), blankToNull(usage),
+                parseDate(from, false), parseDate(to, true),
+                beforeId, pageSize + 1);
+        boolean truncated = rows.size() > pageSize;
+        if (truncated) {
+            rows = rows.subList(0, pageSize);
+        }
+        return com.fina.platform.dto.FileSearchResult.builder()
+                .query(q)
+                .prefix(prefix)
+                .files(rows.stream().map(r -> FileReceipt.from(r, false)).toList())
+                .limit(pageSize)
+                .truncated(truncated)
+                .nextCursor(truncated && !rows.isEmpty()
+                        ? encodeCursor(rows.get(rows.size() - 1).getId()) : null)
+                .build();
+    }
+
+    /** Accepts YYYY-MM-DD (or full ISO timestamp). endOfDay widens a bare
+     *  date to its last instant so `to=2026-09-30` includes that day. */
+    private java.time.LocalDateTime parseDate(String value, boolean endOfDay) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String v = value.trim();
+        try {
+            if (v.length() == 10) {
+                java.time.LocalDate d = java.time.LocalDate.parse(v);
+                return endOfDay ? d.atTime(23, 59, 59, 999_000_000) : d.atStartOfDay();
+            }
+            return java.time.LocalDateTime.parse(v.replace(' ', 'T'));
+        } catch (Exception e) {
+            throw ApiException.badRequest("invalid date: " + value + " (expected YYYY-MM-DD)");
+        }
+    }
+
+    private String encodeCursor(Long id) {
+        return id == null ? null
+                : java.util.Base64.getUrlEncoder().withoutPadding()
+                        .encodeToString(String.valueOf(id).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
+    private Long decodeCursor(String cursor) {
+        if (cursor == null || cursor.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.valueOf(new String(java.util.Base64.getUrlDecoder().decode(cursor),
+                    java.nio.charset.StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            throw ApiException.badRequest("invalid cursor");
+        }
+    }
+
+    private String blankToNull(String v) {
+        return v == null || v.isBlank() ? null : v.trim();
+    }
+
     public FileReceipt receiptByPath(String fullPath, Integer version) {
         return FileReceipt.from(resolveByPath(fullPath, version), false);
     }

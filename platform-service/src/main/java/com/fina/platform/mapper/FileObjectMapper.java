@@ -55,4 +55,40 @@ public interface FileObjectMapper extends BaseMapper<FileObject> {
     List<FileObject> listFilesInDir(@Param("dir") String dir,
                                     @Param("cursor") String cursor,
                                     @Param("limit") int limit);
+
+    /**
+     * Substring + attribute search, newest first, keyset-paginated by id.
+     * Filters are all optional; the tenant interceptor adds tenant_id.
+     */
+    @Select("""
+            <script>
+            SELECT * FROM file_objects
+            WHERE status = 'active'
+              <if test="q != null and q != ''">
+                AND (filename ILIKE '%' || #{q} || '%' OR path ILIKE '%' || #{q} || '%')
+              </if>
+              <if test="prefix != null and prefix != ''">
+                AND (path = #{prefix} OR path LIKE #{prefix} || '/%')
+              </if>
+              <if test="fileCategory != null and fileCategory != ''">
+                AND file_category = #{fileCategory}
+              </if>
+              <if test="usage != null and usage != ''">
+                AND usage = #{usage}
+              </if>
+              <if test="from != null">AND created_at &gt;= #{from}</if>
+              <if test="to != null">AND created_at &lt;= #{to}</if>
+              <if test="beforeId != null">AND id &lt; #{beforeId}</if>
+            ORDER BY id DESC
+            LIMIT #{limit}
+            </script>
+            """)
+    List<FileObject> search(@Param("q") String q,
+                            @Param("prefix") String prefix,
+                            @Param("fileCategory") String fileCategory,
+                            @Param("usage") String usage,
+                            @Param("from") java.time.LocalDateTime from,
+                            @Param("to") java.time.LocalDateTime to,
+                            @Param("beforeId") Long beforeId,
+                            @Param("limit") int limit);
 }

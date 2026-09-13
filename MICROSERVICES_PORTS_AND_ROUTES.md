@@ -295,6 +295,15 @@ self-hosted Svix (MIT) behind a tenant-model facade.
     keyset-paginated page of `files`; `truncated`/`nextCursor` continue the
     walk. Backed by PostgreSQL, not S3: flat `{tenant}/{uuid}` storage keys
     carry no path, so the object store cannot answer path queries
+  - `GET /api/v1/files/search?q=&prefix=&fileCategory=&usage=&from=&to=&limit=&cursor=`
+    — recursive search (newest first): `q` matches filename/path substrings,
+    the rest are attribute filters; keyset-paginated via `nextCursor`.
+    Both endpoints are backed by PostgreSQL, not S3: flat `{tenant}/{uuid}`
+    storage keys carry no path, so the object store cannot answer either kind
+    of query. Indexes (Flyway V2/V3): btree `(tenant_id, path, filename)` for
+    browse, GIN trigram on `filename`/`path` for substring search (best-effort
+    — needs `pg_trgm`; search still works by scan where the extension is not
+    grantable), plus btree `(tenant_id, status, id)` / category / usage filters
   - `POST /api/v1/files/presign` {uuid, ttlSeconds?} — download URL.
     Reachable/cloud storage → storage-native presigned URL (bandwidth bypasses
     this service); internal storage (self-hosted MinIO) → our own
