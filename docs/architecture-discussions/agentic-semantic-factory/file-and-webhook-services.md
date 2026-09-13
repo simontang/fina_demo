@@ -1,7 +1,8 @@
 # File Service 与 Webhook Service 落地记录
 
 - 日期：2026-09-13
-- 状态：M1（File Service）已实现并本机冒烟全绿；M2（Webhook Service）已实现+脚本交付，Outpost 本机不可运行（镜像 Linux-only、本机 Docker Hub 拉取受限），待部署目标验证
+- 状态：两模块已合并为 **platform-service**（Spring Boot，5707）；files 模块本机冒烟全绿；webhooks 模块（Svix 适配层）代码就绪，svix-server 实跑验证待部署目标（本机 Docker Hub 拉取受限）
+- 决策记录：Webhook 后端 **选型 Svix**（2026-09-13 与业务方评审后确定，评估过程见 §4）；**两服务合并为一个 Java 可复用组件**（同日确认，架构守则见 §5）
 - 关联：[review-briefing §11 平台基座](./review-briefing.md)、[dbt-dynamic-deploy](./dbt-dynamic-deploy.md)
 
 ## 0. 选型决策
@@ -63,6 +64,8 @@ Spring Boot 3.2.3 / Java 17 / Gradle KTS / mybatis-plus / Lombok，完全照 met
 
 ## 2. Webhook Service 设计
 
+> ⚠️ 本节为 Outpost 方案时期的历史记录，交付物与 compose 已被 §5 的 Svix 合并架构取代；事件契约表仍然有效。
+
 ### 事件契约
 
 | topic | 发布方 | 载荷要点 |
@@ -90,4 +93,59 @@ Spring Boot 3.2.3 / Java 17 / Gradle KTS / mybatis-plus / Lombok，完全照 met
 
 ## 3. 与平台基座的关系
 
-两个服务按"内部插件"约定挂载：REST + Bearer/共享密钥 v1 认证；租户经 header 传播。平台 Tenant Management/API Key 签发体系建成后，`FILE_SERVICE_API_KEY` / `WEBHOOK_SERVICE_API_KEY` 的静态共享密钥应替换为签发的 key（接口不变，仅换凭据来源）。
+两个服务按"内部插件"约定挂载：REST + Bearer/共享密钥 v1 认证；租户经 header 传播。平台 Tenant Management/API Key 签发体系建成后，`FILE_SERVICE_API_KEY` 等静态共享密钥应替换为签发的 key（接口不变，仅换凭据来源）。
+
+## 4. Webhook 后端选型决策：Svix（2026-09-13）
+
+### 评估比对结论（与业务方评审后确定）
+
+两候选均为合格选择，差异在三个维度（评估时的事实基础，全部来自当日官方源核实）：
+
+| 维度 | Hookdeck Outpost v1.3.0 | **Svix 开源版（选定）** |
+|---|---|---|
+| License | Apache-2.0 | MIT |
+| 运行依赖 | 仅 Redis（migrate+api+delivery+log 四容器） | PostgreSQL 必须 + Redis 可选（单容器） |
+| 多租户模型 | tenants→destinations 一级资源 | applications（≈每租户）→endpoints |
+| 客户门户 | **内置** per-tenant Portal（JWT 直达链接） | 开源版 API-only，门户需 embed 组件自建 |
+| 重试/DLQ | 指数退避；DLQ/SSRF 文档未明确 | 成熟重试调度；自管 DLQ+redrive；**默认 SSRF 防护** |
+| 开源 vs 托管 | 托管跑同一代码库 | 官方明说开源版精简（未列清单） |
+| 成熟度 | 1.1k stars | 品类开创者、Standard Webhooks 规范制定者 |
+
+**定选 Svix 的理由**（业务方拍板）：品类标准制定者的原厂实现、更完整的投递可观测（DLQ/attempts API）、默认 SSRF 防护（收端 URL 由客户配置的场景必要）、MIT。接受的两个代价：门户需自建（先用 attempts API 顶，接飞书时上 embed 组件）、开源精简版行为差异需实测。
+
+**保留的对比记录**：Outpost 曾为首选（license 干净、tenant 模型贴合、Portal 内置），切换成本分析成立——集成面收敛在 `SvixServerClient` 一个类里，未来再评估 Outpost 只需重写该类 + compose 块。
+
+### 实测验收清单（部署目标执行）
+
+`platform-service/scripts/webhook-smoke.sh`：建目标（拿 whsec）→ 验签收端 → 发布 → 30s 内收到 → 验签通过 → facade messages 可查。另需人工确认：断端点后的重试节奏、内网 URL 防护（svix 默认阻断，`SVIX_WHITELIST_SUBNETS` 放行 demo 收端）。
+
+## 5. 合并架构：platform-service（2026-09-13 定稿）
+
+**决策**：file 与 webhook 两个能力合并为一个 Java 可复用组件，而非两个独立服务。
+
+```
+[factory agents / scripts]
+   │  X-Tenant-Id + X-Api-Key
+   ▼
+platform-service :5707（nginx /api/filesvc/ 与 /api/webhooks/）
+   ├─ files 模块    /api/v1/files/*      → MinIO/TOS + file_objects（原样迁移，冒烟全绿）
+   └─ webhooks 模块 /api/v1/webhooks/*   → SvixServerClient → svix-server 容器（不对外暴露）
+svix-server：SVIX_DB_DSN=document-postgres/svix，SVIX_REDIS_DSN=document-redis/3，自动建目标 whsec 签名
+```
+
+**三条架构守则**：
+
+1. **Svix 本体独立容器**——Java 里只有 HTTP 适配层（`SvixServerClient` 一个类知道 Svix 存在），换产品=重写该类+compose 块；
+2. **facade 是唯一调用面**——业务方只见 `X-Tenant-Id` + 工厂 topic + facade API；租户=Svix Application（uid=tenantId）、topic=EventType（发布时懒注册）、destination=Endpoint（svix 生成 whsec）；
+3. **模块边界即拆分线**——`com.fina.platform.files/...` 逻辑分离（现包结构：entity/mapper/service 与 webhooks/ 平行），将来要拆沿包切。
+
+**facade API**：
+
+- `POST /api/v1/webhooks/destinations` {url, topics[], description?} → {endpointId, secret(whsec), topics}
+- `GET /api/v1/webhooks/destinations` / `DELETE /api/v1/webhooks/destinations/{endpointId}`
+- `POST /api/v1/webhooks/publish` {topic, data} → {messageId, topic}
+- `GET /api/v1/webhooks/messages?limit=` / `GET /api/v1/webhooks/messages/{messageId}/attempts`
+
+**实现细节**：svix-server 鉴权 token 由 `SvixTokenService` 用共享 `SVIX_JWT_SECRET` 现场铸造 HS256 JWT（sub=orgId，10 年期，demo 够用；生产接平台签发后收紧）；EventType 发布时懒注册；`SVIX_WHITELIST_SUBNETS` demo 默认放行私网段（host.docker.internal 收端需要），生产留空保持 SSRF 严格。
+
+**合并的代价与兜底**：两个能力的发布节奏被绑在一起（可接受——都是平台基座、同一团队）；存储带宽与投递吞吐互相影响（demo 规模无关；未来拆分沿模块线）。

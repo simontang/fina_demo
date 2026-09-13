@@ -8,8 +8,7 @@ Demo repository that combines:
 - **b1s/**：Java (Spring Boot) SAP B1 Service Layer 代理与 B1 指标服务
 - **cdp-service/**：Java (Spring Boot) CDP 分群定义、分群数据与 SQL processing 服务
 - **document_service/**：Python (FastAPI + Celery) 文档解析统一 IO 服务，上传文件后异步分发到 Datalab、MinerU、TextIn、Qwen OCR、PaddleOCR 等远程 engine，并输出 Markdown/JSON。
-- **file-service/**：Java (Spring Boot) 多租户文件服务：路径寻址、不可变版本、内容去重（端口 5707，nginx `/api/filesvc/`）。
-- **webhook-service/**：Hookdeck Outpost 出站 Webhook 投递：多租户、Standard Webhooks 签名、重试与 Portal（端口 5708，nginx `/api/webhooks/`）。
+- **platform-service/**：Java (Spring Boot) 平台基座可复用服务：files 模块（多租户文件：路径寻址、不可变版本、内容去重）+ webhooks 模块（Svix 出站投递 facade：签名、重试、投递查询）。端口 5707，nginx `/api/filesvc/` 与 `/api/webhooks/`。
 
 功能亮点：
 - **Data Agent**：业务数据分析智能体，支持自然语言查数、多步分析与报告生成；详见 [开发 Data Agent 指南](docs/DEVELOPING_A_DATA_AGENT.md)。
@@ -83,8 +82,7 @@ Services:
 - B1S service: http://localhost:5705
 - CDP service: http://localhost:5706
 - Document service: http://localhost:5710/docs
-- File service: http://localhost:5707/actuator/health
-- Webhook service (Outpost): http://localhost:5708
+- Platform service (files + webhooks): http://localhost:5707/actuator/health
 - Document API via nginx: `/api/documents/v1/*`
 
 Optional (AI insights / explanations):

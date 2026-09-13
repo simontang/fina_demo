@@ -241,21 +241,27 @@ object storage, Redis, and database configuration. For production-style runs in
 this project, use Aliyun PostgreSQL and TOS-compatible object storage so
 URL-based engines such as MinerU and Qwen OCR can fetch presigned HTTPS files.
 
-## 8) File Service and Webhook Service
+## 8) Platform Service（files + webhooks）
 
-Two multi-tenant reusable services from the platform base architecture
-(`docs/architecture-discussions/agentic-semantic-factory/`).
-
-### File Service (`file-service`, Spring Boot 3.2 / Java 17)
+Spring Boot 3.2 / Java 17 multi-tenant reusable service combining two modules
+from the platform base architecture
+(`docs/architecture-discussions/agentic-semantic-factory/`). Webhook backend:
+self-hosted Svix (MIT) behind a tenant-model facade.
 
 - Local API: `http://localhost:5707`
-- Compose: built from `./file-service`; metadata in `document-postgres` db
-  `file_service`; objects in `document-minio` bucket `files` (override with
-  `FILE_OBJECT_STORAGE_*` to target TOS/S3 instead)
-- Nginx route: `/api/filesvc/*` → `5707 /api/v1/*`. Note: agent BFF owns
-  `/api/files/*`, hence the `filesvc` prefix
+- Compose: built from `./platform-service`; sidecars `svix-server` (image
+  `svix/svix-server`, internal only) and `platform-db-init` (creates
+  `file_service` + `svix` databases, applies DDL)
+- Metadata in `document-postgres` db `file_service`; objects in
+  `document-minio` bucket `files` (override with `FILE_OBJECT_STORAGE_*` for
+  TOS/S3); Svix state in `document-postgres` db `svix` + `document-redis` db 3
+- Nginx routes: `/api/filesvc/*` → `5707 /api/v1/*` (agent BFF owns
+  `/api/files/*`); `/api/webhooks/*` → `5707 /api/v1/webhooks/*`
 - Auth: `X-Tenant-Id` header (required; `FILE_SERVICE_DEFAULT_TENANT` provides
   a dev default) + optional `X-Api-Key` (`FILE_SERVICE_API_KEY`)
+
+### files 模块
+
 - Addressing: full logical path `{dir}/{filename}`. Immutable versioning:
   re-upload appends a version, identical content dedupes; no folder entities —
   directories are path-prefix aggregates
@@ -266,28 +272,25 @@ Two multi-tenant reusable services from the platform base architecture
   - `GET /api/v1/files/receipt?path=…`, `GET /api/v1/files/{id}/receipt`
   - `GET /api/v1/files/{id}/download`, `GET /api/v1/files/uuid/{uuid}/download`
   - `DELETE /api/v1/files?path=…` — soft delete
-- Smoke: `file-service/scripts/smoke.sh` (run against a reachable service with
-  `SPRING_DATASOURCE_*`/`OBJECT_STORAGE_*`; verified end-to-end against a TOS
-  S3-compatible bucket on 2026-09-13)
+- Smoke: `platform-service/scripts/smoke.sh` — 11/11 passed against a TOS
+  S3-compatible bucket (2026-09-13)
 
-### Webhook Service (`webhook-api`/`webhook-delivery`/`webhook-log`, Hookdeck Outpost v1.3.0)
+### webhooks 模块（Svix facade）
 
-- Local management API: `http://localhost:5708`; nginx `/api/webhooks/*` →
-  `5708 /api/v1/*`
-- Runtime deps: Redis only (`document-redis`, db 2); `webhook-migrate` one-shot
-  job applies schema on `compose up`
-- Auth: `Authorization: Bearer $WEBHOOK_SERVICE_API_KEY` (default
-  `webhook-demo-key`)
+Our tenant model on the outside, Svix on the inside (tenant=Svix application,
+topic=event type auto-registered, destination=endpoint with auto-generated
+`whsec_` secret). Deliveries use Standard Webhooks headers, at-least-once with
+Svix's retry schedule and default SSRF protection.
+
+- `POST /api/v1/webhooks/destinations` {url, topics[], description?} →
+  {endpointId, secret, topics}
+- `GET/DELETE /api/v1/webhooks/destinations[/{endpointId}]`
+- `POST /api/v1/webhooks/publish` {topic, data} → {messageId, topic}
+- `GET /api/v1/webhooks/messages?limit=`,
+  `GET /api/v1/webhooks/messages/{messageId}/attempts`
 - Topics: `import.completed`, `gate.passed`, `decision.captured`,
-  `job.completed`, `run.published` (`WEBHOOK_TOPICS` overrides)
-- Deliveries use Standard Webhooks headers (`webhook-id`, `webhook-timestamp`,
-  `webhook-signature`) with a per-destination `whsec_...` secret; at-least-once
-  with automatic retries
-- Scripts (`webhook-service/`):
-  - `scripts/provision-tenant.sh <tenant> <dest-url> [topics]` — create tenant,
-    destination, and portal link
-  - `publish.py --tenant … --topic … --data …`
-  - `scripts/mock-receiver.py` — signature-verifying receiver
-  - `scripts/smoke.sh` — full delivery+signature pass (requires a running
-    Outpost; verify on the deploy target — the image is Linux-only and this
-    workstation cannot pull it)
+  `job.completed`, `run.published`
+- Scripts (`platform-service/scripts/`): `provision-destination.sh`,
+  `publish.py`, `mock-receiver.py` (signature-verifying receiver),
+  `webhook-smoke.sh` — run on the deploy target (svix-server image cannot be
+  pulled on this workstation)
