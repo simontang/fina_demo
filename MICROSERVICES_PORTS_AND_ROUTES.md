@@ -264,10 +264,10 @@ self-hosted Svix (MIT) behind a tenant-model facade.
 - Auth: `X-Tenant-Id` header (required; `FILE_SERVICE_DEFAULT_TENANT` provides
   a dev default) + optional `X-Api-Key` (`FILE_SERVICE_API_KEY`)
 - Contract: the tenant rides ONLY in the `X-Tenant-Id` header — never in the
-  body, never in `path`, and it is not echoed back in responses (receipts
-  carry no tenantId). Caller paths are tenant-relative; the tenant prefix is
-  applied internally to the storage key (never exposed). Receipts expose
-  `uuid` only — no sequential id (enumeration/information-leak risk)
+  body, never in `path`, and it is not echoed back in responses. Caller paths
+  are tenant-relative; the tenant prefix is applied internally to the storage
+  key (never exposed); no sequential ids are exposed either
+  (enumeration/information-leak risk)
 
 ### files 模块
 
@@ -278,22 +278,16 @@ self-hosted Svix (MIT) behind a tenant-model facade.
   merged with fina-ai interactions; no sequential ids exposed:
   - `POST /api/v1/files/upload` — multipart (`path`, `fileName?`, `fileCategory?`, `usage?`, `meta?`)
   - `PUT /api/v1/files/{key…}` — raw-stream upload; metadata via `X-File-Category/Usage/Meta` headers
-  - `GET /api/v1/files/{key…}?version=&bom=` — download
-  - `HEAD /api/v1/files/{key…}` — metadata as headers (`ETag`=sha256, `X-File-Md5/Uuid/Version/Meta`)
+  - `GET /api/v1/files/{key…}?version=&bom=` — direct download
+  - `HEAD /api/v1/files/{key…}` — metadata as headers (`ETag`=sha256, `X-File-Md5/Version/Meta`)
   - `DELETE /api/v1/files/{key…}?version=` — soft delete
   - `GET /api/v1/files?prefix=&delimiter=/` — pseudo-directory listing
-  - `POST /api/v1/files/receipt` {path, version?} — JSON receipt (fina-ai download2ByPath style)
-  - `GET /api/v1/files/uuid/{uuid}` / `…/receipt` — uuid handle download/receipt
-  - `POST /api/v1/files/link` {path?/uuid?, version?, ttlSeconds?} — shareable
-    download link. Mode `FILE_LINK_MODE`:
-    `auto` (default) → presigned storage URL when the endpoint is
-    internet-reachable (TOS/S3; downloads bypass this service), our own
-    ticket link when storage is internal (self-hosted MinIO);
-    `presign` / `ticket` force one. `PUBLIC_FILE_BASE_URL` rewrites the
-    presigned host when storage is published behind another domain.
-    `GET /api/v1/files/ticket/{token}` redeems a ticket header-free;
-    invalid → 403, expired → 410. dev compose defaults to `ticket`,
-    prod to `presign`
+  - `POST /api/v1/files/presign` {path, version?, ttlSeconds?} — download URL.
+    Reachable/cloud storage → storage-native presigned URL (bandwidth bypasses
+    this service); internal storage (self-hosted MinIO) → our own download URL.
+    `FILE_LINK_MODE` forces `auto` (default) or `presign`;
+    `PUBLIC_FILE_BASE_URL` rewrites the presigned host when storage is
+    published behind another domain. Requires the tenant header.
 - Smoke: `platform-service/scripts/smoke.sh` — 11/11 passed against a TOS
   S3-compatible bucket (2026-09-13)
 

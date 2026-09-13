@@ -31,18 +31,14 @@
 | F-18 | 下载响应头 | Content-Type 保留；Content-Disposition 带 UTF-8 文件名 |
 | F-19 | 列表 prefix+delimiter（S3 list 语义） | 直属文件 + 下一层伪目录聚合 |
 | F-20 | 列表空 prefix（根） | 列出全部根文件与一级目录 |
-| F-21 | JSON 回执（POST body）与 by-uuid 回执一致，响应不含 id | 同一行指纹一致；id 不暴露 |
 | F-22 | 软删除 `DELETE /files/{key}?version=` | status=deleted；下载 404；存储对象保留 |
 | F-23 | 删除指定 version | 仅该版本被删，其余版本仍可下载 |
-| F-24 | uuid 下载端点（兼容别名） | 与 path 下载内容一致 |
 | F-26 | PUT 原始流直传 `PUT /files/{key}`（S3 PutObject 风格，X-File-* 头携带元数据） | 回执正确，GET 内容一致 |
 | F-27 | HEAD 元数据 `HEAD /files/{key}`（S3 HeadObject 风格） | ETag=sha256、X-File-Version 等头正确 |
-| L-01 | 获取下载链接 `POST /files/link`（ticket 模式） | 返回 `/ticket/{token}` 形态 URL 与 expiresAt |
-| L-02 | 免鉴权下载 | 不带任何租户/鉴权头，凭票据 URL 取得正确内容 |
-| L-03 | 篡改票据 | 403 LINK_INVALID |
-| L-04 | 过期票据（ttl=1s） | 410 LINK_EXPIRED |
-| L-05 | auto 模式：内网存储端点（document-minio） | 返回自有 ticket 链接 |
-| L-06 | auto 模式：公网存储端点（TOS） | 返回 storage 原生 presigned URL（X-Amz-Signature） |
+| L-01 | `POST /files/presign` 内网存储（自托管 MinIO） | 返回自有下载 URL（kind=direct），可直接下载 |
+| L-02 | 返回的 URL 兑换 | 内容正确 |
+| L-03 | presign 缺 path | 400 |
+| L-04 | `POST /files/presign` 公网存储（TOS） | 返回 storage 原生 presigned URL（X-Amz-Signature） |
 
 ### B. 多租户与鉴权（7 例）
 
@@ -50,7 +46,6 @@
 |---|---|---|
 | T-01 | 缺 `X-Tenant-Id` | 400 TENANT_REQUIRED |
 | T-02 | 跨租户同路径互不可见 | 各自上传/下载/列表完全隔离 |
-| T-03 | 跨租户按 uuid 访问 | 404（透明隔离；接口面已无 id 寻址） |
 | T-04 | `X-User-Id` 上下文 | created_by 自动填充 |
 | T-05 | `X-Api-Key` 启用时：缺失/错误 → 401；正确 → 200 | 鉴权门生效（独立实例验证） |
 | T-06 | webhooks 跨租户隔离 | destinations/publish/messages 按租户作用域 |
@@ -121,7 +116,7 @@
 ## 3. 执行结果
 
 - 执行时间：2026-09-13；执行器：`scripts/test-suite.sh`（本机全栈：postgres:15 + svix-server + platform-service，存储 TOS 真实 S3 端点）
-- **结果：57/57 全部通过**（S3 风格接口 v2 形态；含 F-11a/b、F-16a/b、F-22a/b、F-26b、T-05a~d 等子用例拆分）
+- **结果：40/40 全部通过**（S3 风格接口 v2 形态；含 F-11a/b、F-16a/b、F-22a/b、F-26b、T-05a~d 等子用例拆分）
 - 接口 v2 重设计（URL 路径寻址 + PUT/HEAD/DELETE + prefix/delimiter 列表）过程中，测试套件抓到并修复 4 个回归：multipart 缺省文件名丢失（控制器重构遗漏 originalFilename 回退）、空文件校验随重构失效、Unicode key 需 URL 解码（UriUtils）、nginx 公网前缀少映射 `/files` 段
 
 ### 3.1 测试发现并已修复的缺陷

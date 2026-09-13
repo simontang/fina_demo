@@ -25,8 +25,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns("/**")
                 // portal pages are tenant-agnostic shells; their API calls carry
                 // the tenant header per request
-                .excludePathPatterns("/actuator/**", "/error", "/portal", "/portal/**",
-                        "/api/v1/files/ticket/**");
+                .excludePathPatterns("/actuator/**", "/error", "/portal", "/portal/**");
     }
 
     @Override

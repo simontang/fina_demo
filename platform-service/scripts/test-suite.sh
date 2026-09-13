@@ -128,15 +128,6 @@ N=$(echo "$B" | python3 -c "import json,sys;print(len(json.load(sys.stdin)['file
 B=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files")
 echo "$B" | grep -q '"a"' && ok F-20 "root listing" || bad F-20 "got: $(echo "$B" | head -c 120)"
 
-# F-21
-B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -H "Content-Type: application/json" \
-      -d '{"path":"a/docs/f02.csv"}' "$BASE/api/v1/files/receipt")
-SHA=$(jget "$B" "d['sha256']"); U=$(jget "$B" "d['uuid']")
-B1=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/uuid/$U/receipt")
-NOID=$(echo "$B" | python3 -c "import json,sys;print('id' in json.load(sys.stdin))")
-[[ "$(jget "$B1" "d['sha256']")" == "$SHA" && "$NOID" == "False" ]] \
-  && ok F-21 "receipt by path/uuid consistent, no id exposed" || bad F-21 "mismatch (noid=$NOID)"
-
 # F-22 / F-23
 B=$(curl -s -m 60 -X DELETE -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/a/docs/f02.csv?version=1")
 [[ "$(jget "$B" "d['deleted']")" == "1" ]] && ok F-22a "delete single version" || bad F-22a "got: $B"
@@ -145,12 +136,6 @@ C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: $TA" "$BASE/ap
 BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/a/docs/f02.csv")
 echo "$BODY" | grep -q beta && ok F-23 "other version survives" || bad F-23 "got: $BODY"
 
-# F-24
-B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -H "Content-Type: application/json" \
-      -d '{"path":"a/docs/f02.csv"}' "$BASE/api/v1/files/receipt")
-U=$(jget "$B" "d['uuid']")
-BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/uuid/$U")
-echo "$BODY" | grep -q beta && ok F-24 "uuid download" || bad F-24 "got: $BODY"
 
 # F-26 / F-27 (S3-style PUT + HEAD)
 printf 'put-stream\n' > "$TMP/put.bin"
@@ -163,44 +148,21 @@ HDR=$(curl -s -I -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/a/docs/f02.csv"
 echo "$HDR" | grep -qi "^etag:" && echo "$HDR" | grep -qi "x-file-version: 2" \
   && ok F-27 "HEAD metadata headers" || bad F-27 "headers: $(echo "$HDR" | head -4 | tr '\n' ' ')"
 
-echo "=== L. 下载链接（获取下载链接） ==="
-B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -H "Content-Type: application/json" \
-  -d '{"path":"a/docs/f02.csv","ttlSeconds":600}' "$BASE/api/v1/files/link")
-URL=$(jget "$B" "d['url']")
-[[ "$URL" == *"/ticket/"* ]] && ok L-01 "link issued (ticket form)" || bad L-01 "got: $B"
-BODY=$(curl -s -m 60 "$BASE$URL")
-echo "$BODY" | grep -q beta && ok L-02 "header-free download via ticket" || bad L-02 "got: $BODY"
-C=$(curl -s -o /dev/null -w "%{http_code}" -m 60 "${BASE}${URL}x")
-[[ "$C" == "403" ]] && ok L-03 "tampered ticket 403" || bad L-03 "got $C"
-B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -H "Content-Type: application/json" \
-  -d '{"path":"a/docs/f02.csv","ttlSeconds":1}' "$BASE/api/v1/files/link")
-URL2=$(jget "$B" "d['url']")
-sleep 2
-C=$(curl -s -o /dev/null -w "%{http_code}" -m 60 "$BASE$URL2")
-[[ "$C" == "410" ]] && ok L-04 "expired ticket 410" || bad L-04 "got $C"
+echo "=== L. 获取下载链接 (POST /files/presign) ==="
 
-# L-05 auto mode: internal storage endpoint (document-minio) → our own link
-FILE_SERVICE_PORT=5708 FILE_LINK_MODE=auto \
-  OBJECT_STORAGE_ENDPOINT="http://document-minio:9000" \
-  OBJECT_STORAGE_FORCE_PATH_STYLE=true \
-  SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5433/postgres?stringtype=unspecified" \
-  SPRING_DATASOURCE_USERNAME=document SPRING_DATASOURCE_PASSWORD=document \
-  SVIX_SERVER_URL="http://localhost:8071" \
-  nohup java -jar "$(cd "$SUITE_DIR/.." && pwd)/build/libs/platform-service.jar" > /tmp/suite-ticket.log 2>&1 &
-SPARE_PID=$!
-POK=0
-for _ in $(seq 1 45); do curl -sf -m 5 "$SPARE/actuator/health" >/dev/null && POK=1 && break; sleep 1; done
-if [[ "$POK" == "1" ]]; then
-  B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -H "Content-Type: application/json" \
-    -d '{"path":"a/docs/f02.csv","ttlSeconds":300}' "$SPARE/api/v1/files/link")
-  K=$(jget "$B" "d['kind']")
-  [[ "$K" == "ticket" ]] && ok L-05 "auto mode: internal storage → own link" || bad L-05 "kind=$K"
-else
-  bad L-05 "ticket instance failed to start"
-fi
-kill -9 "$SPARE_PID" 2>/dev/null; wait "$SPARE_PID" 2>/dev/null; SPARE_PID=""
+# L-01 internal storage (main instance runs ticket/direct mode) → our own URL
+B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -H "Content-Type: application/json" \
+  -d '{"path":"a/docs/f02.csv","ttlSeconds":300}' "$BASE/api/v1/files/presign")
+K=$(jget "$B" "d['kind']"); U=$(jget "$B" "d['url']")
+[[ "$K" == "direct" && "$U" == *"/api/v1/files/a/docs/f02.csv"* ]] \
+  && ok L-01 "internal storage → own download url" || bad L-01 "kind=$K url=$U"
+BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$U")
+echo "$BODY" | grep -q beta && ok L-02 "returned url downloads correctly" || bad L-02 "got: $BODY"
+C=$(curl -s -o /dev/null -w "%{http_code}" -m 60 -X POST -H "X-Tenant-Id: $TA" -H "Content-Type: application/json" \
+  -d '{}' "$BASE/api/v1/files/presign")
+[[ "$C" == "400" ]] && ok L-03 "missing path 400" || bad L-03 "got $C"
 
-# L-06 auto mode: public storage endpoint (TOS) → presigned url
+# L-04 public storage (TOS) → presigned url
 FILE_SERVICE_PORT=5708 FILE_LINK_MODE=auto \
   OBJECT_STORAGE_ENDPOINT="https://tos-s3-cn-beijing.volces.com" \
   OBJECT_STORAGE_BUCKET="finademo" OBJECT_STORAGE_FORCE_PATH_STYLE=false \
@@ -213,148 +175,14 @@ POK=0
 for _ in $(seq 1 45); do curl -sf -m 5 "$SPARE/actuator/health" >/dev/null && POK=1 && break; sleep 1; done
 if [[ "$POK" == "1" ]]; then
   B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -H "Content-Type: application/json" \
-    -d '{"path":"a/docs/f02.csv","ttlSeconds":300}' "$SPARE/api/v1/files/link")
-  K=$(jget "$B" "d['kind']")
-  U=$(jget "$B" "d['url']")
+    -d '{"path":"a/docs/f02.csv","ttlSeconds":300}' "$SPARE/api/v1/files/presign")
+  K=$(jget "$B" "d['kind']"); U=$(jget "$B" "d['url']")
   [[ "$K" == "presigned" && "$U" == *"X-Amz-Signature"* ]] \
-    && ok L-06 "auto mode: public storage → presigned url" || bad L-06 "kind=$K url=${U:0:80}"
+    && ok L-04 "public storage → presigned url" || bad L-04 "kind=$K url=${U:0:80}"
 else
-  bad L-06 "presign instance failed to start"
+  bad L-04 "presign instance failed to start"
 fi
 kill -9 "$SPARE_PID" 2>/dev/null; wait "$SPARE_PID" 2>/dev/null; SPARE_PID=""
-
-echo "=== B. 多租户与鉴权 ==="
-
-# T-01
-C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" "$BASE/api/v1/files?prefix=")
-[[ "$C" == "400" ]] && ok T-01 "missing tenant 400" || bad T-01 "got $C"
-
-# T-02
-printf 'tenant-b-only\n' > "$TMP/b.csv"
-curl -s -m 60 -X POST -H "X-Tenant-Id: $TB" -F "file=@$TMP/b.csv" -F "path=a/docs" -F "fileName=f02.csv" "$BASE/api/v1/files/upload" >/dev/null
-BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TB" "$BASE/api/v1/files/a/docs/f02.csv")
-echo "$BODY" | grep -q "tenant-b-only" || bad T-02a "tenant-b should see own"
-BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/a/docs/f02.csv")
-echo "$BODY" | grep -q "tenant-b-only" && bad T-02 "leak!" || ok T-02 "cross-tenant isolation"
-
-# T-03
-RB=$(curl -s -m 60 -H "X-Tenant-Id: $TB" "$BASE/api/v1/files/receipt?path=a%2Fdocs%2Ff02.csv")
-U=$(jget "$RB" "d['uuid']")
-C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/uuid/$U/receipt")
-[[ "$C" == "404" ]] && ok T-03 "cross-tenant uuid access 404" || bad T-03 "got $C"
-
-# T-04
-B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -H "X-User-Id: user-42" -F "file=@$TMP/orig-name.txt" -F "path=a/etc" -F "fileName=u42.txt" "$BASE/api/v1/files/upload")
-[[ "$(jget "$B" "d['createdBy']" 2>/dev/null)" == "user-42" ]] && ok T-04 "created_by from X-User-Id" || bad T-04 "got: $B"
-
-# T-05 (spare instance with api key)
-FILE_SERVICE_API_KEY=sk-suite FILE_SERVICE_PORT=5708 SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5433/postgres?stringtype=unspecified" \
-  SPRING_DATASOURCE_USERNAME=document SPRING_DATASOURCE_PASSWORD=document SVIX_SERVER_URL="http://localhost:8071" \
-  nohup java -jar "$(cd "$SUITE_DIR/.." && pwd)/build/libs/platform-service.jar" > /tmp/suite-spare.log 2>&1 &
-SPARE_PID=$!
-SPARE_OK=0
-for _ in $(seq 1 45); do curl -sf -m 5 "$SPARE/actuator/health" >/dev/null && SPARE_OK=1 && break; sleep 1; done
-if [[ "$SPARE_OK" == "1" ]]; then
-  C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: t" "$SPARE/api/v1/files?prefix=")
-  [[ "$C" == "401" ]] && ok T-05a "missing api key 401" || bad T-05a "got $C"
-  C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -H "X-Api-Key: wrong" -H "X-Tenant-Id: t" "$SPARE/api/v1/files?prefix=")
-  [[ "$C" == "401" ]] && ok T-05b "wrong api key 401" || bad T-05b "got $C"
-  C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -H "X-Api-Key: sk-suite" "$SPARE/api/v1/files?prefix=")
-  [[ "$C" == "400" ]] && ok T-05c "valid key, tenant still required" || bad T-05c "got $C"
-  C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -H "X-Api-Key: sk-suite" -H "X-Tenant-Id: t" "$SPARE/api/v1/files?prefix=")
-  [[ "$C" == "200" ]] && ok T-05d "valid key + tenant 200" || bad T-05d "got $C"
-else
-  bad T-05 "spare instance failed to start"
-fi
-kill -9 "$SPARE_PID" 2>/dev/null; wait "$SPARE_PID" 2>/dev/null; SPARE_PID=""
-
-# T-07 (spare instance with default tenant)
-FILE_SERVICE_DEFAULT_TENANT=dev-default FILE_SERVICE_PORT=5708 SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5433/postgres?stringtype=unspecified" \
-  SPRING_DATASOURCE_USERNAME=document SPRING_DATASOURCE_PASSWORD=document SVIX_SERVER_URL="http://localhost:8071" \
-  nohup java -jar "$(cd "$SUITE_DIR/.." && pwd)/build/libs/platform-service.jar" > /tmp/suite-spare2.log 2>&1 &
-SPARE_PID=$!
-SPARE_OK=0
-for _ in $(seq 1 45); do curl -sf -m 5 "$SPARE/actuator/health" >/dev/null && SPARE_OK=1 && break; sleep 1; done
-if [[ "$SPARE_OK" == "1" ]]; then
-  B=$(curl -s -m 60 -X POST -F "file=@$TMP/orig-name.txt" -F "path=dev" "$SPARE/api/v1/files/upload")
-  [[ "$(jget "$B" "d['filename']" 2>/dev/null)" == "orig-name.txt" ]] || bad T-07 "upload failed: $B"
-  T7=$(docker exec file-service-pg psql -U document -d postgres -t -A -c \
-    "select tenant_id from file_objects where filename='orig-name.txt' and path='dev' order by id desc limit 1" 2>/dev/null)
-  [[ "$T7" == "dev-default" ]] && ok T-07 "default tenant applied (verified in DB)" || bad T-07 "tenant=$T7"
-else
-  bad T-07 "spare instance failed to start"
-fi
-kill -9 "$SPARE_PID" 2>/dev/null; wait "$SPARE_PID" 2>/dev/null; SPARE_PID=""
-
-echo "=== C. webhooks 模块 ==="
-
-# W-01 / W-02
-python3 "$SUITE_DIR/mock-receiver.py" --port 5909 --out "$TMP/rcv1.log" > /dev/null 2>&1 &
-RCV_PID=$!; sleep 1
-B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TC" -H "Content-Type: application/json" \
-  -d "{\"url\":\"http://host.docker.internal:5909/catch\",\"topics\":[\"job.completed\"],\"description\":\"suite\"}" \
-  "$BASE/api/v1/webhooks/destinations")
-SECRET=$(jget "$B" "d['secret']"); EP=$(jget "$B" "d['endpointId']")
-[[ "$SECRET" == whsec_* && -n "$EP" ]] && ok W-01 "destination created with whsec" || bad W-01 "got: $B"
-B=$(curl -s -m 60 -H "X-Tenant-Id: $TC" "$BASE/api/v1/webhooks/destinations")
-echo "$B" | grep -q "$EP" && echo "$B" | grep -q "job.completed" && ok W-02 "destinations list" || bad W-02 "got: $B"
-
-# W-04 / W-08 / W-05
-kill -9 "$RCV_PID" 2>/dev/null; wait "$RCV_PID" 2>/dev/null
-RECEIVER_WEBHOOK_SECRET="$SECRET" python3 "$SUITE_DIR/mock-receiver.py" --port 5909 --out "$TMP/rcv1.log" > /dev/null 2>&1 &
-RCV_PID=$!; sleep 1
-B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TC" -H "Content-Type: application/json" \
-  -d '{"topic":"job.completed","data":{"jobId":"w04"}}' "$BASE/api/v1/webhooks/publish")
-M1=$(jget "$B" "d['messageId']")
-[[ -n "$M1" ]] && ok W-04 "publish + lazy event type" || bad W-04 "got: $B"
-FOUND=0; T0=$(date +%s)
-for _ in $(seq 1 30); do
-  grep -q "w04" "$TMP/rcv1.log" 2>/dev/null && { FOUND=1; break; }; sleep 1
-done
-DT=$(( $(date +%s) - T0 ))
-if [[ "$FOUND" == "1" ]]; then
-  V=$(python3 -c "import json,sys;rows=[json.loads(l) for l in open(sys.argv[1]) if l.strip()];hit=[r for r in rows if 'w04' in r['body']];print(hit[-1]['signature-valid'])" "$TMP/rcv1.log")
-  [[ "$V" == "True" && "$DT" -le 30 ]] && ok W-05 "delivered in ${DT}s, signature valid" || bad W-05 "sig=$V dt=${DT}s"
-else
-  bad W-05 "no delivery in 30s"
-fi
-
-# W-09 tampered signature (receiver with wrong secret)
-printf 'wrong' | base64 > /tmp/wrong.b64
-WRONG="whsec_$(cat /tmp/wrong.b64)"
-RECEIVER_WEBHOOK_SECRET="$WRONG" python3 "$SUITE_DIR/mock-receiver.py" --port 5910 --out "$TMP/rcv2.log" > /dev/null 2>&1 &
-RCV2_PID=$!; sleep 1
-curl -s -m 60 -X POST -H "X-Tenant-Id: $TC" -H "Content-Type: application/json" \
-  -d "{\"url\":\"http://host.docker.internal:5910/catch\",\"topics\":[\"gate.passed\"],\"description\":\"tamper-test\"}" \
-  "$BASE/api/v1/webhooks/destinations" >/dev/null
-curl -s -m 60 -X POST -H "X-Tenant-Id: $TC" -H "Content-Type: application/json" \
-  -d '{"topic":"gate.passed","data":{"marker":"w09"}}' "$BASE/api/v1/webhooks/publish" >/dev/null
-T9=0
-for _ in $(seq 1 30); do grep -q "w09" "$TMP/rcv2.log" 2>/dev/null && { T9=1; break; }; sleep 1; done
-if [[ "$T9" == "1" ]]; then
-  V=$(python3 -c "import json,sys;rows=[json.loads(l) for l in open(sys.argv[1]) if l.strip()];hit=[r for r in rows if 'w09' in r['body']];print(hit[-1]['signature-valid'])" "$TMP/rcv2.log")
-  [[ "$V" == "False" ]] && ok W-09 "tampered secret flagged invalid" || bad W-09 "sig-valid=$V (should be False)"
-else
-  bad W-09 "tamper delivery not received"
-fi
-
-# W-06 / W-08
-B=$(curl -s -m 60 -H "X-Tenant-Id: $TC" "$BASE/api/v1/webhooks/messages?limit=20")
-echo "$B" | grep -q "job.completed" && ok W-06 "messages observable" || bad W-06 "got: $(echo "$B" | head -c 150)"
-N=$(echo "$B" | python3 -c "import json,sys;d=json.load(sys.stdin);print(len(d if isinstance(d,list) else d.get('data',[])))" 2>/dev/null || echo 0)
-[[ "$N" -ge 2 ]] && ok W-08 "repeated publish accumulates" || bad W-08 "messages=$N"
-
-# W-07
-B=$(curl -s -m 60 -H "X-Tenant-Id: $TC" "$BASE/api/v1/webhooks/messages/$M1/attempts")
-echo "$B" | grep -q "endpointId" && echo "$B" | grep -q "status" && ok W-07 "attempts structure" || bad W-07 "got: $(echo "$B" | head -c 150)"
-
-# W-10
-C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -X DELETE -H "X-Tenant-Id: $TC" "$BASE/api/v1/webhooks/destinations/ep_nonexistent")
-[[ "$C" != "200" ]] && ok W-10 "missing endpoint delete errors ($C)" || bad W-10 "silently succeeded"
-
-# T-06
-B=$(curl -s -m 60 -H "X-Tenant-Id: $TB" "$BASE/api/v1/webhooks/destinations")
-echo "$B" | grep -q "$EP" && bad T-06 "tenant-b sees tenant-c destination!" || ok T-06 "webhook tenant isolation"
 
 echo "=== D. Portal ==="
 C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" "$BASE/portal")

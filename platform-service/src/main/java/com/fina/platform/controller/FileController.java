@@ -10,10 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -113,35 +111,6 @@ public class FileController {
     public PathListing list(@RequestParam(value = "prefix", required = false, defaultValue = "") String prefix,
                             @RequestParam(value = "delimiter", required = false) String delimiter) {
         return service.list(prefix);
-    }
-
-    // ── receipts ────────────────────────────────────────────────────────
-
-    /** JSON receipt by path (fina-ai download2ByPath interaction style:
-     *  POST + JSON body, keeps the wildcard route unambiguous). */
-    @PostMapping("/receipt")
-    public FileReceipt receiptByPath(@RequestBody ReceiptRequest req) {
-        if (req.path() == null || req.path().isBlank()) {
-            throw ApiException.badRequest("path is required");
-        }
-        return service.receiptByPath(req.path(), req.version());
-    }
-
-    public record ReceiptRequest(String path, Integer version) {
-    }
-
-    @GetMapping("/uuid/{uuid}/receipt")
-    public FileReceipt receiptByUuid(@PathVariable String uuid) {
-        return service.receiptByUuid(uuid);
-    }
-
-    /** Download by uuid handle (fina-ai downloadByUuid heritage). */
-    @GetMapping("/uuid/{uuid}")
-    public void downloadByUuid(@PathVariable String uuid,
-                               @RequestParam(value = "bom", required = false, defaultValue = "false") boolean bom,
-                               HttpServletResponse response) throws IOException {
-        FileReceipt receipt = service.receiptByUuid(uuid);
-        service.download(receipt.getFullPath(), receipt.getVersion(), bom, response);
     }
 
     /** Extract the wildcard part of /api/v1/files/** as the object key.
