@@ -84,7 +84,7 @@ public class FilePresignController {
                 ? publicBaseUrl.replaceAll("/+$", "")
                 : request.getScheme() + "://" + request.getServerName()
                         + (isDefaultPort(request) ? "" : ":" + request.getServerPort());
-        return base + "/api/v1/files/" + req.uuid();
+        return base + "/api/v1/files/" + req.uuid() + "/download";
     }
 
     private boolean isDefaultPort(HttpServletRequest request) {

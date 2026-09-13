@@ -285,14 +285,16 @@ self-hosted Svix (MIT) behind a tenant-model facade.
     `fileCategory?`, `usage?`, `meta?` are metadata; server generates the uuid
   - `PUT /api/v1/files/{uuid}` — raw-stream upload at a client-chosen uuid
     (idempotent re-upload); metadata via `X-File-Path`/`X-File-Name`/`X-File-*`
-  - `GET /api/v1/files/{uuid}?bom=` — direct download
+  - `GET /api/v1/files/{uuid}` — metadata (JSON); GET never returns content
+  - `GET /api/v1/files/{uuid}/download?bom=` — download the bytes
   - `HEAD /api/v1/files/{uuid}` — metadata as headers (`ETag`=sha256,
     `X-File-Version`, `X-File-Path`, `X-File-Md5`, `X-File-Meta`)
   - `DELETE /api/v1/files/{uuid}` — soft delete (that version only)
   - `GET /api/v1/files?prefix=&delimiter=/` — list by logical-path prefix
   - `POST /api/v1/files/presign` {uuid, ttlSeconds?} — download URL.
     Reachable/cloud storage → storage-native presigned URL (bandwidth bypasses
-    this service); internal storage (self-hosted MinIO) → our own download URL.
+    this service); internal storage (self-hosted MinIO) → our own
+    `/{uuid}/download` URL.
     `FILE_LINK_MODE` forces `auto` (default) or `presign`;
     `PUBLIC_FILE_BASE_URL` rewrites the presigned host when storage is
     published behind another domain. Requires the tenant header

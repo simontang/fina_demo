@@ -69,7 +69,7 @@ B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -F "file=@$TMP/orig-name.txt" -F
 printf 'unicode\n' > "$TMP/数据 表格.txt"
 B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -F "file=@$TMP/数据 表格.txt" -F "path=a/数据" "$BASE/api/v1/files/upload")
 UC=$(jget "$B" "d['uuid']")
-BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$UC")
+BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$UC/download")
 [[ "$BODY" == "unicode" && "$(jget "$B" "d['filename']")" == "数据 表格.txt" ]] \
   && ok F-06 "unicode filename roundtrip via uuid" || bad F-06 "mismatch: $BODY"
 
@@ -108,21 +108,21 @@ B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -F "file=@$TMP/orig-name.txt" -F
 [[ "$(jget "$B" "d['filename']" 2>/dev/null)" == "we_ird.txt" ]] && ok F-13 "filename sanitized" || bad F-13 "got: $B"
 
 # F-14 / F-15 / F-16 / F-17 / F-18
-BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U2")
+BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U2/download")
 echo "$BODY" | grep -q "beta" && ok F-14 "download latest (v2)" || bad F-14 "got: $BODY"
-BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U1")
+BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U1/download")
 [[ "$BODY" == "$(printf 'id,name\n1,alpha\n')" ]] && ok F-15 "download v1 intact" || bad F-15 "got: $BODY"
-BOM=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U1?bom=true" | xxd -p -l 3)
+BOM=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U1/download?bom=true" | xxd -p -l 3)
 [[ "$BOM" == "efbbbf" ]] && ok F-16a "BOM prepended" || bad F-16a "got $BOM"
 printf '\xef\xbb\xbfalready\n' > "$TMP/bom.csv"
 curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -F "file=@$TMP/bom.csv" -F "path=a/docs" -F "fileName=bom.csv" "$BASE/api/v1/files/upload" >/dev/null
 UB=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -H "Content-Type: application/json" -d '{"uuid":"'"$UB"'"}' "$BASE/api/v1/files/presign" >/dev/null 2>&1; echo)
 UB=$(docker exec file-service-pg psql -U document -d postgres -t -A -c "select uuid from file_objects where tenant_id='$TA' and filename='bom.csv' order by id desc limit 1")
-BOM2=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$UB?bom=true" | xxd -p -l 6)
+BOM2=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$UB/download?bom=true" | xxd -p -l 6)
 [[ "$BOM2" == "efbbbf61"* ]] && ok F-16b "no double BOM" || bad F-16b "got $BOM2"
 C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/00000000000000000000000000000000")
 [[ "$C" == "404" ]] && ok F-17 "404 on missing" || bad F-17 "got $C"
-HDR=$(curl -s -m 60 -D - -o /dev/null -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U2")
+HDR=$(curl -s -m 60 -D - -o /dev/null -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U2/download")
 echo "$HDR" | grep -qi "content-type: text/csv" && echo "$HDR" | grep -qi "filename\*=utf-8" \
   && ok F-18 "headers preserved" || bad F-18 "headers: $(echo "$HDR" | grep -i 'content-type\|disposition')"
 
@@ -136,23 +136,26 @@ B=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files")
 echo "$B" | grep -q '"a"' && ok F-20 "root listing" || bad F-20 "got: $(echo "$B" | head -c 120)"
 
 # F-22 / F-23
-B=$(curl -s -m 60 -X DELETE -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U1")
+B=$(curl -s -m 60 -X DELETE -H "X-Tenant-Id: $TA" "${BASE}/api/v1/files/$U1")
 [[ "$(jget "$B" "d['deleted']")" == "1" ]] && ok F-22a "delete single version" || bad F-22a "got: $B"
-C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U1")
+C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U1/download")
 [[ "$C" == "404" ]] && ok F-22b "deleted version 404" || bad F-22b "got $C"
-BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U2")
+BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U2/download")
 echo "$BODY" | grep -q beta && ok F-23 "other version survives" || bad F-23 "got: $BODY"
 
 
-# F-26 / F-27 (S3-style PUT + HEAD)
+# F-26 / F-27 (raw PUT + HEAD + download)
 printf 'put-stream\n' > "$TMP/put.bin"
 PU=$(python3 -c "import uuid;print(uuid.uuid4().hex)")
 B=$(curl -s -m 60 -X PUT -H "X-Tenant-Id: $TA" -H "Content-Type: application/octet-stream" \
   -H "X-File-Path: a/stream" -H "X-File-Name: put.bin" -H "X-File-Category: raw" \
   --data-binary "@$TMP/put.bin" "$BASE/api/v1/files/$PU")
 [[ "$(jget "$B" "d['filename']")" == "put.bin" ]] && ok F-26 "PUT raw upload at chosen uuid" || bad F-26 "got: $B"
-BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$PU")
-[[ "$BODY" == "put-stream" ]] && ok F-26b "PUT content readable" || bad F-26b "got: $BODY"
+BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$PU/download")
+[[ "$BODY" == "put-stream" ]] && ok F-26b "PUT content downloadable at /download" || bad F-26b "got: $BODY"
+META=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U2")
+echo "$META" | grep -q '"uuid"' && ! echo "$META" | grep -q '^id,name' \
+  && ok F-28 "GET /{uuid} returns metadata, not content" || bad F-28 "got: $(echo "$META" | head -c 80)"
 HDR=$(curl -s -I -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U2")
 echo "$HDR" | grep -qi "^etag:" && echo "$HDR" | grep -qi "x-file-version: 2" \
   && ok F-27 "HEAD metadata headers" || bad F-27 "headers: $(echo "$HDR" | head -4 | tr '\n' ' ')"
@@ -236,7 +239,7 @@ pkill -f "platform-service.jar" 2>/dev/null; sleep 3
 PERSIST_OK=0
 for _ in $(seq 1 30); do curl -sf -m 60 "$BASE/actuator/health" >/dev/null && { PERSIST_OK=1; break; }; sleep 1; done
 if [[ "$PERSIST_OK" == "1" ]]; then
-  BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U2")
+  BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U2/download")
   echo "$BODY" | grep -q beta && ok S-02 "state survives service restart" || bad S-02 "file lost after restart"
 else
   bad S-02 "service did not restart (needs TOS env in shell)"

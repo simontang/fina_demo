@@ -31,7 +31,8 @@ import java.util.regex.Pattern;
  *
  *   POST   /api/v1/files/upload       multipart upload (server picks uuid)
  *   PUT    /api/v1/files/{uuid}       raw-stream upload (client picks uuid)
- *   GET    /api/v1/files/{uuid}       download
+ *   GET    /api/v1/files/{uuid}       metadata (JSON)
+ *   GET    /api/v1/files/{uuid}/download   download bytes
  *   HEAD   /api/v1/files/{uuid}       metadata as headers
  *   DELETE /api/v1/files/{uuid}       soft delete
  *   GET    /api/v1/files?prefix=      list by logical-path prefix
@@ -87,7 +88,15 @@ public class FileController {
 
     // ── object operations ───────────────────────────────────────────────
 
+    /** Metadata (JSON) — GET does not download. */
     @GetMapping("/{uuid}")
+    public FileReceipt metadata(@PathVariable String uuid) {
+        requireUuid(uuid);
+        return service.receiptByUuid(uuid);
+    }
+
+    /** Download the object's bytes. */
+    @GetMapping("/{uuid}/download")
     public void download(@PathVariable String uuid,
                          @RequestParam(value = "bom", required = false, defaultValue = "false") boolean bom,
                          HttpServletResponse response) throws IOException {

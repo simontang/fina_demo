@@ -24,7 +24,7 @@
 | F-11 | path 规范化（尾斜杠/连续斜杠） | 与规范路径等价（去重判定生效） |
 | F-12 | path 含 `..` | 400，拒绝路径穿越 |
 | F-13 | 文件名含 `/` 或 `\` | 清洗为 `_`，可正常寻址 |
-| F-14 | 按 uuid 下载`GET /files/{key}` | 返回最新版本内容 |
+| F-14 | 按 uuid 下载 `GET /{uuid}/download``GET /files/{key}` | 返回最新版本内容 |
 | F-15 | 历史版本各自 uuid 独立可下载 | 内容为对应版本，旧行未被覆盖 |
 | F-16 | 下载 `bom=true`（CSV） | 前置 UTF-8 BOM；已有 BOM 不重复加 |
 | F-17 | 下载不存在/已删 key | 404 NOT_FOUND |
@@ -35,6 +35,7 @@
 | F-23 | 删除指定 version | 仅该版本被删，其余版本仍可下载 |
 | F-26 | PUT 原始流直传 `PUT /files/{uuid}`（客户端自选 uuid，X-File-* 携带元数据） | 回执正确，GET 内容一致 |
 | F-27 | HEAD 元数据 `HEAD /files/{uuid}` | ETag=sha256、X-File-Version/Path 等头正确 |
+| F-28 | `GET /files/{uuid}` 只返元数据 | 返回 JSON 回执，不返回文件内容 |
 | L-01 | `POST /files/presign` {uuid}：auto + 内网存储（自托管 MinIO） | 返回自有下载 URL（kind=direct） |
 | L-02 | presign 缺 uuid / uuid 格式非法 | 400 |
 | L-03 | `POST /files/presign` {uuid}：auto + 公网存储（TOS） | 返回 storage 原生 presigned URL（X-Amz-Signature） |
@@ -115,7 +116,7 @@
 ## 3. 执行结果
 
 - 执行时间：2026-09-13；执行器：`scripts/test-suite.sh`（本机全栈：postgres:15 + svix-server + platform-service，存储 TOS 真实 S3 端点）
-- **结果：39/39 全部通过**（S3 风格接口 v2 形态；含 F-11a/b、F-16a/b、F-22a/b、F-26b、T-05a~d 等子用例拆分）
+- **结果：40/40 全部通过**（S3 风格接口 v2 形态；含 F-11a/b、F-16a/b、F-22a/b、F-26b、T-05a~d 等子用例拆分）
 - 接口 v2 重设计（URL 路径寻址 + PUT/HEAD/DELETE + prefix/delimiter 列表）过程中，测试套件抓到并修复 4 个回归：multipart 缺省文件名丢失（控制器重构遗漏 originalFilename 回退）、空文件校验随重构失效、Unicode key 需 URL 解码（UriUtils）、nginx 公网前缀少映射 `/files` 段
 
 ### 3.1 测试发现并已修复的缺陷
