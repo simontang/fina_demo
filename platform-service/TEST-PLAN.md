@@ -29,7 +29,7 @@
 | F-16 | 下载 `bom=true`（CSV） | 前置 UTF-8 BOM；已有 BOM 不重复加 |
 | F-17 | 下载不存在/已删 key | 404 NOT_FOUND |
 | F-18 | 下载响应头 | Content-Type 保留；Content-Disposition 带 UTF-8 文件名 |
-| F-19 | 列表 prefix+delimiter | 直属文件 + 下一层伪目录聚合（结果携带 uuid） |
+| F-19 | 单端点查询 `?path=` | 直属文件 + 下一层目录聚合（结果携带 uuid） |
 | F-20 | 列表空 prefix（根） | 列出全部根文件与一级目录 |
 | F-22 | 软删除 `DELETE /files/{uuid}`（该版本） | status=deleted；该 uuid 404；同对象其他版本不受影响 |
 | F-23 | 删除指定 version | 仅该版本被删，其余版本仍可下载 |
@@ -39,11 +39,12 @@
 | F-29 | 列表目录聚合（SQL 侧 DISTINCT） | 返回下一层子目录，不加载整个前缀 |
 | F-30 | 列表分页 | `limit` 生效，`truncated`/`nextCursor` 正确 |
 | F-31 | 游标续页 | 无重叠、无遗漏、按 filename 有序 |
-| F-32 | 子串搜索 `?q=` + 分页 | 命中数正确，`truncated`/`nextCursor` 生效 |
+| F-32 | 子串搜索 `?q=&recursive=true` + 分页 | 命中数正确，`truncated`/`nextCursor` 生效 |
 | F-33 | 属性过滤组合（category+usage+q） | 交集正确 |
 | F-34 | 无命中 | 空页而非报错 |
 | F-35 | 搜索游标续页 | 不重复第一页 |
 | F-36 | 非法日期参数 | 400 |
+| F-37 | 目录前缀匹配走 btree（`text_pattern_ops`） | 非 C collation 下 `path LIKE 前缀%` 非全表扫描 |
 | L-01 | `POST /files/presign` {uuid}：auto + 内网存储（自托管 MinIO） | 返回自有下载 URL（kind=direct） |
 | L-02 | presign 缺 uuid / uuid 格式非法 | 400 |
 | L-03 | `POST /files/presign` {uuid}：auto + 公网存储（TOS） | 返回 storage 原生 presigned URL（X-Amz-Signature） |

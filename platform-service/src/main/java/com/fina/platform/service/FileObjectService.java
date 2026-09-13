@@ -180,69 +180,57 @@ public class FileObjectService {
     private static final int MAX_DIRECTORIES = 1000;
 
     /**
-     * Lists one directory level. Directories come from a DISTINCT query;
-     * files use keyset pagination on filename. Neither loads the whole
-     * prefix into memory.
+     * One entry point for "find files under a folder": scope to a path,
+     * optionally recurse into descendants, optionally filter by name
+     * substring / category / usage / time range. Newest first, keyset
+     * paginated (the cursor is the previous page's last id, base64-wrapped).
+     * Non-recursive calls also return the next-level folder names so a UI can
+     * drill down.
      */
-    public PathListing list(String prefix, Integer limit, String cursor) {
-        String dir = normalizeDir(prefix);
+    public PathListing query(String path, Boolean recursive, String q, String fileCategory,
+                             String usage, String from, String to, Integer limit, String cursor) {
+        String dir = normalizeDir(path);
+        boolean recurse = Boolean.TRUE.equals(recursive);
         int pageSize = limit == null ? 100 : Math.min(Math.max(limit, 1), MAX_PAGE_SIZE);
 
-        // one extra row reveals whether another page exists
-        List<FileObject> rows = mapper.listFilesInDir(dir, cursor, pageSize + 1);
+        List<FileObject> rows = mapper.query(
+                dir,
+                dir.isEmpty() ? "%" : dir + "/%",
+                recurse,
+                blankToNull(q),
+                blankToNull(fileCategory),
+                blankToNull(usage),
+                parseDate(from, false),
+                parseDate(to, true),
+                decodeCursor(cursor),
+                pageSize + 1);
         boolean truncated = rows.size() > pageSize;
         if (truncated) {
             rows = rows.subList(0, pageSize);
         }
-        List<FileReceipt> files = rows.stream().map(r -> FileReceipt.from(r, false)).toList();
 
-        int startPos = dir.isEmpty() ? 1 : dir.length() + 2;
-        String like = dir.isEmpty() ? "%" : dir + "/%";
-        List<String> directories = mapper.listSubdirectories(
-                startPos, like, dir.isEmpty(), MAX_DIRECTORIES + 1);
-        boolean dirsTruncated = directories.size() > MAX_DIRECTORIES;
-        if (dirsTruncated) {
-            directories = directories.subList(0, MAX_DIRECTORIES);
+        List<String> directories = List.of();
+        if (!recurse) {
+            int startPos = dir.isEmpty() ? 1 : dir.length() + 2;
+            List<String> found = mapper.listSubdirectories(
+                    startPos, dir.isEmpty() ? "%" : dir + "/%", MAX_DIRECTORIES + 1);
+            if (found.size() > MAX_DIRECTORIES) {
+                directories = found.subList(0, MAX_DIRECTORIES);
+                truncated = true;
+            } else {
+                directories = found;
+            }
         }
 
         return PathListing.builder()
-                .prefix(dir)
+                .path(dir)
+                .recursive(recurse)
+                .query(blankToNull(q))
                 .directories(directories)
-                .files(files)
-                .limit(pageSize)
-                .truncated(truncated || dirsTruncated)
-                .nextCursor(truncated && !files.isEmpty()
-                        ? files.get(files.size() - 1).getFilename() : null)
-                .build();
-    }
-
-    /**
-     * Substring/attribute search across the tenant's tree, newest first.
-     * The cursor is the last id of the page, base64-wrapped so callers treat
-     * it as opaque rather than as an internal key.
-     */
-    public com.fina.platform.dto.FileSearchResult search(String q, String prefix, String fileCategory,
-                                                        String usage, String from, String to,
-                                                        Integer limit, String cursor) {
-        int pageSize = limit == null ? 100 : Math.min(Math.max(limit, 1), MAX_PAGE_SIZE);
-        Long beforeId = decodeCursor(cursor);
-        List<FileObject> rows = mapper.search(
-                blankToNull(q), prefix == null || prefix.isBlank() ? null : normalizeDir(prefix),
-                blankToNull(fileCategory), blankToNull(usage),
-                parseDate(from, false), parseDate(to, true),
-                beforeId, pageSize + 1);
-        boolean truncated = rows.size() > pageSize;
-        if (truncated) {
-            rows = rows.subList(0, pageSize);
-        }
-        return com.fina.platform.dto.FileSearchResult.builder()
-                .query(q)
-                .prefix(prefix)
                 .files(rows.stream().map(r -> FileReceipt.from(r, false)).toList())
                 .limit(pageSize)
                 .truncated(truncated)
-                .nextCursor(truncated && !rows.isEmpty()
-                        ? encodeCursor(rows.get(rows.size() - 1).getId()) : null)
+                .nextCursor(rows.isEmpty() ? null : encodeCursor(rows.get(rows.size() - 1).getId()))
                 .build();
     }
 

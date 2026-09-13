@@ -290,27 +290,22 @@ self-hosted Svix (MIT) behind a tenant-model facade.
   - `HEAD /api/v1/files/{uuid}` — metadata as headers (`ETag`=sha256,
     `X-File-Version`, `X-File-Path`, `X-File-Md5`, `X-File-Meta`)
   - `DELETE /api/v1/files/{uuid}` — soft delete (that version only)
-  - `GET /api/v1/files?prefix=&delimiter=&limit=&cursor=` — list one directory
-    level: `directories` (next-level names, aggregated in SQL) plus one
-    keyset-paginated page of `files`; `truncated`/`nextCursor` continue the
-    walk. Backed by PostgreSQL, not S3: flat `{tenant}/{uuid}` storage keys
-    carry no path, so the object store cannot answer path queries
-  - `GET /api/v1/files/search?q=&prefix=&fileCategory=&usage=&from=&to=&limit=&cursor=`
-    — recursive search (newest first): `q` matches filename/path substrings,
-    the rest are attribute filters; keyset-paginated via `nextCursor`.
-    Both endpoints are backed by PostgreSQL, not S3: flat `{tenant}/{uuid}`
-    storage keys carry no path, so the object store cannot answer either kind
-    of query. Indexes (Flyway V2/V3): btree `(tenant_id, path, filename)` for
-    browse, GIN trigram on `filename`/`path` for substring search (best-effort
-    — needs `pg_trgm`; search still works by scan where the extension is not
-    grantable), plus btree `(tenant_id, status, id)` / category / usage filters
-  - `POST /api/v1/files/presign` {uuid, ttlSeconds?} — download URL.
-    Reachable/cloud storage → storage-native presigned URL (bandwidth bypasses
-    this service); internal storage (self-hosted MinIO) → our own
-    `/{uuid}/download` URL.
-    `FILE_LINK_MODE` forces `auto` (default) or `presign`;
-    `PUBLIC_FILE_BASE_URL` rewrites the presigned host when storage is
-    published behind another domain. Requires the tenant header
+  - `GET /api/v1/files?path=&q=&recursive=&fileCategory=&usage=&from=&to=&limit=&cursor=`
+    — one endpoint for "find files under a folder": `path` scopes to a folder
+    (default root), `q` filters by name substring, `recursive=true` includes
+    descendants, remaining params are filters; newest first with `nextCursor`
+    for the next page. Non-recursive responses also carry the next-level
+    `directories` for drill-down. Backed by PostgreSQL, not S3: flat
+    `{tenant}/{uuid}` keys carry no path, so the object store cannot answer
+    path or search queries
+- Indexes (Flyway-managed): btree `(tenant_id, path, filename)` and
+  `(tenant_id, path text_pattern_ops)` — the `*_pattern_ops` variant is what
+  lets `path LIKE 'folder/%'` use an index in a non-C collation;
+  `(tenant_id, filename text_pattern_ops)` for name-prefix;
+  GIN trigram on `filename`/`path` for middle-substring search (best-effort:
+  needs `pg_trgm`, skipped with a NOTICE where the extension is not
+  grantable — search then scans); btree `(tenant_id, status, id DESC)`,
+  category and usage filters
 - Smoke: `platform-service/scripts/smoke.sh` — 11/11 passed against a TOS
   S3-compatible bucket (2026-09-13)
 

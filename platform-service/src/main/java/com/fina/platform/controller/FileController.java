@@ -125,32 +125,25 @@ public class FileController {
         return Map.of("deleted", service.delete(uuid));
     }
 
-    // ── search ──────────────────────────────────────────────────────────
+    // ── find files under a folder ───────────────────────────────────────
 
-    /** Substring/attribute search across the whole tree (recursive, newest
-     *  first) — complements the one-level directory listing. */
-    @GetMapping("/search")
-    public com.fina.platform.dto.FileSearchResult search(
-            @RequestParam(value = "q", required = false) String q,
-            @RequestParam(value = "prefix", required = false) String prefix,
-            @RequestParam(value = "fileCategory", required = false) String fileCategory,
-            @RequestParam(value = "usage", required = false) String usage,
-            @RequestParam(value = "from", required = false) String from,
-            @RequestParam(value = "to", required = false) String to,
-            @RequestParam(value = "limit", required = false) Integer limit,
-            @RequestParam(value = "cursor", required = false) String cursor) {
-        return service.search(q, prefix, fileCategory, usage, from, to, limit, cursor);
-    }
-
-    // ── listing ─────────────────────────────────────────────────────────
-
-    /** List by logical-path prefix (path is metadata; results carry uuids). */
+    /**
+     * Find files under a folder. `path` picks the folder (default: root);
+     * `q` filters by name substring; `recursive=true` includes descendants;
+     * the rest are attribute/time filters. Newest first, paginated with
+     * `limit` + `cursor` (cursor comes from the previous page's nextCursor).
+     */
     @GetMapping
-    public PathListing list(@RequestParam(value = "prefix", required = false, defaultValue = "") String prefix,
-                            @RequestParam(value = "delimiter", required = false) String delimiter,
+    public PathListing list(@RequestParam(value = "path", required = false, defaultValue = "") String path,
+                            @RequestParam(value = "q", required = false) String q,
+                            @RequestParam(value = "recursive", required = false, defaultValue = "false") boolean recursive,
+                            @RequestParam(value = "fileCategory", required = false) String fileCategory,
+                            @RequestParam(value = "usage", required = false) String usage,
+                            @RequestParam(value = "from", required = false) String from,
+                            @RequestParam(value = "to", required = false) String to,
                             @RequestParam(value = "limit", required = false) Integer limit,
                             @RequestParam(value = "cursor", required = false) String cursor) {
-        return service.list(prefix, limit, cursor);
+        return service.query(path, recursive, q, fileCategory, usage, from, to, limit, cursor);
     }
 
     private void requireUuid(String uuid) {

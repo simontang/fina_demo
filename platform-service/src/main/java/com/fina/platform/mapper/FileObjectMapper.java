@@ -22,60 +22,25 @@ public interface FileObjectMapper extends BaseMapper<FileObject> {
     FileObject selectActiveByUuidIgnoreTenant(@Param("uuid") String uuid);
 
     /**
-     * Immediate sub-directory names under a path prefix, computed in SQL.
-     * startPos is the 1-based char position after "{prefix}/".
-     */
-    @Select("""
-            <script>
-            SELECT DISTINCT split_part(substring(path from #{startPos}), '/', 1) AS segment
-            FROM file_objects
-            WHERE status = 'active'
-              AND path LIKE #{like}
-              <if test="excludeEmpty">AND path &lt;&gt; ''</if>
-              AND split_part(substring(path from #{startPos}), '/', 1) &lt;&gt; ''
-            ORDER BY segment
-            LIMIT #{limit}
-            </script>
-            """)
-    List<String> listSubdirectories(@Param("startPos") int startPos,
-                                    @Param("like") String like,
-                                    @Param("excludeEmpty") boolean excludeEmpty,
-                                    @Param("limit") int limit);
-
-    /** Files directly under a directory, keyset-paginated by filename. */
-    @Select("""
-            <script>
-            SELECT * FROM file_objects
-            WHERE status = 'active' AND path = #{dir}
-              <if test="cursor != null and cursor != ''">AND filename &gt; #{cursor}</if>
-            ORDER BY filename
-            LIMIT #{limit}
-            </script>
-            """)
-    List<FileObject> listFilesInDir(@Param("dir") String dir,
-                                    @Param("cursor") String cursor,
-                                    @Param("limit") int limit);
-
-    /**
-     * Substring + attribute search, newest first, keyset-paginated by id.
-     * Filters are all optional; the tenant interceptor adds tenant_id.
+     * The one listing/search query: scope to a folder, optionally recurse,
+     * optionally filter by name substring / attributes / time, always
+     * newest-first with keyset pagination on id.
      */
     @Select("""
             <script>
             SELECT * FROM file_objects
             WHERE status = 'active'
-              <if test="q != null and q != ''">
-                AND (filename ILIKE '%' || #{q} || '%' OR path ILIKE '%' || #{q} || '%')
-              </if>
-              <if test="prefix != null and prefix != ''">
-                AND (path = #{prefix} OR path LIKE #{prefix} || '/%')
-              </if>
-              <if test="fileCategory != null and fileCategory != ''">
-                AND file_category = #{fileCategory}
-              </if>
-              <if test="usage != null and usage != ''">
-                AND usage = #{usage}
-              </if>
+              <choose>
+                <when test="recursive">
+                  AND (path = #{path} OR path LIKE #{pathPrefix})
+                </when>
+                <otherwise>
+                  AND path = #{path}
+                </otherwise>
+              </choose>
+              <if test="q != null and q != ''">AND filename ILIKE '%' || #{q} || '%'</if>
+              <if test="fileCategory != null and fileCategory != ''">AND file_category = #{fileCategory}</if>
+              <if test="usage != null and usage != ''">AND usage = #{usage}</if>
               <if test="from != null">AND created_at &gt;= #{from}</if>
               <if test="to != null">AND created_at &lt;= #{to}</if>
               <if test="beforeId != null">AND id &lt; #{beforeId}</if>
@@ -83,12 +48,29 @@ public interface FileObjectMapper extends BaseMapper<FileObject> {
             LIMIT #{limit}
             </script>
             """)
-    List<FileObject> search(@Param("q") String q,
-                            @Param("prefix") String prefix,
-                            @Param("fileCategory") String fileCategory,
-                            @Param("usage") String usage,
-                            @Param("from") java.time.LocalDateTime from,
-                            @Param("to") java.time.LocalDateTime to,
-                            @Param("beforeId") Long beforeId,
-                            @Param("limit") int limit);
+    List<FileObject> query(@Param("path") String path,
+                           @Param("pathPrefix") String pathPrefix,
+                           @Param("recursive") boolean recursive,
+                           @Param("q") String q,
+                           @Param("fileCategory") String fileCategory,
+                           @Param("usage") String usage,
+                           @Param("from") java.time.LocalDateTime from,
+                           @Param("to") java.time.LocalDateTime to,
+                           @Param("beforeId") Long beforeId,
+                           @Param("limit") int limit);
+
+    /** Next-level folder names under a path (used by the non-recursive view). */
+    @Select("""
+            <script>
+            SELECT DISTINCT split_part(substring(path from #{startPos}), '/', 1) AS segment
+            FROM file_objects
+            WHERE status = 'active' AND path LIKE #{like}
+              AND split_part(substring(path from #{startPos}), '/', 1) &lt;&gt; ''
+            ORDER BY segment
+            LIMIT #{limit}
+            </script>
+            """)
+    List<String> listSubdirectories(@Param("startPos") int startPos,
+                                    @Param("like") String like,
+                                    @Param("limit") int limit);
 }

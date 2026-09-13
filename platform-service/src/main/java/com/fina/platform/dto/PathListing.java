@@ -6,20 +6,25 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * Directory-prefix listing. Directories are aggregated in SQL; files are
- * keyset-paginated (order by filename) so a directory with millions of
- * objects is walked page by page instead of loaded whole.
+ * Result of "find files under a folder": the folder's immediate sub-folders
+ * (only when not recursive) plus one page of files, newest first.
  */
 @Data
 @Builder
 public class PathListing {
 
-    private String prefix;
+    /** Folder the query was scoped to ("" = the tenant's root). */
+    private String path;
+    /** true when descendants were included. */
+    private boolean recursive;
+    /** name-substring filter that was applied, if any. */
+    private String query;
+    /** next-level folder names; empty for recursive queries. */
     private List<String> directories;
     private List<FileReceipt> files;
-    /** true when more files exist after this page — pass nextCursor to continue. */
-    private boolean truncated;
-    /** opaque cursor (last filename of this page); null when not truncated. */
-    private String nextCursor;
     private Integer limit;
+    /** true when more files exist — pass nextCursor back to continue. */
+    private boolean truncated;
+    /** opaque continuation handle (null when truncated=false). */
+    private String nextCursor;
 }
