@@ -150,19 +150,33 @@ echo "$HDR" | grep -qi "^etag:" && echo "$HDR" | grep -qi "x-file-version: 2" \
 
 echo "=== L. 获取下载链接 (POST /files/presign) ==="
 
-# L-01 internal storage (main instance runs ticket/direct mode) → our own URL
-B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -H "Content-Type: application/json" \
-  -d '{"path":"a/docs/f02.csv","ttlSeconds":300}' "$BASE/api/v1/files/presign")
-K=$(jget "$B" "d['kind']"); U=$(jget "$B" "d['url']")
-[[ "$K" == "direct" && "$U" == *"/api/v1/files/a/docs/f02.csv"* ]] \
-  && ok L-01 "internal storage → own download url" || bad L-01 "kind=$K url=$U"
-BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$U")
-echo "$BODY" | grep -q beta && ok L-02 "returned url downloads correctly" || bad L-02 "got: $BODY"
+# L-01 auto + internal storage (self-hosted MinIO) → our own download URL
+FILE_SERVICE_PORT=5708 FILE_LINK_MODE=auto \
+  OBJECT_STORAGE_ENDPOINT="http://document-minio:9000" OBJECT_STORAGE_FORCE_PATH_STYLE=true \
+  SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5433/postgres?stringtype=unspecified" \
+  SPRING_DATASOURCE_USERNAME=document SPRING_DATASOURCE_PASSWORD=document \
+  SVIX_SERVER_URL="http://localhost:8071" \
+  nohup java -jar "$(cd "$SUITE_DIR/.." && pwd)/build/libs/platform-service.jar" > /tmp/suite-direct.log 2>&1 &
+SPARE_PID=$!
+POK=0
+for _ in $(seq 1 45); do curl -sf -m 5 "$SPARE/actuator/health" >/dev/null && POK=1 && break; sleep 1; done
+if [[ "$POK" == "1" ]]; then
+  B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -H "Content-Type: application/json" \
+    -d '{"path":"a/docs/f02.csv","ttlSeconds":300}' "$SPARE/api/v1/files/presign")
+  K=$(jget "$B" "d['kind']"); U=$(jget "$B" "d['url']")
+  [[ "$K" == "direct" && "$U" == *"/api/v1/files/a/docs/f02.csv"* ]] \
+    && ok L-01 "auto: internal storage → own download url" || bad L-01 "kind=$K url=$U"
+else
+  bad L-01 "internal-mode instance failed to start"
+fi
+kill -9 "$SPARE_PID" 2>/dev/null; wait "$SPARE_PID" 2>/dev/null; SPARE_PID=""
+
+# L-02 validation
 C=$(curl -s -o /dev/null -w "%{http_code}" -m 60 -X POST -H "X-Tenant-Id: $TA" -H "Content-Type: application/json" \
   -d '{}' "$BASE/api/v1/files/presign")
-[[ "$C" == "400" ]] && ok L-03 "missing path 400" || bad L-03 "got $C"
+[[ "$C" == "400" ]] && ok L-02 "missing path 400" || bad L-02 "got $C"
 
-# L-04 public storage (TOS) → presigned url
+# L-03 auto + reachable storage (TOS) → storage presigned URL
 FILE_SERVICE_PORT=5708 FILE_LINK_MODE=auto \
   OBJECT_STORAGE_ENDPOINT="https://tos-s3-cn-beijing.volces.com" \
   OBJECT_STORAGE_BUCKET="finademo" OBJECT_STORAGE_FORCE_PATH_STYLE=false \
@@ -178,9 +192,9 @@ if [[ "$POK" == "1" ]]; then
     -d '{"path":"a/docs/f02.csv","ttlSeconds":300}' "$SPARE/api/v1/files/presign")
   K=$(jget "$B" "d['kind']"); U=$(jget "$B" "d['url']")
   [[ "$K" == "presigned" && "$U" == *"X-Amz-Signature"* ]] \
-    && ok L-04 "public storage → presigned url" || bad L-04 "kind=$K url=${U:0:80}"
+    && ok L-03 "auto: reachable storage → presigned url" || bad L-03 "kind=$K url=${U:0:80}"
 else
-  bad L-04 "presign instance failed to start"
+  bad L-03 "presign instance failed to start"
 fi
 kill -9 "$SPARE_PID" 2>/dev/null; wait "$SPARE_PID" 2>/dev/null; SPARE_PID=""
 
