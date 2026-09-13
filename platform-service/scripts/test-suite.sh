@@ -156,6 +156,24 @@ BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$PU/download")
 META=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U2")
 echo "$META" | grep -q '"uuid"' && ! echo "$META" | grep -q '^id,name' \
   && ok F-28 "GET /{uuid} returns metadata, not content" || bad F-28 "got: $(echo "$META" | head -c 80)"
+
+# F-29..F-31: listing pagination (keyset, SQL-side aggregation)
+LP="listpage-$TS"
+docker exec file-service-pg psql -U document -d postgres -q -c "
+INSERT INTO file_objects (tenant_id, path, filename, version, sha256, size, status, storage_key, uuid)
+SELECT '$LP', 'docs/2026-01', 'f-' || lpad(i::text,3,'0') || '.csv', 1, repeat('a',64), 10, 'active',
+       '$LP/' || md5(random()::text), md5(random()::text)
+FROM generate_series(1,25) i;" >/dev/null 2>&1
+B=$(curl -s -m 60 -H "X-Tenant-Id: $LP" "$BASE/api/v1/files?prefix=docs")
+N=$(echo "$B" | python3 -c "import json,sys;print(len(json.load(sys.stdin)['directories']))")
+[[ "$N" == "1" ]] && ok F-29 "listing aggregates subdirectories in SQL" || bad F-29 "dirs=$N"
+B=$(curl -s -m 60 -H "X-Tenant-Id: $LP" "$BASE/api/v1/files?prefix=docs/2026-01&limit=10")
+T=$(echo "$B" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['truncated'],len(d['files']),d['nextCursor'])")
+[[ "$T" == "True 10 f-010.csv" ]] && ok F-30 "page + nextCursor" || bad F-30 "got: $T"
+CUR=$(echo "$B" | python3 -c "import json,sys;print(json.load(sys.stdin)['nextCursor'])")
+B=$(curl -s -m 60 -H "X-Tenant-Id: $LP" "$BASE/api/v1/files?prefix=docs/2026-01&limit=10&cursor=$CUR")
+FIRST=$(echo "$B" | python3 -c "import json,sys;print(json.load(sys.stdin)['files'][0]['filename'])")
+[[ "$FIRST" == "f-011.csv" ]] && ok F-31 "cursor continues without overlap" || bad F-31 "first=$FIRST"
 HDR=$(curl -s -I -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U2")
 echo "$HDR" | grep -qi "^etag:" && echo "$HDR" | grep -qi "x-file-version: 2" \
   && ok F-27 "HEAD metadata headers" || bad F-27 "headers: $(echo "$HDR" | head -4 | tr '\n' ' ')"

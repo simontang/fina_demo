@@ -290,7 +290,11 @@ self-hosted Svix (MIT) behind a tenant-model facade.
   - `HEAD /api/v1/files/{uuid}` — metadata as headers (`ETag`=sha256,
     `X-File-Version`, `X-File-Path`, `X-File-Md5`, `X-File-Meta`)
   - `DELETE /api/v1/files/{uuid}` — soft delete (that version only)
-  - `GET /api/v1/files?prefix=&delimiter=/` — list by logical-path prefix
+  - `GET /api/v1/files?prefix=&delimiter=&limit=&cursor=` — list one directory
+    level: `directories` (next-level names, aggregated in SQL) plus one
+    keyset-paginated page of `files`; `truncated`/`nextCursor` continue the
+    walk. Backed by PostgreSQL, not S3: flat `{tenant}/{uuid}` storage keys
+    carry no path, so the object store cannot answer path queries
   - `POST /api/v1/files/presign` {uuid, ttlSeconds?} — download URL.
     Reachable/cloud storage → storage-native presigned URL (bandwidth bypasses
     this service); internal storage (self-hosted MinIO) → our own

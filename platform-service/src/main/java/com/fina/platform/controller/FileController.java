@@ -130,8 +130,10 @@ public class FileController {
     /** List by logical-path prefix (path is metadata; results carry uuids). */
     @GetMapping
     public PathListing list(@RequestParam(value = "prefix", required = false, defaultValue = "") String prefix,
-                            @RequestParam(value = "delimiter", required = false) String delimiter) {
-        return service.list(prefix);
+                            @RequestParam(value = "delimiter", required = false) String delimiter,
+                            @RequestParam(value = "limit", required = false) Integer limit,
+                            @RequestParam(value = "cursor", required = false) String cursor) {
+        return service.list(prefix, limit, cursor);
     }
 
     private void requireUuid(String uuid) {

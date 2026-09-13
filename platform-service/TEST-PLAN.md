@@ -36,6 +36,9 @@
 | F-26 | PUT 原始流直传 `PUT /files/{uuid}`（客户端自选 uuid，X-File-* 携带元数据） | 回执正确，GET 内容一致 |
 | F-27 | HEAD 元数据 `HEAD /files/{uuid}` | ETag=sha256、X-File-Version/Path 等头正确 |
 | F-28 | `GET /files/{uuid}` 只返元数据 | 返回 JSON 回执，不返回文件内容 |
+| F-29 | 列表目录聚合（SQL 侧 DISTINCT） | 返回下一层子目录，不加载整个前缀 |
+| F-30 | 列表分页 | `limit` 生效，`truncated`/`nextCursor` 正确 |
+| F-31 | 游标续页 | 无重叠、无遗漏、按 filename 有序 |
 | L-01 | `POST /files/presign` {uuid}：auto + 内网存储（自托管 MinIO） | 返回自有下载 URL（kind=direct） |
 | L-02 | presign 缺 uuid / uuid 格式非法 | 400 |
 | L-03 | `POST /files/presign` {uuid}：auto + 公网存储（TOS） | 返回 storage 原生 presigned URL（X-Amz-Signature） |
@@ -116,7 +119,7 @@
 ## 3. 执行结果
 
 - 执行时间：2026-09-13；执行器：`scripts/test-suite.sh`（本机全栈：postgres:15 + svix-server + platform-service，存储 TOS 真实 S3 端点）
-- **结果：40/40 全部通过**（S3 风格接口 v2 形态；含 F-11a/b、F-16a/b、F-22a/b、F-26b、T-05a~d 等子用例拆分）
+- **结果：43/43 全部通过**（S3 风格接口 v2 形态；含 F-11a/b、F-16a/b、F-22a/b、F-26b、T-05a~d 等子用例拆分）
 - 接口 v2 重设计（URL 路径寻址 + PUT/HEAD/DELETE + prefix/delimiter 列表）过程中，测试套件抓到并修复 4 个回归：multipart 缺省文件名丢失（控制器重构遗漏 originalFilename 回退）、空文件校验随重构失效、Unicode key 需 URL 解码（UriUtils）、nginx 公网前缀少映射 `/files` 段
 
 ### 3.1 测试发现并已修复的缺陷

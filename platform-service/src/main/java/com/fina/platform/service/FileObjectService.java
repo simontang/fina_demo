@@ -175,27 +175,45 @@ public class FileObjectService {
         }
     }
 
-    public PathListing list(String prefix) {
-        String dir = normalizeDir(prefix);
-        LambdaQueryWrapper<FileObject> qw = new LambdaQueryWrapper<FileObject>()
-                .eq(FileObject::getStatus, "active")
-                .last("LIMIT 2000");
-        if (!dir.isEmpty()) {
-            qw.and(w -> w.eq(FileObject::getPath, dir).or().likeRight(FileObject::getPath, dir + "/"));
-        }
-        List<FileObject> rows = mapper.selectList(qw);
+    /** Max files per page; caller may request fewer, never more. */
+    public static final int MAX_PAGE_SIZE = 1000;
+    private static final int MAX_DIRECTORIES = 1000;
 
-        TreeSet<String> directories = new TreeSet<>();
-        List<FileReceipt> files = new ArrayList<>();
-        for (FileObject row : rows) {
-            if (row.getPath().equals(dir)) {
-                files.add(FileReceipt.from(row, false));
-            } else {
-                String remainder = dir.isEmpty() ? row.getPath() : row.getPath().substring(dir.length() + 1);
-                directories.add(remainder.split("/", 2)[0]);
-            }
+    /**
+     * Lists one directory level. Directories come from a DISTINCT query;
+     * files use keyset pagination on filename. Neither loads the whole
+     * prefix into memory.
+     */
+    public PathListing list(String prefix, Integer limit, String cursor) {
+        String dir = normalizeDir(prefix);
+        int pageSize = limit == null ? 100 : Math.min(Math.max(limit, 1), MAX_PAGE_SIZE);
+
+        // one extra row reveals whether another page exists
+        List<FileObject> rows = mapper.listFilesInDir(dir, cursor, pageSize + 1);
+        boolean truncated = rows.size() > pageSize;
+        if (truncated) {
+            rows = rows.subList(0, pageSize);
         }
-        return PathListing.builder().prefix(dir).directories(new ArrayList<>(directories)).files(files).build();
+        List<FileReceipt> files = rows.stream().map(r -> FileReceipt.from(r, false)).toList();
+
+        int startPos = dir.isEmpty() ? 1 : dir.length() + 2;
+        String like = dir.isEmpty() ? "%" : dir + "/%";
+        List<String> directories = mapper.listSubdirectories(
+                startPos, like, dir.isEmpty(), MAX_DIRECTORIES + 1);
+        boolean dirsTruncated = directories.size() > MAX_DIRECTORIES;
+        if (dirsTruncated) {
+            directories = directories.subList(0, MAX_DIRECTORIES);
+        }
+
+        return PathListing.builder()
+                .prefix(dir)
+                .directories(directories)
+                .files(files)
+                .limit(pageSize)
+                .truncated(truncated || dirsTruncated)
+                .nextCursor(truncated && !files.isEmpty()
+                        ? files.get(files.size() - 1).getFilename() : null)
+                .build();
     }
 
     public FileReceipt receiptByPath(String fullPath, Integer version) {
