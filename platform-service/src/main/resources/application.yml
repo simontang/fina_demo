@@ -22,6 +22,15 @@ spring:
   jackson:
     default-property-inclusion: always
     time-zone: Asia/Shanghai
+  mvc:
+    formcontent:
+      # Spring Boot registers FormContentFilter for PUT/PATCH/DELETE with
+      # application/x-www-form-urlencoded (HTML form _method override). It
+      # consumes the request body, which silently emptied raw-stream PUT
+      # uploads whose caller did not set an explicit Content-Type. We do not
+      # need form overrides; keep the body intact for raw uploads.
+      filter:
+        enabled: false
   flyway:
     # V* files under classpath:db/migration apply automatically at startup.
     # baseline-on-migrate lets an existing (pre-Flyway) database adopt

@@ -14,8 +14,6 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -43,19 +41,19 @@ public class FilePresignController {
     @org.springframework.beans.factory.annotation.Value("${file.link.public-base-url:}")
     private String publicBaseUrl;
 
-    public record PresignRequest(String path, Integer version, Long ttlSeconds) {
+    public record PresignRequest(String uuid, Long ttlSeconds) {
     }
 
     @PostMapping("/presign")
     public Map<String, Object> presign(@RequestBody PresignRequest req, HttpServletRequest request) {
-        if (req.path() == null || req.path().isBlank()) {
-            throw ApiException.badRequest("path is required");
+        if (req.uuid() == null || !req.uuid().matches("^[0-9a-fA-F]{32}$")) {
+            throw ApiException.badRequest("uuid must be 32 hex characters");
         }
         long ttl = req.ttlSeconds() == null ? DEFAULT_TTL
                 : Math.min(Math.max(req.ttlSeconds(), 1), MAX_TTL);
 
         Map<String, Object> out = new LinkedHashMap<>();
-        out.put("path", req.path());
+        out.put("uuid", req.uuid());
         out.put("expiresInSeconds", ttl);
 
         if (!modeResolver.usePresign()) {
@@ -65,7 +63,7 @@ public class FilePresignController {
             return out;
         }
 
-        String storageKey = fileObjectService.storageKeyByPath(req.path(), req.version());
+        String storageKey = fileObjectService.storageKeyByUuid(req.uuid());
         String url = presigner.presignGetObject(GetObjectPresignRequest.builder()
                         .signatureDuration(Duration.ofSeconds(ttl))
                         .getObjectRequest(GetObjectRequest.builder()
@@ -80,20 +78,13 @@ public class FilePresignController {
         return out;
     }
 
-    /** Absolute URL of our own download endpoint for this key. */
+    /** Absolute URL of our own download endpoint for this uuid. */
     private String directUrl(PresignRequest req, HttpServletRequest request) {
         String base = (publicBaseUrl != null && !publicBaseUrl.isBlank())
                 ? publicBaseUrl.replaceAll("/+$", "")
                 : request.getScheme() + "://" + request.getServerName()
                         + (isDefaultPort(request) ? "" : ":" + request.getServerPort());
-        String key = req.path().replaceAll("^/+", "");
-        StringBuilder url = new StringBuilder(base)
-                .append("/api/v1/files/")
-                .append(encodePath(key));
-        if (req.version() != null) {
-            url.append("?version=").append(req.version());
-        }
-        return url.toString();
+        return base + "/api/v1/files/" + req.uuid();
     }
 
     private boolean isDefaultPort(HttpServletRequest request) {
@@ -102,15 +93,4 @@ public class FilePresignController {
                 || ("https".equals(request.getScheme()) && port == 443);
     }
 
-    /** Percent-encode each segment but keep '/' separators. */
-    private String encodePath(String key) {
-        StringBuilder sb = new StringBuilder();
-        for (String segment : key.split("/")) {
-            if (sb.length() > 0) {
-                sb.append('/');
-            }
-            sb.append(URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20"));
-        }
-        return sb.toString();
-    }
 }

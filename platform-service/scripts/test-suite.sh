@@ -56,6 +56,9 @@ B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -F "file=@$TMP/f02.csv;type=text
 printf 'id,name\n1,alpha\n2,beta\n' > "$TMP/f02.csv"
 B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -F "file=@$TMP/f02.csv;type=text/csv" -F "path=a/docs" -F "fileName=f02.csv" "$BASE/api/v1/files/upload")
 [[ "$(jget "$B" "d['version']" 2>/dev/null)" == "2" ]] && ok F-04 "version append" || bad F-04 "got: $B"
+U2=$(jget "$B" "d['uuid']")
+U1=$(docker exec file-service-pg psql -U document -d postgres -t -A -c \
+  "select uuid from file_objects where tenant_id='$TA' and filename='f02.csv' and version=1 limit 1" 2>/dev/null)
 
 # F-05
 printf 'orig\n' > "$TMP/orig-name.txt"
@@ -65,8 +68,10 @@ B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -F "file=@$TMP/orig-name.txt" -F
 # F-06
 printf 'unicode\n' > "$TMP/数据 表格.txt"
 B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -F "file=@$TMP/数据 表格.txt" -F "path=a/数据" "$BASE/api/v1/files/upload")
-BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/a/%E6%95%B0%E6%8D%AE/%E6%95%B0%E6%8D%AE%20%E8%A1%A8%E6%A0%BC.txt")
-[[ "$BODY" == "unicode" ]] && ok F-06 "unicode filename roundtrip" || bad F-06 "download mismatch: $BODY"
+UC=$(jget "$B" "d['uuid']")
+BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$UC")
+[[ "$BODY" == "unicode" && "$(jget "$B" "d['filename']")" == "数据 表格.txt" ]] \
+  && ok F-06 "unicode filename roundtrip via uuid" || bad F-06 "mismatch: $BODY"
 
 # F-07
 B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -F "file=@$TMP/orig-name.txt" -F "path=a/etc" -F "fileName=meta.json" -F 'meta={"k1":"v1","n":2}' "$BASE/api/v1/files/upload")
@@ -103,19 +108,21 @@ B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -F "file=@$TMP/orig-name.txt" -F
 [[ "$(jget "$B" "d['filename']" 2>/dev/null)" == "we_ird.txt" ]] && ok F-13 "filename sanitized" || bad F-13 "got: $B"
 
 # F-14 / F-15 / F-16 / F-17 / F-18
-BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/a/docs/f02.csv")
+BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U2")
 echo "$BODY" | grep -q "beta" && ok F-14 "download latest (v2)" || bad F-14 "got: $BODY"
-BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/a/docs/f02.csv?version=1")
+BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U1")
 [[ "$BODY" == "$(printf 'id,name\n1,alpha\n')" ]] && ok F-15 "download v1 intact" || bad F-15 "got: $BODY"
-BOM=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/a/docs/f02.csv?version=1&bom=true" | xxd -p -l 3)
+BOM=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U1?bom=true" | xxd -p -l 3)
 [[ "$BOM" == "efbbbf" ]] && ok F-16a "BOM prepended" || bad F-16a "got $BOM"
 printf '\xef\xbb\xbfalready\n' > "$TMP/bom.csv"
 curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -F "file=@$TMP/bom.csv" -F "path=a/docs" -F "fileName=bom.csv" "$BASE/api/v1/files/upload" >/dev/null
-BOM2=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/a/docs/bom.csv?bom=true" | xxd -p -l 6)
+UB=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -H "Content-Type: application/json" -d '{"uuid":"'"$UB"'"}' "$BASE/api/v1/files/presign" >/dev/null 2>&1; echo)
+UB=$(docker exec file-service-pg psql -U document -d postgres -t -A -c "select uuid from file_objects where tenant_id='$TA' and filename='bom.csv' order by id desc limit 1")
+BOM2=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$UB?bom=true" | xxd -p -l 6)
 [[ "$BOM2" == "efbbbf61"* ]] && ok F-16b "no double BOM" || bad F-16b "got $BOM2"
-C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/a/docs/nope.csv")
+C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/00000000000000000000000000000000")
 [[ "$C" == "404" ]] && ok F-17 "404 on missing" || bad F-17 "got $C"
-HDR=$(curl -s -m 60 -D - -o /dev/null -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/a/docs/f02.csv")
+HDR=$(curl -s -m 60 -D - -o /dev/null -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U2")
 echo "$HDR" | grep -qi "content-type: text/csv" && echo "$HDR" | grep -qi "filename\*=utf-8" \
   && ok F-18 "headers preserved" || bad F-18 "headers: $(echo "$HDR" | grep -i 'content-type\|disposition')"
 
@@ -129,22 +136,24 @@ B=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files")
 echo "$B" | grep -q '"a"' && ok F-20 "root listing" || bad F-20 "got: $(echo "$B" | head -c 120)"
 
 # F-22 / F-23
-B=$(curl -s -m 60 -X DELETE -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/a/docs/f02.csv?version=1")
+B=$(curl -s -m 60 -X DELETE -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U1")
 [[ "$(jget "$B" "d['deleted']")" == "1" ]] && ok F-22a "delete single version" || bad F-22a "got: $B"
-C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/a/docs/f02.csv?version=1")
+C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U1")
 [[ "$C" == "404" ]] && ok F-22b "deleted version 404" || bad F-22b "got $C"
-BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/a/docs/f02.csv")
+BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U2")
 echo "$BODY" | grep -q beta && ok F-23 "other version survives" || bad F-23 "got: $BODY"
 
 
 # F-26 / F-27 (S3-style PUT + HEAD)
 printf 'put-stream\n' > "$TMP/put.bin"
+PU=$(python3 -c "import uuid;print(uuid.uuid4().hex)")
 B=$(curl -s -m 60 -X PUT -H "X-Tenant-Id: $TA" -H "Content-Type: application/octet-stream" \
-  -H "X-File-Category: raw" --data-binary "@$TMP/put.bin" "$BASE/api/v1/files/a/stream/put.bin")
-[[ "$(jget "$B" "d['filename']")" == "put.bin" ]] && ok F-26 "PUT raw upload" || bad F-26 "got: $B"
-BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/a/stream/put.bin")
+  -H "X-File-Path: a/stream" -H "X-File-Name: put.bin" -H "X-File-Category: raw" \
+  --data-binary "@$TMP/put.bin" "$BASE/api/v1/files/$PU")
+[[ "$(jget "$B" "d['filename']")" == "put.bin" ]] && ok F-26 "PUT raw upload at chosen uuid" || bad F-26 "got: $B"
+BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$PU")
 [[ "$BODY" == "put-stream" ]] && ok F-26b "PUT content readable" || bad F-26b "got: $BODY"
-HDR=$(curl -s -I -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/a/docs/f02.csv")
+HDR=$(curl -s -I -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U2")
 echo "$HDR" | grep -qi "^etag:" && echo "$HDR" | grep -qi "x-file-version: 2" \
   && ok F-27 "HEAD metadata headers" || bad F-27 "headers: $(echo "$HDR" | head -4 | tr '\n' ' ')"
 
@@ -162,9 +171,9 @@ POK=0
 for _ in $(seq 1 45); do curl -sf -m 5 "$SPARE/actuator/health" >/dev/null && POK=1 && break; sleep 1; done
 if [[ "$POK" == "1" ]]; then
   B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -H "Content-Type: application/json" \
-    -d '{"path":"a/docs/f02.csv","ttlSeconds":300}' "$SPARE/api/v1/files/presign")
+    -d "{\"uuid\":\"$U2\",\"ttlSeconds\":300}" "$SPARE/api/v1/files/presign")
   K=$(jget "$B" "d['kind']"); U=$(jget "$B" "d['url']")
-  [[ "$K" == "direct" && "$U" == *"/api/v1/files/a/docs/f02.csv"* ]] \
+  [[ "$K" == "direct" && "$U" == *"/api/v1/files/$U2"* ]] \
     && ok L-01 "auto: internal storage → own download url" || bad L-01 "kind=$K url=$U"
 else
   bad L-01 "internal-mode instance failed to start"
@@ -174,7 +183,7 @@ kill -9 "$SPARE_PID" 2>/dev/null; wait "$SPARE_PID" 2>/dev/null; SPARE_PID=""
 # L-02 validation
 C=$(curl -s -o /dev/null -w "%{http_code}" -m 60 -X POST -H "X-Tenant-Id: $TA" -H "Content-Type: application/json" \
   -d '{}' "$BASE/api/v1/files/presign")
-[[ "$C" == "400" ]] && ok L-02 "missing path 400" || bad L-02 "got $C"
+[[ "$C" == "400" ]] && ok L-02 "missing uuid 400" || bad L-02 "got $C"
 
 # L-03 auto + reachable storage (TOS) → storage presigned URL
 FILE_SERVICE_PORT=5708 FILE_LINK_MODE=auto \
@@ -189,7 +198,7 @@ POK=0
 for _ in $(seq 1 45); do curl -sf -m 5 "$SPARE/actuator/health" >/dev/null && POK=1 && break; sleep 1; done
 if [[ "$POK" == "1" ]]; then
   B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -H "Content-Type: application/json" \
-    -d '{"path":"a/docs/f02.csv","ttlSeconds":300}' "$SPARE/api/v1/files/presign")
+    -d "{\"uuid\":\"$U2\",\"ttlSeconds\":300}" "$SPARE/api/v1/files/presign")
   K=$(jget "$B" "d['kind']"); U=$(jget "$B" "d['url']")
   [[ "$K" == "presigned" && "$U" == *"X-Amz-Signature"* ]] \
     && ok L-03 "auto: reachable storage → presigned url" || bad L-03 "kind=$K url=${U:0:80}"
@@ -227,7 +236,7 @@ pkill -f "platform-service.jar" 2>/dev/null; sleep 3
 PERSIST_OK=0
 for _ in $(seq 1 30); do curl -sf -m 60 "$BASE/actuator/health" >/dev/null && { PERSIST_OK=1; break; }; sleep 1; done
 if [[ "$PERSIST_OK" == "1" ]]; then
-  BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/a/docs/f02.csv")
+  BODY=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/$U2")
   echo "$BODY" | grep -q beta && ok S-02 "state survives service restart" || bad S-02 "file lost after restart"
 else
   bad S-02 "service did not restart (needs TOS env in shell)"

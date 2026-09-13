@@ -51,12 +51,12 @@ public class FileObjectService {
         String[] parts = splitLogicalPath(pathDir, fileName != null && !fileName.isBlank()
                 ? fileName : file.getOriginalFilename());
         return store(parts[0], parts[1], fileCategory, usage, meta,
-                file.getContentType(), file.getSize(), file.getInputStream());
+                file.getContentType(), null, file.getInputStream());
     }
 
     /** Core store: hashes, dedupes, versions and persists one object. */
     public FileReceipt store(String pathDir, String fileName, String fileCategory, String usage, String meta,
-                             String contentType, long declaredSize, InputStream stream) {
+                             String contentType, String explicitUuid, InputStream stream) {
         if (stream == null) {
             throw ApiException.badRequest("empty stream");
         }
@@ -92,18 +92,13 @@ public class FileObjectService {
                 return FileReceipt.from(latest, true);
             }
 
-            // Discrete storage strategy (fina-ai style): the physical key is
-            // opaque and independent of the logical path. Path / rename /
-            // version live purely as DB metadata (1 row = 1 object), so
-            // renaming never moves data and GC is a simple row-object pair.
-            // Two-level hex fan-out from the uuid front: 256 x 256 = 65,536
-            // buckets per tenant, uniformly filled regardless of import
-            // bursts — keeps listings/admin sane at tens of millions of
-            // objects and stays flat enough for filesystem-style backends.
-            String uuid = UUID.randomUUID().toString().replace("-", "");
-            String storageKey = tenant + "/"
-                    + uuid.substring(0, 2) + "/" + uuid.substring(2, 4) + "/"
-                    + uuid;
+            // Discrete storage: the object IS its uuid. The key is flat
+            // ({tenant}/{uuid}) — S3-compatible storage has no directories, so
+            // shard prefixes buy nothing here; the logical path lives purely
+            // as metadata, which is what makes renames free.
+            String uuid = explicitUuid != null && !explicitUuid.isBlank()
+                    ? explicitUuid : UUID.randomUUID().toString().replace("-", "");
+            String storageKey = tenant + "/" + uuid;
             storage.put(storageKey, tmp, size, contentType);
 
             FileObject row = new FileObject();
@@ -139,10 +134,14 @@ public class FileObjectService {
         }
     }
 
-    public void download(String fullPath, Integer version, boolean bom,
+    public void download(String uuid, boolean bom,
                          jakarta.servlet.http.HttpServletResponse response) throws IOException {
-        FileObject row = resolveByPath(fullPath, version);
-        downloadRow(row, bom, response);
+        downloadRow(resolveByUuid(uuid), bom, response);
+    }
+
+    public void downloadByPath(String fullPath, Integer version, boolean bom,
+                               jakarta.servlet.http.HttpServletResponse response) throws IOException {
+        downloadRow(resolveByPath(fullPath, version), bom, response);
     }
 
     /** Stream one row (used by both path download and ticket redemption). */
@@ -203,45 +202,53 @@ public class FileObjectService {
         return FileReceipt.from(resolveByPath(fullPath, version), false);
     }
 
+    /** Tenant-scoped lookup regardless of status (used by PUT to inherit
+     *  metadata for an existing address). null when unknown. */
+    public FileReceipt findAnyByUuid(String uuid) {
+        FileObject row = mapper.selectOne(new LambdaQueryWrapper<FileObject>()
+                .eq(FileObject::getUuid, uuid)
+                .orderByDesc(FileObject::getVersion)
+                .last("LIMIT 1"));
+        return row == null ? null : FileReceipt.from(row, false);
+    }
+
+    public FileReceipt receiptByUuid(String uuid) {
+        return FileReceipt.from(resolveByUuid(uuid), false);
+    }
+
+    public String storageKeyByUuid(String uuid) {
+        return resolveByUuid(uuid).getStorageKey();
+    }
+
     public String storageKeyByPath(String path, Integer version) {
         return resolveByPath(path, version).getStorageKey();
     }
 
-    /** Tenant-exempt row lookup for ticket redemption (uuid = capability). */
+    /** Tenant-exempt lookup (download tickets / presign without a header). */
     public FileObject activeRowByUuidIgnoreTenant(String uuid) {
         return mapper.selectActiveByUuidIgnoreTenant(uuid);
     }
 
-    public String storageKeyByUuid(String uuid) {
-        return requireRow(new LambdaQueryWrapper<FileObject>()
-                .eq(FileObject::getUuid, uuid)).getStorageKey();
-    }
-
-    public FileReceipt receiptByUuid(String uuid) {
-        return FileReceipt.from(requireRow(
-                new LambdaQueryWrapper<FileObject>().eq(FileObject::getUuid, uuid)), false);
-    }
-
-    /** Soft delete: flips status, never touches the storage object or history rows. */
-    public int delete(String fullPath, Integer version) {
-        String[] parts = splitPath(normalizeDir(fullPath));
-        LambdaQueryWrapper<FileObject> qw = new LambdaQueryWrapper<FileObject>()
-                .eq(FileObject::getPath, parts[0])
-                .eq(FileObject::getFilename, parts[1])
-                .eq(FileObject::getStatus, "active");
-        if (version != null) {
-            qw.eq(FileObject::getVersion, version);
+    /** Soft delete; uuid pins the exact version, so no version arg is needed. */
+    public int delete(String uuid) {
+        FileObject row = mapper.selectOne(new LambdaQueryWrapper<FileObject>()
+                .eq(FileObject::getUuid, uuid)
+                .eq(FileObject::getStatus, "active"));
+        if (row == null) {
+            return 0;
         }
-        List<FileObject> rows = mapper.selectList(qw);
-        int count = 0;
-        for (FileObject row : rows) {
-            row.setStatus("deleted");
-            count += mapper.updateById(row);
-        }
-        return count;
+        row.setStatus("deleted");
+        return mapper.updateById(row);
     }
 
     // ── helpers ─────────────────────────────────────────────────────────
+
+    /** uuids are per stored version, so they pin exactly one row. */
+    private FileObject resolveByUuid(String uuid) {
+        return requireRow(new LambdaQueryWrapper<FileObject>()
+                .eq(FileObject::getUuid, uuid)
+                .eq(FileObject::getStatus, "active"));
+    }
 
     private FileObject resolveByPath(String fullPath, Integer version) {
         String[] parts = splitPath(normalizeDir(fullPath));

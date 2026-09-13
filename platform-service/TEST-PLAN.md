@@ -24,27 +24,27 @@
 | F-11 | path 规范化（尾斜杠/连续斜杠） | 与规范路径等价（去重判定生效） |
 | F-12 | path 含 `..` | 400，拒绝路径穿越 |
 | F-13 | 文件名含 `/` 或 `\` | 清洗为 `_`，可正常寻址 |
-| F-14 | 按 key 下载（URL 路径寻址，缺省最新版本）`GET /files/{key}` | 返回最新版本内容 |
-| F-15 | 按 path+version 下载历史版本 | 内容为对应版本，旧行未被覆盖 |
+| F-14 | 按 uuid 下载`GET /files/{key}` | 返回最新版本内容 |
+| F-15 | 历史版本各自 uuid 独立可下载 | 内容为对应版本，旧行未被覆盖 |
 | F-16 | 下载 `bom=true`（CSV） | 前置 UTF-8 BOM；已有 BOM 不重复加 |
 | F-17 | 下载不存在/已删 key | 404 NOT_FOUND |
 | F-18 | 下载响应头 | Content-Type 保留；Content-Disposition 带 UTF-8 文件名 |
-| F-19 | 列表 prefix+delimiter（S3 list 语义） | 直属文件 + 下一层伪目录聚合 |
+| F-19 | 列表 prefix+delimiter | 直属文件 + 下一层伪目录聚合（结果携带 uuid） |
 | F-20 | 列表空 prefix（根） | 列出全部根文件与一级目录 |
-| F-22 | 软删除 `DELETE /files/{key}?version=` | status=deleted；下载 404；存储对象保留 |
+| F-22 | 软删除 `DELETE /files/{uuid}`（该版本） | status=deleted；该 uuid 404；同对象其他版本不受影响 |
 | F-23 | 删除指定 version | 仅该版本被删，其余版本仍可下载 |
-| F-26 | PUT 原始流直传 `PUT /files/{key}`（S3 PutObject 风格，X-File-* 头携带元数据） | 回执正确，GET 内容一致 |
-| F-27 | HEAD 元数据 `HEAD /files/{key}`（S3 HeadObject 风格） | ETag=sha256、X-File-Version 等头正确 |
-| L-01 | `POST /files/presign`：auto + 内网存储（自托管 MinIO） | 返回自有下载 URL（kind=direct） |
-| L-02 | presign 缺 path | 400 |
-| L-03 | `POST /files/presign`：auto + 公网存储（TOS） | 返回 storage 原生 presigned URL（X-Amz-Signature） |
+| F-26 | PUT 原始流直传 `PUT /files/{uuid}`（客户端自选 uuid，X-File-* 携带元数据） | 回执正确，GET 内容一致 |
+| F-27 | HEAD 元数据 `HEAD /files/{uuid}` | ETag=sha256、X-File-Version/Path 等头正确 |
+| L-01 | `POST /files/presign` {uuid}：auto + 内网存储（自托管 MinIO） | 返回自有下载 URL（kind=direct） |
+| L-02 | presign 缺 uuid / uuid 格式非法 | 400 |
+| L-03 | `POST /files/presign` {uuid}：auto + 公网存储（TOS） | 返回 storage 原生 presigned URL（X-Amz-Signature） |
 
 ### B. 多租户与鉴权（7 例）
 
 | 编号 | 用例 | 预期 |
 |---|---|---|
 | T-01 | 缺 `X-Tenant-Id` | 400 TENANT_REQUIRED |
-| T-02 | 跨租户同路径互不可见 | 各自上传/下载/列表完全隔离 |
+| T-02 | 跨租户隔离 | 各自 uuid 独立可见；用 A 的租户头访问 B 的 uuid → 404 |
 | T-04 | `X-User-Id` 上下文 | created_by 自动填充 |
 | T-05 | `X-Api-Key` 启用时：缺失/错误 → 401；正确 → 200 | 鉴权门生效（独立实例验证） |
 | T-06 | webhooks 跨租户隔离 | destinations/publish/messages 按租户作用域 |

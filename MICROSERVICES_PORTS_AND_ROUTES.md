@@ -266,28 +266,36 @@ self-hosted Svix (MIT) behind a tenant-model facade.
 - Contract: the tenant rides ONLY in the `X-Tenant-Id` header — never in the
   body, never in `path`, and it is not echoed back in responses. Caller paths
   are tenant-relative; the tenant prefix is applied internally to the storage
-  key (never exposed); no sequential ids are exposed either
-  (enumeration/information-leak risk)
+  key (never exposed). No sequential ids are exposed either (enumeration risk);
+  the uuid is the only object handle, and it is unguessable
 
 ### files 模块
 
-- Addressing: full logical path `{dir}/{filename}`. Immutable versioning:
-  re-upload appends a version, identical content dedupes; no folder entities —
+- Addressing: **uuid**. A uuid identifies one stored version, so it pins the
+  object exactly — no path encoding in URLs, and renames never invalidate a
+  reference. The logical path (`{dir}/{filename}`) is metadata: set at upload,
+  used for listing, never an address. Immutable versioning: re-upload appends
+  a version (a new uuid); identical content dedupes. No folder entities —
   directories are path-prefix aggregates
-- Key APIs — S3-style resource addressing (object key is the URL path),
-  merged with fina-ai interactions; no sequential ids exposed:
-  - `POST /api/v1/files/upload` — multipart (`path`, `fileName?`, `fileCategory?`, `usage?`, `meta?`)
-  - `PUT /api/v1/files/{key…}` — raw-stream upload; metadata via `X-File-Category/Usage/Meta` headers
-  - `GET /api/v1/files/{key…}?version=&bom=` — direct download
-  - `HEAD /api/v1/files/{key…}` — metadata as headers (`ETag`=sha256, `X-File-Md5/Version/Meta`)
-  - `DELETE /api/v1/files/{key…}?version=` — soft delete
-  - `GET /api/v1/files?prefix=&delimiter=/` — pseudo-directory listing
-  - `POST /api/v1/files/presign` {path, version?, ttlSeconds?} — download URL.
+- Storage: discrete — the physical key is `{tenantId}/{uuid}` (flat; S3-compatible
+  storage has no directories, and keeping path out of the key is what makes
+  renames free). Storage keys are never exposed
+- Key APIs:
+  - `POST /api/v1/files/upload` — multipart; form fields `path`, `fileName?`,
+    `fileCategory?`, `usage?`, `meta?` are metadata; server generates the uuid
+  - `PUT /api/v1/files/{uuid}` — raw-stream upload at a client-chosen uuid
+    (idempotent re-upload); metadata via `X-File-Path`/`X-File-Name`/`X-File-*`
+  - `GET /api/v1/files/{uuid}?bom=` — direct download
+  - `HEAD /api/v1/files/{uuid}` — metadata as headers (`ETag`=sha256,
+    `X-File-Version`, `X-File-Path`, `X-File-Md5`, `X-File-Meta`)
+  - `DELETE /api/v1/files/{uuid}` — soft delete (that version only)
+  - `GET /api/v1/files?prefix=&delimiter=/` — list by logical-path prefix
+  - `POST /api/v1/files/presign` {uuid, ttlSeconds?} — download URL.
     Reachable/cloud storage → storage-native presigned URL (bandwidth bypasses
     this service); internal storage (self-hosted MinIO) → our own download URL.
     `FILE_LINK_MODE` forces `auto` (default) or `presign`;
     `PUBLIC_FILE_BASE_URL` rewrites the presigned host when storage is
-    published behind another domain. Requires the tenant header.
+    published behind another domain. Requires the tenant header
 - Smoke: `platform-service/scripts/smoke.sh` — 11/11 passed against a TOS
   S3-compatible bucket (2026-09-13)
 

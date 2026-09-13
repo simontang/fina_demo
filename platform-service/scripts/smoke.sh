@@ -54,21 +54,24 @@ R=$(curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} \
 V=$(echo "$R" | jqget - "d['version']")
 [[ "$V" == "2" ]] || fail "expected version 2, got $V"
 pass "re-upload appends version 2"
+U2=$(echo "$R" | jqget - "d['uuid']")
+U1=$(docker exec file-service-pg psql -U document -d postgres -t -A -c \
+  "select uuid from file_objects where tenant_id='${TENANT_A}' and filename='data.csv' and version=1 limit 1" 2>/dev/null)
 
 echo "== download by path returns latest version =="
-BODY=$(curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/demo/docs/data.csv")
+BODY=$(curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/$U2")
 echo "$BODY" | grep -q "bar,2" || fail "latest download missing v2 content"
 echo "$BODY" | grep -q "foo,1" || fail "latest download missing base content"
-pass "path download returns v2"
+pass "uuid download returns v2"
 
 echo "== download specific version 1 =="
-BODY=$(curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/demo/docs/data.csv?version=1")
+BODY=$(curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/$U1")
 [[ "$BODY" == "$(printf 'name,amount\nfoo,1\n')" ]] || fail "version=1 content mismatch: $BODY"
-pass "version=1 download intact (old row immutable)"
+pass "v1 uuid still serves v1 (immutable)"
 
 echo "== bom=true prepends UTF-8 BOM =="
 BOM=$(curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} \
-  "${BASE}/api/v1/files/demo/docs/data.csv?version=1&bom=true" | xxd -p -l 3)
+  "${BASE}/api/v1/files/$U1?bom=true" | xxd -p -l 3)
 [[ "$BOM" == "efbbbf" ]] || fail "expected BOM efbbbf, got $BOM"
 pass "bom=true prepends UTF-8 BOM"
 
@@ -87,20 +90,22 @@ R=$(curl -sf -H "X-Tenant-Id: ${TENANT_B:-tenant-b}" ${AUTH[@]+"${AUTH[@]}"} \
   "${BASE}/api/v1/files/upload")
 V=$(echo "$R" | jqget - "d['version']")
 [[ "$V" == "1" ]] || fail "tenant-b expected own version 1, got $V"
-BODY=$(curl -sf -H "X-Tenant-Id: ${TENANT_B:-tenant-b}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/demo/docs/data.csv")
+UB=$(docker exec file-service-pg psql -U document -d postgres -t -A -c \
+  "select uuid from file_objects where tenant_id='${TENANT_B}' and filename='data.csv' order by id desc limit 1" 2>/dev/null)
+BODY=$(curl -sf -H "X-Tenant-Id: ${TENANT_B:-tenant-b}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/$UB")
 echo "$BODY" | grep -q "only-b" || fail "tenant-b should read its own content"
-BODY=$(curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/demo/docs/data.csv")
-echo "$BODY" | grep -q "only-b" && fail "tenant-a leaked tenant-b content!"
-pass "tenants isolated at the same path"
+C=$(curl -s -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/$UB")
+[[ "$C" == "404" ]] || fail "tenant-a reached tenant-b object (got $C)"
+pass "tenants isolated (same path, distinct uuids)"
 
 echo "== HEAD metadata =="
-HDR=$(curl -s -I -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/demo/docs/data.csv")
+HDR=$(curl -s -I -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/$U2")
 echo "$HDR" | grep -qi "^etag:" || fail "HEAD missing ETag"
 pass "HEAD metadata (ETag)"
 
 echo "== presign (download url per storage reachability) =="
 B=$(curl -sf -X POST -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} \
-  -H "Content-Type: application/json" -d '{"path":"demo/docs/data.csv","ttlSeconds":300}' \
+  -H "Content-Type: application/json" -d "{\"uuid\":\"$U2\",\"ttlSeconds\":300}" \
   "${BASE}/api/v1/files/presign")
 K=$(echo "$B" | jqget - "d['kind']")
 U=$(echo "$B" | jqget - "d['url']")
@@ -115,14 +120,16 @@ case "$K" in
   *) fail "unexpected kind=$K" ;;
 esac
 
-echo "== soft delete removes from download, history kept =="
-R=$(curl -sf -X DELETE -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/demo/docs/data.csv")
+echo "== soft delete (uuid pins one version) =="
+R=$(curl -sf -X DELETE -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/$U2")
 N=$(echo "$R" | jqget - "d['deleted']")
-[[ "$N" == "2" ]] || fail "expected 2 soft-deleted rows, got $N"
+[[ "$N" == "1" ]] || fail "expected 1 soft-deleted row, got $N"
 CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} \
-  "${BASE}/api/v1/files/demo/docs/data.csv")
+  "${BASE}/api/v1/files/$U2")
 [[ "$CODE" == "404" ]] || fail "expected 404 after delete, got $CODE"
-pass "soft delete + 404"
+BODY=$(curl -sf -H "X-Tenant-Id: ${TENANT_A:-tenant-a}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/files/$U1")
+echo "$BODY" | grep -q foo || fail "sibling version lost after delete"
+pass "soft delete + sibling version intact"
 
 echo ""
 echo "ALL FILE SERVICE SMOKE TESTS PASSED"
