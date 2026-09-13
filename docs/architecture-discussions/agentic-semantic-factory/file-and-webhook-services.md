@@ -35,7 +35,7 @@ Spring Boot 3.2.3 / Java 17 / Gradle KTS / mybatis-plus / Lombok，完全照 met
 | `fileMd5` 指纹 | md5 + sha256 双指纹（sha256 进 storage key） |
 | 下载对非 HDFS 文件补 UTF-8 BOM | `bom=true` 选项（CSV/文本类文件，已有 BOM 则不重复加） |
 | fileName/fileCategory/usage/meta/uuid 字段 | 原样保留 |
-| HdfsAttachment.hdfsPath 存真实路径 | 物理存储 key = `{tenant}/{dir}/{filename}@{sha256前8}` |
+| HdfsAttachment.hdfsPath（物理与逻辑解耦，UUID 目录） | **离散存储 + 两级 hex 扇出**：物理 key 与逻辑路径完全无关 = `{tenant}/{uuid[0:2]}/{uuid[2:4]}/{uuid}`（每租户 65,536 桶均匀填充，规避单前缀海量对象的枚举退化与 FS 类后端目录爆炸）；逻辑路径/改名/版本纯粹是 DB 元数据，1 行 = 1 对象 |
 
 ### 透明多租户三件套（bjy_crm_ai CONTEXT_INTERCEPTOR 模式 + 查询侧补全）
 

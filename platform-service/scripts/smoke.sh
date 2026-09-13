@@ -4,6 +4,9 @@
 set -euo pipefail
 
 BASE="${FILE_SERVICE_URL:-http://localhost:5707}"
+# Fresh tenants per run — the smoke assumes empty per-tenant state.
+TENANT_A="${TENANT_A:-smoke-a-$(date +%m%d%H%M%S)}"
+TENANT_B="${TENANT_B:-smoke-b-$(date +%m%d%H%M%S)}"
 AUTH=()
 if [[ -n "${FILE_SERVICE_API_KEY:-}" ]]; then
   AUTH=(-H "X-Api-Key: ${FILE_SERVICE_API_KEY}")
