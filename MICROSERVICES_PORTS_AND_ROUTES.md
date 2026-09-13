@@ -263,18 +263,24 @@ self-hosted Svix (MIT) behind a tenant-model facade.
   `/api/files/*`); `/api/webhooks/*` → `5707 /api/v1/webhooks/*`
 - Auth: `X-Tenant-Id` header (required; `FILE_SERVICE_DEFAULT_TENANT` provides
   a dev default) + optional `X-Api-Key` (`FILE_SERVICE_API_KEY`)
+- Contract: the tenant rides ONLY in the `X-Tenant-Id` header — never in the
+  body, never in `path`, and it is not echoed back in responses (receipts
+  carry no tenantId). Caller paths are tenant-relative; the tenant prefix is
+  applied internally to the storage key (never exposed). Receipts expose
+  `uuid` only — no sequential id (enumeration/information-leak risk)
 
 ### files 模块
 
 - Addressing: full logical path `{dir}/{filename}`. Immutable versioning:
   re-upload appends a version, identical content dedupes; no folder entities —
   directories are path-prefix aggregates
-- Key APIs:
+- Key APIs (addressing: full logical `path` primary, `uuid` as the opaque
+  handle; sequential numeric ids are never exposed — internal DB key only):
   - `POST /api/v1/files/upload` — multipart (`path`, `fileName?`, `fileCategory?`, `usage?`, `meta?`)
   - `GET /api/v1/files/download?path=…&version=&bom=`
   - `GET /api/v1/files?prefix=…` — pseudo-directory listing
-  - `GET /api/v1/files/receipt?path=…`, `GET /api/v1/files/{id}/receipt`
-  - `GET /api/v1/files/{id}/download`, `GET /api/v1/files/uuid/{uuid}/download`
+  - `GET /api/v1/files/receipt?path=…`, `GET /api/v1/files/uuid/{uuid}/receipt`
+  - `GET /api/v1/files/uuid/{uuid}/download?bom=`
   - `DELETE /api/v1/files?path=…` — soft delete
 - Smoke: `platform-service/scripts/smoke.sh` — 11/11 passed against a TOS
   S3-compatible bucket (2026-09-13)

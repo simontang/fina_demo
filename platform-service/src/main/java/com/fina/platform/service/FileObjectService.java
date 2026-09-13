@@ -174,11 +174,6 @@ public class FileObjectService {
         return FileReceipt.from(resolveByPath(fullPath, version), false);
     }
 
-    public FileReceipt receiptById(long id) {
-        return FileReceipt.from(requireRow(
-                new LambdaQueryWrapper<FileObject>().eq(FileObject::getId, id)), false);
-    }
-
     public FileReceipt receiptByUuid(String uuid) {
         return FileReceipt.from(requireRow(
                 new LambdaQueryWrapper<FileObject>().eq(FileObject::getUuid, uuid)), false);

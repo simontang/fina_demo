@@ -130,11 +130,11 @@ echo "$B" | grep -q '"a"' && ok F-20 "root listing" || bad F-20 "got: $(echo "$B
 
 # F-21
 B=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/receipt?path=a%2Fdocs%2Ff02.csv")
-SHA=$(jget "$B" "d['sha256']"); ID=$(jget "$B" "d['id']"); U=$(jget "$B" "d['uuid']")
-B1=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/${ID}/receipt")
-B2=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/uuid/$U/receipt")
-[[ "$(jget "$B1" "d['sha256']")" == "$SHA" && "$(jget "$B2" "d['sha256']")" == "$SHA" ]] \
-  && ok F-21 "receipt by path/id/uuid consistent" || bad F-21 "mismatch"
+SHA=$(jget "$B" "d['sha256']"); U=$(jget "$B" "d['uuid']")
+B1=$(curl -s -m 60 -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/uuid/$U/receipt")
+NOID=$(echo "$B" | python3 -c "import json,sys;print('id' in json.load(sys.stdin))")
+[[ "$(jget "$B1" "d['sha256']")" == "$SHA" && "$NOID" == "False" ]] \
+  && ok F-21 "receipt by path/uuid consistent, no id exposed" || bad F-21 "mismatch (noid=$NOID)"
 
 # F-22 / F-23
 B=$(curl -s -m 60 -X DELETE -H "X-Tenant-Id: $TA" "$BASE/api/v1/files?path=a%2Fdocs%2Ff02.csv&version=1")
@@ -166,16 +166,16 @@ echo "$BODY" | grep -q "tenant-b-only" && bad T-02 "leak!" || ok T-02 "cross-ten
 
 # T-03
 RB=$(curl -s -m 60 -H "X-Tenant-Id: $TB" "$BASE/api/v1/files/receipt?path=a%2Fdocs%2Ff02.csv")
-ID=$(jget "$RB" "d['id']")
-C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/${ID:-0}/receipt")
-[[ "$C" == "404" ]] && ok T-03 "cross-tenant id access 404" || bad T-03 "got $C"
+U=$(jget "$RB" "d['uuid']")
+C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/uuid/$U/receipt")
+[[ "$C" == "404" ]] && ok T-03 "cross-tenant uuid access 404" || bad T-03 "got $C"
 
 # T-04
 B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TA" -H "X-User-Id: user-42" -F "file=@$TMP/orig-name.txt" -F "path=a/etc" -F "fileName=u42.txt" "$BASE/api/v1/files/upload")
 [[ "$(jget "$B" "d['createdBy']" 2>/dev/null)" == "user-42" ]] && ok T-04 "created_by from X-User-Id" || bad T-04 "got: $B"
 
 # T-05 (spare instance with api key)
-FILE_SERVICE_API_KEY=sk-suite FILE_SERVICE_PORT=5708 SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5433/file_service?stringtype=unspecified" \
+FILE_SERVICE_API_KEY=sk-suite FILE_SERVICE_PORT=5708 SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5433/postgres?stringtype=unspecified" \
   SPRING_DATASOURCE_USERNAME=document SPRING_DATASOURCE_PASSWORD=document SVIX_SERVER_URL="http://localhost:8071" \
   nohup java -jar "$(cd "$SUITE_DIR/.." && pwd)/build/libs/platform-service.jar" > /tmp/suite-spare.log 2>&1 &
 SPARE_PID=$!
@@ -196,7 +196,7 @@ fi
 kill -9 "$SPARE_PID" 2>/dev/null; wait "$SPARE_PID" 2>/dev/null; SPARE_PID=""
 
 # T-07 (spare instance with default tenant)
-FILE_SERVICE_DEFAULT_TENANT=dev-default FILE_SERVICE_PORT=5708 SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5433/file_service?stringtype=unspecified" \
+FILE_SERVICE_DEFAULT_TENANT=dev-default FILE_SERVICE_PORT=5708 SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5433/postgres?stringtype=unspecified" \
   SPRING_DATASOURCE_USERNAME=document SPRING_DATASOURCE_PASSWORD=document SVIX_SERVER_URL="http://localhost:8071" \
   nohup java -jar "$(cd "$SUITE_DIR/.." && pwd)/build/libs/platform-service.jar" > /tmp/suite-spare2.log 2>&1 &
 SPARE_PID=$!
@@ -204,8 +204,10 @@ SPARE_OK=0
 for _ in $(seq 1 25); do curl -sf -m 60 "$SPARE/actuator/health" >/dev/null && SPARE_OK=1 && break; sleep 1; done
 if [[ "$SPARE_OK" == "1" ]]; then
   B=$(curl -s -m 60 -X POST -F "file=@$TMP/orig-name.txt" -F "path=dev" "$SPARE/api/v1/files/upload")
-  [[ "$(jget "$B" "d['tenantId']" 2>/dev/null)" == "dev-default" ]] \
-    && ok T-07 "default tenant applied" || bad T-07 "got: $B"
+  [[ "$(jget "$B" "d['filename']" 2>/dev/null)" == "orig-name.txt" ]] || bad T-07 "upload failed: $B"
+  T7=$(docker exec file-service-pg psql -U document -d postgres -t -A -c \
+    "select tenant_id from file_objects where filename='orig-name.txt' and path='dev' order by id desc limit 1" 2>/dev/null)
+  [[ "$T7" == "dev-default" ]] && ok T-07 "default tenant applied (verified in DB)" || bad T-07 "tenant=$T7"
 else
   bad T-07 "spare instance failed to start"
 fi
@@ -303,7 +305,7 @@ jget "$B" "d['messageId']" >/dev/null 2>&1 && ok S-01b "recovers after svix rest
 
 # S-02 restart persistence
 pkill -f "platform-service.jar" 2>/dev/null; sleep 3
-( cd "$SUITE_DIR/.." && set -a && . "$SUITE_DIR/../../document_service/.env" && set +a && SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5433/file_service?stringtype=unspecified" \
+( cd "$SUITE_DIR/.." && set -a && . "$SUITE_DIR/../../document_service/.env" && set +a && SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5433/postgres?stringtype=unspecified" \
   SPRING_DATASOURCE_USERNAME=document SPRING_DATASOURCE_PASSWORD=document \
   SVIX_SERVER_URL="http://localhost:8071" \
   nohup java -jar build/libs/platform-service.jar > /tmp/platform-service.log 2>&1 & )

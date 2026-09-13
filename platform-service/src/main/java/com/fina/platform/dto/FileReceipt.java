@@ -14,9 +14,7 @@ import java.time.LocalDateTime;
 @Builder
 public class FileReceipt {
 
-    private Long id;
     private String uuid;
-    private String tenantId;
     private String fullPath;
     private String path;
     private String filename;
@@ -36,9 +34,7 @@ public class FileReceipt {
 
     public static FileReceipt from(FileObject o, boolean deduplicated) {
         return FileReceipt.builder()
-                .id(o.getId())
                 .uuid(o.getUuid())
-                .tenantId(o.getTenantId())
                 .fullPath(o.fullPath())
                 .path(o.getPath())
                 .filename(o.getFilename())

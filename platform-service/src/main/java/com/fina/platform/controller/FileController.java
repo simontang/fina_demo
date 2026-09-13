@@ -2,9 +2,6 @@ package com.fina.platform.controller;
 
 import com.fina.platform.dto.FileReceipt;
 import com.fina.platform.dto.PathListing;
-import com.fina.platform.entity.FileObject;
-import com.fina.platform.exception.ApiException;
-import com.fina.platform.mapper.FileObjectMapper;
 import com.fina.platform.service.FileObjectService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +29,6 @@ import java.util.Map;
 public class FileController {
 
     private final FileObjectService service;
-    private final FileObjectMapper mapper;
 
     @PostMapping("/upload")
     public FileReceipt upload(@RequestParam("file") MultipartFile file,
@@ -63,25 +59,9 @@ public class FileController {
         return service.receiptByPath(path, version);
     }
 
-    @GetMapping("/{id}/receipt")
-    public FileReceipt receiptById(@PathVariable long id) {
-        return service.receiptById(id);
-    }
-
     @GetMapping("/uuid/{uuid}/receipt")
     public FileReceipt receiptByUuid(@PathVariable String uuid) {
         return service.receiptByUuid(uuid);
-    }
-
-    @GetMapping("/{id}/download")
-    public void downloadById(@PathVariable long id,
-                             @RequestParam(value = "bom", required = false, defaultValue = "false") boolean bom,
-                             HttpServletResponse response) throws IOException {
-        FileObject row = mapper.selectById(id);
-        if (row == null || !"active".equals(row.getStatus())) {
-            throw ApiException.notFound("no active file matches the given address");
-        }
-        service.download(row.fullPath(), row.getVersion(), bom, response);
     }
 
     @GetMapping("/uuid/{uuid}/download")

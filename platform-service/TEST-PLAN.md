@@ -17,7 +17,7 @@
 | F-04 | 变更内容重复上传 | version+1，旧版本行保留可下载 |
 | F-05 | fileName 缺省 | 取原始文件名 |
 | F-06 | Unicode/空格文件名 | 上传/按 path 下载均正确（URL 编码往返） |
-| F-07 | meta JSON 参数 | 回执与查询原样保留（jsonb） |
+| F-07 | meta JSON 参数 | 回执与查询原样保留（jsonb；回执中以 JSON 字符串形态返回） |
 | F-08 | fileCategory/usage 参数 | 存储并可从回执读出 |
 | F-09 | 空文件上传 | 400 |
 | F-10 | 缺 file part | 400（不得 500） |
@@ -31,7 +31,7 @@
 | F-18 | 下载响应头 | Content-Type 保留；Content-Disposition 带 UTF-8 文件名 |
 | F-19 | 列表 prefix | 直属文件 + 下一层伪目录聚合 |
 | F-20 | 列表空 prefix（根） | 列出全部根文件与一级目录 |
-| F-21 | 回执三态一致（by path / id / uuid） | 同一行的指纹与版本一致 |
+| F-21 | 回执一致（by path / uuid）且响应不含 id | 同一行的指纹一致；id 不暴露 |
 | F-22 | 软删除 | status=deleted；下载 404；存储对象保留 |
 | F-23 | 删除指定 version | 仅该版本被删，其余版本仍可下载 |
 | F-24 | uuid 下载端点（兼容别名） | 与 path 下载内容一致 |
@@ -42,11 +42,11 @@
 |---|---|---|
 | T-01 | 缺 `X-Tenant-Id` | 400 TENANT_REQUIRED |
 | T-02 | 跨租户同路径互不可见 | 各自上传/下载/列表完全隔离 |
-| T-03 | 跨租户按 id / uuid 访问 | 404（兼容端点同样被透明隔离） |
+| T-03 | 跨租户按 uuid 访问 | 404（透明隔离；接口面已无 id 寻址） |
 | T-04 | `X-User-Id` 上下文 | created_by 自动填充 |
 | T-05 | `X-Api-Key` 启用时：缺失/错误 → 401；正确 → 200 | 鉴权门生效（独立实例验证） |
 | T-06 | webhooks 跨租户隔离 | destinations/publish/messages 按租户作用域 |
-| T-07 | `FILE_SERVICE_DEFAULT_TENANT`（dev 缺省租户） | 未带头时归入默认租户 |
+| T-07 | `FILE_SERVICE_DEFAULT_TENANT`（dev 缺省租户） | 未带头时归入默认租户（落库验证） |
 
 ### C. webhooks 模块（10 例）
 
