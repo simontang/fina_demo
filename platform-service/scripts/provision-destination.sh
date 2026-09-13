@@ -16,7 +16,7 @@ BASE="${PLATFORM_SERVICE_URL:-http://localhost:5707}"
 AUTH=()
 [[ -n "${PLATFORM_SERVICE_API_KEY:-}" ]] && AUTH=(-H "X-Api-Key: ${PLATFORM_SERVICE_API_KEY}")
 
-curl -sf -X POST -H "X-Tenant-Id: ${TENANT}" "${AUTH[@]}" \
+curl -sf -X POST -H "X-Tenant-Id: ${TENANT}" ${AUTH[@]+"${AUTH[@]}"} \
   -H "Content-Type: application/json" \
   -d "{
     \"url\": \"${DEST_URL}\",

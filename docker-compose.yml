@@ -189,8 +189,9 @@ services:
       SVIX_QUEUE_TYPE: redis
       SVIX_JWT_SECRET: ${SVIX_JWT_SECRET:-svix-demo-jwt-secret-change-me}
       # Demo default allows delivery to private ranges (e.g. host.docker.internal
-      # receivers). Leave empty in production to keep SSRF protection strict.
-      SVIX_WHITELIST_SUBNETS: ${SVIX_WHITELIST_SUBNETS:-192.168.0.0/16,10.0.0.0/8,172.16.0.0/12}
+      # receivers). NOTE: svix-server expects a JSON array here. Leave empty in
+      # production to keep SSRF protection strict.
+      SVIX_WHITELIST_SUBNETS: ${SVIX_WHITELIST_SUBNETS:-'["192.168.0.0/16","10.0.0.0/8","172.16.0.0/12"]'}
     depends_on:
       platform-db-init:
         condition: service_completed_successfully

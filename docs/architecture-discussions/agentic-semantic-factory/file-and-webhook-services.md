@@ -1,7 +1,7 @@
 # File Service 与 Webhook Service 落地记录
 
 - 日期：2026-09-13
-- 状态：两模块已合并为 **platform-service**（Spring Boot，5707）；files 模块本机冒烟全绿；webhooks 模块（Svix 适配层）代码就绪，svix-server 实跑验证待部署目标（本机 Docker Hub 拉取受限）
+- 状态：两模块已合并为 **platform-service**（Spring Boot，5707）；files 模块本机冒烟 11/11 全绿；**webhooks 模块本机全链路冒烟通过**（2026-09-13：facade 建目标→发布→svix-server 投递→Standard Webhooks 验签→messages 可查，svix-server 经 1panel 镜像源拉取）
 - 决策记录：Webhook 后端 **选型 Svix**（2026-09-13 与业务方评审后确定，评估过程见 §4）；**两服务合并为一个 Java 可复用组件**（同日确认，架构守则见 §5）
 - 关联：[review-briefing §11 平台基座](./review-briefing.md)、[dbt-dynamic-deploy](./dbt-dynamic-deploy.md)
 
@@ -115,9 +115,16 @@ Spring Boot 3.2.3 / Java 17 / Gradle KTS / mybatis-plus / Lombok，完全照 met
 
 **保留的对比记录**：Outpost 曾为首选（license 干净、tenant 模型贴合、Portal 内置），切换成本分析成立——集成面收敛在 `SvixServerClient` 一个类里，未来再评估 Outpost 只需重写该类 + compose 块。
 
-### 实测验收清单（部署目标执行）
+### 实测验收（2026-09-13 本机完成 ✅）
 
-`platform-service/scripts/webhook-smoke.sh`：建目标（拿 whsec）→ 验签收端 → 发布 → 30s 内收到 → 验签通过 → facade messages 可查。另需人工确认：断端点后的重试节奏、内网 URL 防护（svix 默认阻断，`SVIX_WHITELIST_SUBNETS` 放行 demo 收端）。
+`webhook-smoke.sh` 全绿：建目标（facade 返回 whsec）→ 验签收端 → 发布 → 30s 内投递到达 → `svix-*` 签名 HMAC 验证通过 → facade messages 可查。svix-server 镜像经 `docker.1panel.live` 镜像源拉取（Docker Hub 在本网络不可达）。
+
+**实测发现的 OSS svix-server 差异**（已固化进适配层，选型评估里"精简版未列清单"的具体化）：
+
+1. 创建端点的响应**不含**签名密钥，需另调 `GET .../endpoint/{id}/secret/`；
+2. **没有 `GET /api/v1/app/uid/{uid}` 路由**——幂等创建改为"POST 优先，409 时列表按 uid 解析"+ 进程内缓存；
+3. 列表路由不接受 `{limit}` 路径段，用 `?limit=` query 参数；
+4. 投递签名头是 `svix-id/svix-timestamp/svix-signature`（Standard Webhooks 的前 SKU 名），收端需兼容两套前缀。
 
 ## 5. 合并架构：platform-service（2026-09-13 定稿）
 

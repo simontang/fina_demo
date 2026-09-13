@@ -44,9 +44,11 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(length)
-        wid = self.headers.get("webhook-id", "")
-        ts = self.headers.get("webhook-timestamp", "")
-        sig = self.headers.get("webhook-signature", "")
+        # Svix signs with svix-* headers; Standard Webhooks uses webhook-*.
+        # Accept both families.
+        wid = self.headers.get("webhook-id") or self.headers.get("svix-id") or ""
+        ts = self.headers.get("webhook-timestamp") or self.headers.get("svix-timestamp") or ""
+        sig = self.headers.get("webhook-signature") or self.headers.get("svix-signature") or ""
         entry = {
             "time": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
             "path": self.path,

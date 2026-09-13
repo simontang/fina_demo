@@ -291,6 +291,8 @@ Svix's retry schedule and default SSRF protection.
 - Topics: `import.completed`, `gate.passed`, `decision.captured`,
   `job.completed`, `run.published`
 - Scripts (`platform-service/scripts/`): `provision-destination.sh`,
-  `publish.py`, `mock-receiver.py` (signature-verifying receiver),
-  `webhook-smoke.sh` — run on the deploy target (svix-server image cannot be
-  pulled on this workstation)
+  `publish.py`, `mock-receiver.py` (signature-verifying receiver, accepts both
+  `svix-*` and `webhook-*` header families),
+  `webhook-smoke.sh` — **full delivery+signature pass verified locally on
+  2026-09-13** (svix-server image pulled via the `docker.1panel.live` mirror;
+  note `SVIX_WHITELIST_SUBNETS` must be a JSON array)

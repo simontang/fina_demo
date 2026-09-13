@@ -64,7 +64,7 @@ assert hit, "smoke delivery not found"
 assert hit[-1]["signature-valid"] is True, f"signature invalid: {hit[-1]}"
 print(f"signature-valid: True (webhook-id={hit[-1]['webhook-id']})")
 PY
-MSGS=$(curl -sf -H "X-Tenant-Id: ${TENANT}" "${AUTH[@]}" "${BASE}/api/v1/webhooks/messages?limit=5")
+MSGS=$(curl -sf -H "X-Tenant-Id: ${TENANT}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/webhooks/messages?limit=5")
 echo "$MSGS" | grep -q "job.completed" || fail "facade messages missing topic: $MSGS"
 pass "facade messages list observable"
 

@@ -8,12 +8,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * HTTP adapter to svix-server. Translates our tenant model (X-Tenant-Id) and
@@ -29,6 +31,9 @@ public class SvixServerClient {
     private final SvixProps props;
     private final SvixTokenService tokenService;
 
+    /** tenant → svix application id, resolved once per process. */
+    private final ConcurrentHashMap<String, String> APP_ID_CACHE = new ConcurrentHashMap<>();
+
     private RestClient restClient() {
         return RestClient.builder()
                 .baseUrl(props.getServerUrl())
@@ -39,28 +44,54 @@ public class SvixServerClient {
 
     // ── applications (our tenants) ──────────────────────────────────────
 
-    /** Returns the Svix application id for a tenant, creating it on first use. */
-    public String ensureApplication(String tenantId) {
-        try {
-            JsonNode existing = restClient().get()
-                    .uri("/api/v1/app/uid/{uid}/", tenantId)
-                    .retrieve().body(JsonNode.class);
-            if (existing != null && existing.hasNonNull("id")) {
-                return existing.get("id").asText();
-            }
-        } catch (RestClientException notFoundOrError) {
-            // fall through to creation; a real server failure resurfaces there
+    /**
+     * Returns the Svix application id for a tenant, creating it on first use.
+     * The OSS svix-server build has no GET-by-uid route, so idempotency is
+     * handled by treating 409 as "exists" and resolving the id via list.
+     */
+    public synchronized String ensureApplication(String tenantId) {
+        String cached = APP_ID_CACHE.get(tenantId);
+        if (cached != null) {
+            return cached;
         }
-        ObjectNode body = com.fasterxml.jackson.databind.json.JsonMapper.builder().build().createObjectNode();
+        ObjectNode body = jsonMapper().createObjectNode();
         body.put("name", tenantId);
         body.put("uid", tenantId);
-        JsonNode created = restClient().post()
-                .uri("/api/v1/app/")
-                .body(body)
-                .retrieve().body(JsonNode.class);
+        JsonNode created;
+        try {
+            created = restClient().post()
+                    .uri("/api/v1/app/")
+                    .body(body)
+                    .retrieve().body(JsonNode.class);
+        } catch (HttpClientErrorException.Conflict e) {
+            created = findApplicationByUid(tenantId);
+            if (created == null) {
+                throw new IllegalStateException(
+                        "svix reports application conflict but it cannot be found: " + tenantId, e);
+            }
+        }
         String id = created.get("id").asText();
-        log.info("created svix application for tenant {} -> {}", tenantId, id);
+        APP_ID_CACHE.put(tenantId, id);
+        log.info("resolved svix application for tenant {} -> {}", tenantId, id);
         return id;
+    }
+
+    private JsonNode findApplicationByUid(String tenantId) {
+        JsonNode list = restClient().get()
+                .uri("/api/v1/app/100/")
+                .retrieve().body(JsonNode.class);
+        if (list != null && list.has("data")) {
+            for (JsonNode app : list.get("data")) {
+                if (tenantId.equals(app.path("uid").asText(null))) {
+                    return app;
+                }
+            }
+        }
+        return null;
+    }
+
+    private com.fasterxml.jackson.databind.ObjectMapper jsonMapper() {
+        return com.fasterxml.jackson.databind.json.JsonMapper.builder().build();
     }
 
     // ── event types (our topics) ────────────────────────────────────────
@@ -95,18 +126,30 @@ public class SvixServerClient {
                 .uri("/api/v1/app/{appId}/endpoint/", appId)
                 .body(body)
                 .retrieve().body(JsonNode.class);
+        String endpointId = created.get("id").asText();
+        // Svix does NOT return the signing secret in the creation response —
+        // it lives behind the dedicated /secret/ endpoint.
+        String secret = "";
+        try {
+            JsonNode secretNode = restClient().get()
+                    .uri("/api/v1/app/{appId}/endpoint/{endpointId}/secret/", appId, endpointId)
+                    .retrieve().body(JsonNode.class);
+            if (secretNode != null && secretNode.hasNonNull("key")) {
+                secret = secretNode.get("key").asText();
+            }
+        } catch (RestClientException e) {
+            log.warn("could not fetch signing secret for endpoint {}: {}", endpointId, e.getMessage());
+        }
         return Map.of(
-                "endpointId", created.get("id").asText(),
-                // Svix generates the whsec_... signing secret; receiver verifies
-                // Standard Webhooks signatures with it.
-                "secret", created.hasNonNull("key") ? created.get("key").asText() : "",
+                "endpointId", endpointId,
+                "secret", secret,
                 "url", created.get("url").asText(),
                 "topics", topics);
     }
 
     public List<Map<String, Object>> listEndpoints(String appId) {
         JsonNode node = restClient().get()
-                .uri("/api/v1/app/{appId}/endpoint/{limit}", appId, 50)
+                .uri("/api/v1/app/{appId}/endpoint/?limit=50", appId)
                 .retrieve().body(JsonNode.class);
         List<Map<String, Object>> out = new ArrayList<>();
         if (node != null && node.has("data")) {
@@ -143,7 +186,7 @@ public class SvixServerClient {
 
     public List<Map<String, Object>> listMessages(String appId, int limit) {
         JsonNode node = restClient().get()
-                .uri("/api/v1/app/{appId}/msg/{limit}", appId, Math.min(Math.max(limit, 1), 100))
+                .uri("/api/v1/app/{appId}/msg/?limit={limit}", appId, Math.min(Math.max(limit, 1), 100))
                 .retrieve().body(JsonNode.class);
         List<Map<String, Object>> out = new ArrayList<>();
         if (node != null && node.has("data")) {
@@ -164,7 +207,7 @@ public class SvixServerClient {
             String endpointId = String.valueOf(ep.get("endpointId"));
             try {
                 JsonNode node = restClient().get()
-                        .uri("/api/v1/app/{appId}/endpoint/{endpointId}/msg/{messageId}/attempt/{limit}",
+                        .uri("/api/v1/app/{appId}/endpoint/{endpointId}/msg/{messageId}/attempt/",
                                 appId, endpointId, messageId, 20)
                         .retrieve().body(JsonNode.class);
                 if (node != null && node.has("data")) {

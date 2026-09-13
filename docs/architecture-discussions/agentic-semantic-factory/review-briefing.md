@@ -139,7 +139,7 @@ L0 连接与落地（Excel/DB/文件/报表 → landing，留痕）→ L1 诊断
 |---|---|
 | Metrics Service（内部插件） | metrics-server 挂载为平台插件；L4 发布（meta/metrics、grants）在此落地 |
 | **File Service** | ✅ 已落地为 `platform-service/` files 模块（Spring Boot 3.2，5707，nginx `/api/filesvc/`）：path 寻址、不可变版本化、无 folder 表、透明多租户（TenantLine 拦截器）；设计对齐 fina-ai file 服务，见 [file-and-webhook-services](./file-and-webhook-services.md) |
-| **Webhook Service** | ✅ 已落地为 `platform-service/` webhooks 模块：自托管 **Svix**（选型评估与 Outpost 对比见同文档 §4）经租户模型 facade（`/api/webhooks/`→`/api/v1/webhooks/*`）：Standard Webhooks 签名、whsec 自动生成、attempts 查询；svix-server 实跑冒烟待部署目标 |
+| **Webhook Service** | ✅ 已落地为 `platform-service/` webhooks 模块：自托管 **Svix**（选型评估与 Outpost 对比见同文档 §4）经租户模型 facade（`/api/webhooks/`→`/api/v1/webhooks/*`）：Standard Webhooks 签名、whsec 自动生成、attempts 查询；**本机全链路冒烟通过**（发布→投递→验签，2026-09-13） |
 | Agent Service | PM agent 与各流水线 agent（Curator/Modeler/Publisher/Analysis）的运行位置，经 a2a/mcp 互调（D8 中"PM agent 长在已有工作流引擎上"的基座即此） |
 | File Service→landing 衔接 | M4 的 `import` 动词从 File Service 按 path 取原件再解析（loader 职责不变） |
 | Webhook Service + 外部插件（飞书） | 确认 gate 的通知与回调通道；Portal 链接 + whsec 签名密钥已具备，飞书"只给 key 不管实现"对接待接 |
