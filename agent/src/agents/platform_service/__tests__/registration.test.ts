@@ -68,3 +68,62 @@ describe("webhooks plugin", () => {
     ]);
   });
 });
+
+describe("webhooks plugin connection", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const discoverWithContext = (
+    config: Record<string, unknown>,
+    context?: { tenantId?: string },
+  ) =>
+    (
+      webhooksPlugin.connection!.discover as unknown as (
+        config: Record<string, unknown>,
+        context?: { tenantId?: string },
+      ) => Promise<Array<{ id: string; name: string; description?: string }>>
+    )(config, context);
+
+  it("connection.test returns ok on HTTP 200 and failure with message otherwise", async () => {
+    const fetchMock = jest
+      .spyOn(global, "fetch")
+      .mockResolvedValue({ ok: true, status: 200 } as unknown as Response);
+
+    const okResult = await webhooksPlugin.connection!.test!({ baseUrl: "http://svc:5707" });
+    expect(okResult).toEqual({ ok: true, message: "连接成功" });
+    expect(fetchMock).toHaveBeenCalledWith("http://svc:5707/actuator/health");
+
+    fetchMock.mockResolvedValue({ ok: false, status: 503 } as unknown as Response);
+    const failResult = await webhooksPlugin.connection!.test!({ baseUrl: "http://svc:5707" });
+    expect(failResult).toEqual({ ok: false, message: "HTTP 503" });
+  });
+
+  it("discover rejects when tenant context is missing", async () => {
+    await expect(
+      webhooksPlugin.connection!.discover!({ baseUrl: "http://svc:5707" }),
+    ).rejects.toThrow("tenant context is missing");
+  });
+
+  it("discover maps destinations and forwards the tenant header", async () => {
+    const fetchMock = jest.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => [{ endpointId: "ep_1", url: "http://a", topics: ["gate.passed"] }],
+    } as unknown as Response);
+
+    const result = await discoverWithContext(
+      { baseUrl: "http://svc:5707" },
+      { tenantId: "t1" },
+    );
+
+    expect(result).toEqual([{ id: "ep_1", name: "http://a", description: "gate.passed" }]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://svc:5707/api/v1/webhooks/destinations",
+      expect.objectContaining({
+        method: "GET",
+        headers: expect.objectContaining({ "X-Tenant-Id": "t1" }),
+      }),
+    );
+  });
+});
