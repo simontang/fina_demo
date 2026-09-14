@@ -311,6 +311,12 @@ else
   bad W-09 "tamper delivery not received"
 fi
 
+# W-15 brand-new topic exercises lazy event-type registration
+NEWTOPIC="topic-$TS.unused"
+B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TC" -H "Content-Type: application/json" \
+  -d "{\"topic\":\"$NEWTOPIC\",\"data\":{\"probe\":1}}" "$BASE/api/v1/webhooks/publish")
+[[ -n "$(jget "$B" "d['messageId']" 2>/dev/null)" ]] && ok W-15 "publish to a brand-new topic" || bad W-15 "got: $B"
+
 # W-06 / W-08
 B=$(curl -s -m 60 -H "X-Tenant-Id: $TC" "$BASE/api/v1/webhooks/messages?limit=20")
 echo "$B" | grep -q "job.completed" && ok W-06 "messages observable" || bad W-06 "got: $(echo "$B" | head -c 150)"

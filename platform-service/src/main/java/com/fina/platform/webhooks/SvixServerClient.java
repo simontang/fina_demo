@@ -138,20 +138,42 @@ public class SvixServerClient {
 
     // ── event types (our topics) ────────────────────────────────────────
 
+    /**
+     * Register the event type if it is not there yet. A missing type comes
+     * back as 404 from the backend, which our status handler surfaces as
+     * ApiException(404) — catch that (not RestClientException) or every
+     * publish to a brand-new topic fails with 404.
+     */
     public void ensureEventType(String topic) {
+        boolean exists;
         try {
             restClient().get()
                     .uri("/api/v1/event-type/{name}/", topic)
                     .retrieve().toBodilessEntity();
-        } catch (RestClientException e) {
-            ObjectNode body = com.fasterxml.jackson.databind.json.JsonMapper.builder().build().createObjectNode();
-            body.put("name", topic);
-            body.put("description", "factory topic: " + topic);
+            exists = true;
+        } catch (ApiException e) {
+            if (e.getStatus() != 404) {
+                throw e;
+            }
+            exists = false;
+        }
+        if (exists) {
+            return;
+        }
+        ObjectNode body = jsonMapper().createObjectNode();
+        body.put("name", topic);
+        body.put("description", "factory topic: " + topic);
+        try {
             restClient().post()
                     .uri("/api/v1/event-type/")
                     .body(body)
                     .retrieve().toBodilessEntity();
             log.info("registered svix event type {}", topic);
+        } catch (ApiException e) {
+            if (e.getStatus() != 409) {
+                throw e;
+            }
+            log.debug("event type {} already registered (race)", topic);
         }
     }
 
