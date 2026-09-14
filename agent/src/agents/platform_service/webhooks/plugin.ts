@@ -73,7 +73,8 @@ export const webhooksPlugin: Plugin = {
         return { ok: false, message: err instanceof Error ? err.message : String(err) };
       }
     },
-    // 依赖 core 新版本的第二参 context；旧版 core 下第二参为 undefined，此时抛租户缺失错误。
+    // gateway 4.3.1 起以第二参传入租户上下文 { tenantId }（protocols 的类型尚未同步，故此处用可选参数）。
+    // 若运行时未提供租户，则抛租户缺失错误，绝不回退到默认租户。
     discover: async (config, context?: { tenantId?: string }) => {
       const tenantId = context?.tenantId;
       if (!tenantId) throw new Error("tenant context is missing");
