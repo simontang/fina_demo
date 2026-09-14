@@ -44,9 +44,15 @@ export const webhooksPlugin: Plugin = {
       },
     },
     defaultConfig: { connections: [], connectAll: false },
-    // v1: all tools are agent-path only (openExpose is not declared). On the MCP path,
-    // runConfig carries no connection resolution, so the selectedEntities scope cannot take
-    // effect; we will expose the Open surface once core fills this gap.
+    // Exposed on the Open/MCP surface. Note: the MCP path does not resolve connection
+    // config, so `selectedEntities` scope only applies on the agent path; on MCP,
+    // publish fans out to every subscriber of the topic.
+    openExpose: [
+      { name: "webhooks_list_destinations", readOnly: true },
+      { name: "webhooks_publish_event" },
+      { name: "webhooks_list_recent_events", readOnly: true },
+      { name: "webhooks_get_delivery_status", readOnly: true },
+    ],
   },
   connection: {
     ...platformServiceConnection,
@@ -88,7 +94,7 @@ export const webhooksPlugin: Plugin = {
           {
             name: "webhooks_publish_event",
             description:
-              "Publish a factory event to delivery destinations. topic must come from the fixed list; endpointIds can only narrow within the selected scope. (v1: scope is a client-side constraint; server-side targeted delivery comes in a later version. When no scope is configured, fan out to all destinations for the topic)",
+              "Publish a factory event to delivery destinations. topic must come from the fixed list; endpointIds can only narrow within the selected scope. (v1: scope is a client-side constraint; server-side targeted delivery comes in a later version. When no scope is configured, fan out to all destinations for the topic. On the MCP path the selected scope is not applied, so publishing always fans out to every subscriber of the topic.)",
             schema: SCHEMAS.publish,
           },
         ),

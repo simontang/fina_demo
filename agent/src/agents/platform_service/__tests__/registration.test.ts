@@ -52,10 +52,20 @@ describe("storage plugin", () => {
 });
 
 describe("webhooks plugin", () => {
-  it("registers a plugin with type webhooks and no Open exposure in v1", () => {
+  it("registers a plugin with type webhooks and exposes all tools to Open", () => {
     expect(PluginRegistry.register).toHaveBeenCalledWith(webhooksPlugin);
     expect(webhooksPlugin.meta.type).toBe("webhooks");
-    expect(webhooksPlugin.meta.openExpose ?? []).toEqual([]);
+    const expose = (
+      webhooksPlugin.meta.openExpose as Array<
+        string | { name: string; readOnly?: boolean; destructive?: boolean }
+      >
+    ).map((e) => (typeof e === "string" ? e : e.name));
+    expect(expose.sort()).toEqual([
+      "webhooks_get_delivery_status",
+      "webhooks_list_destinations",
+      "webhooks_list_recent_events",
+      "webhooks_publish_event",
+    ]);
   });
 
   it("provides the four webhook tools", async () => {
