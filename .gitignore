@@ -54,6 +54,9 @@ next-env.d.ts
 # local agent workspace
 .superpowers/
 
+# git worktrees
+.worktrees/
+
 # IntelliJ IDEA
 .idea/
 .cursor/
