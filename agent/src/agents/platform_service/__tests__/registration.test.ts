@@ -9,6 +9,7 @@ jest.mock("langchain", () => ({
 
 import { PluginRegistry } from "@axiom-lattice/core";
 import { storagePlugin } from "../storage/plugin";
+import { webhooksPlugin } from "../webhooks/plugin";
 
 describe("storage plugin", () => {
   it("registers a plugin with type storage", () => {
@@ -46,5 +47,24 @@ describe("storage plugin", () => {
       expect(toolNames).toContain(name);
     }
     expect(toolNames).toContain("storage_upload");
+  });
+});
+
+describe("webhooks plugin", () => {
+  it("registers a plugin with type webhooks and no Open exposure in v1", () => {
+    expect(PluginRegistry.register).toHaveBeenCalledWith(webhooksPlugin);
+    expect(webhooksPlugin.meta.type).toBe("webhooks");
+    expect(webhooksPlugin.meta.openExpose ?? []).toEqual([]);
+  });
+
+  it("provides the four webhook tools", async () => {
+    const mw = await webhooksPlugin.middleware!({});
+    const names = ((mw as { tools: Array<{ name: string }> }).tools ?? []).map((t) => t.name);
+    expect(names.sort()).toEqual([
+      "webhooks_get_delivery_status",
+      "webhooks_list_destinations",
+      "webhooks_list_recent_events",
+      "webhooks_publish_event",
+    ]);
   });
 });

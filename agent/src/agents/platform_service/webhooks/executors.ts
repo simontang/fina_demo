@@ -5,7 +5,7 @@ import {
   tenantFromExeConfig,
 } from "../client";
 
-const MESSAGE_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
+export const MESSAGE_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 
 export const WEBHOOK_TOPICS = [
   "import.completed",
