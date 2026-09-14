@@ -8,7 +8,6 @@ jest.mock("langchain", () => ({
 }));
 
 import { PluginRegistry } from "@axiom-lattice/core";
-import { manageWebhookPlugin } from "../manage_webhook/plugin";
 import { storagePlugin } from "../storage/plugin";
 import { webhooksPlugin } from "../webhooks/plugin";
 
@@ -24,17 +23,17 @@ describe("storage plugin", () => {
     >;
     const names = expose.map((e) => (typeof e === "string" ? e : e.name));
     expect(names.sort()).toEqual([
-      "storage_delete",
-      "storage_get_download_url",
-      "storage_get_metadata",
-      "storage_list",
+      "delete",
+      "get_download_url",
+      "get_metadata",
+      "list",
     ]);
     expect(expose).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ name: "storage_delete", destructive: true }),
-        expect.objectContaining({ name: "storage_list", readOnly: true }),
-        expect.objectContaining({ name: "storage_get_metadata", readOnly: true }),
-        expect.objectContaining({ name: "storage_get_download_url", readOnly: true }),
+        expect.objectContaining({ name: "delete", destructive: true }),
+        expect.objectContaining({ name: "list", readOnly: true }),
+        expect.objectContaining({ name: "get_metadata", readOnly: true }),
+        expect.objectContaining({ name: "get_download_url", readOnly: true }),
       ]),
     );
   });
@@ -47,7 +46,7 @@ describe("storage plugin", () => {
       const name = typeof e === "string" ? e : e.name;
       expect(toolNames).toContain(name);
     }
-    expect(toolNames).toContain("storage_upload");
+    expect(toolNames).toContain("upload");
   });
 });
 
@@ -61,50 +60,25 @@ describe("webhooks plugin", () => {
       >
     ).map((e) => (typeof e === "string" ? e : e.name));
     expect(expose.sort()).toEqual([
-      "webhooks_get_delivery_status",
-      "webhooks_list_destinations",
-      "webhooks_list_recent_events",
-      "webhooks_publish_event",
+      "delete_destination",
+      "get_delivery_status",
+      "list_destinations",
+      "list_recent_events",
+      "publish_event",
+      "register_destination",
     ]);
   });
 
-  it("provides the four webhook tools", async () => {
+  it("provides the six webhook tools", async () => {
     const mw = await webhooksPlugin.middleware!({});
     const names = ((mw as { tools: Array<{ name: string }> }).tools ?? []).map((t) => t.name);
     expect(names.sort()).toEqual([
-      "webhooks_get_delivery_status",
-      "webhooks_list_destinations",
-      "webhooks_list_recent_events",
-      "webhooks_publish_event",
-    ]);
-  });
-});
-
-describe("manage_webhook plugin", () => {
-  it("registers a plugin with type manage_webhook", () => {
-    expect(PluginRegistry.register).toHaveBeenCalledWith(manageWebhookPlugin);
-    expect(manageWebhookPlugin.meta.type).toBe("manage_webhook");
-  });
-
-  it("exposes exactly the three management tools to Open", () => {
-    const expose = manageWebhookPlugin.meta.openExpose as Array<
-      string | { name: string; readOnly?: boolean; destructive?: boolean }
-    >;
-    const names = expose.map((e) => (typeof e === "string" ? e : e.name));
-    expect(names.sort()).toEqual([
-      "manage_webhook_delete_destination",
-      "manage_webhook_list_destinations",
-      "manage_webhook_register_destination",
-    ]);
-  });
-
-  it("provides exactly the three management tools", async () => {
-    const mw = await manageWebhookPlugin.middleware!({});
-    const names = ((mw as { tools: Array<{ name: string }> }).tools ?? []).map((t) => t.name);
-    expect(names.sort()).toEqual([
-      "manage_webhook_delete_destination",
-      "manage_webhook_list_destinations",
-      "manage_webhook_register_destination",
+      "delete_destination",
+      "get_delivery_status",
+      "list_destinations",
+      "list_recent_events",
+      "publish_event",
+      "register_destination",
     ]);
   });
 });
@@ -167,4 +141,3 @@ describe("webhooks plugin connection", () => {
     );
   });
 });
-

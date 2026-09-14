@@ -11,10 +11,10 @@ import { PluginRegistry } from "@axiom-lattice/core";
 import "../index";
 
 describe("platform_service barrel", () => {
-  it("registers all three plugins when the barrel is imported", () => {
+  it("registers both plugins when the barrel is imported", () => {
     const types = (PluginRegistry.register as jest.Mock).mock.calls
       .map(([p]) => (p as { meta: { type: string } }).meta.type)
       .sort();
-    expect(types).toEqual(["manage_webhook", "storage", "webhooks"]);
+    expect(types).toEqual(["storage", "webhooks"]);
   });
 });

@@ -67,10 +67,10 @@ export const storagePlugin: Plugin = {
     },
     defaultConfig: { connections: [], connectAll: false },
     openExpose: [
-      { name: "storage_list", readOnly: true },
-      { name: "storage_get_metadata", readOnly: true },
-      { name: "storage_get_download_url", readOnly: true },
-      { name: "storage_delete", destructive: true },
+      { name: "list", readOnly: true },
+      { name: "get_metadata", readOnly: true },
+      { name: "get_download_url", readOnly: true },
+      { name: "delete", destructive: true },
     ],
   },
   connection: platformServiceConnection,
@@ -82,7 +82,7 @@ export const storagePlugin: Plugin = {
           (input: z.infer<typeof SCHEMAS.upload>, exeConfig) =>
             storageUpload(input, exeConfig, rawConfig),
           {
-            name: "storage_upload",
+            name: "upload",
             description:
               "Upload a file from the agent sandbox to unified storage. The input is a sandbox path, not file contents. On success returns a FileReceipt (uuid/fullPath/sha256/size…). (Metadata currently supports ASCII only; non-ASCII file names/paths require server-side decoding support)",
             schema: SCHEMAS.upload,
@@ -92,7 +92,7 @@ export const storagePlugin: Plugin = {
           (input: z.infer<typeof SCHEMAS.list>, exeConfig) =>
             storageList(input, exeConfig, rawConfig),
           {
-            name: "storage_list",
+            name: "list",
             description:
               "List files in unified storage, filterable by directory/name/attributes/time, returned paginated.",
             schema: SCHEMAS.list,
@@ -102,7 +102,7 @@ export const storagePlugin: Plugin = {
           (input: z.infer<typeof SCHEMAS.metadata>, exeConfig) =>
             storageGetMetadata(input, exeConfig, rawConfig),
           {
-            name: "storage_get_metadata",
+            name: "get_metadata",
             description: "Get file metadata by uuid (without downloading contents).",
             schema: SCHEMAS.metadata,
           },
@@ -111,7 +111,7 @@ export const storagePlugin: Plugin = {
           (input: z.infer<typeof SCHEMAS.presign>, exeConfig) =>
             storageGetDownloadUrl(input, exeConfig, rawConfig),
           {
-            name: "storage_get_download_url",
+            name: "get_download_url",
             description:
               "Get a time-limited download link for a file. The link is a credential: anyone who has the URL can download it, so do not share it.",
             schema: SCHEMAS.presign,
@@ -121,7 +121,7 @@ export const storagePlugin: Plugin = {
           (input: z.infer<typeof SCHEMAS.delete>, exeConfig) =>
             storageDelete(input, exeConfig, rawConfig),
           {
-            name: "storage_delete",
+            name: "delete",
             description:
               "Soft-delete one version of a file (the version corresponding to that uuid), not the entire logical file. Requires user confirmation, then pass confirm:true.",
             schema: SCHEMAS.delete,

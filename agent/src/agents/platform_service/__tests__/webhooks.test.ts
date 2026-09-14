@@ -1,4 +1,6 @@
 import {
+  deleteDestination,
+  registerDestination,
   webhooksPublishEvent,
   webhooksListDestinations,
   webhooksListRecentEvents,
@@ -138,5 +140,79 @@ describe("webhooksPublishEvent empty scope", () => {
     );
     expect(JSON.parse(out).code).toBe("OUT_OF_SCOPE");
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("registerDestination", () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it("POSTs the destination and returns the signing secret", async () => {
+    jest.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ endpointId: "ep_1", secret: "whsec_x" }),
+    } as Response);
+    const out = await registerDestination(
+      { url: "http://a", topics: ["gate.passed"], description: "d" },
+      exeConfig,
+      rawConfig,
+    );
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe("http://svc:5707/api/v1/webhooks/destinations");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({
+      url: "http://a",
+      topics: ["gate.passed"],
+      description: "d",
+    });
+    expect(JSON.parse(out).secret).toBe("whsec_x");
+  });
+
+  it("maps HTTP errors to error results", async () => {
+    jest.spyOn(global, "fetch").mockResolvedValue({
+      ok: false,
+      status: 404,
+      text: async () => JSON.stringify({ code: "NOT_FOUND", message: "x" }),
+    } as Response);
+    const out = await registerDestination(
+      { url: "http://a", topics: ["gate.passed"] },
+      exeConfig,
+      rawConfig,
+    );
+    expect(JSON.parse(out)).toMatchObject({ ok: false, code: "NOT_FOUND", status: 404 });
+  });
+});
+
+describe("deleteDestination", () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it("requires confirm before fetching", async () => {
+    const fetchSpy = jest.spyOn(global, "fetch");
+    const out = await deleteDestination({ endpointId: "ep_abc" }, exeConfig, rawConfig);
+    expect(JSON.parse(out).code).toBe("CONFIRM_REQUIRED");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("rejects an endpointId that could alter the path before fetching", async () => {
+    const fetchSpy = jest.spyOn(global, "fetch");
+    const out = await deleteDestination(
+      { endpointId: "../x", confirm: true },
+      exeConfig,
+      rawConfig,
+    );
+    expect(JSON.parse(out).code).toBe("BAD_REQUEST");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("DELETEs the destination when confirmed", async () => {
+    jest.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: true }),
+    } as Response);
+    await deleteDestination({ endpointId: "ep_abc", confirm: true }, exeConfig, rawConfig);
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe("http://svc:5707/api/v1/webhooks/destinations/ep_abc");
+    expect(init.method).toBe("DELETE");
   });
 });

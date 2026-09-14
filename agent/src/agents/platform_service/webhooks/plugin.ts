@@ -5,8 +5,11 @@ import { z } from "zod";
 import { connectionFromConfig, request } from "../client";
 import { platformServiceConnection } from "../connection";
 import {
+  ENDPOINT_ID_PATTERN,
   MESSAGE_ID_PATTERN,
   WEBHOOK_TOPICS,
+  deleteDestination,
+  registerDestination,
   webhooksGetDeliveryStatus,
   webhooksListDestinations,
   webhooksListRecentEvents,
@@ -22,6 +25,19 @@ const SCHEMAS = {
   }),
   listRecent: z.object({ limit: z.number().int().optional() }),
   deliveryStatus: z.object({ messageId: z.string().regex(MESSAGE_ID_PATTERN) }),
+  register: z.object({
+    url: z
+      .string()
+      .url()
+      .refine((u) => /^https?:\/\//.test(u), { message: "url must be http(s)" })
+      .describe("Receiver URL (http/https)"),
+    topics: z.array(z.enum(WEBHOOK_TOPICS)).min(1).describe("List of subscribed event topics"),
+    description: z.string().optional(),
+  }),
+  delete: z.object({
+    endpointId: z.string().regex(ENDPOINT_ID_PATTERN),
+    confirm: z.boolean().optional().describe("Must be true to execute; otherwise a confirmation prompt is returned"),
+  }),
 };
 
 export const webhooksPlugin: Plugin = {
@@ -29,7 +45,7 @@ export const webhooksPlugin: Plugin = {
     type: "webhooks",
     name: "Webhooks",
     description:
-      "Publish factory events to registered delivery destinations and query events and delivery status. Registration and deletion of destinations are handled by the manage_webhook admin domain.",
+      "Register and delete delivery destinations (registration returns the whsec signing secret), publish factory events to registered destinations, and query events and delivery status.",
     version: "1.0.0",
     configSchema: {
       type: "object",
@@ -48,10 +64,12 @@ export const webhooksPlugin: Plugin = {
     // config, so `selectedEntities` scope only applies on the agent path; on MCP,
     // publish fans out to every subscriber of the topic.
     openExpose: [
-      { name: "webhooks_list_destinations", readOnly: true },
-      { name: "webhooks_publish_event" },
-      { name: "webhooks_list_recent_events", readOnly: true },
-      { name: "webhooks_get_delivery_status", readOnly: true },
+      { name: "list_destinations", readOnly: true },
+      { name: "publish_event" },
+      { name: "list_recent_events", readOnly: true },
+      { name: "get_delivery_status", readOnly: true },
+      { name: "register_destination" },
+      { name: "delete_destination", destructive: true },
     ],
   },
   connection: {
@@ -83,7 +101,7 @@ export const webhooksPlugin: Plugin = {
           (input: z.infer<typeof SCHEMAS.listDestinations>, exeConfig) =>
             webhooksListDestinations(input, exeConfig, rawConfig),
           {
-            name: "webhooks_list_destinations",
+            name: "list_destinations",
             description: "List delivery destinations within the current connection scope (signing secrets are not returned).",
             schema: SCHEMAS.listDestinations,
           },
@@ -92,7 +110,7 @@ export const webhooksPlugin: Plugin = {
           (input: z.infer<typeof SCHEMAS.publish>, exeConfig) =>
             webhooksPublishEvent(input, exeConfig, rawConfig),
           {
-            name: "webhooks_publish_event",
+            name: "publish_event",
             description:
               "Publish a factory event to delivery destinations. topic must come from the fixed list; endpointIds can only narrow within the selected scope. (v1: scope is a client-side constraint; server-side targeted delivery comes in a later version. When no scope is configured, fan out to all destinations for the topic. On the MCP path the selected scope is not applied, so publishing always fans out to every subscriber of the topic.)",
             schema: SCHEMAS.publish,
@@ -102,7 +120,7 @@ export const webhooksPlugin: Plugin = {
           (input: z.infer<typeof SCHEMAS.listRecent>, exeConfig) =>
             webhooksListRecentEvents(input, exeConfig, rawConfig),
           {
-            name: "webhooks_list_recent_events",
+            name: "list_recent_events",
             description: "List recent events for the current tenant (messageId/topic/timestamp).",
             schema: SCHEMAS.listRecent,
           },
@@ -111,9 +129,28 @@ export const webhooksPlugin: Plugin = {
           (input: z.infer<typeof SCHEMAS.deliveryStatus>, exeConfig) =>
             webhooksGetDeliveryStatus(input, exeConfig, rawConfig),
           {
-            name: "webhooks_get_delivery_status",
+            name: "get_delivery_status",
             description: "Query the delivery status and next retry time of a message for each destination.",
             schema: SCHEMAS.deliveryStatus,
+          },
+        ),
+        tool(
+          (input: z.infer<typeof SCHEMAS.register>, exeConfig) =>
+            registerDestination(input, exeConfig, rawConfig),
+          {
+            name: "register_destination",
+            description:
+              "Register a delivery destination and return the whsec signing secret. The secret enters the tool result (including conversation and audit history) and can be retrieved again via the admin API; use only in scenarios granted to administrators, and do not log or forward it.",
+            schema: SCHEMAS.register,
+          },
+        ),
+        tool(
+          (input: z.infer<typeof SCHEMAS.delete>, exeConfig) =>
+            deleteDestination(input, exeConfig, rawConfig),
+          {
+            name: "delete_destination",
+            description: "Delete a delivery destination. Requires user confirmation, then pass confirm:true.",
+            schema: SCHEMAS.delete,
           },
         ),
       ],
