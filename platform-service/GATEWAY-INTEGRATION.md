@@ -173,7 +173,7 @@ curl -o /dev/null -w "%{http_code}\n" "$B/api/filesvc/nope/x/y"   # 404
 1. **租户来源**：网关从凭据（API key / JWT claim）解析租户的机制是什么？需要服务侧配合什么（额外头、令牌格式）？
 2. **取值空间**：`X-Tenant-Id` 是否就是 Tenant Management 的 tenant id？命名是否兼容 `[A-Za-z0-9._-]`？
 3. **运维凭据**：Portal 需要的跨租户能力，网关用哪种角色表达？
-4. **是否暴露为 MCP/A2A 工具**：若需要，工具名与参数形态？服务侧可提供 OpenAPI 描述。
+4. **MCP/A2A 暴露**：建议由网关统一暴露（见 §11），服务侧提供工具描述文件。
 5. **限流与体积**：上传体积上限、超时策略由网关还是服务负责？（nginx 现为 `client_max_body_size 50m`，服务 multipart 上限 512MB）
 6. **切换方式**：是否需要灰度（例如先切 `/api/webhooks/` 再切 `/api/filesvc/`）？
 
@@ -183,3 +183,63 @@ curl -o /dev/null -w "%{http_code}\n" "$B/api/filesvc/nope/x/y"   # 404
 - 只监听 `127.0.0.1:5707`，容器不暴露宿主机以外的端口；
 - 数据隔离由行级拦截器保证（跨租户访问返回 404，不泄露存在性）；
 - 接口契约以 `API.md` / `WEBHOOK-API.md` 为准，变更走本仓库 CI 与文档流程。
+
+---
+
+## 11. MCP 的落地位置（服务侧建议：放网关）
+
+**结论：MCP server 由网关实现；platform-service 只提供工具契约，不实现 MCP。**
+
+### 11.1 为什么不在本服务实现
+
+| 理由 | 说明 |
+|---|---|
+| **身份解析必须集中** | MCP 客户端带凭据连接，server 必须解析出身份与租户。本服务的定位是**不认证租户**，且**无法区分**网关设置的租户头与调用方伪造的头。若由本服务做 MCP server，要么自己实现凭据→租户（越界且重复），要么信任调用方声明租户（等于敞口） |
+| **一个入口 vs N 个** | 每个服务各做 MCP = N 个端点 / N 套鉴权 / N 份工具清单 / N 处租户映射；网关存在的意义正是避免这一点 |
+| **跨服务工具** | 例如"把文件下载链接附到事件里发出"跨 files + webhooks，只能在网关/agent 层组合 |
+| **策略点** | 限流、审计、配额、确认门集中在网关 |
+
+### 11.2 服务侧要交付什么：工具描述（而非实现）
+
+建议在本仓库维护一份机器可读的工具描述（`mcp-tools.json` 或直接由 OpenAPI 派生），由网关构建时聚合：
+
+```jsonc
+{
+  "domain": "files",
+  "tools": [
+    {
+      "name": "files.get_download_url",
+      "description": "获取某个文件的限时下载链接（云存储返回存储原生预签名 URL）",
+      "params": { "uuid": "string, 32 位十六进制", "ttlSeconds": "integer, 可选" },
+      "mapsTo": "POST /api/v1/files/presign",
+      "scope": "files.read"
+    }
+  ]
+}
+```
+
+工具名建议按域前缀：`files.*` / `webhooks.*`。
+
+### 11.3 文件域的关键设计点
+
+**不要把文件字节通过 MCP 工具结果传输。** MCP 工具结果面向文本/JSON，大二进制既笨重又浪费。正确形态是 MCP 只暴露"元数据 + 链接"：
+
+| 工具 | 映射到 |
+|---|---|
+| `files.get_download_url` | `POST /api/v1/files/presign`（本服务已有，专为此设计） |
+| `files.get_metadata` | `GET /api/v1/files/{uuid}` / `HEAD` |
+| `files.list` | `GET /api/v1/files?path=&q=&recursive=&page=&size=` |
+| `files.delete` | `DELETE /api/v1/files/{uuid}` |
+| 上传 | 走 REST（网关的文件通道），MCP 不承载字节 |
+
+webhook 域：`webhooks.register_destination`、`webhooks.list_destinations`、`webhooks.publish_event`、`webhooks.list_recent_events`、`webhooks.get_delivery_status`。
+
+### 11.4 网关侧实现要点
+
+- 工具内部调用内部 REST，**按 §4.2 注入 `X-Tenant-Id`**（租户来自 MCP 会话的认证主体）；
+- 工具结果里的下载链接直接透传（生产为 TOS 预签名 URL，客户端可直取）；
+- 现成基础：`@axiom-lattice/core` 已依赖 `@langchain/mcp-adapters`，但那是 **MCP 客户端**能力（把外部 MCP server 的工具加载进 agent）；**MCP server 侧目前仓库内没有实现**，属新建。
+
+### 11.5 可选的本地便利
+
+开发者用 Claude Desktop 直连**本地**服务、不经网关的场景，可以在服务内加一个薄的 stdio MCP server，复用 §11.2 的同一份工具描述。这是可选便利，不是主路径。
