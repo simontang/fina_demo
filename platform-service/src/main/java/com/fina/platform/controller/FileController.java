@@ -134,7 +134,7 @@ public class FileController {
      * paginated (`page` is 1-based, `size` rows per page; `total` reports the
      * full match count so a UI can render page links).
      */
-    @GetMapping
+    @GetMapping({"", "/"})
     public PathListing list(@RequestParam(value = "path", required = false, defaultValue = "") String path,
                             @RequestParam(value = "q", required = false) String q,
                             @RequestParam(value = "recursive", required = false, defaultValue = "false") boolean recursive,

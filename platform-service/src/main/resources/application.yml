@@ -38,7 +38,12 @@ spring:
     # fresh databases run V1 from scratch.
     enabled: true
     baseline-on-migrate: true
-    baseline-version: 1
+    # Baseline at 0, not 1: a pre-existing database (production RDS has other
+    # apps' tables) is stamped at this version, so V1 must still run —
+    # otherwise V2 fails on a missing table. Every migration is written
+    # idempotently (IF NOT EXISTS), so re-running V1 on an existing schema is
+    # a no-op.
+    baseline-version: 0
 
 mybatis-plus:
   global-config:

@@ -32,6 +32,18 @@ public class GlobalExceptionHandler {
                 .body(Map.of("code", "UNSUPPORTED_MEDIA_TYPE", "message", String.valueOf(e.getMessage())));
     }
 
+    /**
+     * Unknown paths (including a trailing-slash URL that maps to no handler)
+     * resolve as static resources in Spring 6; report them as 404 rather than
+     * letting the catch-all turn them into 500.
+     */
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoResource(
+            org.springframework.web.servlet.resource.NoResourceFoundException e) {
+        return ResponseEntity.status(404)
+                .body(Map.of("code", "NOT_FOUND", "message", "no such endpoint"));
+    }
+
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<Map<String, Object>> handleApi(ApiException e) {
         return ResponseEntity.status(e.getStatus())

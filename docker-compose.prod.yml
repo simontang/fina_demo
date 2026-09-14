@@ -126,6 +126,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-jfd4whz@GPF2nqx7zhm}
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
       ENCRYPT_KEY: ${ENCRYPT_KEY:-fina-metrics-2024!}
+      # Migration baseline must be 0 here too (see application.yml): the RDS
+      # database is pre-existing, and V1 has to run on it.
+      SPRING_FLYWAY_BASELINE_VERSION: "0"
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       SKIP_INIT: ${SKIP_INIT:-false}
     volumes:
@@ -253,7 +256,9 @@ services:
       SVIX_JWT_SECRET: ${SVIX_JWT_SECRET:?SVIX_JWT_SECRET is required}
       # Production: keep empty for strict SSRF protection (blocks private-range
       # receiver URLs). Only set JSON-array ranges when receivers are internal.
-      SVIX_WHITELIST_SUBNETS: ${SVIX_WHITELIST_SUBNETS:-}
+      # svix requires a JSON array here; an empty string fails startup.
+      # [] = strict SSRF protection (only public destination URLs).
+      SVIX_WHITELIST_SUBNETS: ${SVIX_WHITELIST_SUBNETS:-[]}
     depends_on:
       - document-redis
     restart: unless-stopped

@@ -340,6 +340,20 @@ RT=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: $TC" "$BASE/a
 B=$(curl -s -m 60 -H "X-Tenant-Id: $TB" "$BASE/api/v1/webhooks/destinations")
 echo "$B" | grep -q "$EP" && bad T-06 "tenant-b sees tenant-c destination!" || ok T-06 "webhook tenant isolation"
 
+echo "=== F. 路由边界 ==="
+
+# F-40 collection URL with a trailing slash still lists
+C=$(curl -s -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/?path=")
+[[ "$C" == "200" ]] && ok F-40 "collection with trailing slash lists" || bad F-40 "got $C"
+
+# F-41 unknown path is 404, not 500
+C=$(curl -s -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/nope/nope/nope")
+[[ "$C" == "404" ]] && ok F-41 "unknown path → 404 (was 500)" || bad F-41 "got $C"
+
+# F-42 malformed uuid still 400 (not swallowed by the generic handling)
+C=$(curl -s -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: $TA" "$BASE/api/v1/files/notauuid")
+[[ "$C" == "400" ]] && ok F-42 "malformed uuid → 400" || bad F-42 "got $C"
+
 echo "=== E. 韧性 ==="
 
 # S-01 svix down
