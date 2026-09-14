@@ -246,23 +246,14 @@ services:
     environment:
       SVIX_DB_DSN: ${SVIX_DB_DSN:-postgresql://postgres_fuli:jfd4whz%40GPF2nqx7zhm@pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com:5432/svix}
       SVIX_QUEUE_TYPE: redis
-      SVIX_REDIS_DSN: redis://svix-redis:6379/0
+      # Reuse the stack's existing Redis (db 3 keeps Svix keys apart from
+      # Celery on db 0). To isolate later, point this at a dedicated
+      # instance and swap the depends_on below.
+      SVIX_REDIS_DSN: redis://document-redis:6379/3
       SVIX_JWT_SECRET: ${SVIX_JWT_SECRET:?SVIX_JWT_SECRET is required}
       # Production: keep empty for strict SSRF protection (blocks private-range
       # receiver URLs). Only set JSON-array ranges when receivers are internal.
       SVIX_WHITELIST_SUBNETS: ${SVIX_WHITELIST_SUBNETS:-}
     depends_on:
-      - svix-redis
+      - document-redis
     restart: unless-stopped
-
-  # Dedicated Redis for the Svix delivery queue — isolated from the document
-  # pipeline's Redis (db-number isolation does not protect against FLUSHALL).
-  svix-redis:
-    image: redis:7
-    command: redis-server --appendonly yes
-    volumes:
-      - svix_redisdata:/data
-    restart: unless-stopped
-
-volumes:
-  svix_redisdata: {}
