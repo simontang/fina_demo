@@ -4,40 +4,22 @@
 - 组成：`platform-service`（Java，5707）+ `svix-server`（Svix，仅内网）+ `platform-db-init`（dev compose 才有；生产按 §3 手工初始化）
 - 门户：部署即含，`http://<host>:5707/portal`（端口只绑 127.0.0.1，外网访问见 §6）
 
-## 1. 镜像准备
+## 1. 镜像准备（由 CI 构建，本地不要构建）
 
-**✅ 2026-09-13 已完成**：两个镜像已推送至火山仓库，服务器可直接拉取：
+镜像由 **GitHub Actions 构建并推送**（`.github/workflows/ci.yml`）：
 
-- `finai-cn-shanghai.cr.volces.com/default/fina-demo-platform-service:latest`（sha256:963bab3f…）
-- `finai-cn-shanghai.cr.volces.com/default/svix-server:latest`（sha256:6414372a…）
+| 镜像 | 产出 | 说明 |
+|---|---|---|
+| `ghcr.io/409zhangshu/fina-demo-platform-service:latest` | `build-and-push-platform-service` job | 推送 `main` 且 `platform-service/**` 有变更时触发 |
+| `ghcr.io/409zhangshu/svix-server:latest` | `mirror-svix-server` job | 第三方镜像镜像到 ghcr，固定 amd64；也可手动 `workflow_dispatch` 触发 |
 
-后续更新版本时重复以下步骤：
+**为什么必须由 CI 构建（踩过的坑）**：本机是 Apple Silicon，本地构建/拉取的镜像是 **linux/arm64**，
+而服务器是 **x86_64**，容器启动即 `exec format error`（`exec /opt/java/openjdk/bin/java: exec format error`）。
+CI runner 是 amd64，产物天然匹配；`build-push-action` 也显式声明了 `platforms: linux/amd64`。
 
-```bash
-# platform-service：宿主机先构建 jar（网络受限环境下不要用容器内 gradle 构建，
-# Dockerfile 的多阶段构建需要访问 services.gradle.org / maven central）
-cd platform-service && ./gradlew bootJar --no-daemon -q
+**不要**再用本地 `docker build` / `docker push` 发布这两个镜像。
 
-# 受限网络：用预构建 jar 打运行时镜像（跳过容器内构建阶段）
-docker build -f - -t finai-cn-shanghai.cr.volces.com/default/fina-demo-platform-service:latest platform-service <<'DOCKERFILE'
-FROM eclipse-temurin:17-jre-jammy
-WORKDIR /app
-RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
-COPY build/libs/platform-service.jar app.jar
-RUN mkdir -p /app/logs && chown -R appuser:appgroup /app
-USER appuser
-EXPOSE 5707
-ENTRYPOINT ["java", "-Xms256m", "-Xmx512m", "-Djava.security.egd=file:/dev/./urandom", "-jar", "app.jar"]
-DOCKERFILE
-
-# svix-server：基础镜像经镜像源拉取后改 tag
-docker pull docker.1panel.live/svix/svix-server:latest
-docker tag docker.1panel.live/svix/svix-server:latest finai-cn-shanghai.cr.volces.com/default/svix-server:latest
-
-# 推送
-docker push finai-cn-shanghai.cr.volces.com/default/fina-demo-platform-service:latest
-docker push finai-cn-shanghai.cr.volces.com/default/svix-server:latest
-```
+服务器拉取镜像无需额外操作：root 的 docker 已登录 `ghcr.io` 与火山仓库。
 
 ## 2. 服务器侧准备
 
