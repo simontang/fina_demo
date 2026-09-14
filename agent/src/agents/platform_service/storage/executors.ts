@@ -33,17 +33,49 @@ function maxUploadBytes(): number {
   return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_MAX_UPLOAD_BYTES;
 }
 
-async function downloadFromSandbox(exeConfig: unknown, sandboxPath: string): Promise<Buffer> {
+interface SandboxFileHandle {
+  path: string;
+  size?: number;
+}
+
+interface SandboxLike {
+  file: {
+    downloadFile: (args: { file: string }) => Promise<Buffer>;
+    listPath?: (
+      path: string,
+      options?: { recursive?: boolean },
+    ) => Promise<{ files: Array<SandboxFileHandle> }>;
+  };
+}
+
+async function resolveSandbox(exeConfig: unknown): Promise<SandboxLike> {
   const rc = ((exeConfig as { configurable?: { runConfig?: Record<string, unknown> } })
     ?.configurable?.runConfig ?? {}) as Record<string, unknown>;
-  const sandbox = await getSandBoxManager().getSandboxFromConfig({
+  return getSandBoxManager().getSandboxFromConfig({
     assistant_id: (rc.assistant_id as string) || "",
     thread_id: (rc.thread_id as string) || "",
     tenantId: rc.tenantId as string | undefined,
     workspaceId: rc.workspaceId as string | undefined,
     projectId: rc.projectId as string | undefined,
   });
-  return sandbox.file.downloadFile({ file: sandboxPath });
+}
+
+async function sandboxFileSize(
+  sandbox: SandboxLike,
+  sandboxPath: string,
+): Promise<number | undefined> {
+  if (!sandbox.file.listPath) return undefined;
+  const idx = sandboxPath.lastIndexOf("/");
+  const dir = idx > 0 ? sandboxPath.slice(0, idx) : "/";
+  try {
+    const { files } = await sandbox.file.listPath(dir);
+    const entry = files.find(
+      (f) => f.path === sandboxPath || f.path.endsWith("/" + sandboxPath.slice(idx + 1)),
+    );
+    return entry?.size;
+  } catch {
+    return undefined;
+  }
 }
 
 export interface StorageUploadInput {
@@ -64,12 +96,22 @@ export async function storageUpload(
     const tenantId = tenantFromExeConfig(exeConfig);
     const conn = resolveConnection(rawConfig, exeConfig);
     const fileName = input.fileName?.trim() || input.sandboxPath.split("/").pop() || "file";
-    const bytes = await downloadFromSandbox(exeConfig, input.sandboxPath);
-    if (bytes.length > maxUploadBytes()) {
+    const cap = maxUploadBytes();
+    const sandbox = await resolveSandbox(exeConfig);
+    const known = await sandboxFileSize(sandbox, input.sandboxPath);
+    if (known !== undefined && known > cap) {
       return JSON.stringify({
         ok: false,
         code: "FILE_TOO_LARGE",
-        message: `file is ${bytes.length} bytes; limit is ${maxUploadBytes()}`,
+        message: `file is ${known} bytes; limit is ${cap}`,
+      });
+    }
+    const bytes = await sandbox.file.downloadFile({ file: input.sandboxPath });
+    if (bytes.length > cap) {
+      return JSON.stringify({
+        ok: false,
+        code: "FILE_TOO_LARGE",
+        message: `file is ${bytes.length} bytes; limit is ${cap}`,
       });
     }
     const uuid = randomUUID().replace(/-/g, "");
