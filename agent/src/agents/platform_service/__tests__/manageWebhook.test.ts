@@ -25,6 +25,16 @@ describe("manageWebhookListDestinations", () => {
     expect(init.headers["X-Tenant-Id"]).toBe("t1");
     expect(JSON.parse(out)).toEqual([{ endpointId: "ep_1" }]);
   });
+
+  it("maps HTTP errors to error results", async () => {
+    jest.spyOn(global, "fetch").mockResolvedValue({
+      ok: false,
+      status: 404,
+      text: async () => JSON.stringify({ code: "NOT_FOUND", message: "x" }),
+    } as Response);
+    const out = await manageWebhookListDestinations({}, exeConfig, rawConfig);
+    expect(JSON.parse(out)).toMatchObject({ ok: false, code: "NOT_FOUND", status: 404 });
+  });
 });
 
 describe("manageWebhookRegisterDestination", () => {

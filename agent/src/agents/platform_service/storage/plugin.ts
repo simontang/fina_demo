@@ -2,7 +2,7 @@ import { PluginRegistry } from "@axiom-lattice/core";
 import type { Plugin } from "@axiom-lattice/protocols";
 import { createMiddleware, tool } from "langchain";
 import { z } from "zod";
-import { connectionFromConfig } from "../client";
+import { platformServiceConnection } from "../connection";
 import {
   UUID_PATTERN,
   storageDelete,
@@ -70,34 +70,7 @@ export const storagePlugin: Plugin = {
       { name: "storage_delete", destructive: true },
     ],
   },
-  connection: {
-    fields: [
-      {
-        key: "baseUrl",
-        type: "string",
-        title: "Base URL",
-        widget: "input",
-        required: true,
-        helpText: "未填写时回退到环境变量 PLATFORM_SERVICE_URL",
-      },
-      {
-        key: "apiKey",
-        type: "password",
-        title: "API Key",
-        widget: "password",
-        helpText: "对应环境变量 FILE_SERVICE_API_KEY；留空表示服务端未启用校验",
-      },
-    ],
-    test: async (config) => {
-      try {
-        const base = connectionFromConfig(config).baseUrl;
-        const res = await fetch(`${base}/actuator/health`);
-        return { ok: res.ok, message: res.ok ? "连接成功" : `HTTP ${res.status}` };
-      } catch (err) {
-        return { ok: false, message: err instanceof Error ? err.message : String(err) };
-      }
-    },
-  },
+  connection: platformServiceConnection,
   middleware: (rawConfig) =>
     createMiddleware({
       name: "Storage",

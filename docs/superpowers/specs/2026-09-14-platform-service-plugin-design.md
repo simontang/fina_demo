@@ -30,7 +30,7 @@ platform-service（Spring Boot，5707）提供两域能力：
 | destination 归属 | platform-service/Svix 资源 |
 | 目标选择 | connection 的 `selectedEntities`（在连接 UI 里 discover + 选中） |
 | 租户来源 | 会话租户 `runConfig.tenantId`（非连接固定） |
-| 签名密钥 `whsec_` | 注册时一次性 reveal 给接收方；**不进 agent、不进 Connection** |
+| 签名密钥 `whsec_` | `manage_webhook` 管理域（独立 grant domain）的 register 工具在工具结果中返回 `whsec`（**已批准例外**，见 §6.5）；`webhooks` 运行时域保持 publish/只读，不接触 secret。secret 不写入 Connection |
 | 破坏性操作 | 仅 `storage_delete`；`openExpose.destructive` 标注 + 入参 `confirm: true` 双重门。webhooks 四个工具均非破坏性 |
 | 实现方式 | 纯 Plugin（不走 ToolLattice；插件工具不支持 needUserApprove） |
 | 文件域命名 | domain `storage`，工具 `storage_*` |
@@ -117,7 +117,7 @@ request(opts): Promise<unknown>
 - `discover` 列出租户已注册的 destination：资源项 `{ id: endpointId, name: url, description: topics.join(", ") }`。**不返回 secret。**
 - 在连接配置 UI 里选中资源 → 存为连接配置的 `selectedEntities`（标准字段，参考 `SemanticMetricsV2Client.ts:132`）。
 - 运行时从 `_resolvedConnections[0].config.selectedEntities` 读取 scope。
-- 注册/删除 destination 仍然发生在控制台（§9），不在 agent 侧。
+- 注册/删除 destination 由 `manage_webhook` 管理域（独立 grant domain）的 register/delete 工具负责；`webhooks` 运行时域只做发布与查询。
 
 ### 6.3 工具目录
 
@@ -138,7 +138,7 @@ request(opts): Promise<unknown>
 `POST /publish` 必须支持 `endpointIds[]`（服务侧改动，§10）。若 Svix 不支持直接按 endpoint 发，用 **channel 过滤**（每 destination 一个 channel，publish 带 `channels`）。**实现前先验证。**
 
 ### 6.5 secret 生命周期
-`whsec_` 只属于接收方。注册在控制台完成并 reveal-once（§9），**永不进入插件、Connection、工具结果或对话历史**。
+`whsec_` 只属于接收方，且**不写入 Connection**。经批准例外：`manage_webhook`（独立管理域）的 `register` 工具会在工具结果中返回 `whsec`，因此会进入对话与审计历史；该工具仅应授权给管理员，结果不得记录/转发。`webhooks` 运行时域及其工具结果**永不包含 secret**。
 
 ## 7. storage 插件
 
@@ -187,13 +187,13 @@ request(opts): Promise<unknown>
 ### 8.2 agent 沙盒上传（LLM 工具）
 `storage_upload`：agent 在沙盒里产出文件，LLM 只传路径，字节由工具搬运，永不进 LLM 上下文。
 
-## 9. 控制台 webhook 管理（`ai_web/`）
+## 9. webhook 管理（agent 管理域 `manage_webhook`；控制台 `ai_web/`）
 
-- 页面：列出 destinations（`GET /api/webhooks/destinations` 经代理）、新增（`POST .../destinations`）、删除（`DELETE .../destinations/{endpointId}`）。
-- 新增成功 → **reveal-once 显示 `whsec_`**（复制按钮，提示"仅显示一次，请交给接收方"）。
-- Axiom 侧**不持久化明文 secret**；不进 agent、不进对话。
-- 可选后续：rotate secret、attempts 视图。
-- 管理面板可复用 `EntityListView` 类组件，但数据走 platform-service 路由，**不写入 Connection Store**（见 §2：destination 不是 Connection）。
+- 管理动作作为独立插件域 `manage_webhook` 暴露：`manage_webhook_list_destinations`、`manage_webhook_register_destination`、`manage_webhook_delete_destination`。与运行时 `webhooks` 域分离，便于按域授权。
+- 映射：列出 `GET /api/v1/webhooks/destinations`、注册 `POST /api/v1/webhooks/destinations`、删除 `DELETE /api/v1/webhooks/destinations/{endpointId}`（删除须 `confirm: true`）。
+- 注册成功 → 工具结果返回 `whsec_`（已批准例外，见 §2/§6.5）：密钥会进入对话与审计历史，仅应授权给管理员。
+- Axiom 侧**不持久化明文 secret**；不写入 Connection Store（见 §2：destination 不是 Connection）。
+- 可选后续：控制台页面（`ai_web/`）复用 `EntityListView` 类组件走 platform-service 路由，以及 rotate secret、attempts 视图。
 
 ## 10. platform-service 服务侧改动
 

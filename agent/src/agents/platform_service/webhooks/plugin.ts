@@ -3,6 +3,7 @@ import type { Plugin } from "@axiom-lattice/protocols";
 import { createMiddleware, tool } from "langchain";
 import { z } from "zod";
 import { connectionFromConfig, request } from "../client";
+import { platformServiceConnection } from "../connection";
 import {
   MESSAGE_ID_PATTERN,
   WEBHOOK_TOPICS,
@@ -28,7 +29,7 @@ export const webhooksPlugin: Plugin = {
     type: "webhooks",
     name: "Webhook 事件",
     description:
-      "向已注册的投递目标发布工厂事件，并查询事件与投递状态。目标的增删在控制台完成（含 whsec 一次性展示），不在对话中进行。",
+      "向已注册的投递目标发布工厂事件，并查询事件与投递状态。目标的注册/删除由 manage_webhook 管理域负责。",
     version: "1.0.0",
     configSchema: {
       type: "object",
@@ -47,32 +48,7 @@ export const webhooksPlugin: Plugin = {
     // selectedEntities scope 无法生效，待 core 补齐后再上 Open 面。
   },
   connection: {
-    fields: [
-      {
-        key: "baseUrl",
-        type: "string",
-        title: "Base URL",
-        widget: "input",
-        required: true,
-        helpText: "可由环境变量 PLATFORM_SERVICE_URL 提供",
-      },
-      {
-        key: "apiKey",
-        type: "password",
-        title: "API Key",
-        widget: "password",
-        helpText: "可由环境变量 FILE_SERVICE_API_KEY 提供；留空表示服务端未启用校验",
-      },
-    ],
-    test: async (config) => {
-      try {
-        const base = connectionFromConfig(config).baseUrl;
-        const res = await fetch(`${base}/actuator/health`);
-        return { ok: res.ok, message: res.ok ? "连接成功" : `HTTP ${res.status}` };
-      } catch (err) {
-        return { ok: false, message: err instanceof Error ? err.message : String(err) };
-      }
-    },
+    ...platformServiceConnection,
     // gateway 4.3.1 起以第二参传入租户上下文 { tenantId }（protocols 的类型尚未同步，故此处用可选参数）。
     // 若运行时未提供租户，则抛租户缺失错误，绝不回退到默认租户。
     discover: async (config, context?: { tenantId?: string }) => {

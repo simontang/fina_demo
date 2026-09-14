@@ -2,7 +2,8 @@ import { PluginRegistry } from "@axiom-lattice/core";
 import type { Plugin } from "@axiom-lattice/protocols";
 import { createMiddleware, tool } from "langchain";
 import { z } from "zod";
-import { connectionFromConfig } from "../client";
+import { platformServiceConnection } from "../connection";
+import { WEBHOOK_TOPICS } from "../webhooks/executors";
 import {
   manageWebhookDeleteDestination,
   manageWebhookListDestinations,
@@ -12,8 +13,12 @@ import {
 const SCHEMAS = {
   list: z.object({}),
   register: z.object({
-    url: z.string().url().describe("接收端 URL（http/https）"),
-    topics: z.array(z.string().min(1)).describe("订阅的事件 topic 列表"),
+    url: z
+      .string()
+      .url()
+      .refine((u) => /^https?:\/\//.test(u), { message: "url must be http(s)" })
+      .describe("接收端 URL（http/https）"),
+    topics: z.array(z.enum(WEBHOOK_TOPICS)).min(1).describe("订阅的事件 topic 列表"),
     description: z.string().optional(),
   }),
   delete: z.object({
@@ -48,34 +53,7 @@ export const manageWebhookPlugin: Plugin = {
       { name: "manage_webhook_delete_destination", destructive: true },
     ],
   },
-  connection: {
-    fields: [
-      {
-        key: "baseUrl",
-        type: "string",
-        title: "Base URL",
-        widget: "input",
-        required: true,
-        helpText: "可由环境变量 PLATFORM_SERVICE_URL 提供",
-      },
-      {
-        key: "apiKey",
-        type: "password",
-        title: "API Key",
-        widget: "password",
-        helpText: "可由环境变量 FILE_SERVICE_API_KEY 提供；留空表示服务端未启用校验",
-      },
-    ],
-    test: async (config) => {
-      try {
-        const base = connectionFromConfig(config).baseUrl;
-        const res = await fetch(`${base}/actuator/health`);
-        return { ok: res.ok, message: res.ok ? "连接成功" : `HTTP ${res.status}` };
-      } catch (err) {
-        return { ok: false, message: err instanceof Error ? err.message : String(err) };
-      }
-    },
-  },
+  connection: platformServiceConnection,
   middleware: (rawConfig) =>
     createMiddleware({
       name: "ManageWebhook",
@@ -95,7 +73,7 @@ export const manageWebhookPlugin: Plugin = {
           {
             name: "manage_webhook_register_destination",
             description:
-              "注册投递目标并返回 whsec 签名密钥（密钥即接收方验签凭据，仅此一次给全，请妥善转交）。",
+              "注册投递目标并返回 whsec 签名密钥。该密钥会进入工具结果（含对话与审计历史），且可由管理接口重新取回；仅应在授权给管理员的场景使用，勿记录/转发。",
             schema: SCHEMAS.register,
           },
         ),
