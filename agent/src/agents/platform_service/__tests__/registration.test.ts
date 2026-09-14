@@ -27,6 +27,14 @@ describe("storage plugin", () => {
       "storage_get_metadata",
       "storage_list",
     ]);
+    expect(expose).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "storage_delete", destructive: true }),
+        expect.objectContaining({ name: "storage_list", readOnly: true }),
+        expect.objectContaining({ name: "storage_get_metadata", readOnly: true }),
+        expect.objectContaining({ name: "storage_get_download_url", readOnly: true }),
+      ]),
+    );
   });
 
   it("openExpose names all exist among middleware tools (invariant)", async () => {

@@ -9,7 +9,7 @@ import {
 
 const DEFAULT_MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
-const UUID_PATTERN = /^[0-9a-fA-F]{32}$/;
+export const UUID_PATTERN = /^[0-9a-fA-F]{32}$/;
 
 const MIME_BY_EXT: Record<string, string> = {
   csv: "text/csv",
