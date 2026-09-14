@@ -103,11 +103,13 @@ function buildUrl(base: string, path: string, query?: RequestOptions["query"]): 
 }
 
 export async function request<T = unknown>(opts: RequestOptions): Promise<T> {
-  const headers: Record<string, string> = {
-    "X-Tenant-Id": opts.tenantId,
-    ...(opts.headers ?? {}),
-  };
-  if (opts.conn.apiKey) headers["X-Api-Key"] = opts.conn.apiKey;
+  const headers: Record<string, string> = { ...(opts.headers ?? {}) };
+  headers["X-Tenant-Id"] = opts.tenantId;
+  if (opts.conn.apiKey) {
+    headers["X-Api-Key"] = opts.conn.apiKey;
+  } else {
+    delete headers["X-Api-Key"];
+  }
 
   let body = opts.body;
   if (opts.json !== undefined) {
@@ -136,6 +138,7 @@ export async function request<T = unknown>(opts: RequestOptions): Promise<T> {
     }
     throw new PlatformServiceError(res.status, code, message);
   }
+  if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
 

@@ -4,6 +4,7 @@ import {
   tenantFromRequest,
   connectionFromConfig,
   PlatformServiceError,
+  errorResult,
   request,
 } from "../client";
 
@@ -129,5 +130,83 @@ describe("request", () => {
     await request({ conn: { ...conn, apiKey: undefined }, tenantId: "t1", method: "GET", path: "/x" });
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect((init.headers as Record<string, string>)["X-Api-Key"]).toBeUndefined();
+  });
+
+  it("identity headers cannot be overridden by custom headers", async () => {
+    const fetchMock = jest
+      .spyOn(global, "fetch")
+      .mockResolvedValue({ ok: true, status: 200, json: async () => ({}) } as Response);
+    await request({
+      conn,
+      tenantId: "t1",
+      method: "GET",
+      path: "/x",
+      headers: { "X-Tenant-Id": "evil", "X-Api-Key": "evil" },
+    });
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect((init.headers as Record<string, string>)["X-Tenant-Id"]).toBe("t1");
+    expect((init.headers as Record<string, string>)["X-Api-Key"]).toBe("k");
+  });
+
+  it("strips X-Api-Key injected by custom headers when apiKey is absent", async () => {
+    const fetchMock = jest
+      .spyOn(global, "fetch")
+      .mockResolvedValue({ ok: true, status: 200, json: async () => ({}) } as Response);
+    await request({
+      conn: { ...conn, apiKey: undefined },
+      tenantId: "t1",
+      method: "GET",
+      path: "/x",
+      headers: { "X-Tenant-Id": "evil", "X-Api-Key": "evil" },
+    });
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect((init.headers as Record<string, string>)["X-Tenant-Id"]).toBe("t1");
+    expect((init.headers as Record<string, string>)["X-Api-Key"]).toBeUndefined();
+  });
+
+  it("returns undefined on a 204 response", async () => {
+    jest.spyOn(global, "fetch").mockResolvedValue({ ok: true, status: 204 } as Response);
+    await expect(
+      request({ conn, tenantId: "t1", method: "DELETE", path: "/api/v1/files/x" }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("sends a raw body with contentType and custom headers", async () => {
+    const fetchMock = jest
+      .spyOn(global, "fetch")
+      .mockResolvedValue({ ok: true, status: 200, json: async () => ({}) } as Response);
+    const buf = Buffer.from("x");
+    await request({
+      conn,
+      tenantId: "t1",
+      method: "PUT",
+      path: "/api/v1/files/x",
+      body: buf,
+      contentType: "text/csv",
+      headers: { "X-File-Name": "r.csv" },
+    });
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.body).toBe(buf);
+    expect((init.headers as Record<string, string>)["Content-Type"]).toBe("text/csv");
+    expect((init.headers as Record<string, string>)["X-File-Name"]).toBe("r.csv");
+  });
+});
+
+describe("errorResult", () => {
+  it("serializes PlatformServiceError without leaking secrets", () => {
+    const out = errorResult(new PlatformServiceError(404, "NOT_FOUND", "nope"));
+    expect(JSON.parse(out)).toEqual({
+      ok: false,
+      status: 404,
+      code: "NOT_FOUND",
+      message: "nope",
+    });
+    expect(out).not.toContain("secret-key");
+  });
+
+  it("serializes a generic Error with just a message", () => {
+    const out = errorResult(new Error("boom"));
+    expect(JSON.parse(out)).toEqual({ ok: false, message: "boom" });
+    expect(out).not.toContain("secret-key");
   });
 });
