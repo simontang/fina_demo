@@ -135,3 +135,96 @@ export async function storageUpload(
     return errorResult(err);
   }
 }
+
+export interface StorageListInput {
+  path?: string;
+  q?: string;
+  recursive?: boolean;
+  fileCategory?: string;
+  usage?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  size?: number;
+}
+
+export async function storageList(
+  input: StorageListInput,
+  exeConfig: unknown,
+  rawConfig: unknown,
+): Promise<string> {
+  try {
+    const result = await request({
+      conn: resolveConnection(rawConfig, exeConfig),
+      tenantId: tenantFromExeConfig(exeConfig),
+      method: "GET",
+      path: "/api/v1/files",
+      query: { ...input },
+    });
+    return JSON.stringify(result);
+  } catch (err) {
+    return errorResult(err);
+  }
+}
+
+export async function storageGetMetadata(
+  input: { uuid: string },
+  exeConfig: unknown,
+  rawConfig: unknown,
+): Promise<string> {
+  try {
+    const result = await request({
+      conn: resolveConnection(rawConfig, exeConfig),
+      tenantId: tenantFromExeConfig(exeConfig),
+      method: "GET",
+      path: `/api/v1/files/${input.uuid}`,
+    });
+    return JSON.stringify(result);
+  } catch (err) {
+    return errorResult(err);
+  }
+}
+
+export async function storageGetDownloadUrl(
+  input: { uuid: string; ttlSeconds?: number },
+  exeConfig: unknown,
+  rawConfig: unknown,
+): Promise<string> {
+  try {
+    const result = await request({
+      conn: resolveConnection(rawConfig, exeConfig),
+      tenantId: tenantFromExeConfig(exeConfig),
+      method: "POST",
+      path: "/api/v1/files/presign",
+      json: { uuid: input.uuid, ttlSeconds: input.ttlSeconds },
+    });
+    return JSON.stringify(result);
+  } catch (err) {
+    return errorResult(err);
+  }
+}
+
+export async function storageDelete(
+  input: { uuid: string; confirm?: boolean },
+  exeConfig: unknown,
+  rawConfig: unknown,
+): Promise<string> {
+  if (input.confirm !== true) {
+    return JSON.stringify({
+      ok: false,
+      code: "CONFIRM_REQUIRED",
+      message: "需先获得用户明确确认后才能删除；请用户确认后以 confirm:true 重试。",
+    });
+  }
+  try {
+    const result = await request({
+      conn: resolveConnection(rawConfig, exeConfig),
+      tenantId: tenantFromExeConfig(exeConfig),
+      method: "DELETE",
+      path: `/api/v1/files/${input.uuid}`,
+    });
+    return JSON.stringify(result);
+  } catch (err) {
+    return errorResult(err);
+  }
+}

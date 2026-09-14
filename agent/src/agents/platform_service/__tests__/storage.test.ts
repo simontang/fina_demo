@@ -5,6 +5,12 @@ jest.mock("@axiom-lattice/core", () => ({
 
 import { getSandBoxManager } from "@axiom-lattice/core";
 import { storageUpload } from "../storage/executors";
+import {
+  storageList,
+  storageGetMetadata,
+  storageGetDownloadUrl,
+  storageDelete,
+} from "../storage/executors";
 
 const downloadFile = jest.fn();
 const listPath = jest.fn();
@@ -109,5 +115,51 @@ describe("storageUpload", () => {
       rawConfig,
     );
     expect(JSON.parse(out).ok).toBe(false);
+  });
+});
+
+describe("storage read/delete executors", () => {
+  beforeEach(() => {
+    jest.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: true }),
+    } as Response);
+  });
+  afterEach(() => jest.restoreAllMocks());
+
+  it("list builds query and omits undefined", async () => {
+    await storageList({ path: "ops", recursive: true, page: 2 }, exeConfig, rawConfig);
+    const [url] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe("http://svc:5707/api/v1/files?path=ops&recursive=true&page=2");
+  });
+
+  it("metadata GETs by uuid", async () => {
+    await storageGetMetadata({ uuid: "a".repeat(32) }, exeConfig, rawConfig);
+    expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
+      `http://svc:5707/api/v1/files/${"a".repeat(32)}`,
+    );
+  });
+
+  it("presign POSTs uuid + ttl", async () => {
+    await storageGetDownloadUrl({ uuid: "b".repeat(32), ttlSeconds: 600 }, exeConfig, rawConfig);
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe("http://svc:5707/api/v1/files/presign");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({ uuid: "b".repeat(32), ttlSeconds: 600 });
+  });
+
+  it("delete refuses without confirm:true and does not call the API", async () => {
+    const out = await storageDelete({ uuid: "c".repeat(32) }, exeConfig, rawConfig);
+    expect(JSON.parse(out).ok).toBe(false);
+    expect(JSON.parse(out).code).toBe("CONFIRM_REQUIRED");
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("delete DELETEs when confirmed", async () => {
+    await storageDelete({ uuid: "c".repeat(32), confirm: true }, exeConfig, rawConfig);
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe(`http://svc:5707/api/v1/files/${"c".repeat(32)}`);
+    expect(init.method).toBe("DELETE");
   });
 });
