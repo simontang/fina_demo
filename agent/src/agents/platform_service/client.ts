@@ -69,3 +69,82 @@ export function tenantFromRequest(request: { user?: { tenantId?: unknown } }): s
   if (typeof t === "string" && t.trim()) return t.trim();
   throw new Error("tenant context is missing");
 }
+
+export class PlatformServiceError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "PlatformServiceError";
+  }
+}
+
+export interface RequestOptions {
+  conn: PlatformServiceConn;
+  tenantId: string;
+  method: "GET" | "POST" | "PUT" | "DELETE";
+  path: string;
+  query?: Record<string, string | number | boolean | undefined | null>;
+  json?: unknown;
+  body?: BodyInit;
+  contentType?: string;
+  headers?: Record<string, string>;
+}
+
+function buildUrl(base: string, path: string, query?: RequestOptions["query"]): string {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(query ?? {})) {
+    if (v !== undefined && v !== null) qs.append(k, String(v));
+  }
+  const tail = qs.toString();
+  return `${base}${path}${tail ? `?${tail}` : ""}`;
+}
+
+export async function request<T = unknown>(opts: RequestOptions): Promise<T> {
+  const headers: Record<string, string> = {
+    "X-Tenant-Id": opts.tenantId,
+    ...(opts.headers ?? {}),
+  };
+  if (opts.conn.apiKey) headers["X-Api-Key"] = opts.conn.apiKey;
+
+  let body = opts.body;
+  if (opts.json !== undefined) {
+    headers["Content-Type"] = "application/json";
+    body = JSON.stringify(opts.json);
+  } else if (opts.contentType) {
+    headers["Content-Type"] = opts.contentType;
+  }
+
+  const res = await fetch(buildUrl(opts.conn.baseUrl, opts.path, opts.query), {
+    method: opts.method,
+    headers,
+    body,
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    let code = "HTTP_ERROR";
+    let message = text || res.statusText;
+    try {
+      const parsed = JSON.parse(text) as { code?: string; message?: string };
+      if (parsed.code) code = parsed.code;
+      if (parsed.message) message = parsed.message;
+    } catch {
+      /* keep raw text */
+    }
+    throw new PlatformServiceError(res.status, code, message);
+  }
+  return (await res.json()) as T;
+}
+
+export function errorResult(err: unknown): string {
+  if (err instanceof PlatformServiceError) {
+    return JSON.stringify({ ok: false, status: err.status, code: err.code, message: err.message });
+  }
+  return JSON.stringify({
+    ok: false,
+    message: err instanceof Error ? err.message : String(err),
+  });
+}

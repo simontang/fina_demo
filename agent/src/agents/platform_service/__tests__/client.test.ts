@@ -3,6 +3,8 @@ import {
   tenantFromExeConfig,
   tenantFromRequest,
   connectionFromConfig,
+  PlatformServiceError,
+  request,
 } from "../client";
 
 describe("resolveConnection", () => {
@@ -83,5 +85,49 @@ describe("tenant extraction", () => {
 
   it("connectionFromConfig normalizes a bare connection config", () => {
     expect(connectionFromConfig({ baseUrl: "http://x:1/" }).baseUrl).toBe("http://x:1");
+  });
+});
+
+describe("request", () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  const conn = { baseUrl: "http://svc:5707", apiKey: "k", selectedEntities: [] };
+
+  it("builds url+query and injects tenant and api key", async () => {
+    const fetchMock = jest
+      .spyOn(global, "fetch")
+      .mockResolvedValue({ ok: true, status: 200, json: async () => ({ a: 1 }) } as Response);
+    const out = await request({
+      conn,
+      tenantId: "t1",
+      method: "GET",
+      path: "/api/v1/files",
+      query: { path: "ops", page: 1, empty: undefined },
+    });
+    expect(out).toEqual({ a: 1 });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("http://svc:5707/api/v1/files?path=ops&page=1");
+    expect((init.headers as Record<string, string>)["X-Tenant-Id"]).toBe("t1");
+    expect((init.headers as Record<string, string>)["X-Api-Key"]).toBe("k");
+  });
+
+  it("maps a JSON error body to PlatformServiceError", async () => {
+    jest.spyOn(global, "fetch").mockResolvedValue({
+      ok: false,
+      status: 404,
+      text: async () => JSON.stringify({ code: "NOT_FOUND", message: "no active file" }),
+    } as Response);
+    await expect(
+      request({ conn, tenantId: "t1", method: "GET", path: "/api/v1/files/x" }),
+    ).rejects.toMatchObject({ status: 404, code: "NOT_FOUND" });
+  });
+
+  it("never sends X-Api-Key when apiKey is absent", async () => {
+    const fetchMock = jest
+      .spyOn(global, "fetch")
+      .mockResolvedValue({ ok: true, status: 200, json: async () => ({}) } as Response);
+    await request({ conn: { ...conn, apiKey: undefined }, tenantId: "t1", method: "GET", path: "/x" });
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect((init.headers as Record<string, string>)["X-Api-Key"]).toBeUndefined();
   });
 });
