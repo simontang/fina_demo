@@ -101,6 +101,13 @@ describe("storageUpload", () => {
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
+  it("rejects non-ASCII metadata before downloading or fetching", async () => {
+    const out = await storageUpload({ sandboxPath: "/p/报告.csv" }, exeConfig, rawConfig);
+    expect(JSON.parse(out).code).toBe("NON_ASCII_METADATA");
+    expect(downloadFile).not.toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
   it("returns a structured error when sandbox resolution fails", async () => {
     getSandboxFromConfig.mockRejectedValueOnce(new Error("no sandbox"));
     const out = await storageUpload({ sandboxPath: "/x" }, exeConfig, rawConfig);

@@ -108,7 +108,7 @@ export const storagePlugin: Plugin = {
           {
             name: "storage_upload",
             description:
-              "把 agent 沙盒里的文件上传到统一存储。输入是沙盒路径，不是文件内容。成功后返回 FileReceipt（uuid/fullPath/sha256/size…）。",
+              "把 agent 沙盒里的文件上传到统一存储。输入是沙盒路径，不是文件内容。成功后返回 FileReceipt（uuid/fullPath/sha256/size…）。（元数据暂仅支持 ASCII；中文文件名/路径需等服务端解码支持）",
             schema: SCHEMAS.upload,
           },
         ),

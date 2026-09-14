@@ -9,6 +9,8 @@ import {
 
 const DEFAULT_MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
+const isAscii = (v?: string) => v === undefined || /^[\x00-\x7F]*$/.test(v);
+
 export const UUID_PATTERN = /^[0-9a-fA-F]{32}$/;
 
 const MIME_BY_EXT: Record<string, string> = {
@@ -98,6 +100,20 @@ export async function storageUpload(
     const tenantId = tenantFromExeConfig(exeConfig);
     const conn = resolveConnection(rawConfig, exeConfig);
     const fileName = input.fileName?.trim() || input.sandboxPath.split("/").pop() || "file";
+    if (
+      !isAscii(fileName) ||
+      !isAscii(input.logicalPath) ||
+      !isAscii(input.fileCategory) ||
+      !isAscii(input.usage) ||
+      !isAscii(input.meta)
+    ) {
+      return JSON.stringify({
+        ok: false,
+        code: "NON_ASCII_METADATA",
+        message:
+          "元数据（文件名/路径/meta）暂只支持 ASCII；含非 ASCII 字符会失败，需等服务端解码支持",
+      });
+    }
     const cap = maxUploadBytes();
     const sandbox = await resolveSandbox(exeConfig);
     const known = await sandboxFileSize(sandbox, input.sandboxPath);
@@ -132,7 +148,7 @@ export async function storageUpload(
         ...(input.meta ? { "X-File-Meta": input.meta } : {}),
       },
     });
-    return JSON.stringify(result);
+    return JSON.stringify(result ?? null);
   } catch (err) {
     return errorResult(err);
   }
@@ -163,7 +179,7 @@ export async function storageList(
       path: "/api/v1/files",
       query: { ...input },
     });
-    return JSON.stringify(result);
+    return JSON.stringify(result ?? null);
   } catch (err) {
     return errorResult(err);
   }
@@ -184,7 +200,7 @@ export async function storageGetMetadata(
       method: "GET",
       path: `/api/v1/files/${input.uuid}`,
     });
-    return JSON.stringify(result);
+    return JSON.stringify(result ?? null);
   } catch (err) {
     return errorResult(err);
   }
@@ -206,7 +222,7 @@ export async function storageGetDownloadUrl(
       path: "/api/v1/files/presign",
       json: { uuid: input.uuid, ttlSeconds: input.ttlSeconds },
     });
-    return JSON.stringify(result);
+    return JSON.stringify(result ?? null);
   } catch (err) {
     return errorResult(err);
   }
@@ -234,7 +250,7 @@ export async function storageDelete(
       method: "DELETE",
       path: `/api/v1/files/${input.uuid}`,
     });
-    return JSON.stringify(result);
+    return JSON.stringify(result ?? null);
   } catch (err) {
     return errorResult(err);
   }

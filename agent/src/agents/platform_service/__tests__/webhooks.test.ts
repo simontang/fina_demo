@@ -125,4 +125,18 @@ describe("webhooksPublishEvent empty scope", () => {
     const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
     expect(body).not.toHaveProperty("endpointIds");
   });
+
+  it("rejects explicit endpointIds when the scope is empty", async () => {
+    const fetchSpy = jest.spyOn(global, "fetch");
+    const emptyConfig = {
+      _resolvedConnections: [{ config: { baseUrl: "http://svc:5707", selectedEntities: [] } }],
+    };
+    const out = await webhooksPublishEvent(
+      { topic: "gate.passed", data: {}, endpointIds: ["ep_1"] },
+      exeConfig,
+      emptyConfig,
+    );
+    expect(JSON.parse(out).code).toBe("OUT_OF_SCOPE");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
 });

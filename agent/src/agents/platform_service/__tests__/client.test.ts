@@ -112,6 +112,20 @@ describe("request", () => {
     expect((init.headers as Record<string, string>)["X-Api-Key"]).toBe("k");
   });
 
+  it("wraps a network failure with the target url and NETWORK_ERROR", async () => {
+    jest.spyOn(global, "fetch").mockRejectedValue(new Error("connect ECONNREFUSED"));
+    const err = await request({
+      conn,
+      tenantId: "t1",
+      method: "GET",
+      path: "/api/v1/files",
+    }).catch((e) => e);
+    const parsed = JSON.parse(errorResult(err));
+    expect(parsed.code).toBe("NETWORK_ERROR");
+    expect(parsed.status).toBe(0);
+    expect(parsed.message).toContain("http://svc:5707/api/v1/files");
+  });
+
   it("maps a JSON error body to PlatformServiceError", async () => {
     jest.spyOn(global, "fetch").mockResolvedValue({
       ok: false,
@@ -204,9 +218,9 @@ describe("errorResult", () => {
     expect(out).not.toContain("secret-key");
   });
 
-  it("serializes a generic Error with just a message", () => {
+  it("serializes a generic Error with a code and message", () => {
     const out = errorResult(new Error("boom"));
-    expect(JSON.parse(out)).toEqual({ ok: false, message: "boom" });
+    expect(JSON.parse(out)).toEqual({ ok: false, code: "ERROR", message: "boom" });
     expect(out).not.toContain("secret-key");
   });
 });

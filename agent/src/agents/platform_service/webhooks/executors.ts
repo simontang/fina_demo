@@ -47,6 +47,13 @@ export async function webhooksPublishEvent(
     const conn = resolveConnection(rawConfig, exeConfig);
     const scope = conn.selectedEntities;
     const requested = input.endpointIds ?? [];
+    if (scope.length === 0 && requested.length > 0) {
+      return JSON.stringify({
+        ok: false,
+        code: "OUT_OF_SCOPE",
+        message: "selectedEntities 为空时不允许显式指定 endpointIds",
+      });
+    }
     if (scope.length > 0) {
       const out = requested.filter((id) => !scope.includes(id));
       if (out.length > 0) {
@@ -71,7 +78,7 @@ export async function webhooksPublishEvent(
         ...(effective.length > 0 ? { endpointIds: effective } : {}),
       },
     });
-    return JSON.stringify(result);
+    return JSON.stringify(result ?? null);
   } catch (err) {
     return errorResult(err);
   }
@@ -90,7 +97,7 @@ export async function webhooksListRecentEvents(
       path: "/api/v1/webhooks/messages",
       query: { limit: input.limit },
     });
-    return JSON.stringify(result);
+    return JSON.stringify(result ?? null);
   } catch (err) {
     return errorResult(err);
   }
@@ -115,7 +122,7 @@ export async function webhooksGetDeliveryStatus(
       method: "GET",
       path: `/api/v1/webhooks/messages/${input.messageId}/attempts`,
     });
-    return JSON.stringify(result);
+    return JSON.stringify(result ?? null);
   } catch (err) {
     return errorResult(err);
   }

@@ -109,7 +109,7 @@ export const webhooksPlugin: Plugin = {
           {
             name: "webhooks_publish_event",
             description:
-              "向投递目标发布一个工厂事件。topic 必须来自固定清单；endpointIds 只能在已选 scope 内收窄。",
+              "向投递目标发布一个工厂事件。topic 必须来自固定清单；endpointIds 只能在已选 scope 内收窄。（v1：scope 为客户端约束；服务端定向发送待后续版本，未配置 scope 时按 topic 全量扇出）",
             schema: SCHEMAS.publish,
           },
         ),

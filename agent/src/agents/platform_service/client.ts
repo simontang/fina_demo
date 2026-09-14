@@ -119,11 +119,20 @@ export async function request<T = unknown>(opts: RequestOptions): Promise<T> {
     headers["Content-Type"] = opts.contentType;
   }
 
-  const res = await fetch(buildUrl(opts.conn.baseUrl, opts.path, opts.query), {
-    method: opts.method,
-    headers,
-    body,
-  });
+  let res: Response;
+  try {
+    res = await fetch(buildUrl(opts.conn.baseUrl, opts.path, opts.query), {
+      method: opts.method,
+      headers,
+      body,
+    });
+  } catch (err) {
+    throw new PlatformServiceError(
+      0,
+      "NETWORK_ERROR",
+      `${opts.conn.baseUrl}${opts.path}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -148,6 +157,7 @@ export function errorResult(err: unknown): string {
   }
   return JSON.stringify({
     ok: false,
+    code: "ERROR",
     message: err instanceof Error ? err.message : String(err),
   });
 }
