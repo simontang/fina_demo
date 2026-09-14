@@ -29,10 +29,11 @@ function envApiKey(): string | undefined {
   return v && v.trim() ? v.trim() : undefined;
 }
 
-function normalize(config: Record<string, unknown>, fallbackBaseUrl?: string): PlatformServiceConn {
-  const baseUrl = String(config.baseUrl ?? fallbackBaseUrl ?? envBaseUrl())
-    .trim()
-    .replace(/\/+$/, "");
+function normalize(config: Record<string, unknown>): PlatformServiceConn {
+  const baseUrlRaw = config.baseUrl;
+  const baseUrl = (
+    typeof baseUrlRaw === "string" && baseUrlRaw.trim() ? baseUrlRaw.trim() : envBaseUrl()
+  ).replace(/\/+$/, "");
   const apiKeyRaw = config.apiKey;
   const apiKey =
     typeof apiKeyRaw === "string" && apiKeyRaw.trim() ? apiKeyRaw.trim() : envApiKey();

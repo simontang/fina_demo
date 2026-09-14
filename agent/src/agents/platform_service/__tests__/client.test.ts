@@ -33,10 +33,23 @@ describe("resolveConnection", () => {
     expect(resolveConnection().baseUrl).toBe("http://127.0.0.1:5707");
   });
 
+  it("treats an empty baseUrl as absent and falls back", () => {
+    process.env.PLATFORM_SERVICE_URL = "http://env:5707/";
+    expect(
+      resolveConnection({ _resolvedConnections: [{ config: { baseUrl: "" } }] }).baseUrl,
+    ).toBe("http://env:5707");
+    delete process.env.PLATFORM_SERVICE_URL;
+    expect(
+      resolveConnection({ _resolvedConnections: [{ config: { baseUrl: "   " } }] }).baseUrl,
+    ).toBe("http://127.0.0.1:5707");
+  });
+
   it("uses connection apiKey, else env, else undefined", () => {
     process.env.FILE_SERVICE_API_KEY = "envkey";
     expect(resolveConnection({ _resolvedConnections: [{ config: { apiKey: "connkey" } }] }).apiKey).toBe("connkey");
     expect(resolveConnection().apiKey).toBe("envkey");
+    delete process.env.FILE_SERVICE_API_KEY;
+    expect(resolveConnection().apiKey).toBeUndefined();
   });
 
   it("reads selectedEntities from the resolved connection config", () => {
@@ -63,6 +76,9 @@ describe("tenant extraction", () => {
   it("reads authenticated tenant from the request (never the header)", () => {
     expect(tenantFromRequest({ user: { tenantId: "t2" } })).toBe("t2");
     expect(() => tenantFromRequest({})).toThrow("tenant context is missing");
+    expect(() =>
+      tenantFromRequest({ headers: { "x-tenant-id": "evil" } } as any),
+    ).toThrow("tenant context is missing");
   });
 
   it("connectionFromConfig normalizes a bare connection config", () => {
