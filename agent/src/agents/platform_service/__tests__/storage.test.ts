@@ -129,7 +129,11 @@ describe("storage read/delete executors", () => {
   afterEach(() => jest.restoreAllMocks());
 
   it("list builds query and omits undefined", async () => {
-    await storageList({ path: "ops", recursive: true, page: 2 }, exeConfig, rawConfig);
+    await storageList(
+      { path: "ops", q: undefined, recursive: true, page: 2 },
+      exeConfig,
+      rawConfig,
+    );
     const [url] = (global.fetch as jest.Mock).mock.calls[0];
     expect(url).toBe("http://svc:5707/api/v1/files?path=ops&recursive=true&page=2");
   });
@@ -161,5 +165,34 @@ describe("storage read/delete executors", () => {
     const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
     expect(url).toBe(`http://svc:5707/api/v1/files/${"c".repeat(32)}`);
     expect(init.method).toBe("DELETE");
+  });
+
+  it("metadata rejects a malformed uuid without calling the API", async () => {
+    const out = await storageGetMetadata({ uuid: "../../actuator/health" }, exeConfig, rawConfig);
+    expect(JSON.parse(out).ok).toBe(false);
+    expect(JSON.parse(out).code).toBe("BAD_REQUEST");
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("presign rejects a malformed uuid without calling the API", async () => {
+    const out = await storageGetDownloadUrl(
+      { uuid: "../../actuator/health" },
+      exeConfig,
+      rawConfig,
+    );
+    expect(JSON.parse(out).ok).toBe(false);
+    expect(JSON.parse(out).code).toBe("BAD_REQUEST");
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("delete rejects a malformed uuid without calling the API when confirmed", async () => {
+    const out = await storageDelete(
+      { uuid: "../../actuator/health", confirm: true },
+      exeConfig,
+      rawConfig,
+    );
+    expect(JSON.parse(out).ok).toBe(false);
+    expect(JSON.parse(out).code).toBe("BAD_REQUEST");
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 });

@@ -9,6 +9,8 @@ import {
 
 const DEFAULT_MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
+const UUID_PATTERN = /^[0-9a-fA-F]{32}$/;
+
 const MIME_BY_EXT: Record<string, string> = {
   csv: "text/csv",
   txt: "text/plain",
@@ -172,6 +174,9 @@ export async function storageGetMetadata(
   exeConfig: unknown,
   rawConfig: unknown,
 ): Promise<string> {
+  if (!UUID_PATTERN.test(input.uuid)) {
+    return JSON.stringify({ ok: false, code: "BAD_REQUEST", message: "uuid must be 32 hex characters" });
+  }
   try {
     const result = await request({
       conn: resolveConnection(rawConfig, exeConfig),
@@ -190,6 +195,9 @@ export async function storageGetDownloadUrl(
   exeConfig: unknown,
   rawConfig: unknown,
 ): Promise<string> {
+  if (!UUID_PATTERN.test(input.uuid)) {
+    return JSON.stringify({ ok: false, code: "BAD_REQUEST", message: "uuid must be 32 hex characters" });
+  }
   try {
     const result = await request({
       conn: resolveConnection(rawConfig, exeConfig),
@@ -215,6 +223,9 @@ export async function storageDelete(
       code: "CONFIRM_REQUIRED",
       message: "需先获得用户明确确认后才能删除；请用户确认后以 confirm:true 重试。",
     });
+  }
+  if (!UUID_PATTERN.test(input.uuid)) {
+    return JSON.stringify({ ok: false, code: "BAD_REQUEST", message: "uuid must be 32 hex characters" });
   }
   try {
     const result = await request({
