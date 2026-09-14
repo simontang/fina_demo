@@ -96,7 +96,18 @@ Portal 由 platform-service 直接托管（`/portal`，自包含静态页），�
 
 **安全提醒**：Portal 是控制面（可增删投递目标），且它本身不做登录。经 nginx 暴露时请叠加认证（Basic Auth 或接入网关的运维通道）；等 api/mcp 网关接入后，建议改走网关统一鉴权，详见 [GATEWAY-INTEGRATION.md](./GATEWAY-INTEGRATION.md) §5。
 
-## 7. 常见问题
+## 7. 首次部署踩过的坑（已固化，勿回退）
+
+| 现象 | 根因 | 修复 |
+|---|---|---|
+| 容器 `exec /opt/java/openjdk/bin/java: exec format error` | 本地 Apple Silicon 构建的是 arm64 镜像，服务器是 x86_64 | 镜像一律由 CI 构建（已加 `platforms: linux/amd64`） |
+| Flyway `Migration V2 failed: relation "file_objects" does not exist` | `baseline-version: 1` 让已存在的库被基线化为 v1，跳过 V1 直接跑 V2 | `baseline-version: 0`（V1 幂等，存量库可安全重跑） |
+| svix-server 启动即退出：`invalid type: found string "" ... WHITELIST_SUBNETS` | 该变量未设置时渲染成空字符串，svix 要求 JSON 数组 | 默认值改为 `[]`（严格 SSRF 防护） |
+| svix 相关接口全 404 / 首次发布新 topic 失败 | `ensureEventType` 依赖 `RestClientException` 捕获，被统一状态处理改成 `ApiException` 后失效 | 改为捕获 `ApiException(404)`；新增 W-15 回归用例 |
+| 列表接口经 nginx 500 | `/api/v1/files/`（尾斜杠）未映射，落到静态资源解析 | 集合端点同时映射 `""` 与 `"/"`；未匹配路径统一返回 404 |
+| 部署后 nginx 起不来：`duplicate default server` | 备份文件放在了 `sites-enabled/`，nginx 会加载该目录下所有文件 | 备份移到 `/etc/nginx/backups/` |
+
+## 8. 常见问题
 
 1. **svix-server 起不来：`SVIX_WHITELIST_SUBNETS` invalid** —— 该变量必须是 JSON 数组：`'["10.0.0.0/8"]'`，逗号串会拒绝启动。
 2. **投递到内网收端被拦** —— Svix 默认 SSRF 防护阻断私网地址；仅 demo 需要 `SVIX_WHITELIST_SUBNETS` 放行，生产留空。
