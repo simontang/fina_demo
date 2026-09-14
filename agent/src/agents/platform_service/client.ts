@@ -88,7 +88,7 @@ export interface RequestOptions {
   path: string;
   query?: Record<string, string | number | boolean | undefined | null>;
   json?: unknown;
-  body?: BodyInit;
+  body?: RequestInit["body"];
   contentType?: string;
   headers?: Record<string, string>;
 }
