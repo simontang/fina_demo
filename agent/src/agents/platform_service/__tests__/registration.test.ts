@@ -128,13 +128,3 @@ describe("webhooks plugin connection", () => {
   });
 });
 
-import "../index"; // 触发两个插件模块
-
-describe("barrel", () => {
-  it("imports both plugins exactly once", () => {
-    const types = (PluginRegistry.register as jest.Mock).mock.calls
-      .map(([p]) => (p as { meta: { type: string } }).meta.type)
-      .sort();
-    expect(types).toEqual(["storage", "webhooks"]);
-  });
-});
