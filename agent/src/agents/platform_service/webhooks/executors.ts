@@ -5,6 +5,8 @@ import {
   tenantFromExeConfig,
 } from "../client";
 
+const MESSAGE_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
+
 export const WEBHOOK_TOPICS = [
   "import.completed",
   "gate.passed",
@@ -56,6 +58,8 @@ export async function webhooksPublishEvent(
       }
     }
     const effective = requested.length > 0 ? requested : scope;
+    // Empty selectedEntities intentionally means server-side topic fan-out
+    // (fail-open within the tenant), per spec §6.3.
     const result = await request({
       conn,
       tenantId: tenantFromExeConfig(exeConfig),
@@ -98,6 +102,13 @@ export async function webhooksGetDeliveryStatus(
   rawConfig: unknown,
 ): Promise<string> {
   try {
+    if (!MESSAGE_ID_PATTERN.test(input.messageId)) {
+      return JSON.stringify({
+        ok: false,
+        code: "BAD_REQUEST",
+        message: "messageId is invalid",
+      });
+    }
     const result = await request({
       conn: resolveConnection(rawConfig, exeConfig),
       tenantId: tenantFromExeConfig(exeConfig),
