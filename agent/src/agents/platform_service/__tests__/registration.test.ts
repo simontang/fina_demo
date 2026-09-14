@@ -8,6 +8,7 @@ jest.mock("langchain", () => ({
 }));
 
 import { PluginRegistry } from "@axiom-lattice/core";
+import { manageWebhookPlugin } from "../manage_webhook/plugin";
 import { storagePlugin } from "../storage/plugin";
 import { webhooksPlugin } from "../webhooks/plugin";
 
@@ -65,6 +66,35 @@ describe("webhooks plugin", () => {
       "webhooks_list_destinations",
       "webhooks_list_recent_events",
       "webhooks_publish_event",
+    ]);
+  });
+});
+
+describe("manage_webhook plugin", () => {
+  it("registers a plugin with type manage_webhook", () => {
+    expect(PluginRegistry.register).toHaveBeenCalledWith(manageWebhookPlugin);
+    expect(manageWebhookPlugin.meta.type).toBe("manage_webhook");
+  });
+
+  it("exposes exactly the three management tools to Open", () => {
+    const expose = manageWebhookPlugin.meta.openExpose as Array<
+      string | { name: string; readOnly?: boolean; destructive?: boolean }
+    >;
+    const names = expose.map((e) => (typeof e === "string" ? e : e.name));
+    expect(names.sort()).toEqual([
+      "manage_webhook_delete_destination",
+      "manage_webhook_list_destinations",
+      "manage_webhook_register_destination",
+    ]);
+  });
+
+  it("provides exactly the three management tools", async () => {
+    const mw = await manageWebhookPlugin.middleware!({});
+    const names = ((mw as { tools: Array<{ name: string }> }).tools ?? []).map((t) => t.name);
+    expect(names.sort()).toEqual([
+      "manage_webhook_delete_destination",
+      "manage_webhook_list_destinations",
+      "manage_webhook_register_destination",
     ]);
   });
 });
