@@ -27,30 +27,32 @@ const SCHEMAS = {
 export const webhooksPlugin: Plugin = {
   meta: {
     type: "webhooks",
-    name: "Webhook 事件",
+    name: "Webhooks",
     description:
-      "向已注册的投递目标发布工厂事件，并查询事件与投递状态。目标的注册/删除由 manage_webhook 管理域负责。",
+      "Publish factory events to registered delivery destinations and query events and delivery status. Registration and deletion of destinations are handled by the manage_webhook admin domain.",
     version: "1.0.0",
     configSchema: {
       type: "object",
       properties: {
         connections: {
           type: "array",
-          title: "连接",
+          title: "Connections",
           widget: "connectionSelect",
           items: { type: "string" },
         },
-        connectAll: { type: "boolean", title: "连接所有可用连接" },
+        connectAll: { type: "boolean", title: "Connect all available connections" },
       },
     },
     defaultConfig: { connections: [], connectAll: false },
-    // v1：全部工具仅 agent 路径（不声明 openExpose）。MCP 路径 runConfig 不带连接解析，
-    // selectedEntities scope 无法生效，待 core 补齐后再上 Open 面。
+    // v1: all tools are agent-path only (openExpose is not declared). On the MCP path,
+    // runConfig carries no connection resolution, so the selectedEntities scope cannot take
+    // effect; we will expose the Open surface once core fills this gap.
   },
   connection: {
     ...platformServiceConnection,
-    // gateway 4.3.1 起以第二参传入租户上下文 { tenantId }（protocols 的类型尚未同步，故此处用可选参数）。
-    // 若运行时未提供租户，则抛租户缺失错误，绝不回退到默认租户。
+    // Since gateway 4.3.1 the tenant context { tenantId } is passed as the second argument
+    // (protocols types are not synced yet, hence the optional parameter here).
+    // If no tenant is provided at runtime, throw a missing-tenant error and never fall back to a default tenant.
     discover: async (config, context?: { tenantId?: string }) => {
       const tenantId = context?.tenantId;
       if (!tenantId) throw new Error("tenant context is missing");
@@ -76,7 +78,7 @@ export const webhooksPlugin: Plugin = {
             webhooksListDestinations(input, exeConfig, rawConfig),
           {
             name: "webhooks_list_destinations",
-            description: "列出当前连接 scope 内的投递目标（不返回签名密钥）。",
+            description: "List delivery destinations within the current connection scope (signing secrets are not returned).",
             schema: SCHEMAS.listDestinations,
           },
         ),
@@ -86,7 +88,7 @@ export const webhooksPlugin: Plugin = {
           {
             name: "webhooks_publish_event",
             description:
-              "向投递目标发布一个工厂事件。topic 必须来自固定清单；endpointIds 只能在已选 scope 内收窄。（v1：scope 为客户端约束；服务端定向发送待后续版本，未配置 scope 时按 topic 全量扇出）",
+              "Publish a factory event to delivery destinations. topic must come from the fixed list; endpointIds can only narrow within the selected scope. (v1: scope is a client-side constraint; server-side targeted delivery comes in a later version. When no scope is configured, fan out to all destinations for the topic)",
             schema: SCHEMAS.publish,
           },
         ),
@@ -95,7 +97,7 @@ export const webhooksPlugin: Plugin = {
             webhooksListRecentEvents(input, exeConfig, rawConfig),
           {
             name: "webhooks_list_recent_events",
-            description: "列出当前租户最近的事件（messageId/topic/timestamp）。",
+            description: "List recent events for the current tenant (messageId/topic/timestamp).",
             schema: SCHEMAS.listRecent,
           },
         ),
@@ -104,7 +106,7 @@ export const webhooksPlugin: Plugin = {
             webhooksGetDeliveryStatus(input, exeConfig, rawConfig),
           {
             name: "webhooks_get_delivery_status",
-            description: "查询某条消息在各目标的投递状态与下次重试时间。",
+            description: "Query the delivery status and next retry time of a message for each destination.",
             schema: SCHEMAS.deliveryStatus,
           },
         ),

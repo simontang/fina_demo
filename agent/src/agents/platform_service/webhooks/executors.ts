@@ -51,7 +51,7 @@ export async function webhooksPublishEvent(
       return JSON.stringify({
         ok: false,
         code: "OUT_OF_SCOPE",
-        message: "selectedEntities 为空时不允许显式指定 endpointIds",
+        message: "endpointIds cannot be specified explicitly when selectedEntities is empty",
       });
     }
     if (scope.length > 0) {
@@ -60,7 +60,7 @@ export async function webhooksPublishEvent(
         return JSON.stringify({
           ok: false,
           code: "OUT_OF_SCOPE",
-          message: `endpointIds 超出已选范围: ${out.join(", ")}`,
+          message: `endpointIds outside the selected scope: ${out.join(", ")}`,
         });
       }
     }

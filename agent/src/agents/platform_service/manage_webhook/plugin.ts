@@ -17,33 +17,33 @@ const SCHEMAS = {
       .string()
       .url()
       .refine((u) => /^https?:\/\//.test(u), { message: "url must be http(s)" })
-      .describe("接收端 URL（http/https）"),
-    topics: z.array(z.enum(WEBHOOK_TOPICS)).min(1).describe("订阅的事件 topic 列表"),
+      .describe("Receiver URL (http/https)"),
+    topics: z.array(z.enum(WEBHOOK_TOPICS)).min(1).describe("List of subscribed event topics"),
     description: z.string().optional(),
   }),
   delete: z.object({
     endpointId: z.string().regex(/^[A-Za-z0-9_-]+$/),
-    confirm: z.boolean().optional().describe("必须为 true 才执行；否则返回确认提示"),
+    confirm: z.boolean().optional().describe("Must be true to execute; otherwise a confirmation prompt is returned"),
   }),
 };
 
 export const manageWebhookPlugin: Plugin = {
   meta: {
     type: "manage_webhook",
-    name: "Webhook 管理",
+    name: "Webhook Management",
     description:
-      "管理投递目标：注册（返回 whsec 签名密钥）、列出、删除。与运行时 webhooks 插件分离，便于按域授权。",
+      "Manage delivery destinations: register (returns the whsec signing secret), list, and delete. Separate from the runtime webhooks plugin to allow domain-scoped grants.",
     version: "1.0.0",
     configSchema: {
       type: "object",
       properties: {
         connections: {
           type: "array",
-          title: "连接",
+          title: "Connections",
           widget: "connectionSelect",
           items: { type: "string" },
         },
-        connectAll: { type: "boolean", title: "连接所有可用连接" },
+        connectAll: { type: "boolean", title: "Connect all available connections" },
       },
     },
     defaultConfig: { connections: [], connectAll: false },
@@ -63,7 +63,7 @@ export const manageWebhookPlugin: Plugin = {
             manageWebhookListDestinations(input, exeConfig, rawConfig),
           {
             name: "manage_webhook_list_destinations",
-            description: "列出当前租户的全部投递目标（管理视图，不返回签名密钥）。",
+            description: "List all delivery destinations for the current tenant (admin view; signing secrets are not returned).",
             schema: SCHEMAS.list,
           },
         ),
@@ -73,7 +73,7 @@ export const manageWebhookPlugin: Plugin = {
           {
             name: "manage_webhook_register_destination",
             description:
-              "注册投递目标并返回 whsec 签名密钥。该密钥会进入工具结果（含对话与审计历史），且可由管理接口重新取回；仅应在授权给管理员的场景使用，勿记录/转发。",
+              "Register a delivery destination and return the whsec signing secret. The secret enters the tool result (including conversation and audit history) and can be retrieved again via the admin API; use only in scenarios granted to administrators, and do not log or forward it.",
             schema: SCHEMAS.register,
           },
         ),
@@ -82,7 +82,7 @@ export const manageWebhookPlugin: Plugin = {
             manageWebhookDeleteDestination(input, exeConfig, rawConfig),
           {
             name: "manage_webhook_delete_destination",
-            description: "删除投递目标。必须用户确认后传 confirm:true。",
+            description: "Delete a delivery destination. Requires user confirmation, then pass confirm:true.",
             schema: SCHEMAS.delete,
           },
         ),

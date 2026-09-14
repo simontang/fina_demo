@@ -14,16 +14,19 @@ import {
 
 const SCHEMAS = {
   upload: z.object({
-    sandboxPath: z.string().describe("沙盒内的文件路径，如 /project/out/report.csv"),
-    logicalPath: z.string().optional().describe("逻辑目录（元数据），如 reports/2026-09"),
-    fileName: z.string().optional().describe("存储文件名，默认取 sandboxPath 的 basename"),
+    sandboxPath: z.string().describe("Path to the file inside the sandbox, e.g. /project/out/report.csv"),
+    logicalPath: z.string().optional().describe("Logical directory (metadata), e.g. reports/2026-09"),
+    fileName: z
+      .string()
+      .optional()
+      .describe("Stored file name; defaults to the basename of sandboxPath"),
     fileCategory: z.string().optional(),
     usage: z.string().optional(),
-    meta: z.string().optional().describe("自由 JSON 字符串"),
+    meta: z.string().optional().describe("Free-form JSON string"),
   }),
   list: z.object({
     path: z.string().optional(),
-    q: z.string().optional().describe("文件名子串（忽略大小写）"),
+    q: z.string().optional().describe("File name substring (case-insensitive)"),
     recursive: z.boolean().optional(),
     fileCategory: z.string().optional(),
     usage: z.string().optional(),
@@ -32,34 +35,34 @@ const SCHEMAS = {
     page: z.number().int().optional(),
     size: z.number().int().optional(),
   }),
-  metadata: z.object({ uuid: z.string().regex(UUID_PATTERN).describe("32 位十六进制 uuid") }),
+  metadata: z.object({ uuid: z.string().regex(UUID_PATTERN).describe("32-character hexadecimal uuid") }),
   presign: z.object({
     uuid: z.string().regex(UUID_PATTERN),
     ttlSeconds: z.number().int().optional(),
   }),
   delete: z.object({
     uuid: z.string().regex(UUID_PATTERN),
-    confirm: z.boolean().optional().describe("必须为 true 才执行；否则返回确认提示"),
+    confirm: z.boolean().optional().describe("Must be true to execute; otherwise a confirmation prompt is returned"),
   }),
 };
 
 export const storagePlugin: Plugin = {
   meta: {
     type: "storage",
-    name: "统一文件资源存储",
+    name: "Unified File Storage",
     description:
-      "租户级持久资源库：uuid 寻址、内容去重、版本化、预签名下载链接。与项目沙盒的临时文件不同——写临时文件用 sandbox 文件工具。",
+      "Tenant-scoped durable object store: uuid-addressed, content-deduplicated, versioned, with presigned download links. Distinct from the project sandbox's scratch files—use the sandbox file tools to write temporary files.",
     version: "1.0.0",
     configSchema: {
       type: "object",
       properties: {
         connections: {
           type: "array",
-          title: "连接",
+          title: "Connections",
           widget: "connectionSelect",
           items: { type: "string" },
         },
-        connectAll: { type: "boolean", title: "连接所有可用连接" },
+        connectAll: { type: "boolean", title: "Connect all available connections" },
       },
     },
     defaultConfig: { connections: [], connectAll: false },
@@ -81,7 +84,7 @@ export const storagePlugin: Plugin = {
           {
             name: "storage_upload",
             description:
-              "把 agent 沙盒里的文件上传到统一存储。输入是沙盒路径，不是文件内容。成功后返回 FileReceipt（uuid/fullPath/sha256/size…）。（元数据暂仅支持 ASCII；中文文件名/路径需等服务端解码支持）",
+              "Upload a file from the agent sandbox to unified storage. The input is a sandbox path, not file contents. On success returns a FileReceipt (uuid/fullPath/sha256/size…). (Metadata currently supports ASCII only; non-ASCII file names/paths require server-side decoding support)",
             schema: SCHEMAS.upload,
           },
         ),
@@ -90,7 +93,8 @@ export const storagePlugin: Plugin = {
             storageList(input, exeConfig, rawConfig),
           {
             name: "storage_list",
-            description: "列出统一存储中的文件，可按目录/名称/属性/时间过滤，分页返回。",
+            description:
+              "List files in unified storage, filterable by directory/name/attributes/time, returned paginated.",
             schema: SCHEMAS.list,
           },
         ),
@@ -99,7 +103,7 @@ export const storagePlugin: Plugin = {
             storageGetMetadata(input, exeConfig, rawConfig),
           {
             name: "storage_get_metadata",
-            description: "按 uuid 获取文件元数据（不下载内容）。",
+            description: "Get file metadata by uuid (without downloading contents).",
             schema: SCHEMAS.metadata,
           },
         ),
@@ -108,7 +112,8 @@ export const storagePlugin: Plugin = {
             storageGetDownloadUrl(input, exeConfig, rawConfig),
           {
             name: "storage_get_download_url",
-            description: "获取文件的限时下载链接。链接即凭据：拿到 URL 的任何人都可下载，勿分享。",
+            description:
+              "Get a time-limited download link for a file. The link is a credential: anyone who has the URL can download it, so do not share it.",
             schema: SCHEMAS.presign,
           },
         ),
@@ -118,7 +123,7 @@ export const storagePlugin: Plugin = {
           {
             name: "storage_delete",
             description:
-              "软删除文件的某一个版本（该 uuid 对应版本），非删除整个逻辑文件。必须用户确认后传 confirm:true。",
+              "Soft-delete one version of a file (the version corresponding to that uuid), not the entire logical file. Requires user confirmation, then pass confirm:true.",
             schema: SCHEMAS.delete,
           },
         ),

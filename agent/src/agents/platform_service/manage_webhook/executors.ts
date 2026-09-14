@@ -57,7 +57,8 @@ export async function manageWebhookDeleteDestination(
     return JSON.stringify({
       ok: false,
       code: "CONFIRM_REQUIRED",
-      message: "需先获得用户明确确认后才能删除投递目标；请确认后以 confirm:true 重试。",
+      message:
+        "Explicit user confirmation is required before deleting a delivery destination; confirm, then retry with confirm:true.",
     });
   }
   if (!ENDPOINT_ID_PATTERN.test(input.endpointId)) {

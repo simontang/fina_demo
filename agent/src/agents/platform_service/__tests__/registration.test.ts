@@ -121,7 +121,7 @@ describe("webhooks plugin connection", () => {
       .mockResolvedValue({ ok: true, status: 200 } as unknown as Response);
 
     const okResult = await webhooksPlugin.connection!.test!({ baseUrl: "http://svc:5707" });
-    expect(okResult).toEqual({ ok: true, message: "连接成功" });
+    expect(okResult).toEqual({ ok: true, message: "Connected" });
     expect(fetchMock).toHaveBeenCalledWith("http://svc:5707/actuator/health");
 
     fetchMock.mockResolvedValue({ ok: false, status: 503 } as unknown as Response);

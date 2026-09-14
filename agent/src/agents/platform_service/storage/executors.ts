@@ -111,7 +111,7 @@ export async function storageUpload(
         ok: false,
         code: "NON_ASCII_METADATA",
         message:
-          "元数据（文件名/路径/meta）暂只支持 ASCII；含非 ASCII 字符会失败，需等服务端解码支持",
+          "Metadata (file name/path/meta) currently supports ASCII only; non-ASCII characters will fail and require server-side decoding support",
       });
     }
     const cap = maxUploadBytes();
@@ -237,7 +237,8 @@ export async function storageDelete(
     return JSON.stringify({
       ok: false,
       code: "CONFIRM_REQUIRED",
-      message: "需先获得用户明确确认后才能删除；请用户确认后以 confirm:true 重试。",
+      message:
+        "Explicit user confirmation is required before deleting; ask the user to confirm, then retry with confirm:true.",
     });
   }
   if (!UUID_PATTERN.test(input.uuid)) {

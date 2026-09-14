@@ -9,21 +9,22 @@ export const platformServiceConnection: PluginConnection = {
       title: "Base URL",
       widget: "input",
       required: true,
-      helpText: "可由环境变量 PLATFORM_SERVICE_URL 提供",
+      helpText: "Can be provided by the PLATFORM_SERVICE_URL environment variable",
     },
     {
       key: "apiKey",
       type: "password",
       title: "API Key",
       widget: "password",
-      helpText: "可由环境变量 FILE_SERVICE_API_KEY 提供；留空表示服务端未启用校验",
+      helpText:
+        "Can be provided by the FILE_SERVICE_API_KEY environment variable; leave blank if the server does not enable authentication",
     },
   ],
   test: async (config) => {
     try {
       const base = connectionFromConfig(config).baseUrl;
       const res = await fetch(`${base}/actuator/health`);
-      return { ok: res.ok, message: res.ok ? "连接成功" : `HTTP ${res.status}` };
+      return { ok: res.ok, message: res.ok ? "Connected" : `HTTP ${res.status}` };
     } catch (err) {
       return { ok: false, message: err instanceof Error ? err.message : String(err) };
     }
