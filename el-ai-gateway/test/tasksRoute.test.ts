@@ -43,13 +43,13 @@ function deps(overrides: Record<string, unknown> = {}) {
   } as any;
 }
 
-describe("POST /api/v1/tasks", () => {
+describe("POST /api/v1/voice-tagging", () => {
   it("presigns, creates the task, triggers A2A and returns the task id", async () => {
     const d = deps();
     const app = buildServer(d);
     const res = await app.inject({
       method: "POST",
-      url: "/api/v1/tasks",
+      url: "/api/v1/voice-tagging",
       headers: { authorization: "Bearer secret" },
       payload: { uuid: "u1", title: "My task" },
     });
@@ -74,7 +74,7 @@ describe("POST /api/v1/tasks", () => {
     const app = buildServer(deps());
     const res = await app.inject({
       method: "POST",
-      url: "/api/v1/tasks",
+      url: "/api/v1/voice-tagging",
       headers: { authorization: "Bearer secret" },
       payload: {},
     });
@@ -89,7 +89,7 @@ describe("POST /api/v1/tasks", () => {
     const app = buildServer(d);
     const res = await app.inject({
       method: "POST",
-      url: "/api/v1/tasks",
+      url: "/api/v1/voice-tagging",
       headers: { authorization: "Bearer secret" },
       payload: { uuid: "u1" },
     });
@@ -98,12 +98,12 @@ describe("POST /api/v1/tasks", () => {
   });
 });
 
-describe("GET /api/v1/tasks/:id", () => {
+describe("GET /api/v1/voice-tagging/:id", () => {
   it("returns task status and activities", async () => {
     const app = buildServer(deps());
     const res = await app.inject({
       method: "GET",
-      url: "/api/v1/tasks/task-1",
+      url: "/api/v1/voice-tagging/task-1",
       headers: { authorization: "Bearer secret" },
     });
     expect(res.statusCode).toBe(200);
@@ -115,13 +115,13 @@ describe("GET /api/v1/tasks/:id", () => {
   });
 });
 
-describe("POST /api/v1/tasks/:id/feedback", () => {
+describe("POST /api/v1/voice-tagging/:id/feedback", () => {
   it("relays feedback to the agent over A2A", async () => {
     const d = deps();
     const app = buildServer(d);
     const res = await app.inject({
       method: "POST",
-      url: "/api/v1/tasks/task-1/feedback",
+      url: "/api/v1/voice-tagging/task-1/feedback",
       headers: { authorization: "Bearer secret" },
       payload: { content: "tag corrected" },
     });
@@ -137,7 +137,7 @@ describe("POST /api/v1/tasks/:id/feedback", () => {
     const app = buildServer(deps());
     const res = await app.inject({
       method: "POST",
-      url: "/api/v1/tasks/task-1/feedback",
+      url: "/api/v1/voice-tagging/task-1/feedback",
       headers: { authorization: "Bearer secret" },
       payload: { content: "   " },
     });

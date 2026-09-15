@@ -16,16 +16,16 @@ echo "$UPLOAD"
 UUID=$(printf '%s' "$UPLOAD" | python3 -c 'import sys,json;print(json.load(sys.stdin)["uuid"])')
 
 echo "== start task =="
-TASK=$(curl -sS -X POST "$BASE/api/v1/tasks" \
+TASK=$(curl -sS -X POST "$BASE/api/v1/voice-tagging" \
   -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
   -d "{\"uuid\":\"$UUID\"}")
 echo "$TASK"
 TASK_ID=$(printf '%s' "$TASK" | python3 -c 'import sys,json;print(json.load(sys.stdin)["taskId"])')
 
 echo "== task status =="
-curl -sS "$BASE/api/v1/tasks/$TASK_ID" -H "Authorization: Bearer $KEY"; echo
+curl -sS "$BASE/api/v1/voice-tagging/$TASK_ID" -H "Authorization: Bearer $KEY"; echo
 
 echo "== feedback =="
-curl -sS -X POST "$BASE/api/v1/tasks/$TASK_ID/feedback" \
+curl -sS -X POST "$BASE/api/v1/voice-tagging/$TASK_ID/feedback" \
   -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
   -d '{"content":"Smoke test feedback."}'; echo

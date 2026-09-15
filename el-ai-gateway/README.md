@@ -12,9 +12,9 @@ service that orchestrates:
 | Method | Path | Purpose |
 |---|---|---|
 | POST | `/api/v1/files?path=&fileName=` | multipart `file`; returns platform upload receipt (`uuid`, ...) |
-| POST | `/api/v1/tasks` | `{uuid,title?,description?,assistantId?}`; presigns, creates a task, triggers A2A |
-| GET | `/api/v1/tasks/:id` | task status + recent activities |
-| POST | `/api/v1/tasks/:id/feedback` | `{content,summary?}`; relays feedback to the agent over A2A (agent appends activity) |
+| POST | `/api/v1/voice-tagging` | `{uuid,title?,description?,assistantId?}`; presigns, creates a task, triggers A2A |
+| GET | `/api/v1/voice-tagging/:id` | task status + recent activities |
+| POST | `/api/v1/voice-tagging/:id/feedback` | `{content,summary?}`; relays feedback to the agent over A2A (agent appends activity) |
 
 ## Run
 

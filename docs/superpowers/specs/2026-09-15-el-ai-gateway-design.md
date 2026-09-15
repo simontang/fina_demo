@@ -64,8 +64,8 @@ el-ai-gateway/
     auth.ts             # 入站 Bearer key → principal { tenantId, keyLabel }
     routes/
       files.ts          # POST /api/v1/files
-      tasks.ts          # POST /api/v1/tasks, GET /api/v1/tasks/:id,
-                        # POST /api/v1/tasks/:id/feedback
+      tasks.ts          # POST /api/v1/voice-tagging, GET /api/v1/voice-tagging/:id,
+                        # POST /api/v1/voice-tagging/:id/feedback
     upstream/
       platformFiles.ts  # platform-service files 客户端（upload, presign）
       a2a.ts            # A2A JSON-RPC 客户端（message/send, tasks/get）
@@ -103,7 +103,7 @@ el-ai-gateway/
   ```
 - 保持 multipart 流式转发，不整体缓冲；超过 `GATEWAY_MAX_UPLOAD_BYTES` 返回 413。
 
-### 5.2 `POST /api/v1/tasks`
+### 5.2 `POST /api/v1/voice-tagging`
 
 - 请求 `application/json`：
   ```json
@@ -120,7 +120,7 @@ el-ai-gateway/
   ```
 - `title` 缺省用 `Voice tagging: {filename 或 uuid}`。
 
-### 5.3 `GET /api/v1/tasks/:id`
+### 5.3 `GET /api/v1/voice-tagging/:id`
 
 - 行为：MCP `task_manage_task {action:"get", id}`。
 - 响应 `200`：
@@ -130,7 +130,7 @@ el-ai-gateway/
   ```
 - 任务不存在 → 404 `NOT_FOUND`。
 
-### 5.4 `POST /api/v1/tasks/:id/feedback`
+### 5.4 `POST /api/v1/voice-tagging/:id/feedback`
 
 - 请求 `application/json`：`{ "content": "Markdown 反馈内容", "summary": "可选", "assistantId": "可选" }`
 - 行为：网关**不直接写 activity**（MCP 路径缺少运行时身份，`add_activity` 会返回 `MISSING_ACTOR_IDENTITY`）；改为把反馈通过 **A2A `message/send`** 转发给语音 agent，由 agent 以自身身份调用 `add_activity` / `set_status` 写入任务 activity。

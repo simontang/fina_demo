@@ -33,7 +33,7 @@ export function renderFeedbackMessage(vars: { taskId: string; content: string })
 }
 
 export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): void {
-  app.post("/api/v1/tasks", async (request) => {
+  app.post("/api/v1/voice-tagging", async (request) => {
     const principal = requirePrincipal(deps.authenticator, request.headers.authorization);
     const body = (request.body ?? {}) as {
       uuid?: string;
@@ -87,7 +87,7 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
     };
   });
 
-  app.get("/api/v1/tasks/:id", async (request) => {
+  app.get("/api/v1/voice-tagging/:id", async (request) => {
     requirePrincipal(deps.authenticator, request.headers.authorization);
     const { id } = request.params as { id: string };
     const task = await deps.taskTools.getTask({ id });
@@ -100,7 +100,7 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
     };
   });
 
-  app.post("/api/v1/tasks/:id/feedback", async (request) => {
+  app.post("/api/v1/voice-tagging/:id/feedback", async (request) => {
     requirePrincipal(deps.authenticator, request.headers.authorization);
     const { id } = request.params as { id: string };
     const body = (request.body ?? {}) as { content?: string; summary?: string; assistantId?: string };
