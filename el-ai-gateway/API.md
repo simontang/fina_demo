@@ -10,7 +10,7 @@
 
 ## 适用对象
 
-本文面向**对接开发同学**（业务应用 / 集成方）：说明如何调用网关接口、每步拿到什么、如何接收回调、以及各步骤之间怎么衔接。内部实现（agent、MCP、任务引擎等）不在此展开。
+本文面向**对接开发同学**（业务应用 / 集成方）：说明如何调用网关接口、每步拿到什么、如何接收回调、以及各步骤之间怎么衔接。内部实现细节不在此展开。
 
 ## 业务场景
 
@@ -29,34 +29,26 @@
 sequenceDiagram
   participant App as 业务应用
   participant GW as el-ai-gateway
-  participant FS as platform-service(files)
-  participant AG as 语音打标 agent
+  participant SVC as 处理服务（内部）
   participant WH as Webhook 接收方
 
   App->>GW: 1) POST /files (file)
-  GW->>FS: 上传
-  FS-->>GW: uuid
   GW-->>App: { uuid, ... }
 
   App->>GW: 2) POST /voice-tagging { uuid }
-  GW->>FS: presign(uuid) -> url
-  GW->>GW: 建任务 taskId（metadata: uuid, url）
-  GW->>AG: 派发 run（消息仅含 taskId）
-  GW-->>App: { taskId, file.url, agent.dispatched }
+  GW-->>App: { taskId, file.url, agent }
 
-  AG->>FS: 用 url 下载音频
-  AG->>AG: 语音转写
-  AG->>WH: webhook: voice.transcribed（task_id, file_id, text）
-  AG->>AG: 客户画像打标签
-  AG->>WH: webhook: voice.tagged（task_id, file_id, summary, tags）
-  AG->>GW: 写入任务 activity（转写 / 打标结果）
+  Note over GW,SVC: 后台处理：下载音频 → 转写 → 打标
+  SVC->>WH: webhook: voice.transcribed（task_id, file_id, text）
+  SVC->>WH: webhook: voice.tagged（task_id, file_id, summary, tags）
+  SVC->>GW: 写入任务时间线
 
   App->>GW: 3) GET /voice-tagging/:taskId
   GW-->>App: { status, activities[] }
 
   App->>GW: 4) POST /voice-tagging/:taskId/feedback { content }
-  GW->>AG: 派发 run
-  AG->>GW: 追加 activity（反馈）
+  GW-->>App: { taskId, forwarded }
+  Note over GW,SVC: 后台把反馈写入任务时间线
 ```
 
 ### 步骤衔接（字段怎么传递）
@@ -65,15 +57,14 @@ sequenceDiagram
 |---|---|---|
 | 1 上传 | `uuid` | → 2 发起；也是 webhook 的 `file_id` |
 | 2 发起 | `taskId` | → 3 查询、4 反馈；也是 webhook 的 `task_id` |
-| 2 发起 | `file.url`（预签名） | agent 据此下载音频（业务无需使用） |
-| 3 查询 | `activities[].detail.markdown` | 转写全文、打标结果、反馈 |
-| 4 反馈 | 追加一条 activity | 由 agent 写入任务时间线 |
+| 3 查询 | `activities[].markdown` | 转写全文、打标结果、反馈 |
+| 4 反馈 | 追加一条 activity | 写入任务时间线 |
 | webhook | `voice.transcribed.text` | 业务侧即时拿到转写 |
 | webhook | `voice.tagged.summary` / `.tags` | 业务侧消费结构化标签 |
 
 两种典型接法：
 
-- **回调驱动**：业务注册 webhook（见 §7），服务端在转写/打标完成时推送；业务用 `task_id` 关联自己的单据。
+- **回调驱动**：业务注册 webhook（见 §7），平台在转写/打标完成时推送；业务用 `task_id` 关联自己的单据。
 - **轮询驱动**：业务轮询 `GET /voice-tagging/:taskId`，读 `activities` 里的 Markdown 结果。
 
 ---
@@ -103,7 +94,7 @@ Authorization: Bearer <API_KEY>
 ```
 
 - 缺失或错误 → `401` `{"code":"UNAUTHORIZED","message":"Missing or invalid API key"}`
-- Key 映射到一个租户（tenant），该租户决定文件的归属（platform-service `X-Tenant-Id`）与任务所有者（task `ownerId`）。当前测试租户为 `estee_lauder`。
+- Key 映射到一个租户（tenant），用于数据隔离与任务归属。当前测试租户为 `estee_lauder`。
 
 ## 2. 通用约定
 
@@ -115,12 +106,12 @@ Authorization: Bearer <API_KEY>
   ```json
   { "code": "UPSTREAM_ERROR", "message": "...", "upstream": { "status": 502, "code": "..." } }
   ```
-- **发起/反馈是异步的**：调用立即返回，agent 在后台处理并写入任务 activity。请轮询状态接口，或等待 [Webhook 回调](#7-webhook-回调2-次)。
+- **发起/反馈是异步的**：调用立即返回，系统在后台处理并写入任务时间线。请轮询状态接口，或等待 [Webhook 回调](#7-webhook-回调2-次)。
 - 当前转写为 **mock**（处理结果里 `mock: true`）。
 
 ## 3. 上传文件
 
-把语音文件上传到统一文件服务，返回文件 `uuid`（后续发起任务用）。
+上传语音文件，返回文件 `uuid`（后续发起任务用）。
 
 ```
 POST /files?path=<dir>&fileName=<name>
@@ -157,7 +148,7 @@ Content-Type: multipart/form-data
 
 ## 4. 发起打标任务
 
-用上一步的 `uuid` 换取可访问 URL，创建任务并派发 agent 做**语音转写 + 客户画像打标签**。
+用上一步的 `uuid` 创建一个打标任务；系统在后台执行**语音转写 + 客户画像打标签**。
 
 ```
 POST /voice-tagging
@@ -169,7 +160,7 @@ Content-Type: application/json
   "uuid": "471c20082b524316accc1b23cba8a4de",
   "title": "可选，任务名；缺省 Voice tagging: <uuid>",
   "description": "可选",
-  "assistantId": "可选，覆盖服务端默认 agent"
+  "assistantId": "可选，覆盖服务端默认配置"
 }
 ```
 
@@ -188,7 +179,7 @@ Content-Type: application/json
 ```
 
 - `file.url` 为该文件的限时预签名下载地址。
-- `agent.dispatched=true` 表示消息已派发给 agent（后台执行；派发失败不影响本响应，服务端记日志）。
+- `agent.dispatched=true` 表示任务已受理、后台处理中（派发失败不影响本响应）。
 
 > **衔接**：前置是上一步的 `uuid`。返回的 `taskId` 供 [查询状态](#5-查询任务状态) / [提交反馈](#6-提交反馈) 使用；`taskId` 也是 webhook 的 `task_id`。
 
@@ -212,7 +203,7 @@ GET /voice-tagging/:taskId
       "taskId": "c3915a5a-85ed-4e31-a09e-492b3c11e938",
       "tenantId": "estee_lauder",
       "action": "activity",
-      "actor": "agent:voice-tagging-agent",
+      "actor": "…",
       "detail": { "markdown": "## 客户画像标签（基于转写文本，MOCK）\n…" },
       "createdAt": "2026-09-15T06:15:21.000Z"
     }
@@ -221,14 +212,14 @@ GET /voice-tagging/:taskId
 ```
 
 - `status`：`pending | in_progress | review | failed | interrupted | completed | cancelled`
-- `activities`：任务时间线。转写/打标结果、反馈都由 agent 以 Markdown 追加到这里（`detail.markdown`）。最新在前。
+- `activities`：任务时间线。转写/打标结果与反馈都以 Markdown 追加（`detail.markdown`）。最新在前。
 - 任务不存在 → `404` `{"code":"NOT_FOUND","message":"Task '…' not found or inaccessible"}`
 
-> **衔接**：用发起接口返回的 `taskId` 查询；`activities` 会随 agent 处理（即 webhook 对应的转写/打标）和反馈而增长。
+> **衔接**：用发起接口返回的 `taskId` 查询；`activities` 会随处理（即 webhook 对应的转写/打标）与反馈而增长。
 
 ## 6. 提交反馈
 
-把客户/业务反馈追加到任务 activity 时间线（由 agent 以自身身份写入 `add_activity`）。
+把客户/业务反馈追加到任务时间线。
 
 ```
 POST /voice-tagging/:taskId/feedback
@@ -239,7 +230,7 @@ Content-Type: application/json
 {
   "content": "客户反馈：purchase_intent 应为「低」，并补充回访建议。",
   "summary": "可选，反馈摘要",
-  "assistantId": "可选，覆盖服务端默认 agent"
+  "assistantId": "可选，覆盖服务端默认配置"
 }
 ```
 
@@ -255,17 +246,17 @@ Content-Type: application/json
 
 随后（约 10–30s）该任务的 `activities` 会多出一条 `## 客户反馈…`。`content` 为空/缺失 → `400 BAD_REQUEST`。
 
-> **衔接**：用发起接口返回的 `taskId`；与"发起"一样是**异步派发 agent**，稍后由 agent 追加一条 activity，不影响本响应的 `200`。
+> **衔接**：用发起接口返回的 `taskId`；与"发起"一样是**异步处理**，稍后追加一条 activity，不影响本响应的 `200`。
 
 ## 7. Webhook 回调（2 次）
 
-任务处理过程中，agent 平台会向已注册的 **delivery destination** 发起 **2 次** 回调（转写完成、打标完成各一次）。
+任务处理过程中，平台会向已注册的 **delivery destination** 发起 **2 次** 回调（转写完成、打标完成各一次）。
 
 > **衔接**：回调里的 `task_id` 即"发起"返回的 `taskId`，`file_id` 即"上传"返回的 `uuid`；业务据此把回调关联到自己的单据。
 
-- **投递方式**：platform-service / Svix（Standard Webhooks）。请求头含 `svix-id`、`svix-timestamp`、`svix-signature`，用注册 destination 时返回的 `whsec_…` 验签。
-- **事件类型（Svix `eventType`）**：`job.completed`（两次相同）；**阶段由 body 的 `event` 字段区分**。
-- **注册回调地址**：见 platform-service webhooks API（`POST /api/webhooks/destinations`）。
+- **投递方式**：Standard Webhooks 签名投递。请求头含 `svix-id`、`svix-timestamp`、`svix-signature`，用注册 destination 时返回的 `whsec_…` 验签。
+- **事件类型（`eventType`）**：`job.completed`（两次相同）；**阶段由 body 的 `event` 字段区分**。
+- **注册回调地址**：通过平台 Webhook 管理接口注册 destination。
 
 ### 7.1 `voice.transcribed`（转写完成）
 
@@ -321,7 +312,7 @@ Content-Type: application/json
 | 400 | `BAD_REQUEST` | 参数非法（缺 `uuid` / `content` 为空等） |
 | 404 | `NOT_FOUND` | 任务不存在 |
 | 413 | `PAYLOAD_TOO_LARGE` | 上传超限 |
-| 502 | `MCP_ERROR` / `UPSTREAM_ERROR` | 上游（MCP / 文件服务）错误 |
+| 502 | `UPSTREAM_ERROR` | 上游服务错误 |
 | 504 | `UPSTREAM_TIMEOUT` | 上游超时 |
 | 500 | `INTERNAL_ERROR` | 其他 |
 
@@ -350,4 +341,4 @@ curl -s -X POST "$BASE/voice-tagging/$TASK/feedback" \
   -d '{"content":"客户反馈：purchase_intent 应为低。","summary":"客户修正"}' | jq
 ```
 
-**时序**：上传 → 发起（立即返回 `taskId`）→ agent 后台转写+打标（期间发 2 次 webhook：`voice.transcribed`、`voice.tagged`）→ 轮询状态可看到 activity → 反馈再次派发 agent 追加 activity。
+**时序**：上传 → 发起（立即返回 `taskId`）→ 后台转写+打标（期间发 2 次 webhook：`voice.transcribed`、`voice.tagged`）→ 轮询状态可看到 activity → 反馈再次写入任务时间线。
