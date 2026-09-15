@@ -198,8 +198,8 @@ services:
       TZ: Asia/Shanghai
       NODE_ENV: production
       PORT: "5708"
-      # Inbound API keys ("key:tenant,key2:tenant2"). Empty => all business calls 401.
-      GATEWAY_API_KEYS: ${GATEWAY_API_KEYS:-}
+      # Inbound API keys ("key:tenant,key2:tenant2").
+      GATEWAY_API_KEYS: ${GATEWAY_API_KEYS:-a2a_f47409c1c94f49ffad37adea3259646f:estee_lauder}
       AUTH_DISABLED: "false"
       # platform-service files base (38 has no platform-service; use the online one).
       PLATFORM_FILES_URL: ${EL_GATEWAY_PLATFORM_FILES_URL:-https://ada.alphafina.cn/api/filesvc}
@@ -213,7 +213,7 @@ services:
       AGENT_PROJECT_ID: ${EL_GATEWAY_AGENT_PROJECT_ID:-default}
       VOICE_TAGGING_ASSISTANT_ID: ${VOICE_TAGGING_ASSISTANT_ID:-voice-tagging-agent}
       MCP_SERVER_URL: ${EL_GATEWAY_MCP_SERVER_URL:-http://agent:5702/open/mcp}
-      MCP_API_KEY: ${MCP_API_KEY:-}
+      MCP_API_KEY: ${MCP_API_KEY:-a2a_f47409c1c94f49ffad37adea3259646f}
     depends_on:
       - agent
     ports:
