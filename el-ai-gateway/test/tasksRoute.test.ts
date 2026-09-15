@@ -38,7 +38,6 @@ function deps(overrides: Record<string, unknown> = {}) {
         activities: [{ id: "act-1" }],
         raw: {},
       })),
-      addActivity: vi.fn(async () => ({ raw: {} })),
     },
     ...overrides,
   } as any;
@@ -63,6 +62,7 @@ describe("POST /api/v1/tasks", () => {
       title: "My task",
       description: undefined,
       status: "in_progress",
+      ownerId: "tenant_a",
       metadata: { uuid: "u1", url: "https://signed" },
     });
     const a2aArg = d.a2a.sendTask.mock.calls[0][0];
@@ -116,7 +116,7 @@ describe("GET /api/v1/tasks/:id", () => {
 });
 
 describe("POST /api/v1/tasks/:id/feedback", () => {
-  it("adds an activity", async () => {
+  it("relays feedback to the agent over A2A", async () => {
     const d = deps();
     const app = buildServer(d);
     const res = await app.inject({
@@ -126,12 +126,11 @@ describe("POST /api/v1/tasks/:id/feedback", () => {
       payload: { content: "tag corrected" },
     });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ taskId: "task-1", added: true });
-    expect(d.taskTools.addActivity).toHaveBeenCalledWith({
-      id: "task-1",
-      content: "tag corrected",
-      summary: undefined,
-    });
+    expect(res.json()).toMatchObject({ taskId: "task-1", forwarded: true });
+    const a2aArg = d.a2a.sendTask.mock.calls[0][0];
+    expect(a2aArg.assistantId).toBe("voice-agent");
+    expect(a2aArg.text).toContain("task-1");
+    expect(a2aArg.text).toContain("tag corrected");
   });
 
   it("returns 400 when content is empty", async () => {

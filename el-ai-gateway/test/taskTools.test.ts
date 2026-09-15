@@ -9,14 +9,15 @@ function callerReturning(text: string): McpCaller {
 }
 
 describe("taskTools", () => {
-  it("creates a task and returns its id", async () => {
+  it("creates a task with an explicit owner and returns its id", async () => {
     const caller = callerReturning(
-      JSON.stringify({ success: true, taskId: "task-1", task: { id: "task-1" } }),
+      JSON.stringify({ success: true, data: { id: "task-1", status: "in_progress" } }),
     );
     const tools = createTaskToolClient(caller);
     const out = await tools.createTask({
       title: "Voice tagging",
       status: "in_progress",
+      ownerId: "tenant_a",
       metadata: { uuid: "u" },
     });
     expect(out.taskId).toBe("task-1");
@@ -25,7 +26,18 @@ describe("taskTools", () => {
       title: "Voice tagging",
       description: undefined,
       status: "in_progress",
+      ownerType: "user",
+      ownerId: "tenant_a",
       metadata: { uuid: "u" },
+    });
+  });
+
+  it("fails when create returns no id", async () => {
+    const caller = callerReturning(JSON.stringify({ success: true, data: {} }));
+    const tools = createTaskToolClient(caller);
+    await expect(tools.createTask({ title: "x", ownerId: "t" })).rejects.toMatchObject({
+      statusCode: 502,
+      code: "MCP_ERROR",
     });
   });
 
@@ -33,8 +45,7 @@ describe("taskTools", () => {
     const caller = callerReturning(
       JSON.stringify({
         success: true,
-        task: { id: "t1", status: "completed", title: "T" },
-        activities: [{ id: "a1" }],
+        data: { task: { id: "t1", status: "completed", title: "T" }, activities: [{ id: "a1" }] },
       }),
     );
     const tools = createTaskToolClient(caller);
@@ -49,18 +60,6 @@ describe("taskTools", () => {
     await expect(tools.getTask({ id: "missing" })).rejects.toMatchObject({
       statusCode: 404,
       code: "NOT_FOUND",
-    });
-  });
-
-  it("adds an activity", async () => {
-    const caller = callerReturning(JSON.stringify({ success: true }));
-    const tools = createTaskToolClient(caller);
-    await tools.addActivity({ id: "t1", content: "tag is wrong", summary: "feedback" });
-    expect(caller.callTool).toHaveBeenCalledWith("task_manage_task", {
-      action: "add_activity",
-      id: "t1",
-      content: "tag is wrong",
-      summary: "feedback",
     });
   });
 });

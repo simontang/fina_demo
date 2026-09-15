@@ -17,10 +17,10 @@ export type TaskToolClient = {
     title: string;
     description?: string;
     status?: string;
+    ownerId: string;
     metadata?: Record<string, unknown>;
   }): Promise<{ taskId: string; raw: unknown }>;
   getTask(input: { id: string }): Promise<TaskRecord>;
-  addActivity(input: { id: string; content: string; summary?: string }): Promise<{ raw: unknown }>;
 };
 
 function parseResult(text: string, structured: unknown): any {
@@ -43,7 +43,7 @@ export function createTaskToolClient(mcp: McpCaller): TaskToolClient {
       }
       throw new GatewayError(502, "MCP_ERROR", message);
     }
-    return data;
+    return data?.data ?? data;
   }
 
   return {
@@ -53,9 +53,12 @@ export function createTaskToolClient(mcp: McpCaller): TaskToolClient {
         title: input.title,
         description: input.description,
         status: input.status ?? "in_progress",
+        ownerType: "user",
+        ownerId: input.ownerId,
         metadata: input.metadata,
       });
-      const taskId = (data?.taskId ?? data?.task?.id ?? data?.id) as string | undefined;
+      const task = data?.task ?? data ?? {};
+      const taskId = (data?.taskId ?? task.id ?? data?.id) as string | undefined;
       if (!taskId) throw new GatewayError(502, "MCP_ERROR", "create task returned no id");
       return { taskId, raw: data };
     },
@@ -71,10 +74,6 @@ export function createTaskToolClient(mcp: McpCaller): TaskToolClient {
         activities: data?.activities ?? task.activities ?? [],
         raw: data,
       };
-    },
-
-    async addActivity({ id, content, summary }) {
-      return { raw: await invoke({ action: "add_activity", id, content, summary }) };
     },
   };
 }

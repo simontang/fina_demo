@@ -31,7 +31,7 @@ function multipartBody(filename: string, content: string) {
 
 describe("POST /api/v1/files", () => {
   it("streams the upload and returns the platform receipt", async () => {
-    const upload = vi.fn(async () => ({ uuid: "abc", version: 1, filename: "a.wav" }));
+    const upload = vi.fn(async (_input: any) => ({ uuid: "abc", version: 1, filename: "a.wav" }));
     const app = buildServer({
       config,
       authenticator: (h) => (h === "Bearer secret" ? { tenantId: "tenant_a", keyLabel: "k" } : null),

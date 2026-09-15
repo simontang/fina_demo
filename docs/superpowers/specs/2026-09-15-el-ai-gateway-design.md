@@ -46,7 +46,7 @@
 | 对外前缀 | `/api/v1` |
 | 入站鉴权 | 环境变量静态 API Key（`Authorization: Bearer`），key → tenant 映射来自配置 |
 | 文件后端 | `platform-service`(5707) files：upload 原样返回；presign 拿可访问 URL |
-| 任务/activity | agent 平台 MCP 工具 `task_manage_task`（创建一个 user-owned 任务，状态与 activity 都落在这里） |
+| 任务/activity | agent 平台 MCP 工具 `task_manage_task`：网关只做 **create**（带显式 `ownerId`）和 **get**；`add_activity` / `set_status` 由 agent（有身份）完成 |
 | A2A 上游 | `agent`(5702) `/api/a2a/agents/{assistantId}/jsonrpc`，Bearer `a2a_` key；负责触发**转写 + 打标** |
 | webhook | 由 agent 平台在任务处理中触发 2 次；**网关不实现** |
 | MCP 上游 | `agent`(5702) `/open/mcp`（Streamable HTTP），Bearer `a2a_` key；网关是客户端 |
@@ -111,7 +111,7 @@ el-ai-gateway/
   ```
 - 行为：
   1. `platformFiles.presign(uuid)` → 可访问 URL（失败则终止）；
-  2. MCP `task_manage_task {action:"create", title, description?, status:"in_progress", metadata:{uuid,url}}` → `taskId`；
+  2. MCP `task_manage_task {action:"create", title, description?, status:"in_progress", ownerType:"user", ownerId:<入站 tenantId>, metadata:{uuid,url}}` → `taskId`；
   3. A2A `message/send` 调 `A2A_VOICE_TAGGING_ASSISTANT_ID` 对应 agent，消息含 URL（默认模板，可被 `A2A_MESSAGE_TEMPLATE` 覆盖），让 agent **转写 + 打标**；
   4. 返回。
 - 响应 `200`：
@@ -132,10 +132,10 @@ el-ai-gateway/
 
 ### 5.4 `POST /api/v1/tasks/:id/feedback`
 
-- 请求 `application/json`：`{ "content": "Markdown 反馈内容", "summary": "可选" }`
-- 行为：MCP `task_manage_task {action:"add_activity", id, content, summary?}`。
-- 响应 `200`：`{ "taskId": "...", "added": true }`
-- 任务不存在 → 404 `NOT_FOUND`；`content` 为空/缺失 → 400 `BAD_REQUEST`。
+- 请求 `application/json`：`{ "content": "Markdown 反馈内容", "summary": "可选", "assistantId": "可选" }`
+- 行为：网关**不直接写 activity**（MCP 路径缺少运行时身份，`add_activity` 会返回 `MISSING_ACTOR_IDENTITY`）；改为把反馈通过 **A2A `message/send`** 转发给语音 agent，由 agent 以自身身份调用 `add_activity` / `set_status` 写入任务 activity。
+- 响应 `200`：`{ "taskId": "...", "forwarded": true, "a2a": { "taskId": "...", "state": "..." } }`
+- 任务不存在由 agent 侧感知；`content` 为空/缺失 → 400 `BAD_REQUEST`。
 
 ## 6. 鉴权与租户
 
@@ -176,10 +176,9 @@ el-ai-gateway/
 - 使用 `@modelcontextprotocol/sdk` 的 `Client` + `StreamableHTTPClientTransport` 连接 `MCP_SERVER_URL`，头 `Authorization: Bearer {MCP_API_KEY}`。
 - 会话：`initialize`（保存服务端返回的 `Mcp-Session-Id`）→ `notifications/initialized` → `tools/call`；连接复用，失败重连。
 - `taskTools.ts` 收敛动作：
-  - `createTask({ title, description?, status?:"in_progress", metadata })`；
-  - `getTask({ id })`；
-  - `addActivity({ id, content, summary? })`。
-- MCP 工具名：`task_manage_task`（core 内置）。字段以实测 schema 为准（`action/id/title/description/status/metadata/content/summary`）。
+  - `createTask({ title, description?, status?:"in_progress", ownerId, metadata })` → `{ taskId }`；
+  - `getTask({ id })`。
+- MCP 工具名：`task_manage_task`（core 内置）。入参以实测为准，响应为 `{success, data:{...}}`；`create` 必须带 `ownerType:"user"` + `ownerId`（Open MCP 路径无运行时身份，缺 `ownerId` 会因 `owner_id` NOT NULL 失败）。`add_activity` / `set_status` 不在网关侧调用（见 §5.4）。
 
 ## 8. 配置（`.env.example`）
 
@@ -247,7 +246,7 @@ Vitest。注入 mock 的 fetch / MCP transport：
 ## 12. 待办 / 开放项（不阻塞骨架）
 
 1. **语音打标 agent 的 assistantId**：`A2A_VOICE_TAGGING_ASSISTANT_ID` 取值。
-2. **谁把任务置为 completed**：由 agent 平台在完成后更新该任务，还是网关轮询 A2A 后 `set_status`；首版按“agent 平台更新、网关只读”实现，若不符再加网关侧 `set_status`。
-3. **endpoint 4 反馈字段语义**：默认 Markdown `content`；如应用需要结构化反馈（评分/修正标签）再扩展。
+2. **平台 task 工具限制（已实测）**：Open MCP 路径无运行时身份 → `add_activity` 报 `MISSING_ACTOR_IDENTITY`、`set_status` 报 `TASK_STATUS_UNSUPPORTED`。因此网关只 create/get；agent 侧负责 activity 与状态流转。若平台后续为 Open MCP 注入身份，可把 §5.4 改回直接 `add_activity`。
+3. **endpoint 4 反馈字段语义**：当前把 `content` 作为 Markdown 反馈转发给 agent；如应用需要结构化反馈（评分/修正标签）再扩展。
 4. **2 次 webhook 的事件类型与 payload**：由 agent 平台侧工具决定（可用枚举 `import.completed/gate.passed/decision.captured/job.completed/run.published`），网关不关心。
 5. 后续是否把入站鉴权换成平台签发的 `a2a_` key 校验（复用 `lattice_a2a_api_keys`）。

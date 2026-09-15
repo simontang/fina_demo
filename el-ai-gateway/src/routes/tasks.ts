@@ -28,6 +28,10 @@ export function renderA2AMessage(
   return `Voice file tagging task ${vars.taskId}.\nFile: ${vars.uuid}\nDownload URL: ${vars.url}\nTranscribe the audio and tag the resulting text.`;
 }
 
+export function renderFeedbackMessage(vars: { taskId: string; content: string }): string {
+  return `Feedback for task ${vars.taskId}. Append it to this task's activity timeline (add_activity):\n${vars.content}`;
+}
+
 export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): void {
   app.post("/api/v1/tasks", async (request) => {
     const principal = requirePrincipal(deps.authenticator, request.headers.authorization);
@@ -41,12 +45,16 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
       throw new GatewayError(400, "BAD_REQUEST", "uuid is required");
     }
 
-    const { url } = await deps.platformFiles.presign({ tenantId: principal.tenantId, uuid: body.uuid });
+    const { url } = await deps.platformFiles.presign({
+      tenantId: principal.tenantId,
+      uuid: body.uuid,
+    });
     const title = body.title ?? `Voice tagging: ${body.uuid}`;
     const { taskId } = await deps.taskTools.createTask({
       title,
       description: body.description,
       status: "in_progress",
+      ownerId: principal.tenantId,
       metadata: { uuid: body.uuid, url },
     });
 
@@ -95,11 +103,22 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
   app.post("/api/v1/tasks/:id/feedback", async (request) => {
     requirePrincipal(deps.authenticator, request.headers.authorization);
     const { id } = request.params as { id: string };
-    const body = (request.body ?? {}) as { content?: string; summary?: string };
+    const body = (request.body ?? {}) as { content?: string; summary?: string; assistantId?: string };
     if (typeof body.content !== "string" || body.content.trim() === "") {
       throw new GatewayError(400, "BAD_REQUEST", "content is required");
     }
-    await deps.taskTools.addActivity({ id, content: body.content, summary: body.summary });
-    return { taskId: id, added: true };
+    const assistantId = body.assistantId ?? deps.config.a2aVoiceTaggingAssistantId;
+    if (!assistantId) {
+      throw new GatewayError(
+        400,
+        "BAD_REQUEST",
+        "assistantId is required (or set A2A_VOICE_TAGGING_ASSISTANT_ID)",
+      );
+    }
+    const text = body.summary
+      ? `${renderFeedbackMessage({ taskId: id, content: body.content })}\n\nSummary: ${body.summary}`
+      : renderFeedbackMessage({ taskId: id, content: body.content });
+    const a2a = await deps.a2a.sendTask({ assistantId, text });
+    return { taskId: id, forwarded: true, a2a: { taskId: a2a.taskId, state: a2a.state } };
   });
 }
