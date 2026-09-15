@@ -23,9 +23,11 @@ platform-service 已部署到生产并全链路验证通过。
 
 | 公网前缀 | 转发到 |
 |---|---|
-| `/api/filesvc/*` | `http://127.0.0.1:5707/api/v1/files/*` |
-| `/api/webhooks/*` | `http://127.0.0.1:5707/api/v1/webhooks/*` |
+| `/api/v1/files/*` | `http://127.0.0.1:5707/api/v1/files/*` |
+| `/api/v1/webhooks/*` | `http://127.0.0.1:5707/api/v1/webhooks/*` |
 | `/portal/*` | `http://127.0.0.1:5707/portal/*` |
+
+`/api/filesvc/*` 和 `/api/webhooks/*` 可以继续作为旧调用方兼容入口，但新工具和新客户端都应使用 `/api/v1/*`。
 
 **已验证通过**（全新租户，公网实测）：上传 → 列表 → 下载 → 下载链接（`kind=presigned`，指向 TOS）→ 建投递目标 → 发布事件 → Portal 200 → 未匹配路径 404。
 
@@ -52,12 +54,12 @@ platform-service 已部署到生产并全链路验证通过。
 
 | 公网前缀 | 网关转发到 | 备注 |
 |---|---|---|
-| `/api/filesvc/{rest}` | `http://platform-service:5707/api/v1/files/{rest}` | `/api/files/*` 已被网关现有 BFF 占用，故文件服务用 `filesvc` |
-| `/api/webhooks/{rest}` | `http://platform-service:5707/api/v1/webhooks/{rest}` | 服务也接受 `/api/webhooks/{rest}` 别名（portal 页面走这个） |
+| `/api/v1/files/{rest}` | `http://platform-service:5707/api/v1/files/{rest}` | 文件服务 canonical versioned API |
+| `/api/v1/webhooks/{rest}` | `http://platform-service:5707/api/v1/webhooks/{rest}` | Webhook canonical versioned API |
 | `/portal/*`（建议不对外） | `http://platform-service:5707/portal/*` | 跨租户运维界面，见 §7 |
 
 Compose 网络内服务名为 `platform-service`（容器名 `fina_demo-platform-service-1`）。
-**列表接口的 URL 是 `/api/filesvc/?path=…`（带尾斜杠）**——服务已同时映射 `""` 与 `"/"` 两种形态，代理无需重写。
+**列表接口的 URL 是 `/api/v1/files/?path=…`（带尾斜杠）**——服务已同时映射 `""` 与 `"/"` 两种形态，代理无需路径改写。
 
 ### 4.2 请求头契约
 
@@ -104,7 +106,7 @@ sudo cp /etc/nginx/sites-enabled/default /etc/nginx/backups/default.$(date +%s)
 # 2) 网关自测（不切流量）：直接打网关，带凭据但不带 X-Tenant-Id，期望成功；
 #    带伪造的 X-Tenant-Id，期望被网关覆写
 
-# 3) 切 nginx：把 /api/filesvc/ 与 /api/webhooks/ 的 proxy_pass 指向网关(5702)
+# 3) 切 nginx：把 /api/v1/files/ 与 /api/v1/webhooks/ 的 proxy_pass 指向网关(5702)
 
 # 4) 双保险：在两个 location 内清除入站租户头
 #    proxy_set_header X-Tenant-Id "";
@@ -144,34 +146,34 @@ B=https://ada.alphafina.cn
 curl -s http://127.0.0.1:5707/actuator/health          # {"status":"UP"}
 
 # 2) 经网关上传：凭据由网关校验，租户由网关注入（客户端不传 X-Tenant-Id）
-curl -X POST "$B/api/filesvc/upload" -H "Authorization: Bearer <网关令牌>" \
+curl -X POST "$B/api/v1/files/upload" -H "Authorization: Bearer <网关令牌>" \
   -F "file=@x.csv;type=text/csv" -F "path=ops" -F "fileName=x.csv"
 
 # 3) 伪造租户头必须无效（结果应属于网关解析出的租户，而非 hankel）
-curl -H "X-Tenant-Id: hankel" "$B/api/filesvc/?path=" -H "Authorization: Bearer <网关令牌>"
+curl -H "X-Tenant-Id: hankel" "$B/api/v1/files/?path=" -H "Authorization: Bearer <网关令牌>"
 
 # 4) 未认证必须 401/400，而不是返回数据
-curl "$B/api/filesvc/?path="
+curl "$B/api/v1/files/?path="
 
 # 5) 列表与下载
-curl "$B/api/filesvc/?path=ops&recursive=true" -H "Authorization: Bearer <网关令牌>"
-curl -I "$B/api/filesvc/<uuid>/download" -H "Authorization: Bearer <网关令牌>"
+curl "$B/api/v1/files/?path=ops&recursive=true" -H "Authorization: Bearer <网关令牌>"
+curl -I "$B/api/v1/files/<uuid>/download" -H "Authorization: Bearer <网关令牌>"
 
 # 6) webhook 全链路
-curl -X POST "$B/api/webhooks/destinations" -H "Authorization: Bearer <网关令牌>" \
+curl -X POST "$B/api/v1/webhooks/destinations" -H "Authorization: Bearer <网关令牌>" \
   -H "Content-Type: application/json" \
   -d '{"url":"https://your-receiver/hook","filterTypes":["job.completed"]}'
-curl -X POST "$B/api/webhooks/publish" -H "Authorization: Bearer <网关令牌>" \
+curl -X POST "$B/api/v1/webhooks/publish" -H "Authorization: Bearer <网关令牌>" \
   -H "Content-Type: application/json" -d '{"eventType":"job.completed","payload":{"jobId":"1"}}'
 
 # Svix-compatible 定向/分组发送：destination 创建时配置 channels，publish 时带相同 channels。
 # 不支持 endpointIds 直投；服务端会返回 400，避免误群发。
-curl -X POST "$B/api/webhooks/publish" -H "Authorization: Bearer <网关令牌>" \
+curl -X POST "$B/api/v1/webhooks/publish" -H "Authorization: Bearer <网关令牌>" \
   -H "Content-Type: application/json" \
   -d '{"eventType":"job.completed","channels":["vip-customers"],"payload":{"jobId":"1"}}'
 
 # 7) 未匹配路径 404、错误信封一致
-curl -o /dev/null -w "%{http_code}\n" "$B/api/filesvc/nope/x/y"   # 404
+curl -o /dev/null -w "%{http_code}\n" "$B/api/v1/files/nope/x/y"   # 404
 ```
 
 ## 9. 待网关侧确认的问题
@@ -181,7 +183,7 @@ curl -o /dev/null -w "%{http_code}\n" "$B/api/filesvc/nope/x/y"   # 404
 3. **运维凭据**：Portal 需要的跨租户能力，网关用哪种角色表达？
 4. **MCP/A2A 暴露**：建议由网关统一暴露（见 §11），服务侧提供工具描述文件。
 5. **限流与体积**：上传体积上限、超时策略由网关还是服务负责？（nginx 现为 `client_max_body_size 50m`，服务 multipart 上限 512MB）
-6. **切换方式**：是否需要灰度（例如先切 `/api/webhooks/` 再切 `/api/filesvc/`）？
+6. **切换方式**：是否需要灰度（例如先切 `/api/v1/webhooks/` 再切 `/api/v1/files/`）？
 
 ## 10. 服务侧承诺与边界
 

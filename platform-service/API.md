@@ -1,7 +1,9 @@
 # platform-service File API
 
 All examples below are real request/response pairs captured against a running
-service (2026-09-14). Base path `/api/v1/files`; public prefix `/api/filesvc/`.
+service (2026-09-14). Canonical service and public path is `/api/v1/files`.
+Older deployments may keep `/api/filesvc` as an nginx compatibility alias, but
+new callers should use the versioned path.
 
 ## Conventions
 

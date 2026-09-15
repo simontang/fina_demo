@@ -56,10 +56,11 @@ svix-server 首次启动自动跑数据库迁移（RDS 的 `svix` 库）。
 
 ## 4. nginx
 
-`nginx-fina-demo.conf` 已含两条路由（80 与 443 两个 server 块都要有）：
+`nginx-fina-demo.conf` 已含版本化路由（80 与 443 两个 server 块都要有）：
 
-- `/api/filesvc/` → `127.0.0.1:5707/api/v1/`（文件；公网前缀避开 agent BFF 的 `/api/files/*`）
-- `/api/webhooks/` → `127.0.0.1:5707/api/v1/webhooks/`
+- `/api/v1/files/` → `127.0.0.1:5707/api/v1/files/`
+- `/api/v1/webhooks/` → `127.0.0.1:5707/api/v1/webhooks/`
+- `/api/filesvc/`、`/api/webhooks/` 可作为旧调用方兼容入口保留，不作为新接口文档入口。
 
 同步配置并 reload：
 
@@ -76,8 +77,8 @@ curl -s http://127.0.0.1:5707/actuator/health           # {"status":"UP"}
 curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:5707/portal   # 200
 
 # 公网（本机）
-curl -s "https://demo.alphafina.cn/api/filesvc/api/v1/files?prefix=" -H "X-Tenant-Id: smoke"
-curl -s "https://demo.alphafina.cn/api/webhooks/messages?limit=5" -H "X-Tenant-Id: smoke"
+curl -s "https://demo.alphafina.cn/api/v1/files/?path=" -H "X-Tenant-Id: smoke"
+curl -s "https://demo.alphafina.cn/api/v1/webhooks/messages?limit=5" -H "X-Tenant-Id: smoke"
 
 # webhook 全链路（可选，需一个可达的收端 URL；服务器→公网收端）
 PLATFORM_SERVICE_URL=http://127.0.0.1:5707 bash platform-service/scripts/webhook-smoke.sh

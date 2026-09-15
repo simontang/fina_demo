@@ -50,9 +50,9 @@ Spring Boot 3.2.3 / Java 17 / Gradle KTS / mybatis-plus / Lombok，完全照 met
 - **无 folders 表、无 parent_id 树**：目录只是 path 前缀；`GET /api/v1/files?prefix=` 返回对象 + 下一层目录聚合。并发问题的根源（目录行的创建竞争）不存在。列表性能未来不足再异步物化目录索引。
 - **同路径重复上传 = 追加 version+1 新行**，物理 key 带 sha256 前缀后缀（`{tenant}/{dir}/{filename}@{sha8}`），旧行永不覆盖；内容相同则直接去重返回 `deduplicated=true` 不建新行。
 
-### API（内部 `/api/v1`，nginx `/api/filesvc/`）
+### API（canonical `/api/v1/files/`）
 
-见 `MICROSERVICES_PORTS_AND_ROUTES.md` §8。注意公网前缀是 `/api/filesvc/`——`/api/files/*` 已被 agent BFF 占用。
+见 `MICROSERVICES_PORTS_AND_ROUTES.md` §8。公网和内网统一使用 versioned API；旧部署可保留 `/api/filesvc/` 作为 nginx 兼容入口。
 
 ### 冒烟证据（2026-09-13 本机）
 
@@ -134,8 +134,8 @@ Spring Boot 3.2.3 / Java 17 / Gradle KTS / mybatis-plus / Lombok，完全照 met
 [factory agents / scripts]
    │  X-Tenant-Id + X-Api-Key
    ▼
-platform-service :5707（nginx /api/filesvc/ 与 /api/webhooks/）
-   ├─ files 模块    /api/v1/files/*      → MinIO/TOS + file_objects（原样迁移，冒烟全绿）
+platform-service :5707（nginx /api/v1/files/ 与 /api/v1/webhooks/）
+   ├─ files 模块    /api/v1/files/*      → MinIO/TOS + file_objects
    └─ webhooks 模块 /api/v1/webhooks/*   → SvixServerClient → svix-server 容器（不对外暴露）
 svix-server：SVIX_DB_DSN=document-postgres/svix，SVIX_REDIS_DSN=document-redis/3，自动建目标 whsec 签名
 ```
