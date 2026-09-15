@@ -1,0 +1,33 @@
+{
+  "name": "el-ai-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.30.3",
+  "description": "Estee Lauder AI project API gateway for voice-file tagging",
+  "scripts": {
+    "dev": "tsup src/index.ts --format esm --sourcemap --watch --onSuccess \"node dist/index.js\"",
+    "build": "tsup src/index.ts --format esm --clean --sourcemap",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "mcp:probe": "tsx scripts/mcp-probe.ts"
+  },
+  "dependencies": {
+    "@fastify/multipart": "^9.3.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "dotenv": "^16.6.1",
+    "fastify": "^5.5.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.27",
+    "tsx": "^4.19.2",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.2",
+    "vitest": "^2.1.9"
+  },
+  "engines": { "node": ">=20.0.0" }
+}
