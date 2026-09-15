@@ -8,7 +8,7 @@ import {
 export const MESSAGE_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 export const ENDPOINT_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 
-export const WEBHOOK_TOPICS = [
+export const WEBHOOK_EVENT_TYPES = [
   "import.completed",
   "gate.passed",
   "decision.captured",
@@ -22,61 +22,33 @@ export async function webhooksListDestinations(
   rawConfig: unknown,
 ): Promise<string> {
   try {
-    const conn = resolveConnection(rawConfig, exeConfig);
-    const data = await request<Array<{ endpointId: string }>>({
-      conn,
+    const result = await request<Array<{ endpointId: string }>>({
+      conn: resolveConnection(rawConfig, exeConfig),
       tenantId: tenantFromExeConfig(exeConfig),
       method: "GET",
       path: "/api/v1/webhooks/destinations",
     });
-    const scoped =
-      conn.selectedEntities.length > 0
-        ? data.filter((d) => conn.selectedEntities.includes(d.endpointId))
-        : data;
-    return JSON.stringify(scoped);
+    return JSON.stringify(result ?? null);
   } catch (err) {
     return errorResult(err);
   }
 }
 
 export async function webhooksPublishEvent(
-  input: { topic: string; data: Record<string, unknown>; endpointIds?: string[] },
+  input: { eventType: string; payload: Record<string, unknown>; channels?: string[] },
   exeConfig: unknown,
   rawConfig: unknown,
 ): Promise<string> {
   try {
-    const conn = resolveConnection(rawConfig, exeConfig);
-    const scope = conn.selectedEntities;
-    const requested = input.endpointIds ?? [];
-    if (scope.length === 0 && requested.length > 0) {
-      return JSON.stringify({
-        ok: false,
-        code: "OUT_OF_SCOPE",
-        message: "endpointIds cannot be specified explicitly when selectedEntities is empty",
-      });
-    }
-    if (scope.length > 0) {
-      const out = requested.filter((id) => !scope.includes(id));
-      if (out.length > 0) {
-        return JSON.stringify({
-          ok: false,
-          code: "OUT_OF_SCOPE",
-          message: `endpointIds outside the selected scope: ${out.join(", ")}`,
-        });
-      }
-    }
-    const effective = requested.length > 0 ? requested : scope;
-    // Empty selectedEntities intentionally means server-side topic fan-out
-    // (fail-open within the tenant), per spec §6.3.
     const result = await request({
-      conn,
+      conn: resolveConnection(rawConfig, exeConfig),
       tenantId: tenantFromExeConfig(exeConfig),
       method: "POST",
       path: "/api/v1/webhooks/publish",
       json: {
-        topic: input.topic,
-        data: input.data,
-        ...(effective.length > 0 ? { endpointIds: effective } : {}),
+        eventType: input.eventType,
+        payload: input.payload,
+        ...(input.channels && input.channels.length > 0 ? { channels: input.channels } : {}),
       },
     });
     return JSON.stringify(result ?? null);
@@ -130,7 +102,7 @@ export async function webhooksGetDeliveryStatus(
 }
 
 export async function registerDestination(
-  input: { url: string; topics: string[]; description?: string },
+  input: { url: string; filterTypes?: string[]; channels?: string[]; description?: string },
   exeConfig: unknown,
   rawConfig: unknown,
 ): Promise<string> {
@@ -142,7 +114,8 @@ export async function registerDestination(
       path: "/api/v1/webhooks/destinations",
       json: {
         url: input.url,
-        topics: input.topics,
+        ...(input.filterTypes ? { filterTypes: input.filterTypes } : {}),
+        ...(input.channels ? { channels: input.channels } : {}),
         ...(input.description ? { description: input.description } : {}),
       },
     });

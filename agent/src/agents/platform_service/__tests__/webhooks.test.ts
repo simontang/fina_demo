@@ -22,37 +22,51 @@ describe("webhooksPublishEvent", () => {
   });
   afterEach(() => jest.restoreAllMocks());
 
-  it("defaults targets to selectedEntities", async () => {
-    await webhooksPublishEvent({ topic: "gate.passed", data: { a: 1 } }, exeConfig, rawConfig);
-    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
-    expect(body.endpointIds.sort()).toEqual(["ep_1", "ep_2"]);
-  });
-
-  it("rejects endpointIds outside the scope", async () => {
-    const out = await webhooksPublishEvent(
-      { topic: "gate.passed", data: {}, endpointIds: ["ep_9"] },
-      exeConfig,
-      rawConfig,
-    );
-    expect(JSON.parse(out).code).toBe("OUT_OF_SCOPE");
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  it("narrows within scope", async () => {
+  it("POSTs eventType and payload without endpointIds", async () => {
     await webhooksPublishEvent(
-      { topic: "gate.passed", data: {}, endpointIds: ["ep_2"] },
+      { eventType: "gate.passed", payload: { a: 1 } },
+      exeConfig,
+      rawConfig,
+    );
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe("http://svc:5707/api/v1/webhooks/publish");
+    expect(init.method).toBe("POST");
+    const body = JSON.parse(init.body);
+    expect(body).toEqual({ eventType: "gate.passed", payload: { a: 1 } });
+    expect(body).not.toHaveProperty("endpointIds");
+    expect(body).not.toHaveProperty("topic");
+    expect(body).not.toHaveProperty("data");
+  });
+
+  it("passes channels through when provided", async () => {
+    await webhooksPublishEvent(
+      { eventType: "gate.passed", payload: {}, channels: ["vip-customers"] },
       exeConfig,
       rawConfig,
     );
     const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
-    expect(body.endpointIds).toEqual(["ep_2"]);
+    expect(body).toEqual({
+      eventType: "gate.passed",
+      payload: {},
+      channels: ["vip-customers"],
+    });
+  });
+
+  it("omits channels when empty", async () => {
+    await webhooksPublishEvent(
+      { eventType: "gate.passed", payload: {}, channels: [] },
+      exeConfig,
+      rawConfig,
+    );
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+    expect(body).not.toHaveProperty("channels");
   });
 });
 
 describe("webhooksListDestinations", () => {
   afterEach(() => jest.restoreAllMocks());
 
-  it("filters returned destinations by scope", async () => {
+  it("returns the full list unfiltered by scope", async () => {
     jest.spyOn(global, "fetch").mockResolvedValue({
       ok: true, status: 200,
       json: async () => [
@@ -61,7 +75,10 @@ describe("webhooksListDestinations", () => {
       ],
     } as Response);
     const out = await webhooksListDestinations({}, exeConfig, rawConfig);
-    expect(JSON.parse(out).map((d: { endpointId: string }) => d.endpointId)).toEqual(["ep_1"]);
+    expect(JSON.parse(out).map((d: { endpointId: string }) => d.endpointId)).toEqual([
+      "ep_1",
+      "ep_9",
+    ]);
   });
 });
 
@@ -113,47 +130,17 @@ describe("webhooksGetDeliveryStatus", () => {
   });
 });
 
-describe("webhooksPublishEvent empty scope", () => {
-  afterEach(() => jest.restoreAllMocks());
-
-  it("omits endpointIds for topic fan-out", async () => {
-    jest.spyOn(global, "fetch").mockResolvedValue({
-      ok: true, status: 200, json: async () => ({ messageId: "m1" }),
-    } as Response);
-    const emptyConfig = {
-      _resolvedConnections: [{ config: { baseUrl: "http://svc:5707", selectedEntities: [] } }],
-    };
-    await webhooksPublishEvent({ topic: "gate.passed", data: {} }, exeConfig, emptyConfig);
-    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
-    expect(body).not.toHaveProperty("endpointIds");
-  });
-
-  it("rejects explicit endpointIds when the scope is empty", async () => {
-    const fetchSpy = jest.spyOn(global, "fetch");
-    const emptyConfig = {
-      _resolvedConnections: [{ config: { baseUrl: "http://svc:5707", selectedEntities: [] } }],
-    };
-    const out = await webhooksPublishEvent(
-      { topic: "gate.passed", data: {}, endpointIds: ["ep_1"] },
-      exeConfig,
-      emptyConfig,
-    );
-    expect(JSON.parse(out).code).toBe("OUT_OF_SCOPE");
-    expect(fetchSpy).not.toHaveBeenCalled();
-  });
-});
-
 describe("registerDestination", () => {
   afterEach(() => jest.restoreAllMocks());
 
-  it("POSTs the destination and returns the signing secret", async () => {
+  it("POSTs url, filterTypes and channels and returns the signing secret", async () => {
     jest.spyOn(global, "fetch").mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => ({ endpointId: "ep_1", secret: "whsec_x" }),
     } as Response);
     const out = await registerDestination(
-      { url: "http://a", topics: ["gate.passed"], description: "d" },
+      { url: "http://a", filterTypes: ["gate.passed"], channels: ["vip"], description: "d" },
       exeConfig,
       rawConfig,
     );
@@ -162,10 +149,22 @@ describe("registerDestination", () => {
     expect(init.method).toBe("POST");
     expect(JSON.parse(init.body)).toEqual({
       url: "http://a",
-      topics: ["gate.passed"],
+      filterTypes: ["gate.passed"],
+      channels: ["vip"],
       description: "d",
     });
     expect(JSON.parse(out).secret).toBe("whsec_x");
+  });
+
+  it("omits absent optional fields", async () => {
+    jest.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ endpointId: "ep_1" }),
+    } as Response);
+    await registerDestination({ url: "http://a" }, exeConfig, rawConfig);
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+    expect(body).toEqual({ url: "http://a" });
   });
 
   it("maps HTTP errors to error results", async () => {
@@ -174,11 +173,7 @@ describe("registerDestination", () => {
       status: 404,
       text: async () => JSON.stringify({ code: "NOT_FOUND", message: "x" }),
     } as Response);
-    const out = await registerDestination(
-      { url: "http://a", topics: ["gate.passed"] },
-      exeConfig,
-      rawConfig,
-    );
+    const out = await registerDestination({ url: "http://a" }, exeConfig, rawConfig);
     expect(JSON.parse(out)).toMatchObject({ ok: false, code: "NOT_FOUND", status: 404 });
   });
 });

@@ -140,4 +140,32 @@ describe("webhooks plugin connection", () => {
       }),
     );
   });
+
+  it("discover summarizes filterTypes and channels for the new protocol", async () => {
+    jest.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => [
+        {
+          endpointId: "ep_2",
+          url: "http://b",
+          filterTypes: ["gate.passed", "job.completed"],
+          channels: ["vip", "beta"],
+        },
+      ],
+    } as unknown as Response);
+
+    const result = await discoverWithContext(
+      { baseUrl: "http://svc:5707" },
+      { tenantId: "t1" },
+    );
+
+    expect(result).toEqual([
+      {
+        id: "ep_2",
+        name: "http://b",
+        description: "gate.passed, job.completed | channels: vip, beta",
+      },
+    ]);
+  });
 });

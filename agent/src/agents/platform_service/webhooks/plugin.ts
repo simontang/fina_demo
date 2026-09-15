@@ -5,9 +5,8 @@ import { z } from "zod";
 import { connectionFromConfig, request } from "../client";
 import { platformServiceConnection } from "../connection";
 import {
-  ENDPOINT_ID_PATTERN,
   MESSAGE_ID_PATTERN,
-  WEBHOOK_TOPICS,
+  WEBHOOK_EVENT_TYPES,
   deleteDestination,
   registerDestination,
   webhooksGetDeliveryStatus,
@@ -16,12 +15,17 @@ import {
   webhooksPublishEvent,
 } from "./executors";
 
+const CHANNELS = z
+  .array(z.string().regex(/^[A-Za-z0-9._:+-]{1,128}$/))
+  .max(10)
+  .describe("Svix channel names used to target a subset of destinations");
+
 const SCHEMAS = {
   listDestinations: z.object({}),
   publish: z.object({
-    topic: z.enum(WEBHOOK_TOPICS),
-    data: z.record(z.unknown()),
-    endpointIds: z.array(z.string()).optional(),
+    eventType: z.enum(WEBHOOK_EVENT_TYPES),
+    payload: z.record(z.unknown()),
+    channels: CHANNELS.optional(),
   }),
   listRecent: z.object({ limit: z.number().int().optional() }),
   deliveryStatus: z.object({ messageId: z.string().regex(MESSAGE_ID_PATTERN) }),
@@ -31,14 +35,27 @@ const SCHEMAS = {
       .url()
       .refine((u) => /^https?:\/\//.test(u), { message: "url must be http(s)" })
       .describe("Receiver URL (http/https)"),
-    topics: z.array(z.enum(WEBHOOK_TOPICS)).min(1).describe("List of subscribed event topics"),
+    filterTypes: z.array(z.enum(WEBHOOK_EVENT_TYPES)).optional(),
+    channels: CHANNELS.optional(),
     description: z.string().optional(),
   }),
   delete: z.object({
-    endpointId: z.string().regex(ENDPOINT_ID_PATTERN),
+    endpointId: z.string().regex(/^[A-Za-z0-9_-]+$/),
     confirm: z.boolean().optional().describe("Must be true to execute; otherwise a confirmation prompt is returned"),
   }),
 };
+
+function destinationSummary(d: {
+  filterTypes?: string[];
+  channels?: string[];
+  topics?: string[];
+}): string {
+  const eventTypes = d.filterTypes ?? d.topics ?? [];
+  const parts: string[] = [];
+  if (eventTypes.length > 0) parts.push(eventTypes.join(", "));
+  if (d.channels && d.channels.length > 0) parts.push(`channels: ${d.channels.join(", ")}`);
+  return parts.join(" | ");
+}
 
 export const webhooksPlugin: Plugin = {
   meta: {
@@ -61,8 +78,8 @@ export const webhooksPlugin: Plugin = {
     },
     defaultConfig: { connections: [], connectAll: false },
     // Exposed on the Open/MCP surface. Note: the MCP path does not resolve connection
-    // config, so `selectedEntities` scope only applies on the agent path; on MCP,
-    // publish fans out to every subscriber of the topic.
+    // config, so publish targeting is caller-provided via `channels`; without channels
+    // the event fans out to every subscriber of the eventType.
     openExpose: [
       { name: "list_destinations", readOnly: true },
       { name: "publish_event" },
@@ -80,7 +97,15 @@ export const webhooksPlugin: Plugin = {
     discover: async (config, context?: { tenantId?: string }) => {
       const tenantId = context?.tenantId;
       if (!tenantId) throw new Error("tenant context is missing");
-      const rows = await request<Array<{ endpointId: string; url: string; topics?: string[] }>>({
+      const rows = await request<
+        Array<{
+          endpointId: string;
+          url: string;
+          filterTypes?: string[];
+          channels?: string[];
+          topics?: string[];
+        }>
+      >({
         conn: connectionFromConfig(config),
         tenantId,
         method: "GET",
@@ -89,7 +114,7 @@ export const webhooksPlugin: Plugin = {
       return rows.map((d) => ({
         id: d.endpointId,
         name: d.url,
-        description: (d.topics ?? []).join(", "),
+        description: destinationSummary(d),
       }));
     },
   },
@@ -102,7 +127,7 @@ export const webhooksPlugin: Plugin = {
             webhooksListDestinations(input, exeConfig, rawConfig),
           {
             name: "list_destinations",
-            description: "List delivery destinations within the current connection scope (signing secrets are not returned).",
+            description: "List the tenant's delivery destinations (signing secrets are not returned).",
             schema: SCHEMAS.listDestinations,
           },
         ),
@@ -112,7 +137,7 @@ export const webhooksPlugin: Plugin = {
           {
             name: "publish_event",
             description:
-              "Publish a factory event to delivery destinations. topic must come from the fixed list; endpointIds can only narrow within the selected scope. (v1: scope is a client-side constraint; server-side targeted delivery comes in a later version. When no scope is configured, fan out to all destinations for the topic. On the MCP path the selected scope is not applied, so publishing always fans out to every subscriber of the topic.)",
+              "Publish a factory event with {eventType, payload, channels?}. eventType must come from the fixed list. Target a subset of destinations only via channels; never send endpointIds (the server rejects them with 400). On the MCP path the connection scope is not resolved, so channels must be provided by the caller; without channels the event fans out to every subscriber of the eventType.",
             schema: SCHEMAS.publish,
           },
         ),
@@ -121,7 +146,7 @@ export const webhooksPlugin: Plugin = {
             webhooksListRecentEvents(input, exeConfig, rawConfig),
           {
             name: "list_recent_events",
-            description: "List recent events for the current tenant (messageId/topic/timestamp).",
+            description: "List recent events for the current tenant (messageId/eventType/timestamp).",
             schema: SCHEMAS.listRecent,
           },
         ),
@@ -140,7 +165,7 @@ export const webhooksPlugin: Plugin = {
           {
             name: "register_destination",
             description:
-              "Register a delivery destination and return the whsec signing secret. The secret enters the tool result (including conversation and audit history) and can be retrieved again via the admin API; use only in scenarios granted to administrators, and do not log or forward it.",
+              "Register a delivery destination with optional filterTypes and channels, and return the whsec signing secret. filterTypes limits the eventTypes delivered; channels target channel-filtered publishes. The secret enters the tool result (including conversation and audit history) and can be retrieved again via the admin API; use only in scenarios granted to administrators, and do not log or forward it.",
             schema: SCHEMAS.register,
           },
         ),
