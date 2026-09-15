@@ -102,7 +102,7 @@ describe("POST /api/v1/voice-tagging", () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it("keeps the task id when A2A fails", async () => {
+  it("does not fail the request when the A2A trigger fails (fire-and-forget)", async () => {
     const d = deps();
     d.a2a.sendTask = vi.fn(async () => {
       throw new Error("a2a down");
@@ -114,8 +114,9 @@ describe("POST /api/v1/voice-tagging", () => {
       headers: { authorization: "Bearer secret" },
       payload: { uuid: "u1" },
     });
-    expect(res.statusCode).toBe(502);
-    expect(res.json().upstream).toEqual({ taskId: "task-1" });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().taskId).toBe("task-1");
+    expect(res.json().a2a).toEqual({ dispatched: true });
   });
 });
 

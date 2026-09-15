@@ -12,6 +12,7 @@ export type Config = {
   a2aApiKey: string;
   a2aVoiceTaggingAssistantId?: string;
   a2aVoiceTaggingFileUuid?: string;
+  a2aTriggerTimeoutMs?: number;
   a2aMessageTemplate?: string;
   mcpServerUrl: string;
   mcpApiKey: string;

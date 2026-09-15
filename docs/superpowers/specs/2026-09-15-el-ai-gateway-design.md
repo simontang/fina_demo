@@ -113,7 +113,7 @@ el-ai-gateway/
   1. `uuid = body.uuid ?? A2A_VOICE_TAGGING_FILE_UUID`；两者都没有 → 400；
   2. `platformFiles.presign(uuid)` → 可访问 URL（失败则终止）；
   3. MCP `task_manage_task {action:"create", title, description?, status:"in_progress", ownerType:"user", ownerId:<入站 tenantId>, metadata:{uuid,url}}` → `taskId`；
-  4. A2A `message/send` 调 `A2A_VOICE_TAGGING_ASSISTANT_ID` 对应 agent，**消息只带 `taskId`**（默认模板；agent 通过读取任务 metadata 拿到文件 uuid/url），让 agent **转写 + 打标**；
+  4. A2A `message/send` 调 `A2A_VOICE_TAGGING_ASSISTANT_ID` 对应 agent，**消息只带 `taskId`**；采用 **fire-and-forget**：网关发出后不等 A2A task 结果即返回，A2A 失败只记日志（任务状态/activity 以 MCP 任务为准，agent 通过读取任务 metadata 拿到文件 uuid/url 并回写 activity）；
   5. 返回。
 - 响应 `200`：
   ```json
@@ -198,6 +198,7 @@ A2A_BASE_URL=http://127.0.0.1:5702
 A2A_API_KEY=a2a_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 A2A_VOICE_TAGGING_ASSISTANT_ID=voice-tagging-agent
 A2A_VOICE_TAGGING_FILE_UUID=2ccf6fef88b64a16b62fe491a8f7a132
+A2A_TRIGGER_TIMEOUT_MS=600000
 A2A_MESSAGE_TEMPLATE=
 
 MCP_SERVER_URL=http://127.0.0.1:5702/open/mcp
@@ -222,7 +223,7 @@ UPSTREAM_TIMEOUT_MS=30000
 | 上传超限 | 413 | `PAYLOAD_TOO_LARGE` |
 | presign 失败 / 上游业务错误 | 502 | 透传上游 code（如 `TENANT_REQUIRED`、`NOT_FOUND`） |
 | MCP 工具调用失败 | 502 | `MCP_ERROR` |
-| A2A 触发失败（任务已建） | 502 | `A2A_ERROR`（响应仍含 `taskId`） |
+| A2A 触发失败（fire-and-forget） | 不返回 | 仅记录日志（`[voice-tagging] A2A trigger failed ...`），响应始终 200 + `taskId` |
 | 上游超时 | 504 | `UPSTREAM_TIMEOUT` |
 | 任务不存在 | 404 | `NOT_FOUND` |
 | 其它未预期错误 | 500 | `INTERNAL_ERROR` |

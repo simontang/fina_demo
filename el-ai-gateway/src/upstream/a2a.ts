@@ -6,12 +6,12 @@ import { fetchWithTimeout, type FetchLike } from "../lib/http";
 export type A2ASendResult = { taskId?: string; state?: string; raw: unknown };
 
 export type A2AClient = {
-  sendTask(input: { assistantId: string; text: string }): Promise<A2ASendResult>;
+  sendTask(input: { assistantId: string; text: string; timeoutMs?: number }): Promise<A2ASendResult>;
 };
 
 export function createA2AClient(config: Config, fetchImpl: FetchLike = fetch): A2AClient {
   return {
-    async sendTask({ assistantId, text }) {
+    async sendTask({ assistantId, text, timeoutMs }) {
       const url = `${config.a2aBaseUrl}/api/a2a/agents/${encodeURIComponent(assistantId)}/jsonrpc`;
       const payload = {
         jsonrpc: "2.0",
@@ -37,7 +37,7 @@ export function createA2AClient(config: Config, fetchImpl: FetchLike = fetch): A
           },
           body: JSON.stringify(payload),
         },
-        config.upstreamTimeoutMs,
+        timeoutMs ?? config.upstreamTimeoutMs,
       );
       if (!res.ok) throw await upstreamError(res);
       const json = (await res.json()) as any;

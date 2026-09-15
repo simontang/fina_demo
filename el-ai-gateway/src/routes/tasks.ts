@@ -59,32 +59,32 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
       metadata: { uuid, url },
     });
 
-    let a2a: { taskId?: string; state?: string };
-    try {
-      const assistantId = body.assistantId ?? deps.config.a2aVoiceTaggingAssistantId;
-      if (!assistantId) {
-        throw new GatewayError(
-          400,
-          "BAD_REQUEST",
-          "assistantId is required (or set A2A_VOICE_TAGGING_ASSISTANT_ID)",
-        );
-      }
-      const text = renderA2AMessage(deps.config.a2aMessageTemplate, {
-        uuid,
-        url,
-        taskId,
-      });
-      a2a = await deps.a2a.sendTask({ assistantId, text });
-    } catch (err) {
-      if (err instanceof GatewayError && err.statusCode === 400) throw err;
-      throw new GatewayError(502, "A2A_ERROR", (err as Error).message, { taskId });
+    const assistantId = body.assistantId ?? deps.config.a2aVoiceTaggingAssistantId;
+    if (!assistantId) {
+      throw new GatewayError(
+        400,
+        "BAD_REQUEST",
+        "assistantId is required (or set A2A_VOICE_TAGGING_ASSISTANT_ID)",
+      );
     }
+    const text = renderA2AMessage(deps.config.a2aMessageTemplate, { uuid, url, taskId });
+    const timeoutMs = deps.config.a2aTriggerTimeoutMs ?? deps.config.upstreamTimeoutMs;
+
+    // Fire-and-forget: the A2A message carries the task id; the agent writes
+    // status/activity back to the task. We do not wait for the A2A task outcome.
+    void deps.a2a
+      .sendTask({ assistantId, text, timeoutMs })
+      .catch((err: unknown) =>
+        console.error(
+          `[voice-tagging] A2A trigger failed for task ${taskId}: ${(err as Error).message}`,
+        ),
+      );
 
     return {
       taskId,
       status: "in_progress",
       file: { uuid, url },
-      a2a: { taskId: a2a.taskId, state: a2a.state },
+      a2a: { dispatched: true },
     };
   });
 
@@ -119,7 +119,14 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
     const text = body.summary
       ? `${renderFeedbackMessage({ taskId: id, content: body.content })}\n\nSummary: ${body.summary}`
       : renderFeedbackMessage({ taskId: id, content: body.content });
-    const a2a = await deps.a2a.sendTask({ assistantId, text });
-    return { taskId: id, forwarded: true, a2a: { taskId: a2a.taskId, state: a2a.state } };
+    const timeoutMs = deps.config.a2aTriggerTimeoutMs ?? deps.config.upstreamTimeoutMs;
+    void deps.a2a
+      .sendTask({ assistantId, text, timeoutMs })
+      .catch((err: unknown) =>
+        console.error(
+          `[voice-tagging] A2A feedback relay failed for task ${id}: ${(err as Error).message}`,
+        ),
+      );
+    return { taskId: id, forwarded: true, a2a: { dispatched: true } };
   });
 }

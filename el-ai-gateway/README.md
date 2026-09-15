@@ -50,3 +50,6 @@ pnpm typecheck
 - Task/activity state lives in the agent platform (`task_manage_task`); the gateway is stateless.
 - The gateway only creates tasks and reads status. `add_activity` / `set_status` are performed by the agent
   (the Open MCP path has no runtime identity), so feedback is relayed to the agent over A2A.
+- The A2A trigger is **fire-and-forget**: the message carries only the `taskId`; the gateway returns
+  immediately and does not wait for the A2A task outcome (errors are logged). Task status is read from the
+  task created via MCP.
