@@ -92,8 +92,8 @@ el-ai-gateway/
 
 ### 5.1 `POST /api/v1/files`
 
-- 请求：`multipart/form-data`，字段 `file`（必填）、`path?`、`fileName?`。
-- 行为：转 platform-service `POST /api/v1/files/upload`，**原样返回平台结果**（不做二次加工）。
+- 请求：`multipart/form-data`，字段 `file`（必填）；`path?`、`fileName?` 走 query string（避免 multipart 字段顺序问题）。
+- 行为：读 `file` 流；网关生成 32-hex uuid；以**原始字节流**转 platform-service `PUT /api/v1/files/{uuid}`（避免在网关整体缓冲），**原样返回平台结果**（不做二次加工）。
 - 响应 `200`：平台 upload receipt，例如
   ```json
   { "uuid": "06c1097c09694b0d94f49f1a36e84123",
@@ -107,7 +107,7 @@ el-ai-gateway/
 
 - 请求 `application/json`：
   ```json
-  { "uuid": "<上传返回的 uuid>", "title": "可选", "description": "可选" }
+  { "uuid": "<上传返回的 uuid>", "title": "可选", "description": "可选", "assistantId": "可选，覆盖 A2A_VOICE_TAGGING_ASSISTANT_ID" }
   ```
 - 行为：
   1. `platformFiles.presign(uuid)` → 可访问 URL（失败则终止）；
@@ -149,8 +149,8 @@ el-ai-gateway/
 
 ### 7.1 `upstream/platformFiles.ts`
 
-- `upload({ tenantId, fileStream, filename, mime, path?, fileName? })`
-  → `POST {PLATFORM_FILES_BASE_URL}/api/v1/files/upload`；头 `X-Tenant-Id`，若配置 `FILE_SERVICE_API_KEY` 则加 `X-Api-Key`。原样返回响应的 JSON。
+- `upload({ tenantId, body, uuid, filename, mime, path?, fileName? })`
+  → `PUT {PLATFORM_FILES_BASE_URL}/api/v1/files/{uuid}`，body 为原始字节流（`duplex: "half"`）；头 `X-Tenant-Id`、`Content-Type: mime`、`X-File-Path`/`X-File-Name`（有则带），若配置 `FILE_SERVICE_API_KEY` 则加 `X-Api-Key`。原样返回响应的 JSON。
 - `presign({ tenantId, uuid, ttlSeconds? })`
   → `POST {PLATFORM_FILES_BASE_URL}/api/v1/files/presign`，JSON `{uuid,ttlSeconds?}` → `{url, kind, expiresInSeconds}`。
 
