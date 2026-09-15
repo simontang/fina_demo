@@ -7,7 +7,7 @@ const config: Config = {
   gatewayApiKeys: new Map(),
   authDisabled: false,
   authDevTenant: "tenant_demo",
-  platformFilesBaseUrl: "http://files",
+  platformFilesUrl: "http://files",
   maxUploadBytes: 1000,
   a2aBaseUrl: "http://agent:5702",
   a2aApiKey: "a2a_secret",

@@ -150,9 +150,10 @@ el-ai-gateway/
 ### 7.1 `upstream/platformFiles.ts`
 
 - `upload({ tenantId, body, uuid, filename, mime, path?, fileName? })`
-  → `PUT {PLATFORM_FILES_BASE_URL}/api/v1/files/{uuid}`，body 为原始字节流（`duplex: "half"`）；头 `X-Tenant-Id`、`Content-Type: mime`、`X-File-Path`/`X-File-Name`（有则带），若配置 `FILE_SERVICE_API_KEY` 则加 `X-Api-Key`。原样返回响应的 JSON。
+  → `PUT {PLATFORM_FILES_URL}/{uuid}`，body 为原始字节流（`duplex: "half"`）；头 `X-Tenant-Id`、`Content-Type: mime`、`X-File-Path`/`X-File-Name`（有则带），若配置 `FILE_SERVICE_API_KEY` 则加 `X-Api-Key`。原样返回响应的 JSON。
 - `presign({ tenantId, uuid, ttlSeconds? })`
-  → `POST {PLATFORM_FILES_BASE_URL}/api/v1/files/presign`，JSON `{uuid,ttlSeconds?}` → `{url, kind, expiresInSeconds}`。
+  → `POST {PLATFORM_FILES_URL}/presign`，JSON `{uuid,ttlSeconds?}` → `{url, kind, expiresInSeconds}`。
+- `PLATFORM_FILES_URL` 为**含路径前缀的完整 files 基址**：本地 `http://127.0.0.1:5707/api/v1/files`；线上经 nginx 为 `https://ada.alphafina.cn/api/filesvc`（线上当前直接信任调用方 `X-Tenant-Id`，实测上传/预签名/下载全链路通过）。
 
 ### 7.2 `upstream/a2a.ts`
 
@@ -188,7 +189,7 @@ GATEWAY_API_KEYS=dev_key:tenant_demo
 AUTH_DISABLED=false
 AUTH_DEV_TENANT=tenant_demo
 
-PLATFORM_FILES_BASE_URL=http://127.0.0.1:5707
+PLATFORM_FILES_URL=http://127.0.0.1:5707/api/v1/files
 FILE_SERVICE_API_KEY=
 GATEWAY_MAX_UPLOAD_BYTES=52428800
 

@@ -8,7 +8,7 @@ function config(overrides: Partial<Config> = {}): Config {
     gatewayApiKeys: new Map([["secret", "tenant_a"]]),
     authDisabled: false,
     authDevTenant: "tenant_dev",
-    platformFilesBaseUrl: "http://files",
+    platformFilesUrl: "http://files",
     maxUploadBytes: 1000,
     a2aBaseUrl: "http://a2a",
     a2aApiKey: "a2a_x",

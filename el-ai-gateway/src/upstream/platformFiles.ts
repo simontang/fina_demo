@@ -39,7 +39,7 @@ export function createPlatformFilesClient(
 
       const res = await fetchWithTimeout(
         fetchImpl,
-        `${config.platformFilesBaseUrl}/api/v1/files/${input.uuid}`,
+        `${config.platformFilesUrl}/${input.uuid}`,
         {
           method: "PUT",
           headers,
@@ -55,7 +55,7 @@ export function createPlatformFilesClient(
     async presign(input) {
       const res = await fetchWithTimeout(
         fetchImpl,
-        `${config.platformFilesBaseUrl}/api/v1/files/presign`,
+        `${config.platformFilesUrl}/presign`,
         {
           method: "POST",
           headers: { ...baseHeaders(input.tenantId), "Content-Type": "application/json" },

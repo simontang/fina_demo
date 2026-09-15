@@ -5,7 +5,7 @@ export type Config = {
   gatewayApiKeys: Map<string, string>;
   authDisabled: boolean;
   authDevTenant: string;
-  platformFilesBaseUrl: string;
+  platformFilesUrl: string;
   fileServiceApiKey?: string;
   maxUploadBytes: number;
   a2aBaseUrl: string;

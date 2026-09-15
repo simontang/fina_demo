@@ -14,7 +14,7 @@ function config(overrides: Partial<Config> = {}): Config {
     gatewayApiKeys: new Map([["secret", "tenant_a"]]),
     authDisabled: false,
     authDevTenant: "tenant_demo",
-    platformFilesBaseUrl: `http://127.0.0.1:${port}`,
+    platformFilesUrl: `http://127.0.0.1:${port}/api/v1/files`,
     fileServiceApiKey: "internal",
     maxUploadBytes: 1024 * 1024,
     a2aBaseUrl: "http://a2a",
