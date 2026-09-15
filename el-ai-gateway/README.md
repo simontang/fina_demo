@@ -9,6 +9,8 @@ service that orchestrates:
 
 ## Endpoints (all require `Authorization: Bearer <GATEWAY_API_KEYS key>`)
 
+> 完整 API 文档（含两个 webhook 事件格式）见 [API.md](./API.md)。
+
 | Method | Path | Purpose |
 |---|---|---|
 | POST | `/api/v1/files?path=&fileName=` | multipart `file`; returns platform upload receipt (`uuid`, ...) |
