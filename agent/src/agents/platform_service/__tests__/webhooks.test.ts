@@ -8,9 +8,7 @@ import {
 } from "../webhooks/executors";
 
 const rawConfig = {
-  _resolvedConnections: [
-    { config: { baseUrl: "http://svc:5707", selectedEntities: ["ep_1", "ep_2"] } },
-  ],
+  _resolvedConnections: [{ config: { baseUrl: "http://svc:5707" } }],
 };
 const exeConfig = { configurable: { runConfig: { tenantId: "t1" } } };
 

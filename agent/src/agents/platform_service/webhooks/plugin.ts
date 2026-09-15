@@ -5,6 +5,7 @@ import { z } from "zod";
 import { connectionFromConfig, request } from "../client";
 import { platformServiceConnection } from "../connection";
 import {
+  ENDPOINT_ID_PATTERN,
   MESSAGE_ID_PATTERN,
   WEBHOOK_EVENT_TYPES,
   deleteDestination,
@@ -40,7 +41,7 @@ const SCHEMAS = {
     description: z.string().optional(),
   }),
   delete: z.object({
-    endpointId: z.string().regex(/^[A-Za-z0-9_-]+$/),
+    endpointId: z.string().regex(ENDPOINT_ID_PATTERN),
     confirm: z.boolean().optional().describe("Must be true to execute; otherwise a confirmation prompt is returned"),
   }),
 };
@@ -165,7 +166,7 @@ export const webhooksPlugin: Plugin = {
           {
             name: "register_destination",
             description:
-              "Register a delivery destination with optional filterTypes and channels, and return the whsec signing secret. filterTypes limits the eventTypes delivered; channels target channel-filtered publishes. The secret enters the tool result (including conversation and audit history) and can be retrieved again via the admin API; use only in scenarios granted to administrators, and do not log or forward it.",
+              "Register a delivery destination with optional filterTypes and channels, and return the whsec signing secret. filterTypes limits the eventTypes delivered; channels target channel-filtered publishes. The secret is returned by Svix only at creation time and enters the tool result (including conversation and audit history); it cannot be retrieved later, so deliver it to the receiver securely and do not log or forward it.",
             schema: SCHEMAS.register,
           },
         ),
