@@ -252,6 +252,8 @@ Content-Type: application/json
 
 任务处理过程中，平台会向已注册的 **delivery destination** 发起 **2 次** 回调（转写完成、打标完成各一次）。
 
+> 如何准备并**注册回调地址**、实现接收端（含验签代码），见 [WEBHOOK.md](./WEBHOOK.md)。
+
 > **衔接**：回调里的 `task_id` 即"发起"返回的 `taskId`，`file_id` 即"上传"返回的 `uuid`；业务据此把回调关联到自己的单据。
 
 - **投递方式**：Standard Webhooks 签名投递。请求头含 `svix-id`、`svix-timestamp`、`svix-signature`，用注册 destination 时返回的 `whsec_…` 验签。

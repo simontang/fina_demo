@@ -9,7 +9,7 @@ service that orchestrates:
 
 ## Endpoints (all require `Authorization: Bearer <GATEWAY_API_KEYS key>`)
 
-> 完整 API 文档（含两个 webhook 事件格式）见 [API.md](./API.md)。
+> 完整 API 文档（含两个 webhook 事件格式）见 [API.md](./API.md)；回调地址注册与接收端实现见 [WEBHOOK.md](./WEBHOOK.md)。
 
 | Method | Path | Purpose |
 |---|---|---|
