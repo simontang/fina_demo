@@ -107,18 +107,19 @@ el-ai-gateway/
 
 - 请求 `application/json`：
   ```json
-  { "uuid": "<上传返回的 uuid>", "title": "可选", "description": "可选", "assistantId": "可选，覆盖 A2A_VOICE_TAGGING_ASSISTANT_ID" }
+  { "uuid": "可选，缺省用 A2A_VOICE_TAGGING_FILE_UUID", "title": "可选", "description": "可选", "assistantId": "可选，覆盖 A2A_VOICE_TAGGING_ASSISTANT_ID" }
   ```
 - 行为：
-  1. `platformFiles.presign(uuid)` → 可访问 URL（失败则终止）；
-  2. MCP `task_manage_task {action:"create", title, description?, status:"in_progress", ownerType:"user", ownerId:<入站 tenantId>, metadata:{uuid,url}}` → `taskId`；
-  3. A2A `message/send` 调 `A2A_VOICE_TAGGING_ASSISTANT_ID` 对应 agent，消息含 URL（默认模板，可被 `A2A_MESSAGE_TEMPLATE` 覆盖），让 agent **转写 + 打标**；
-  4. 返回。
+  1. `uuid = body.uuid ?? A2A_VOICE_TAGGING_FILE_UUID`；两者都没有 → 400；
+  2. `platformFiles.presign(uuid)` → 可访问 URL（失败则终止）；
+  3. MCP `task_manage_task {action:"create", title, description?, status:"in_progress", ownerType:"user", ownerId:<入站 tenantId>, metadata:{uuid,url}}` → `taskId`；
+  4. A2A `message/send` 调 `A2A_VOICE_TAGGING_ASSISTANT_ID` 对应 agent，**消息只带 `taskId`**（默认模板；agent 通过读取任务 metadata 拿到文件 uuid/url），让 agent **转写 + 打标**；
+  5. 返回。
 - 响应 `200`：
   ```json
   { "taskId": "task_...", "status": "in_progress", "file": { "uuid": "...", "url": "https://..." } }
   ```
-- `title` 缺省用 `Voice tagging: {filename 或 uuid}`。
+- `title` 缺省用 `Voice tagging: {uuid}`。
 
 ### 5.3 `GET /api/v1/voice-tagging/:id`
 
@@ -195,7 +196,8 @@ GATEWAY_MAX_UPLOAD_BYTES=52428800
 
 A2A_BASE_URL=http://127.0.0.1:5702
 A2A_API_KEY=a2a_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-A2A_VOICE_TAGGING_ASSISTANT_ID=
+A2A_VOICE_TAGGING_ASSISTANT_ID=voice-tagging-agent
+A2A_VOICE_TAGGING_FILE_UUID=2ccf6fef88b64a16b62fe491a8f7a132
 A2A_MESSAGE_TEMPLATE=
 
 MCP_SERVER_URL=http://127.0.0.1:5702/open/mcp

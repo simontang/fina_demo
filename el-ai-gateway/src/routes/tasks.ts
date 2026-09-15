@@ -25,7 +25,7 @@ export function renderA2AMessage(
       .replaceAll("{url}", vars.url)
       .replaceAll("{taskId}", vars.taskId);
   }
-  return `Voice file tagging task ${vars.taskId}.\nFile: ${vars.uuid}\nDownload URL: ${vars.url}\nTranscribe the audio and tag the resulting text.`;
+  return `Voice tagging task ${vars.taskId}. Read the task to get the associated file, then transcribe the audio and tag the text.`;
 }
 
 export function renderFeedbackMessage(vars: { taskId: string; content: string }): string {
@@ -41,21 +41,22 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
       description?: string;
       assistantId?: string;
     };
-    if (typeof body.uuid !== "string" || body.uuid.trim() === "") {
-      throw new GatewayError(400, "BAD_REQUEST", "uuid is required");
+    const uuid = body.uuid ?? deps.config.a2aVoiceTaggingFileUuid;
+    if (typeof uuid !== "string" || uuid.trim() === "") {
+      throw new GatewayError(400, "BAD_REQUEST", "uuid is required (or set A2A_VOICE_TAGGING_FILE_UUID)");
     }
 
     const { url } = await deps.platformFiles.presign({
       tenantId: principal.tenantId,
-      uuid: body.uuid,
+      uuid,
     });
-    const title = body.title ?? `Voice tagging: ${body.uuid}`;
+    const title = body.title ?? `Voice tagging: ${uuid}`;
     const { taskId } = await deps.taskTools.createTask({
       title,
       description: body.description,
       status: "in_progress",
       ownerId: principal.tenantId,
-      metadata: { uuid: body.uuid, url },
+      metadata: { uuid, url },
     });
 
     let a2a: { taskId?: string; state?: string };
@@ -69,7 +70,7 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
         );
       }
       const text = renderA2AMessage(deps.config.a2aMessageTemplate, {
-        uuid: body.uuid,
+        uuid,
         url,
         taskId,
       });
@@ -82,7 +83,7 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
     return {
       taskId,
       status: "in_progress",
-      file: { uuid: body.uuid, url },
+      file: { uuid, url },
       a2a: { taskId: a2a.taskId, state: a2a.state },
     };
   });
