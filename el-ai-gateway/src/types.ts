@@ -10,8 +10,8 @@ export type Config = {
   maxUploadBytes: number;
   agentRunsUrl: string;
   agentAuthUrl: string;
-  agentLoginEmail: string;
-  agentLoginPassword: string;
+  agentLoginEmail?: string;
+  agentLoginPassword?: string;
   agentTenantId: string;
   agentWorkspaceId: string;
   agentProjectId: string;

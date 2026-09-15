@@ -25,6 +25,7 @@ function tokenExpiryMs(token: string): number {
 
 export function createAgentRunsClient(config: Config, fetchImpl: FetchLike = fetch): AgentRunsClient {
   let cached: { token: string; exp: number } | null = null;
+  const hasCredentials = Boolean(config.agentLoginEmail && config.agentLoginPassword);
 
   async function login(): Promise<string> {
     const res = await fetchWithTimeout(
@@ -47,27 +48,30 @@ export function createAgentRunsClient(config: Config, fetchImpl: FetchLike = fet
     return token;
   }
 
-  async function currentToken(): Promise<string> {
+  async function currentToken(): Promise<string | null> {
+    if (!hasCredentials) return null;
     if (cached && cached.exp - Date.now() > 60_000) return cached.token;
     return login();
   }
 
   async function post(
-    token: string,
+    token: string | null,
     input: { assistantId: string; threadId: string; text: string; taskId: string; timeoutMs?: number },
   ): Promise<Response> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "x-tenant-id": config.agentTenantId,
+      "x-workspace-id": config.agentWorkspaceId,
+      "x-project-id": config.agentProjectId,
+      "x-user-id": config.agentTenantId,
+    };
+    if (token) headers.Authorization = `Bearer ${token}`;
     return fetchWithTimeout(
       fetchImpl,
       config.agentRunsUrl,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "x-tenant-id": config.agentTenantId,
-          "x-workspace-id": config.agentWorkspaceId,
-          "x-project-id": config.agentProjectId,
-        },
+        headers,
         body: JSON.stringify({
           assistant_id: input.assistantId,
           thread_id: input.threadId,
@@ -82,9 +86,8 @@ export function createAgentRunsClient(config: Config, fetchImpl: FetchLike = fet
 
   return {
     async startRun(input) {
-      const token = await currentToken();
-      let res = await post(token, input);
-      if (res.status === 401) {
+      let res = await post(await currentToken(), input);
+      if (res.status === 401 && hasCredentials) {
         cached = null;
         res = await post(await login(), input);
       }

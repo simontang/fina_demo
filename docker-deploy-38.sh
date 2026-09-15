@@ -11,6 +11,7 @@ SERVICE_3="fina-demo-ai-web"
 SERVICE_4="fina-demo-metrics-server"
 SERVICE_5="fina-demo-cdp-service"
 SERVICE_6="fina-demo-document-service"
+SERVICE_7="fina-demo-el-ai-gateway"
 
 GHCR_REGISTRY="${GHCR_REGISTRY:-ghcr.io}"
 GHCR_USERNAME="${GHCR_USERNAME:-409zhangshu}"
@@ -42,6 +43,7 @@ get_compose_service_name() {
         "$SERVICE_4") echo "metrics_server" ;;
         "$SERVICE_5") echo "cdp_service" ;;
         "$SERVICE_6") echo "document-api document-worker" ;;
+        "$SERVICE_7") echo "el-ai-gateway" ;;
         *) echo "" ;;
     esac
 }
@@ -56,6 +58,7 @@ usage() {
     echo "  4 - $SERVICE_4"
     echo "  5 - $SERVICE_5"
     echo "  6 - $SERVICE_6"
+    echo "  7 - $SERVICE_7"
     echo ""
     echo "选项:"
     echo "  --help, -h          显示此帮助信息"
@@ -224,6 +227,7 @@ main() {
             4) services+=("$SERVICE_4"); shift ;;
             5) services+=("$SERVICE_5"); shift ;;
             6) services+=("$SERVICE_6"); shift ;;
+            7) services+=("$SERVICE_7"); shift ;;
             *)
                 log_error "无效参数: $1"
                 usage

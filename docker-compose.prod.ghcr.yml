@@ -191,3 +191,31 @@ services:
     ports:
       - "127.0.0.1:5711:5701"
     restart: unless-stopped
+
+  el-ai-gateway:
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_USERNAME:-409zhangshu}/fina-demo-el-ai-gateway:latest
+    environment:
+      TZ: Asia/Shanghai
+      NODE_ENV: production
+      PORT: "5708"
+      # Inbound API keys ("key:tenant,key2:tenant2"). Empty => all business calls 401.
+      GATEWAY_API_KEYS: ${GATEWAY_API_KEYS:-}
+      AUTH_DISABLED: "false"
+      # platform-service files base (38 has no platform-service; use the online one).
+      PLATFORM_FILES_URL: ${EL_GATEWAY_PLATFORM_FILES_URL:-https://ada.alphafina.cn/api/filesvc}
+      # Agent run dispatch (same compose network as `agent`).
+      AGENT_RUNS_URL: ${EL_GATEWAY_AGENT_RUNS_URL:-http://agent:5702/api/runs}
+      AGENT_AUTH_URL: ${EL_GATEWAY_AGENT_AUTH_URL:-http://agent:5702/api/auth/login}
+      AGENT_LOGIN_EMAIL: ${EL_GATEWAY_AGENT_LOGIN_EMAIL:-}
+      AGENT_LOGIN_PASSWORD: ${EL_GATEWAY_AGENT_LOGIN_PASSWORD:-}
+      AGENT_TENANT_ID: ${EL_GATEWAY_AGENT_TENANT_ID:-estee_lauder}
+      AGENT_WORKSPACE_ID: ${EL_GATEWAY_AGENT_WORKSPACE_ID:-default-workspace}
+      AGENT_PROJECT_ID: ${EL_GATEWAY_AGENT_PROJECT_ID:-default}
+      VOICE_TAGGING_ASSISTANT_ID: ${VOICE_TAGGING_ASSISTANT_ID:-voice-tagging-agent}
+      MCP_SERVER_URL: ${EL_GATEWAY_MCP_SERVER_URL:-http://agent:5702/open/mcp}
+      MCP_API_KEY: ${MCP_API_KEY:-}
+    depends_on:
+      - agent
+    ports:
+      - "127.0.0.1:5708:5708"
+    restart: unless-stopped

@@ -39,6 +39,20 @@ server {
         return 301 $scheme://$host/api/metrics/;
     }
 
+    # el-ai-gateway (voice-tagging business API): public /api/el-ai-gateway/* -> gateway /api/v1/*
+    location /api/el-ai-gateway/ {
+        proxy_pass http://127.0.0.1:5708/api/v1/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        client_max_body_size 50m;
+        proxy_request_buffering off;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 10s;
+    }
+
     location /api {
         proxy_pass http://127.0.0.1:5702;
         proxy_http_version 1.1;

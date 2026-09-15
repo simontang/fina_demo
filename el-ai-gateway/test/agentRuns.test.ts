@@ -53,6 +53,7 @@ describe("agentRuns.startRun", () => {
     expect(runCall[1].headers["x-tenant-id"]).toBe("estee_lauder");
     expect(runCall[1].headers["x-workspace-id"]).toBe("default-workspace");
     expect(runCall[1].headers["x-project-id"]).toBe("default");
+    expect(runCall[1].headers["x-user-id"]).toBe("estee_lauder");
     const body = JSON.parse(runCall[1].body);
     expect(body.assistant_id).toBe("voice");
     expect(body.thread_id).toBe("t1");
@@ -74,6 +75,20 @@ describe("agentRuns.startRun", () => {
 
     const logins = (fetchImpl as any).mock.calls.filter((c: any[]) => String(c[0]).includes("/auth/login"));
     expect(logins).toHaveLength(1);
+  });
+
+  it("posts without Authorization when no login credentials are configured", async () => {
+    const noCreds: Config = { ...config, agentLoginEmail: undefined, agentLoginPassword: undefined };
+    const fetchImpl = vi.fn(async () => json({ success: true, messageId: "m1", queued: true }, 202)) as unknown as typeof fetch;
+    const client = createAgentRunsClient(noCreds, fetchImpl);
+
+    const out = await client.startRun({ assistantId: "voice", threadId: "t1", text: "hi", taskId: "task-1" });
+
+    expect(out).toEqual({ messageId: "m1", queued: true });
+    const calls = (fetchImpl as any).mock.calls;
+    expect(calls.every((c: any[]) => !String(c[0]).includes("/auth/login"))).toBe(true);
+    expect(calls[0][1].headers.Authorization).toBeUndefined();
+    expect(calls[0][1].headers["x-user-id"]).toBe("estee_lauder");
   });
 
   it("re-logs in and retries once on 401", async () => {

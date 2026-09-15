@@ -8,6 +8,7 @@ import type { AgentRunsClient } from "./upstream/agentRuns";
 import type { TaskToolClient } from "./upstream/taskTools";
 import { registerFileRoutes } from "./routes/files";
 import { registerTaskRoutes } from "./routes/tasks";
+import { registerWebhookRoutes } from "./routes/webhooks";
 
 export type ServerDeps = {
   config: Config;
@@ -26,6 +27,7 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
 
   registerFileRoutes(app, deps);
   registerTaskRoutes(app, deps);
+  registerWebhookRoutes(app);
 
   app.setErrorHandler((error, _request, reply) => {
     const { statusCode, body } = toErrorResponse(error);
