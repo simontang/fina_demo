@@ -4,7 +4,7 @@ import type { Authenticator } from "./auth";
 import { toErrorResponse } from "./lib/errors";
 import type { Config } from "./types";
 import type { PlatformFilesClient } from "./upstream/platformFiles";
-import type { A2AClient } from "./upstream/a2a";
+import type { AgentRunsClient } from "./upstream/agentRuns";
 import type { TaskToolClient } from "./upstream/taskTools";
 import { registerFileRoutes } from "./routes/files";
 import { registerTaskRoutes } from "./routes/tasks";
@@ -13,7 +13,7 @@ export type ServerDeps = {
   config: Config;
   authenticator: Authenticator;
   platformFiles: PlatformFilesClient;
-  a2a: A2AClient;
+  agentRuns: AgentRunsClient;
   taskTools: TaskToolClient;
 };
 

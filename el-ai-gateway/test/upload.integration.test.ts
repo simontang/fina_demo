@@ -17,8 +17,13 @@ function config(overrides: Partial<Config> = {}): Config {
     platformFilesUrl: `http://127.0.0.1:${port}/api/v1/files`,
     fileServiceApiKey: "internal",
     maxUploadBytes: 1024 * 1024,
-    a2aBaseUrl: "http://a2a",
-    a2aApiKey: "a2a_x",
+    agentRunsUrl: "http://agent/api/runs",
+    agentAuthUrl: "http://agent/api/auth/login",
+    agentLoginEmail: "svc@example.com",
+    agentLoginPassword: "secret",
+    agentTenantId: "estee_lauder",
+    agentWorkspaceId: "default-workspace",
+    agentProjectId: "default",
     mcpServerUrl: "http://mcp",
     mcpApiKey: "a2a_m",
     upstreamTimeoutMs: 5000,
@@ -73,7 +78,7 @@ describe("upload integration (real fetch streaming)", () => {
       config: cfg,
       authenticator: (h) => (h === "Bearer secret" ? { tenantId: "tenant_a", keyLabel: "k" } : null),
       platformFiles: createPlatformFilesClient(cfg),
-      a2a: { sendTask: vi.fn() } as any,
+      agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn() } as any,
     });
 
@@ -105,7 +110,7 @@ describe("upload integration (real fetch streaming)", () => {
       config: cfg,
       authenticator: () => null,
       platformFiles: createPlatformFilesClient(cfg),
-      a2a: { sendTask: vi.fn() } as any,
+      agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn() } as any,
     });
     const { payload, contentType } = multipartBody("clip.wav", "x");

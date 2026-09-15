@@ -9,10 +9,15 @@ const config: Config = {
   authDevTenant: "tenant_demo",
   platformFilesUrl: "http://files",
   maxUploadBytes: 1024 * 1024,
-  a2aBaseUrl: "http://a2a",
-  a2aApiKey: "a2a_x",
-  a2aVoiceTaggingAssistantId: "voice-agent",
-  a2aVoiceTaggingFileUuid: "2ccf6fef88b64a16b62fe491a8f7a132",
+  agentRunsUrl: "http://agent/api/runs",
+  agentAuthUrl: "http://agent/api/auth/login",
+  agentLoginEmail: "svc@example.com",
+  agentLoginPassword: "secret",
+  agentTenantId: "estee_lauder",
+  agentWorkspaceId: "default-workspace",
+  agentProjectId: "default",
+  voiceTaggingAssistantId: "voice-agent",
+  voiceTaggingFileUuid: "2ccf6fef88b64a16b62fe491a8f7a132",
   mcpServerUrl: "http://mcp",
   mcpApiKey: "a2a_m",
   upstreamTimeoutMs: 1000,
@@ -29,7 +34,7 @@ function deps(overrides: Record<string, unknown> = {}) {
       upload: vi.fn(),
       presign: vi.fn(async () => ({ url: "https://signed", kind: "presigned", expiresInSeconds: 600 })),
     },
-    a2a: { sendTask: vi.fn(async () => ({ taskId: "a2a-1", state: "submitted", raw: {} })) },
+    agentRuns: { startRun: vi.fn(async () => ({ messageId: "msg-1", queued: true })) },
     taskTools: {
       createTask: vi.fn(async () => ({ taskId: "task-1", raw: {} })),
       getTask: vi.fn(async () => ({
@@ -66,9 +71,9 @@ describe("POST /api/v1/voice-tagging", () => {
       ownerId: "tenant_a",
       metadata: { uuid: "u1", url: "https://signed" },
     });
-    const a2aArg = d.a2a.sendTask.mock.calls[0][0];
-    expect(a2aArg.assistantId).toBe("voice-agent");
-    expect(a2aArg.text).toContain("task-1");
+    const runArg = d.agentRuns.startRun.mock.calls[0][0];
+    expect(runArg.assistantId).toBe("voice-agent");
+    expect(runArg.text).toContain("task-1");
   });
 
   it("falls back to the configured file uuid and sends only the task id", async () => {
@@ -85,14 +90,14 @@ describe("POST /api/v1/voice-tagging", () => {
       tenantId: "tenant_a",
       uuid: "2ccf6fef88b64a16b62fe491a8f7a132",
     });
-    const a2aArg = d.a2a.sendTask.mock.calls[0][0];
-    expect(a2aArg.text).toContain("task-1");
-    expect(a2aArg.text).not.toContain("https://signed");
-    expect(a2aArg.text).not.toContain("2ccf6fef88b64a16b62fe491a8f7a132");
+    const runArg = d.agentRuns.startRun.mock.calls[0][0];
+    expect(runArg.text).toContain("task-1");
+    expect(runArg.text).not.toContain("https://signed");
+    expect(runArg.text).not.toContain("2ccf6fef88b64a16b62fe491a8f7a132");
   });
 
   it("returns 400 when uuid is missing and no default is configured", async () => {
-    const app = buildServer(deps({ config: { ...config, a2aVoiceTaggingFileUuid: undefined } }));
+    const app = buildServer(deps({ config: { ...config, voiceTaggingFileUuid: undefined } }));
     const res = await app.inject({
       method: "POST",
       url: "/api/v1/voice-tagging",
@@ -104,7 +109,7 @@ describe("POST /api/v1/voice-tagging", () => {
 
   it("does not fail the request when the A2A trigger fails (fire-and-forget)", async () => {
     const d = deps();
-    d.a2a.sendTask = vi.fn(async () => {
+    d.agentRuns.startRun = vi.fn(async () => {
       throw new Error("a2a down");
     });
     const app = buildServer(d);
@@ -116,7 +121,7 @@ describe("POST /api/v1/voice-tagging", () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json().taskId).toBe("task-1");
-    expect(res.json().a2a).toEqual({ dispatched: true });
+    expect(res.json().agent).toEqual({ dispatched: true });
   });
 });
 
@@ -149,10 +154,10 @@ describe("POST /api/v1/voice-tagging/:id/feedback", () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toMatchObject({ taskId: "task-1", forwarded: true });
-    const a2aArg = d.a2a.sendTask.mock.calls[0][0];
-    expect(a2aArg.assistantId).toBe("voice-agent");
-    expect(a2aArg.text).toContain("task-1");
-    expect(a2aArg.text).toContain("tag corrected");
+    const runArg = d.agentRuns.startRun.mock.calls[0][0];
+    expect(runArg.assistantId).toBe("voice-agent");
+    expect(runArg.text).toContain("task-1");
+    expect(runArg.text).toContain("tag corrected");
   });
 
   it("returns 400 when content is empty", async () => {

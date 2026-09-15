@@ -4,7 +4,7 @@ Estée Lauder AI project API gateway for voice-file tagging. Standalone Fastify 
 service that orchestrates:
 
 - `platform-service` (5707) files — upload + presigned download URL
-- `agent` (5702) A2A — triggers the voice agent (transcription + tagging)
+- `agent` (5702) `POST /api/runs` — dispatches a background run to the voice agent (transcription + tagging)
 - `agent` (5702) `/open/mcp` — task/activity tools (`task_manage_task`)
 
 ## Endpoints (all require `Authorization: Bearer <GATEWAY_API_KEYS key>`)
@@ -12,14 +12,14 @@ service that orchestrates:
 | Method | Path | Purpose |
 |---|---|---|
 | POST | `/api/v1/files?path=&fileName=` | multipart `file`; returns platform upload receipt (`uuid`, ...) |
-| POST | `/api/v1/voice-tagging` | `{uuid?,title?,description?,assistantId?}`; presigns, creates a task, triggers A2A with only the task id (`uuid` defaults to `A2A_VOICE_TAGGING_FILE_UUID`) |
+| POST | `/api/v1/voice-tagging` | `{uuid?,title?,description?,assistantId?}`; presigns, creates a task, dispatches an agent run (background) with only the task id (`uuid` defaults to `VOICE_TAGGING_FILE_UUID`) |
 | GET | `/api/v1/voice-tagging/:id` | task status + recent activities |
-| POST | `/api/v1/voice-tagging/:id/feedback` | `{content,summary?}`; relays feedback to the agent over A2A (agent appends activity) |
+| POST | `/api/v1/voice-tagging/:id/feedback` | `{content,summary?}`; relays feedback to the agent via a background run (agent appends activity) |
 
 ## Run
 
 ```bash
-cp .env.example .env   # fill A2A_API_KEY / MCP_API_KEY / A2A_VOICE_TAGGING_ASSISTANT_ID
+cp .env.example .env   # fill AGENT_LOGIN_EMAIL / AGENT_LOGIN_PASSWORD / MCP_API_KEY
 pnpm install
 pnpm dev
 ```
@@ -48,8 +48,8 @@ pnpm typecheck
 
 - The two webhook callbacks are fired by the agent platform, not this gateway.
 - Task/activity state lives in the agent platform (`task_manage_task`); the gateway is stateless.
-- The gateway only creates tasks and reads status. `add_activity` / `set_status` are performed by the agent
-  (the Open MCP path has no runtime identity), so feedback is relayed to the agent over A2A.
-- The A2A trigger is **fire-and-forget**: the message carries only the `taskId`; the gateway returns
-  immediately and does not wait for the A2A task outcome (errors are logged). Task status is read from the
-  task created via MCP.
+- The gateway only creates tasks and reads status. `add_activity` / `set_status` are performed by the agent,
+  so feedback is relayed to the agent as a run.
+- The agent trigger is **fire-and-forget**: the gateway logs in (session token, cached), POSTs a background
+  run to `/api/runs` carrying only the `taskId`, and returns immediately (errors are logged). Task status is
+  read from the task created via MCP.

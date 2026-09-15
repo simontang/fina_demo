@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { loadConfig, parseApiKeys } from "../src/config";
 
 const base = {
-  A2A_API_KEY: "a2a_test",
+  AGENT_LOGIN_EMAIL: "svc@example.com",
+  AGENT_LOGIN_PASSWORD: "secret",
   MCP_API_KEY: "a2a_mcp",
 };
 
@@ -19,17 +20,26 @@ describe("parseApiKeys", () => {
 });
 
 describe("loadConfig", () => {
-  it("applies defaults and requires outbound keys", () => {
+  it("applies defaults and requires agent login + MCP key", () => {
     const config = loadConfig(base as NodeJS.ProcessEnv);
     expect(config.port).toBe(5708);
     expect(config.authDisabled).toBe(false);
     expect(config.maxUploadBytes).toBe(52428800);
+    expect(config.agentRunsUrl).toBe("http://127.0.0.1:5702/api/runs");
+    expect(config.agentTenantId).toBe("estee_lauder");
     expect(config.mcpServerUrl).toBe("http://127.0.0.1:5702/open/mcp");
-    expect(config.a2aApiKey).toBe("a2a_test");
   });
 
-  it("fails when A2A_API_KEY is missing", () => {
-    expect(() => loadConfig({ MCP_API_KEY: "x" } as NodeJS.ProcessEnv)).toThrow(/A2A_API_KEY/);
+  it("fails when AGENT_LOGIN_EMAIL is missing", () => {
+    expect(() =>
+      loadConfig({ AGENT_LOGIN_PASSWORD: "x", MCP_API_KEY: "y" } as NodeJS.ProcessEnv),
+    ).toThrow(/AGENT_LOGIN_EMAIL/);
+  });
+
+  it("fails when MCP_API_KEY is missing", () => {
+    expect(() =>
+      loadConfig({ AGENT_LOGIN_EMAIL: "a@b.c", AGENT_LOGIN_PASSWORD: "x" } as NodeJS.ProcessEnv),
+    ).toThrow(/MCP_API_KEY/);
   });
 
   it("parses AUTH_DISABLED=true", () => {

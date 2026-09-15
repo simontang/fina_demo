@@ -1,21 +1,22 @@
+import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import type { Authenticator } from "../auth";
 import { requirePrincipal } from "../auth";
 import { GatewayError } from "../lib/errors";
 import type { Config } from "../types";
 import type { PlatformFilesClient } from "../upstream/platformFiles";
-import type { A2AClient } from "../upstream/a2a";
+import type { AgentRunsClient } from "../upstream/agentRuns";
 import type { TaskToolClient } from "../upstream/taskTools";
 
 export type TaskRouteDeps = {
   config: Config;
   authenticator: Authenticator;
   platformFiles: PlatformFilesClient;
-  a2a: A2AClient;
+  agentRuns: AgentRunsClient;
   taskTools: TaskToolClient;
 };
 
-export function renderA2AMessage(
+export function renderRunMessage(
   template: string | undefined,
   vars: { uuid: string; url: string; taskId: string },
 ): string {
@@ -33,6 +34,20 @@ export function renderFeedbackMessage(vars: { taskId: string; content: string })
 }
 
 export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): void {
+  function dispatchRun(assistantId: string, text: string, taskId: string): void {
+    const timeoutMs = deps.config.agentTriggerTimeoutMs ?? deps.config.upstreamTimeoutMs;
+    const threadId = randomUUID();
+    // Fire-and-forget: the run message carries the task id; the agent writes
+    // status/activity back to the task. We do not wait for the run outcome.
+    void deps.agentRuns
+      .startRun({ assistantId, threadId, text, taskId, timeoutMs })
+      .catch((err: unknown) =>
+        console.error(
+          `[voice-tagging] agent run dispatch failed for task ${taskId}: ${(err as Error).message}`,
+        ),
+      );
+  }
+
   app.post("/api/v1/voice-tagging", async (request) => {
     const principal = requirePrincipal(deps.authenticator, request.headers.authorization);
     const body = (request.body ?? {}) as {
@@ -41,15 +56,12 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
       description?: string;
       assistantId?: string;
     };
-    const uuid = body.uuid ?? deps.config.a2aVoiceTaggingFileUuid;
+    const uuid = body.uuid ?? deps.config.voiceTaggingFileUuid;
     if (typeof uuid !== "string" || uuid.trim() === "") {
-      throw new GatewayError(400, "BAD_REQUEST", "uuid is required (or set A2A_VOICE_TAGGING_FILE_UUID)");
+      throw new GatewayError(400, "BAD_REQUEST", "uuid is required (or set VOICE_TAGGING_FILE_UUID)");
     }
 
-    const { url } = await deps.platformFiles.presign({
-      tenantId: principal.tenantId,
-      uuid,
-    });
+    const { url } = await deps.platformFiles.presign({ tenantId: principal.tenantId, uuid });
     const title = body.title ?? `Voice tagging: ${uuid}`;
     const { taskId } = await deps.taskTools.createTask({
       title,
@@ -59,33 +71,21 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
       metadata: { uuid, url },
     });
 
-    const assistantId = body.assistantId ?? deps.config.a2aVoiceTaggingAssistantId;
+    const assistantId = body.assistantId ?? deps.config.voiceTaggingAssistantId;
     if (!assistantId) {
       throw new GatewayError(
         400,
         "BAD_REQUEST",
-        "assistantId is required (or set A2A_VOICE_TAGGING_ASSISTANT_ID)",
+        "assistantId is required (or set VOICE_TAGGING_ASSISTANT_ID)",
       );
     }
-    const text = renderA2AMessage(deps.config.a2aMessageTemplate, { uuid, url, taskId });
-    const timeoutMs = deps.config.a2aTriggerTimeoutMs ?? deps.config.upstreamTimeoutMs;
-
-    // Fire-and-forget: the A2A message carries the task id; the agent writes
-    // status/activity back to the task. We do not wait for the A2A task outcome.
-    void deps.a2a
-      .sendTask({ assistantId, text, timeoutMs })
-      .catch((err: unknown) =>
-        console.error(
-          `[voice-tagging] A2A trigger failed for task ${taskId}: ${(err as Error).message}`,
-        ),
-      );
-
-    return {
+    dispatchRun(
+      assistantId,
+      renderRunMessage(deps.config.voiceTaggingMessageTemplate, { uuid, url, taskId }),
       taskId,
-      status: "in_progress",
-      file: { uuid, url },
-      a2a: { dispatched: true },
-    };
+    );
+
+    return { taskId, status: "in_progress", file: { uuid, url }, agent: { dispatched: true } };
   });
 
   app.get("/api/v1/voice-tagging/:id", async (request) => {
@@ -108,25 +108,18 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
     if (typeof body.content !== "string" || body.content.trim() === "") {
       throw new GatewayError(400, "BAD_REQUEST", "content is required");
     }
-    const assistantId = body.assistantId ?? deps.config.a2aVoiceTaggingAssistantId;
+    const assistantId = body.assistantId ?? deps.config.voiceTaggingAssistantId;
     if (!assistantId) {
       throw new GatewayError(
         400,
         "BAD_REQUEST",
-        "assistantId is required (or set A2A_VOICE_TAGGING_ASSISTANT_ID)",
+        "assistantId is required (or set VOICE_TAGGING_ASSISTANT_ID)",
       );
     }
     const text = body.summary
       ? `${renderFeedbackMessage({ taskId: id, content: body.content })}\n\nSummary: ${body.summary}`
       : renderFeedbackMessage({ taskId: id, content: body.content });
-    const timeoutMs = deps.config.a2aTriggerTimeoutMs ?? deps.config.upstreamTimeoutMs;
-    void deps.a2a
-      .sendTask({ assistantId, text, timeoutMs })
-      .catch((err: unknown) =>
-        console.error(
-          `[voice-tagging] A2A feedback relay failed for task ${id}: ${(err as Error).message}`,
-        ),
-      );
-    return { taskId: id, forwarded: true, a2a: { dispatched: true } };
+    dispatchRun(assistantId, text, id);
+    return { taskId: id, forwarded: true, agent: { dispatched: true } };
   });
 }

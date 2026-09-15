@@ -2,7 +2,7 @@ import "dotenv/config";
 import { loadConfig } from "./config";
 import { createAuthenticator } from "./auth";
 import { createPlatformFilesClient } from "./upstream/platformFiles";
-import { createA2AClient } from "./upstream/a2a";
+import { createAgentRunsClient } from "./upstream/agentRuns";
 import { createMcpClient } from "./upstream/mcp";
 import { createTaskToolClient } from "./upstream/taskTools";
 import { buildServer } from "./server";
@@ -14,7 +14,7 @@ async function main(): Promise<void> {
     config,
     authenticator: createAuthenticator(config),
     platformFiles: createPlatformFilesClient(config),
-    a2a: createA2AClient(config),
+    agentRuns: createAgentRunsClient(config),
     taskTools: createTaskToolClient(mcp),
   });
   await app.listen({ port: config.port, host: "0.0.0.0" });

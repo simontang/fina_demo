@@ -9,8 +9,13 @@ const config: Config = {
   authDevTenant: "tenant_demo",
   platformFilesUrl: "http://files",
   maxUploadBytes: 1024 * 1024,
-  a2aBaseUrl: "http://a2a",
-  a2aApiKey: "a2a_x",
+  agentRunsUrl: "http://agent/api/runs",
+  agentAuthUrl: "http://agent/api/auth/login",
+  agentLoginEmail: "svc@example.com",
+  agentLoginPassword: "secret",
+  agentTenantId: "estee_lauder",
+  agentWorkspaceId: "default-workspace",
+  agentProjectId: "default",
   mcpServerUrl: "http://mcp",
   mcpApiKey: "a2a_m",
   upstreamTimeoutMs: 1000,
@@ -36,7 +41,7 @@ describe("POST /api/v1/files", () => {
       config,
       authenticator: (h) => (h === "Bearer secret" ? { tenantId: "tenant_a", keyLabel: "k" } : null),
       platformFiles: { upload, presign: vi.fn() } as any,
-      a2a: { sendTask: vi.fn() } as any,
+      agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
     });
 
@@ -63,7 +68,7 @@ describe("POST /api/v1/files", () => {
       config,
       authenticator: () => null,
       platformFiles: { upload: vi.fn(), presign: vi.fn() } as any,
-      a2a: { sendTask: vi.fn() } as any,
+      agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
     });
     const { payload, contentType } = multipartBody("a.wav", "RIFF");
