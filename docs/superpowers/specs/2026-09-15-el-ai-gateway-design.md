@@ -185,9 +185,9 @@ el-ai-gateway/
 
 ```
 PORT=5708
-GATEWAY_API_KEYS=dev_key:tenant_demo
+GATEWAY_API_KEYS=dev_key:estee_lauder
 AUTH_DISABLED=false
-AUTH_DEV_TENANT=tenant_demo
+AUTH_DEV_TENANT=estee_lauder
 
 PLATFORM_FILES_URL=http://127.0.0.1:5707/api/v1/files
 FILE_SERVICE_API_KEY=

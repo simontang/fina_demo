@@ -5,7 +5,7 @@ const EnvSchema = z.object({
   PORT: z.coerce.number().int().positive().default(5708),
   GATEWAY_API_KEYS: z.string().default(""),
   AUTH_DISABLED: z.enum(["true", "false"]).default("false"),
-  AUTH_DEV_TENANT: z.string().default("tenant_demo"),
+  AUTH_DEV_TENANT: z.string().default("estee_lauder"),
   PLATFORM_FILES_URL: z.string().url().default("http://127.0.0.1:5707/api/v1/files"),
   FILE_SERVICE_API_KEY: z.string().optional(),
   GATEWAY_MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(52428800),
