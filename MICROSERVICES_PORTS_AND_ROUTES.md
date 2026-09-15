@@ -317,17 +317,17 @@ self-hosted Svix (MIT) behind a tenant-model facade.
 ### webhooks 模块（Svix facade）
 
 Our tenant model on the outside, Svix on the inside (tenant=Svix application,
-topic=event type auto-registered, destination=endpoint with auto-generated
+eventType=Svix EventType auto-registered, destination=endpoint with auto-generated
 `whsec_` secret). Deliveries use Standard Webhooks headers, at-least-once with
 Svix's retry schedule and default SSRF protection.
 
-- `POST /api/v1/webhooks/destinations` {url, topics[], description?} →
-  {endpointId, secret, topics}
+- `POST /api/v1/webhooks/destinations` {url, filterTypes[], channels?, description?} →
+  {endpointId, secret, filterTypes, channels}
 - `GET/DELETE /api/v1/webhooks/destinations[/{endpointId}]`
-- `POST /api/v1/webhooks/publish` {topic, data} → {messageId, topic}
+- `POST /api/v1/webhooks/publish` {eventType, payload, channels?} → {messageId, eventType, channels}
 - `GET /api/v1/webhooks/messages?limit=`,
   `GET /api/v1/webhooks/messages/{messageId}/attempts`
-- Topics: `import.completed`, `gate.passed`, `decision.captured`,
+- EventTypes: `import.completed`, `gate.passed`, `decision.captured`,
   `job.completed`, `run.published`
 - Scripts (`platform-service/scripts/`): `provision-destination.sh`,
   `publish.py`, `mock-receiver.py` (signature-verifying receiver, accepts both

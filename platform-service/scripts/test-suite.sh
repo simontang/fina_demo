@@ -265,7 +265,7 @@ echo "=== C. webhooks 模块 ==="
 python3 "$SUITE_DIR/mock-receiver.py" --port 5909 --out "$TMP/rcv1.log" > /dev/null 2>&1 &
 RCV_PID=$!; sleep 1
 B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TC" -H "Content-Type: application/json" \
-  -d "{\"url\":\"http://host.docker.internal:5909/catch\",\"topics\":[\"job.completed\"],\"description\":\"suite\"}" \
+  -d "{\"url\":\"http://host.docker.internal:5909/catch\",\"filterTypes\":[\"job.completed\"],\"description\":\"suite\"}" \
   "$BASE/api/v1/webhooks/destinations")
 SECRET=$(jget "$B" "d['secret']"); EP=$(jget "$B" "d['endpointId']")
 [[ "$SECRET" == whsec_* && -n "$EP" ]] && ok W-01 "destination created with whsec" || bad W-01 "got: $B"
@@ -277,7 +277,7 @@ kill -9 "$RCV_PID" 2>/dev/null; wait "$RCV_PID" 2>/dev/null
 RECEIVER_WEBHOOK_SECRET="$SECRET" python3 "$SUITE_DIR/mock-receiver.py" --port 5909 --out "$TMP/rcv1.log" > /dev/null 2>&1 &
 RCV_PID=$!; sleep 1
 B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TC" -H "Content-Type: application/json" \
-  -d '{"topic":"job.completed","data":{"jobId":"w04"}}' "$BASE/api/v1/webhooks/publish")
+  -d '{"eventType":"job.completed","payload":{"jobId":"w04"}}' "$BASE/api/v1/webhooks/publish")
 M1=$(jget "$B" "d['messageId']")
 [[ -n "$M1" ]] && ok W-04 "publish + lazy event type" || bad W-04 "got: $B"
 FOUND=0; T0=$(date +%s)
@@ -298,10 +298,10 @@ WRONG="whsec_$(cat /tmp/wrong.b64)"
 RECEIVER_WEBHOOK_SECRET="$WRONG" python3 "$SUITE_DIR/mock-receiver.py" --port 5910 --out "$TMP/rcv2.log" > /dev/null 2>&1 &
 RCV2_PID=$!; sleep 1
 curl -s -m 60 -X POST -H "X-Tenant-Id: $TC" -H "Content-Type: application/json" \
-  -d "{\"url\":\"http://host.docker.internal:5910/catch\",\"topics\":[\"gate.passed\"],\"description\":\"tamper-test\"}" \
+  -d "{\"url\":\"http://host.docker.internal:5910/catch\",\"filterTypes\":[\"gate.passed\"],\"description\":\"tamper-test\"}" \
   "$BASE/api/v1/webhooks/destinations" >/dev/null
 curl -s -m 60 -X POST -H "X-Tenant-Id: $TC" -H "Content-Type: application/json" \
-  -d '{"topic":"gate.passed","data":{"marker":"w09"}}' "$BASE/api/v1/webhooks/publish" >/dev/null
+  -d '{"eventType":"gate.passed","payload":{"marker":"w09"}}' "$BASE/api/v1/webhooks/publish" >/dev/null
 T9=0
 for _ in $(seq 1 30); do grep -q "w09" "$TMP/rcv2.log" 2>/dev/null && { T9=1; break; }; sleep 1; done
 if [[ "$T9" == "1" ]]; then
@@ -311,11 +311,11 @@ else
   bad W-09 "tamper delivery not received"
 fi
 
-# W-15 brand-new topic exercises lazy event-type registration
+# W-15 brand-new eventType exercises lazy event-type registration
 NEWTOPIC="topic-$TS.unused"
 B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TC" -H "Content-Type: application/json" \
-  -d "{\"topic\":\"$NEWTOPIC\",\"data\":{\"probe\":1}}" "$BASE/api/v1/webhooks/publish")
-[[ -n "$(jget "$B" "d['messageId']" 2>/dev/null)" ]] && ok W-15 "publish to a brand-new topic" || bad W-15 "got: $B"
+  -d "{\"eventType\":\"$NEWTOPIC\",\"payload\":{\"probe\":1}}" "$BASE/api/v1/webhooks/publish")
+[[ -n "$(jget "$B" "d['messageId']" 2>/dev/null)" ]] && ok W-15 "publish to a brand-new eventType" || bad W-15 "got: $B"
 
 # W-06 / W-08
 B=$(curl -s -m 60 -H "X-Tenant-Id: $TC" "$BASE/api/v1/webhooks/messages?limit=20")
@@ -333,7 +333,7 @@ V=$(echo "$B" | python3 -c "import json,sys;print(json.load(sys.stdin)[0]['statu
 C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -X DELETE -H "X-Tenant-Id: $TC" "$BASE/api/v1/webhooks/destinations/ep_nonexistent000000")
 [[ "$C" == "404" ]] && ok W-10 "unknown endpointId → 404" || bad W-10 "got $C"
 C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -X POST -H "X-Tenant-Id: $TC" -H "Content-Type: application/json" \
-  -d '{"topics":["job.completed"]}' "$BASE/api/v1/webhooks/destinations")
+  -d '{"filterTypes":["job.completed"]}' "$BASE/api/v1/webhooks/destinations")
 [[ "$C" == "400" ]] && ok W-11 "destination without url → 400" || bad W-11 "got $C"
 C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: $TC" "$BASE/api/v1/webhooks/messages/msg_nonexistent/attempts")
 [[ "$C" == "404" ]] && ok W-12 "unknown messageId → 404" || bad W-12 "got $C"
@@ -366,11 +366,11 @@ echo "=== E. 韧性 ==="
 docker stop svix-server >/dev/null
 sleep 1
 C=$(curl -s -m 60 -o /dev/null -w "%{http_code}" -X POST -H "X-Tenant-Id: $TC" -H "Content-Type: application/json" \
-  -d '{"topic":"job.completed","data":{"jobId":"s01"}}' "$BASE/api/v1/webhooks/publish")
+  -d '{"eventType":"job.completed","payload":{"jobId":"s01"}}' "$BASE/api/v1/webhooks/publish")
 [[ "$C" -ge 500 ]] && ok S-01a "svix down surfaces 5xx ($C)" || bad S-01a "got $C"
 docker start svix-server >/dev/null && sleep 6
 B=$(curl -s -m 60 -X POST -H "X-Tenant-Id: $TC" -H "Content-Type: application/json" \
-  -d '{"topic":"job.completed","data":{"jobId":"s01-recovered"}}' "$BASE/api/v1/webhooks/publish")
+  -d '{"eventType":"job.completed","payload":{"jobId":"s01-recovered"}}' "$BASE/api/v1/webhooks/publish")
 jget "$B" "d['messageId']" >/dev/null 2>&1 && ok S-01b "recovers after svix restart" || bad S-01b "got: $B"
 
 # S-02 restart persistence

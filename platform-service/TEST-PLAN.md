@@ -65,11 +65,11 @@
 | 编号 | 用例 | 预期 |
 |---|---|---|
 | W-01 | 创建 destination | endpointId + `whsec_` secret 返回 |
-| W-02 | destinations 列表 | 含 url/topics/disabled |
+| W-02 | destinations 列表 | 含 url/filterTypes/channels/disabled |
 | W-03 | 删除 destination | 200，列表不再含 |
-| W-04 | publish（首次 topic） | messageId 返回；EventType 懒注册成功 |
+| W-04 | publish（首次 eventType） | messageId 返回；EventType 懒注册成功 |
 | W-05 | 端到端投递 | 30s 内到达收端；`svix-*` 签名 HMAC 验证通过 |
-| W-06 | messages 列表 | 可查、含 topic 与时间 |
+| W-06 | messages 列表 | 可查、含 eventType 与时间 |
 | W-07 | attempts 查询 | 按 endpoint 返回尝试结构（状态/HTTP 码） |
 | W-08 | 重复 publish | 每次独立 messageId，messages 数量递增 |
 | W-09 | 篡改签名（收端密钥不匹配） | 验签判 invalid（防伪造投递） |

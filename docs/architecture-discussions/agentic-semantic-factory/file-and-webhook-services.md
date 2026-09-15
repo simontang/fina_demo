@@ -68,11 +68,11 @@ Spring Boot 3.2.3 / Java 17 / Gradle KTS / mybatis-plus / Lombok，完全照 met
 
 ### 事件契约
 
-| topic | 发布方 | 载荷要点 |
+| eventType | 发布方 | 载荷要点 |
 |---|---|---|
 | `import.completed` | M1 import 动词/loader | file receipt、snapshot 引用 |
 | `gate.passed` | PM agent 状态机 | gate 名、决策 id 列表 |
-| `decision.captured` | 确认 app 回传 | decision_id、topic、status |
+| `decision.captured` | 确认 app 回传 | decision_id、eventType、status |
 | `job.completed` | factory-runner | job id、run_results 摘要 |
 | `run.published` | Publisher | meta diff 摘要、版本 |
 
@@ -143,14 +143,14 @@ svix-server：SVIX_DB_DSN=document-postgres/svix，SVIX_REDIS_DSN=document-redis
 **三条架构守则**：
 
 1. **Svix 本体独立容器**——Java 里只有 HTTP 适配层（`SvixServerClient` 一个类知道 Svix 存在），换产品=重写该类+compose 块；
-2. **facade 是唯一调用面**——业务方只见 `X-Tenant-Id` + 工厂 topic + facade API；租户=Svix Application（uid=tenantId）、topic=EventType（发布时懒注册）、destination=Endpoint（svix 生成 whsec）；
+2. **facade 是唯一调用面**——业务方只见 `X-Tenant-Id` + Svix-style `eventType/filterTypes/channels` + facade API；租户=Svix Application（uid=tenantId）、eventType=Svix EventType（发布时懒注册）、destination=Endpoint（svix 生成 whsec）；
 3. **模块边界即拆分线**——`com.fina.platform.files/...` 逻辑分离（现包结构：entity/mapper/service 与 webhooks/ 平行），将来要拆沿包切。
 
 **facade API**：
 
-- `POST /api/v1/webhooks/destinations` {url, topics[], description?} → {endpointId, secret(whsec), topics}
+- `POST /api/v1/webhooks/destinations` {url, filterTypes[], channels?, description?} → {endpointId, secret(whsec), filterTypes, channels}
 - `GET /api/v1/webhooks/destinations` / `DELETE /api/v1/webhooks/destinations/{endpointId}`
-- `POST /api/v1/webhooks/publish` {topic, data} → {messageId, topic}
+- `POST /api/v1/webhooks/publish` {eventType, payload, channels?} → {messageId, eventType, channels}
 - `GET /api/v1/webhooks/messages?limit=` / `GET /api/v1/webhooks/messages/{messageId}/attempts`
 
 **Portal**：`http://localhost:5707/portal` —— 自包含静态单页（原生 JS，零构建链），输入租户 ID 即可管理目标（增删）、浏览事件、逐消息查看投递尝试与 HTTP 状态。Svix 官方 Portal 是 `@svix/react` 托管生态组件，对自托管兼容未验证且需要 React 工具链；自建轻量版与"Java 可复用组件"定位一致，`@svix/react` 留作 ai_web（React）集成时的升级路径。门户是租户无关的静态壳，其 API 调用按请求携带租户头；生产外露时应在 nginx 加 `/portal/` 路由并叠加平台鉴权。

@@ -16,7 +16,7 @@
 | 顺序 | **不保证**；需要顺序时按 `webhook-timestamp` 或业务键自行处理 |
 | 超时 | 接收方应**快速返回**（建议秒级），重活在返回后异步做 |
 
-每个事件会对**每个订阅该 topic 的目标**各投递一次（fan-out），单次投递的结果独立记录。
+每个事件会对**每个匹配该 eventType/filterTypes 的目标**各投递一次（fan-out），单次投递的结果独立记录。
 
 ## 2. 注册 endpoint 需要提供什么
 
@@ -29,7 +29,8 @@ Content-Type: application/json
 
 {
   "url": "https://your-service.example.com/hooks/platform",
-  "topics": ["job.completed", "gate.passed"],
+  "filterTypes": ["job.completed", "gate.passed"],
+  "channels": ["client_a"],
   "description": "生产环境回调"
 }
 ```
@@ -37,10 +38,11 @@ Content-Type: application/json
 | 字段 | 必填 | 说明 |
 |---|---|---|
 | `url` | ✅ | 接收回调的 **HTTPS** 地址（生产环境勿用内网地址，见 §8） |
-| `topics` | ✅ | 订阅的事件类型；一个目标可订阅多个 |
+| `filterTypes` | ✅ | Svix endpoint event type 过滤；一个目标可订阅多个 |
+| `channels` | ❌ | Svix channel 过滤；不填表示不按 channel 过滤 |
 | `description` | ❌ | 备注，便于运维识别 |
 
-可用 topic：`import.completed`、`gate.passed`、`decision.captured`、`job.completed`、`run.published`（新 topic 首次发布时会自动注册）。
+可用 eventType：`import.completed`、`gate.passed`、`decision.captured`、`job.completed`、`run.published`（新 eventType 首次发布时会自动注册）。
 
 响应（**`secret` 只在此时返回一次，请立即安全保存**）：
 
@@ -48,7 +50,8 @@ Content-Type: application/json
 {
   "endpointId": "ep_3JJ17t0nwoyTXRXjA9ItTucQdae",
   "url": "https://your-service.example.com/hooks/platform",
-  "topics": ["job.completed", "gate.passed"],
+  "filterTypes": ["job.completed", "gate.passed"],
+  "channels": ["client_a"],
   "secret": "whsec_f4MW7wAjPx…"
 }
 ```
@@ -179,7 +182,7 @@ python3 platform-service/scripts/mock-receiver.py --port 5909 --out /tmp/recv.lo
 bash platform-service/scripts/provision-destination.sh <tenant> http://host.docker.internal:5909/catch "job.completed"
 
 # 发布事件
-python3 platform-service/scripts/publish.py --tenant <tenant> --topic job.completed --data '{"jobId":"1"}'
+python3 platform-service/scripts/publish.py --tenant <tenant> --event-type job.completed --payload '{"jobId":"1"}'
 
 # 全链路冒烟（建目标 → 验签收端 → 发布 → 验签）
 bash platform-service/scripts/webhook-smoke.sh

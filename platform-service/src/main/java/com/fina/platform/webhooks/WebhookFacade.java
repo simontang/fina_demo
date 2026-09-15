@@ -4,13 +4,14 @@ import com.fina.platform.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Tenant-aware facade over Svix. Tenant always comes from
  * TenantContextHolder (transparent multi-tenancy); callers address
- * everything in OUR vocabulary — topics and destinations — never in
+ * everything in Svix-compatible event and destination vocabulary — never in
  * Svix's application/endpoint terms.
  */
 @Service
@@ -27,8 +28,12 @@ public class WebhookFacade {
         return svix.ensureApplication(tenant);
     }
 
-    public Map<String, Object> createDestination(String url, List<String> topics, String description) {
-        return svix.createEndpoint(appId(), url, topics, description);
+    public Map<String, Object> createDestination(
+            String url,
+            List<String> filterTypes,
+            List<String> channels,
+            String description) {
+        return svix.createEndpoint(appId(), url, filterTypes, channels, description);
     }
 
     public List<Map<String, Object>> listDestinations() {
@@ -39,9 +44,14 @@ public class WebhookFacade {
         svix.deleteEndpoint(appId(), endpointId);
     }
 
-    public Map<String, Object> publish(String topic, Map<String, Object> data) {
-        String messageId = svix.publish(appId(), topic, data);
-        return Map.of("messageId", messageId, "topic", topic);
+    public Map<String, Object> publish(String eventType, Map<String, Object> payload, List<String> channels) {
+        List<String> normalizedChannels = WebhookChannels.normalize(channels);
+        String messageId = svix.publish(appId(), eventType, payload, normalizedChannels);
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("messageId", messageId);
+        response.put("eventType", eventType);
+        response.put("channels", normalizedChannels);
+        return response;
     }
 
     public List<Map<String, Object>> messages(int limit) {

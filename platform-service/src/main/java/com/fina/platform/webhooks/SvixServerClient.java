@@ -15,13 +15,15 @@ import org.springframework.web.client.RestClientException;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * HTTP adapter to svix-server. Translates our tenant model (X-Tenant-Id) and
- * topic vocabulary onto Svix's application / endpoint / event-type / message
+ * event vocabulary onto Svix's application / endpoint / event-type / message
  * concepts. This is the ONLY class that knows Svix exists — swapping webhook
  * providers means rewriting this file plus the compose service.
  */
@@ -136,19 +138,19 @@ public class SvixServerClient {
         return com.fasterxml.jackson.databind.json.JsonMapper.builder().build();
     }
 
-    // ── event types (our topics) ────────────────────────────────────────
+    // ── event types ─────────────────────────────────────────────────────
 
     /**
      * Register the event type if it is not there yet. A missing type comes
      * back as 404 from the backend, which our status handler surfaces as
      * ApiException(404) — catch that (not RestClientException) or every
-     * publish to a brand-new topic fails with 404.
+     * publish to a brand-new eventType fails with 404.
      */
-    public void ensureEventType(String topic) {
+    public void ensureEventType(String eventType) {
         boolean exists;
         try {
             restClient().get()
-                    .uri("/api/v1/event-type/{name}/", topic)
+                    .uri("/api/v1/event-type/{name}/", eventType)
                     .retrieve().toBodilessEntity();
             exists = true;
         } catch (ApiException e) {
@@ -161,31 +163,44 @@ public class SvixServerClient {
             return;
         }
         ObjectNode body = jsonMapper().createObjectNode();
-        body.put("name", topic);
-        body.put("description", "factory topic: " + topic);
+        body.put("name", eventType);
+        body.put("description", "factory event type: " + eventType);
         try {
             restClient().post()
                     .uri("/api/v1/event-type/")
                     .body(body)
                     .retrieve().toBodilessEntity();
-            log.info("registered svix event type {}", topic);
+            log.info("registered svix event type {}", eventType);
         } catch (ApiException e) {
             if (e.getStatus() != 409) {
                 throw e;
             }
-            log.debug("event type {} already registered (race)", topic);
+            log.debug("event type {} already registered (race)", eventType);
         }
     }
 
     // ── endpoints (our destinations) ────────────────────────────────────
 
-    public Map<String, Object> createEndpoint(String appId, String url, List<String> topics, String description) {
-        topics.forEach(this::ensureEventType);
-        ObjectNode body = com.fasterxml.jackson.databind.json.JsonMapper.builder().build().createObjectNode();
+    public Map<String, Object> createEndpoint(
+            String appId,
+            String url,
+            List<String> filterTypes,
+            List<String> channels,
+            String description) {
+        List<String> normalizedFilterTypes = normalizeStrings(filterTypes);
+        List<String> normalizedChannels = WebhookChannels.normalize(channels);
+        normalizedFilterTypes.forEach(this::ensureEventType);
+        ObjectNode body = jsonMapper().createObjectNode();
         body.put("url", url);
         body.put("description", description == null ? "tenant destination" : description);
-        ArrayNode filter = body.putArray("filterTypes");
-        topics.forEach(filter::add);
+        if (!normalizedFilterTypes.isEmpty()) {
+            ArrayNode filter = body.putArray("filterTypes");
+            normalizedFilterTypes.forEach(filter::add);
+        }
+        if (!normalizedChannels.isEmpty()) {
+            ArrayNode channelArray = body.putArray("channels");
+            normalizedChannels.forEach(channelArray::add);
+        }
         JsonNode created = restClient().post()
                 .uri("/api/v1/app/{appId}/endpoint/", appId)
                 .body(body)
@@ -204,11 +219,13 @@ public class SvixServerClient {
         } catch (RestClientException e) {
             log.warn("could not fetch signing secret for endpoint {}: {}", endpointId, e.getMessage());
         }
-        return Map.of(
-                "endpointId", endpointId,
-                "secret", secret,
-                "url", created.get("url").asText(),
-                "topics", topics);
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("endpointId", endpointId);
+        response.put("secret", secret);
+        response.put("url", created.get("url").asText());
+        response.put("filterTypes", normalizedFilterTypes);
+        response.put("channels", normalizedChannels);
+        return response;
     }
 
     public List<Map<String, Object>> listEndpoints(String appId) {
@@ -218,14 +235,19 @@ public class SvixServerClient {
         List<Map<String, Object>> out = new ArrayList<>();
         if (node != null && node.has("data")) {
             for (JsonNode ep : node.get("data")) {
-                List<String> topics = new ArrayList<>();
+                List<String> filterTypes = new ArrayList<>();
                 if (ep.has("filterTypes") && ep.get("filterTypes").isArray()) {
-                    ep.get("filterTypes").forEach(t -> topics.add(t.asText()));
+                    ep.get("filterTypes").forEach(t -> filterTypes.add(t.asText()));
+                }
+                List<String> channels = new ArrayList<>();
+                if (ep.has("channels") && ep.get("channels").isArray()) {
+                    ep.get("channels").forEach(c -> channels.add(c.asText()));
                 }
                 out.add(Map.of(
                         "endpointId", ep.get("id").asText(),
                         "url", ep.get("url").asText(),
-                        "topics", topics,
+                        "filterTypes", filterTypes,
+                        "channels", channels,
                         "disabled", ep.hasNonNull("disabled") && ep.get("disabled").asBoolean()));
             }
         }
@@ -240,12 +262,17 @@ public class SvixServerClient {
 
     // ── messages (our publish) ──────────────────────────────────────────
 
-    public String publish(String appId, String topic, Map<String, Object> data) {
-        ensureEventType(topic);
-        ObjectNode payload = com.fasterxml.jackson.databind.json.JsonMapper.builder().build().valueToTree(data);
-        ObjectNode body = com.fasterxml.jackson.databind.json.JsonMapper.builder().build().createObjectNode();
-        body.put("eventType", topic);
-        body.set("payload", payload);
+    public String publish(String appId, String eventType, Map<String, Object> payload, List<String> channels) {
+        ensureEventType(eventType);
+        ObjectNode payloadNode = jsonMapper().valueToTree(payload == null ? Map.of() : payload);
+        ObjectNode body = jsonMapper().createObjectNode();
+        body.put("eventType", eventType);
+        body.set("payload", payloadNode);
+        List<String> normalizedChannels = WebhookChannels.normalize(channels);
+        if (!normalizedChannels.isEmpty()) {
+            ArrayNode channelArray = body.putArray("channels");
+            normalizedChannels.forEach(channelArray::add);
+        }
         JsonNode created = restClient().post()
                 .uri("/api/v1/app/{appId}/msg/", appId)
                 .body(body)
@@ -262,7 +289,7 @@ public class SvixServerClient {
             for (JsonNode msg : node.get("data")) {
                 out.add(Map.of(
                         "messageId", msg.get("id").asText(),
-                        "topic", msg.get("eventType").asText(),
+                        "eventType", msg.get("eventType").asText(),
                         "timestamp", msg.get("timestamp").asText()));
             }
         }
@@ -295,5 +322,22 @@ public class SvixServerClient {
             }
         }
         return out;
+    }
+
+    private List<String> normalizeStrings(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return List.of();
+        }
+        Set<String> normalized = new LinkedHashSet<>();
+        for (String value : values) {
+            if (value == null) {
+                continue;
+            }
+            String trimmed = value.trim();
+            if (!trimmed.isEmpty()) {
+                normalized.add(trimmed);
+            }
+        }
+        return List.copyOf(normalized);
     }
 }

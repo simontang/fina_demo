@@ -160,9 +160,15 @@ curl -I "$B/api/filesvc/<uuid>/download" -H "Authorization: Bearer <网关令牌
 # 6) webhook 全链路
 curl -X POST "$B/api/webhooks/destinations" -H "Authorization: Bearer <网关令牌>" \
   -H "Content-Type: application/json" \
-  -d '{"url":"https://your-receiver/hook","topics":["job.completed"]}'
+  -d '{"url":"https://your-receiver/hook","filterTypes":["job.completed"]}'
 curl -X POST "$B/api/webhooks/publish" -H "Authorization: Bearer <网关令牌>" \
-  -H "Content-Type: application/json" -d '{"topic":"job.completed","data":{"jobId":"1"}}'
+  -H "Content-Type: application/json" -d '{"eventType":"job.completed","payload":{"jobId":"1"}}'
+
+# Svix-compatible 定向/分组发送：destination 创建时配置 channels，publish 时带相同 channels。
+# 不支持 endpointIds 直投；服务端会返回 400，避免误群发。
+curl -X POST "$B/api/webhooks/publish" -H "Authorization: Bearer <网关令牌>" \
+  -H "Content-Type: application/json" \
+  -d '{"eventType":"job.completed","channels":["vip-customers"],"payload":{"jobId":"1"}}'
 
 # 7) 未匹配路径 404、错误信封一致
 curl -o /dev/null -w "%{http_code}\n" "$B/api/filesvc/nope/x/y"   # 404
@@ -233,6 +239,7 @@ curl -o /dev/null -w "%{http_code}\n" "$B/api/filesvc/nope/x/y"   # 404
 | 上传 | 走 REST（网关的文件通道），MCP 不承载字节 |
 
 webhook 域：`webhooks.register_destination`、`webhooks.list_destinations`、`webhooks.publish_event`、`webhooks.list_recent_events`、`webhooks.get_delivery_status`。
+`webhooks.publish_event` 应按 Svix 原生语义暴露可选 `channels`，不要暴露 `endpointIds` 直投语义。
 
 ### 11.4 网关侧实现要点
 

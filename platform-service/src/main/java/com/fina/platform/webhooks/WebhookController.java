@@ -1,5 +1,6 @@
 package com.fina.platform.webhooks;
 
+import com.fina.platform.exception.ApiException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,10 +13,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Webhook management API in our tenant model: X-Tenant-Id scopes everything,
- * topics are our factory event names. Svix stays behind this facade.
+ * eventTypes/filterTypes/channels follow Svix's model. Svix stays behind this facade.
  */
 @RestController
 // Two mount points on purpose: the service's canonical path (/api/v1/webhooks)
@@ -28,12 +30,21 @@ public class WebhookController {
 
     private final WebhookFacade facade;
 
-    public record CreateDestinationRequest(String url, List<String> topics, String description) {
+    public record CreateDestinationRequest(
+            String url,
+            List<String> filterTypes,
+            List<String> topics,
+            List<String> channels,
+            String description) {
     }
 
     @PostMapping("/destinations")
     public Map<String, Object> createDestination(@RequestBody CreateDestinationRequest req) {
-        return facade.createDestination(req.url(), req.topics(), req.description());
+        return facade.createDestination(
+                req.url(),
+                chooseList(req.filterTypes(), req.topics(), "filterTypes", "topics"),
+                req.channels(),
+                req.description());
     }
 
     @GetMapping("/destinations")
@@ -49,10 +60,47 @@ public class WebhookController {
 
     @PostMapping("/publish")
     public Map<String, Object> publish(@RequestBody PublishRequest req) {
-        return facade.publish(req.topic(), req.data());
+        if (req.endpointIds() != null) {
+            throw ApiException.badRequest("endpointIds is not supported by the Svix-compatible publish API; use channels");
+        }
+        String eventType = chooseString(req.eventType(), req.topic(), "eventType", "topic");
+        if (eventType == null || eventType.isBlank()) {
+            throw ApiException.badRequest("eventType is required");
+        }
+        return facade.publish(
+                eventType,
+                choosePayload(req.payload(), req.data()),
+                req.channels());
     }
 
-    public record PublishRequest(String topic, Map<String, Object> data) {
+    public record PublishRequest(
+            String eventType,
+            Map<String, Object> payload,
+            List<String> channels,
+            String topic,
+            Map<String, Object> data,
+            List<String> endpointIds) {
+    }
+
+    private List<String> chooseList(List<String> primary, List<String> legacy, String primaryName, String legacyName) {
+        if (primary != null && legacy != null && !Objects.equals(primary, legacy)) {
+            throw ApiException.badRequest("send either " + primaryName + " or deprecated " + legacyName + ", not both");
+        }
+        return primary != null ? primary : legacy;
+    }
+
+    private String chooseString(String primary, String legacy, String primaryName, String legacyName) {
+        if (primary != null && legacy != null && !Objects.equals(primary, legacy)) {
+            throw ApiException.badRequest("send either " + primaryName + " or deprecated " + legacyName + ", not both");
+        }
+        return primary != null ? primary : legacy;
+    }
+
+    private Map<String, Object> choosePayload(Map<String, Object> primary, Map<String, Object> legacy) {
+        if (primary != null && legacy != null && !Objects.equals(primary, legacy)) {
+            throw ApiException.badRequest("send either payload or deprecated data, not both");
+        }
+        return primary != null ? primary : legacy;
     }
 
     @GetMapping("/messages")

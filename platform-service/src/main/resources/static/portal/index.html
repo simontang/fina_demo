@@ -71,12 +71,12 @@
   <div class="card">
     <h2>投递目标 Destinations</h2>
     <table id="destTable">
-      <thead><tr><th style="width:180px">Endpoint</th><th>URL</th><th>Topics</th><th style="width:90px">状态</th><th style="width:70px"></th></tr></thead>
+      <thead><tr><th style="width:180px">Endpoint</th><th>URL</th><th>Filter Types</th><th style="width:90px">状态</th><th style="width:70px"></th></tr></thead>
       <tbody></tbody>
     </table>
     <div class="row" style="margin-top:12px">
       <input class="grow" id="destUrl" placeholder="目标 URL，例如 http://host.docker.internal:5909/catch">
-      <input id="destTopics" placeholder="topics（逗号分隔，留空=全部）" style="width:320px">
+      <input id="destTopics" placeholder="filterTypes（逗号分隔，留空=全部）" style="width:320px">
       <button id="destAdd">新增目标</button>
     </div>
   </div>
@@ -84,7 +84,7 @@
   <div class="card">
     <h2>最近事件 Messages <span class="muted" style="font-weight:400">（点击行查看投递记录）</span></h2>
     <table id="msgTable">
-      <thead><tr><th style="width:260px">Message</th><th style="width:220px">Topic</th><th>时间</th></tr></thead>
+      <thead><tr><th style="width:260px">Message</th><th style="width:220px">Event Type</th><th>时间</th></tr></thead>
       <tbody></tbody>
     </table>
   </div>
@@ -144,7 +144,7 @@ async function loadDestinations() {
     tr.innerHTML =
       '<td class="mono">' + esc(shortId(d.endpointId)) + '</td>' +
       '<td class="mono">' + esc(d.url) + '</td>' +
-      '<td>' + (d.topics || []).map(t => '<span class="badge">' + esc(t) + '</span>').join('') + '</td>' +
+      '<td>' + (d.filterTypes || d.topics || []).map(t => '<span class="badge">' + esc(t) + '</span>').join('') + '</td>' +
       '<td>' + (d.disabled ? '<span class="badge off">disabled</span>' : '<span class="badge ok">active</span>') + '</td>' +
       '<td><button class="danger" data-del="' + esc(d.endpointId) + '">删除</button></td>';
     tb.appendChild(tr);
@@ -168,7 +168,7 @@ async function loadMessages() {
     tr.className = 'clickable';
     tr.innerHTML =
       '<td class="mono">' + esc(shortId(m.messageId)) + '</td>' +
-      '<td><span class="badge">' + esc(m.topic) + '</span></td>' +
+      '<td><span class="badge">' + esc(m.eventType || m.topic) + '</span></td>' +
       '<td class="mono">' + fmtTime(m.timestamp) + '</td>';
     tr.onclick = () => {
       tb.querySelectorAll('tr').forEach(r => r.classList.remove('selected'));
@@ -218,9 +218,9 @@ $('refreshAll').onclick = () => connected && connect();
 $('destAdd').onclick = async () => {
   const url = $('destUrl').value.trim();
   if (!url) { alert('请输入目标 URL'); return; }
-  const topics = $('destTopics').value.split(',').map(s => s.trim()).filter(Boolean);
+  const filterTypes = $('destTopics').value.split(',').map(s => s.trim()).filter(Boolean);
   try {
-    await api('/destinations', { method: 'POST', body: JSON.stringify({ url, topics, description: 'added via portal' }) });
+    await api('/destinations', { method: 'POST', body: JSON.stringify({ url, filterTypes, description: 'added via portal' }) });
     $('destUrl').value = ''; $('destTopics').value = '';
     await loadDestinations();
   } catch (e) { alert('新增失败：' + e.message); }

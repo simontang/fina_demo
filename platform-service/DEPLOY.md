@@ -103,7 +103,7 @@ Portal 由 platform-service 直接托管（`/portal`，自包含静态页），�
 | 容器 `exec /opt/java/openjdk/bin/java: exec format error` | 本地 Apple Silicon 构建的是 arm64 镜像，服务器是 x86_64 | 镜像一律由 CI 构建（已加 `platforms: linux/amd64`） |
 | Flyway `Migration V2 failed: relation "file_objects" does not exist` | `baseline-version: 1` 让已存在的库被基线化为 v1，跳过 V1 直接跑 V2 | `baseline-version: 0`（V1 幂等，存量库可安全重跑） |
 | svix-server 启动即退出：`invalid type: found string "" ... WHITELIST_SUBNETS` | 该变量未设置时渲染成空字符串，svix 要求 JSON 数组 | 默认值改为 `[]`（严格 SSRF 防护） |
-| svix 相关接口全 404 / 首次发布新 topic 失败 | `ensureEventType` 依赖 `RestClientException` 捕获，被统一状态处理改成 `ApiException` 后失效 | 改为捕获 `ApiException(404)`；新增 W-15 回归用例 |
+| svix 相关接口全 404 / 首次发布新 eventType 失败 | `ensureEventType` 依赖 `RestClientException` 捕获，被统一状态处理改成 `ApiException` 后失效 | 改为捕获 `ApiException(404)`；新增 W-15 回归用例 |
 | 列表接口经 nginx 500 | `/api/v1/files/`（尾斜杠）未映射，落到静态资源解析 | 集合端点同时映射 `""` 与 `"/"`；未匹配路径统一返回 404 |
 | 部署后 nginx 起不来：`duplicate default server` | 备份文件放在了 `sites-enabled/`，nginx 会加载该目录下所有文件 | 备份移到 `/etc/nginx/backups/` |
 

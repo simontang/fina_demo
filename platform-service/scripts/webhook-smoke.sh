@@ -42,7 +42,7 @@ pass "receiver up"
 echo "== publish job.completed =="
 PLATFORM_SERVICE_URL="$BASE" PLATFORM_SERVICE_API_KEY="${PLATFORM_SERVICE_API_KEY:-}" \
   python3 "$(dirname "$0")/publish.py" \
-  --tenant "$TENANT" --topic job.completed --data '{"jobId":"smoke-1","status":"done"}' \
+  --tenant "$TENANT" --event-type job.completed --payload '{"jobId":"smoke-1","status":"done"}' \
   | grep -q "HTTP 2" || fail "publish failed"
 pass "event accepted"
 
@@ -65,7 +65,7 @@ assert hit[-1]["signature-valid"] is True, f"signature invalid: {hit[-1]}"
 print(f"signature-valid: True (webhook-id={hit[-1]['webhook-id']})")
 PY
 MSGS=$(curl -sf -H "X-Tenant-Id: ${TENANT}" ${AUTH[@]+"${AUTH[@]}"} "${BASE}/api/v1/webhooks/messages?limit=5")
-echo "$MSGS" | grep -q "job.completed" || fail "facade messages missing topic: $MSGS"
+echo "$MSGS" | grep -q "job.completed" || fail "facade messages missing eventType: $MSGS"
 pass "facade messages list observable"
 
 echo ""
