@@ -83,6 +83,7 @@ sequenceDiagram
 8. [错误码](#8-错误码)
 9. [端到端示例](#9-端到端示例)
 10. [查询客户业务标签](#10-查询客户业务标签)
+11. [查询任务列表](#11-查询任务列表)
 
 ---
 
@@ -450,3 +451,44 @@ GET /customers/:customerId/tags
 
 - 客户不存在 → `404 NOT_FOUND`。
 - 说明：当前为 **mock 数据**（示例客户 `cus_8899`、`cus_1001`）；接入真实标签存储后接口契约不变。
+
+## 11. 查询任务列表（某 BA 某客户）
+
+查询某业务员在某客户下的任务列表，含**文件 id、任务 id、状态、打出的标签**。
+
+```
+GET /voice-tagging?baId=<id>&customerId=<id>
+```
+
+| 参数 | 必填 | 说明 |
+|---|---|---|
+| `baId` | 是 | 业务员 id |
+| `customerId` | 是 | 客户 id |
+
+**响应 `200`**：
+
+```json
+{
+  "baId": "ba_001",
+  "customerId": "cus_8899",
+  "total": 2,
+  "tasks": [
+    {
+      "taskId": "c3915a5a-85ed-4e31-a09e-492b3c11e938",
+      "fileId": "471c20082b524316accc1b23cba8a4de",
+      "status": "completed",
+      "createdAt": "2026-09-15T06:13:00Z",
+      "tags": [
+        {
+          "tagId": "9ce355bfacca49c4a9e9322a9317c196",
+          "name": "抗老/紧致",
+          "dimension": "concerns"
+        }
+      ]
+    }
+  ]
+}
+```
+
+- 缺 `baId` 或 `customerId` → `400 BAD_REQUEST`。
+- 说明：当前为 **mock 数据**（示例组合 `ba_001`+`cus_8899`、`ba_002`+`cus_8899`、`ba_001`+`cus_1001`）；未知组合返回空列表（`total:0`）。

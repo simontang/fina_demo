@@ -171,3 +171,53 @@ describe("POST /api/v1/voice-tagging/:id/feedback", () => {
     expect(res.statusCode).toBe(400);
   });
 });
+
+describe("GET /api/v1/voice-tagging?baId=&customerId=", () => {
+  it("returns tasks with fileId / taskId / status / tags", async () => {
+    const app = buildServer(deps());
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/voice-tagging?baId=ba_001&customerId=cus_8899",
+      headers: { authorization: "Bearer secret" },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.baId).toBe("ba_001");
+    expect(body.customerId).toBe("cus_8899");
+    expect(body.total).toBe(body.tasks.length);
+    expect(body.total).toBeGreaterThan(0);
+    const task = body.tasks[0];
+    expect(typeof task.taskId).toBe("string");
+    expect(typeof task.fileId).toBe("string");
+    expect(typeof task.status).toBe("string");
+    expect(Array.isArray(task.tags)).toBe(true);
+    for (const tag of task.tags) expect(tag.tagId).toMatch(/^[0-9a-f]{32}$/);
+  });
+
+  it("returns an empty list for an unknown ba/customer combo", async () => {
+    const app = buildServer(deps());
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/voice-tagging?baId=ba_x&customerId=cus_y",
+      headers: { authorization: "Bearer secret" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ total: 0, tasks: [] });
+  });
+
+  it("requires baId and customerId", async () => {
+    const app = buildServer(deps());
+    const missingBa = await app.inject({
+      method: "GET",
+      url: "/api/v1/voice-tagging?customerId=cus_8899",
+      headers: { authorization: "Bearer secret" },
+    });
+    expect(missingBa.statusCode).toBe(400);
+    const missingCus = await app.inject({
+      method: "GET",
+      url: "/api/v1/voice-tagging?baId=ba_001",
+      headers: { authorization: "Bearer secret" },
+    });
+    expect(missingCus.statusCode).toBe(400);
+  });
+});

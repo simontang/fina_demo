@@ -58,6 +58,11 @@ const CUSTOMER_TAGS: Record<string, CustomerTagRef[]> = {
   ],
 };
 
+/** Look up a tag definition by id (name + dimension). */
+export function getTag(tagId: string): TagDef | undefined {
+  return TAGS[tagId];
+}
+
 /** Resolve a customer's tags. Returns undefined when the customer is unknown. */
 export function getCustomerTags(customerId: string): CustomerTag[] | undefined {
   const refs = CUSTOMER_TAGS[customerId];
