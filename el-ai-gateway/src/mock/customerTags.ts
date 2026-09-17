@@ -63,6 +63,24 @@ export function getTag(tagId: string): TagDef | undefined {
   return TAGS[tagId];
 }
 
+/** Resolve tag ids against the catalog; returns resolved tags + unknown ids. */
+export function resolveTags(tagIds: string[]): {
+  tags: Array<{ tagId: string; name: string; dimension: string }>;
+  unknown: string[];
+} {
+  const resolved: Array<{ tagId: string; name: string; dimension: string }> = [];
+  const unknown: string[] = [];
+  for (const tagId of tagIds) {
+    const def = getTag(tagId);
+    if (!def) {
+      unknown.push(tagId);
+      continue;
+    }
+    resolved.push({ tagId, name: def.name, dimension: def.dimension });
+  }
+  return { tags: resolved, unknown };
+}
+
 /** Resolve a customer's tags. Returns undefined when the customer is unknown. */
 export function getCustomerTags(customerId: string): CustomerTag[] | undefined {
   const refs = CUSTOMER_TAGS[customerId];

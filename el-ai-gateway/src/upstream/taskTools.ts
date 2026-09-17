@@ -8,6 +8,8 @@ export type TaskRecord = {
   status?: string;
   title?: string;
   result?: string;
+  metadata?: Record<string, unknown>;
+  createdAt?: string;
   activities: unknown[];
   raw: unknown;
 };
@@ -21,6 +23,7 @@ export type TaskToolClient = {
     metadata?: Record<string, unknown>;
   }): Promise<{ taskId: string; raw: unknown }>;
   getTask(input: { id: string }): Promise<TaskRecord>;
+  updateResult(input: { id: string; result: string }): Promise<{ raw: unknown }>;
 };
 
 function parseResult(text: string, structured: unknown): any {
@@ -41,7 +44,7 @@ export function createTaskToolClient(mcp: McpCaller): TaskToolClient {
       if (/not found|does not exist/i.test(message)) {
         throw new GatewayError(404, "NOT_FOUND", message);
       }
-      throw new GatewayError(502, "MCP_ERROR", message);
+      throw new GatewayError(502, "UPSTREAM_ERROR", message);
     }
     return data?.data ?? data;
   }
@@ -59,7 +62,7 @@ export function createTaskToolClient(mcp: McpCaller): TaskToolClient {
       });
       const task = data?.task ?? data ?? {};
       const taskId = (data?.taskId ?? task.id ?? data?.id) as string | undefined;
-      if (!taskId) throw new GatewayError(502, "MCP_ERROR", "create task returned no id");
+      if (!taskId) throw new GatewayError(502, "UPSTREAM_ERROR", "create task returned no id");
       return { taskId, raw: data };
     },
 
@@ -71,9 +74,15 @@ export function createTaskToolClient(mcp: McpCaller): TaskToolClient {
         status: task.status,
         title: task.title,
         result: task.result,
+        metadata: task.metadata,
+        createdAt: task.createdAt,
         activities: data?.activities ?? task.activities ?? [],
         raw: data,
       };
+    },
+
+    async updateResult({ id, result }) {
+      return { raw: await invoke({ action: "update", id, result }) };
     },
   };
 }

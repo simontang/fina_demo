@@ -84,6 +84,7 @@ sequenceDiagram
 9. [端到端示例](#9-端到端示例)
 10. [查询客户业务标签](#10-查询客户业务标签)
 11. [查询任务列表](#11-查询任务列表)
+12. [修改任务标签](#12-修改任务标签)
 
 ---
 
@@ -310,7 +311,7 @@ GET /voice-tagging/:taskId
 - `status`：`pending | in_progress | review | failed | interrupted | completed | cancelled`
 - `tags`：该任务打出的标签（`tagId` 32 位 hex / `name` / `dimension`）
 - 任务不存在 → `404 NOT_FOUND`
-- 说明：当前为 **mock 数据**；接入真实任务/标签存储后接口契约不变
+- 说明：读取**真实任务**；`tags` 取自任务 `result`（JSON 字符串），`fileId` 取自任务 metadata 的文件 uuid。
 
 > **衔接**：用发起接口返回的 `taskId` 查询；`activities` 会随处理（即 webhook 对应的转写/打标）与反馈而增长。
 
@@ -519,3 +520,53 @@ GET /voice-tagging?baId=<id>&customerId=<id>
 
 - 缺 `baId` 或 `customerId` → `400 BAD_REQUEST`。
 - 说明：当前为 **mock 数据**（示例组合 `ba_001`+`cus_8899`、`ba_002`+`cus_8899`、`ba_001`+`cus_1001`）；未知组合返回空列表（`total:0`）。
+
+## 12. 修改任务标签
+
+整体**覆盖**某任务的标签集合，并记录一条 activity。
+
+```
+PUT /voice-tagging/:taskId/tags
+Content-Type: application/json
+```
+
+```json
+{ "tags": ["9ce355bfacca49c4a9e9322a9317c196", "4a1b2c3d5e6f47089a0b1c2d3e4f5061"] }
+```
+
+> `tags` 也可写成 `[{ "tagId": "…" }, …]`；元素必须是目录中已存在的 32-hex tagId。
+
+**响应 `200`**（更新后的任务 + 本次记录的 activity）：
+
+```json
+{
+  "taskId": "b3ca978f-3832-4a2c-959b-40fa48c43352",
+  "fileId": "2ccf6fef88b64a16b62fe491a8f7a132",
+  "status": "in_progress",
+  "createdAt": "2026-09-15T05:18:00Z",
+  "title": "Voice tagging: 2ccf6fef88b64a16b62fe491a8f7a132",
+  "tags": [
+    { "tagId": "9ce355bfacca49c4a9e9322a9317c196", "name": "抗老/紧致", "dimension": "concerns" },
+    { "tagId": "4a1b2c3d5e6f47089a0b1c2d3e4f5061", "name": "黑钻光灿面霜", "dimension": "interested_products" }
+  ],
+  "activity": {
+    "id": "…",
+    "action": "updated",
+    "markdown": "",
+    "createdAt": "2026-09-15T07:20:00Z"
+  }
+}
+```
+
+**读取 activity 记录**：
+
+```
+GET /voice-tagging/:taskId/activities
+```
+```json
+{ "taskId": "…", "total": 1, "activities": [ { "id": "…", "action": "updated", "markdown": "", "createdAt": "…" } ] }
+```
+
+- 未知 `tagId` / `tags` 非数组 / tagId 非 32-hex → `400 BAD_REQUEST`
+- 任务不存在 → `404 NOT_FOUND`（改标签、读 activity 同理）
+- 说明：标签以 **JSON 字符串写入任务的 `result` 字段**；更新由任务服务**自动记录一条 activity**（`action: updated`）。当前 MCP 通道不支持带 Markdown 内容的 `add_activity`，所以该 activity 内容为空；需要带“修改前/后”正文时改走 agent（反馈通道）。

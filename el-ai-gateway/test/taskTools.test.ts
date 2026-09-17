@@ -37,7 +37,7 @@ describe("taskTools", () => {
     const tools = createTaskToolClient(caller);
     await expect(tools.createTask({ title: "x", ownerId: "t" })).rejects.toMatchObject({
       statusCode: 502,
-      code: "MCP_ERROR",
+      code: "UPSTREAM_ERROR",
     });
   });
 

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { buildServer } from "../src/server";
 import type { Config } from "../src/types";
+import { GatewayError } from "../src/lib/errors";
 
 const config: Config = {
   port: 5708,
@@ -39,11 +40,19 @@ function deps(overrides: Record<string, unknown> = {}) {
       createTask: vi.fn(async () => ({ taskId: "task-1", raw: {} })),
       getTask: vi.fn(async () => ({
         id: "task-1",
-        status: "completed",
-        title: "T",
-        activities: [{ id: "act-1" }],
+        status: "in_progress",
+        title: "Voice tagging: 471c20082b524316accc1b23cba8a4de",
+        createdAt: "2026-09-15T06:13:00Z",
+        metadata: { uuid: "471c20082b524316accc1b23cba8a4de" },
+        result: JSON.stringify([
+          { tagId: "9ce355bfacca49c4a9e9322a9317c196", name: "抗老/紧致", dimension: "concerns" },
+        ]),
+        activities: [
+          { id: "act-1", action: "activity", detail: { markdown: "## t" }, createdAt: "2026-09-15T06:15:00Z" },
+        ],
         raw: {},
       })),
+      updateResult: vi.fn(async () => ({ raw: {} })),
     },
     ...overrides,
   } as any;
@@ -126,25 +135,29 @@ describe("POST /api/v1/voice-tagging", () => {
 });
 
 describe("GET /api/v1/voice-tagging/:id", () => {
-  it("returns the (mock) task detail with fileId / status / tags", async () => {
+  it("returns task detail (fileId / status / tags) from the task service", async () => {
     const app = buildServer(deps());
     const res = await app.inject({
       method: "GET",
-      url: "/api/v1/voice-tagging/c3915a5a-85ed-4e31-a09e-492b3c11e938",
+      url: "/api/v1/voice-tagging/task-1",
       headers: { authorization: "Bearer secret" },
     });
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(body.taskId).toBe("c3915a5a-85ed-4e31-a09e-492b3c11e938");
+    expect(body.taskId).toBe("task-1");
     expect(body.fileId).toBe("471c20082b524316accc1b23cba8a4de");
-    expect(body.status).toBe("completed");
-    expect(Array.isArray(body.tags)).toBe(true);
-    expect(body.tags.length).toBeGreaterThan(0);
+    expect(body.status).toBe("in_progress");
+    expect(body.tags).toHaveLength(1);
+    expect(body.tags[0]).toMatchObject({ tagId: "9ce355bfacca49c4a9e9322a9317c196", name: "抗老/紧致" });
     expect(body.activities).toBeUndefined();
   });
 
   it("returns 404 for an unknown task", async () => {
-    const app = buildServer(deps());
+    const d = deps();
+    d.taskTools.getTask = vi.fn(async () => {
+      throw new GatewayError(404, "NOT_FOUND", "Task 'nope' not found");
+    });
+    const app = buildServer(d);
     const res = await app.inject({
       method: "GET",
       url: "/api/v1/voice-tagging/nope",
@@ -232,5 +245,114 @@ describe("GET /api/v1/voice-tagging?baId=&customerId=", () => {
       headers: { authorization: "Bearer secret" },
     });
     expect(missingCus.statusCode).toBe(400);
+  });
+});
+
+describe("PUT /api/v1/voice-tagging/:id/tags", () => {
+  const TASK = "b3ca978f-3832-4a2c-959b-40fa48c43352";
+
+  function statefulDeps() {
+    let current: any = {
+      id: TASK,
+      status: "in_progress",
+      title: "Voice tagging: 2ccf6fef88b64a16b62fe491a8f7a132",
+      createdAt: "2026-09-15T05:18:00Z",
+      metadata: { uuid: "2ccf6fef88b64a16b62fe491a8f7a132" },
+      result: JSON.stringify([
+        { tagId: "2f0a7d1c6b4e48a2b3c5d6e7f8091a2b", name: "保湿", dimension: "concerns" },
+      ]),
+      activities: [
+        { id: "act-1", action: "activity", detail: { markdown: "## t" }, createdAt: "2026-09-15T05:20:00Z" },
+      ],
+      raw: {},
+    };
+    return deps({
+      taskTools: {
+        createTask: vi.fn(),
+        getTask: vi.fn(async () => current),
+        updateResult: vi.fn(async ({ result }: { result: string }) => {
+          current = {
+            ...current,
+            result,
+            activities: [
+              { id: "act-2", action: "updated", detail: { markdown: "" }, createdAt: "2026-09-15T07:20:00Z" },
+              ...current.activities,
+            ],
+          };
+          return { raw: {} };
+        }),
+      },
+    });
+  }
+
+  it("replaces tags (stored in result) and records an activity", async () => {
+    const d = statefulDeps();
+    const app = buildServer(d);
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/voice-tagging/${TASK}/tags`,
+      headers: { authorization: "Bearer secret" },
+      payload: {
+        tags: ["9ce355bfacca49c4a9e9322a9317c196", "4a1b2c3d5e6f47089a0b1c2d3e4f5061"],
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.tags).toHaveLength(2);
+    expect(body.tags[0]).toMatchObject({ tagId: "9ce355bfacca49c4a9e9322a9317c196", name: "抗老/紧致" });
+    expect(body.activity.action).toBe("updated");
+    expect(d.taskTools.updateResult).toHaveBeenCalledWith({
+      id: TASK,
+      result: JSON.stringify([
+        { tagId: "9ce355bfacca49c4a9e9322a9317c196", name: "抗老/紧致", dimension: "concerns" },
+        { tagId: "4a1b2c3d5e6f47089a0b1c2d3e4f5061", name: "黑钻光灿面霜", dimension: "interested_products" },
+      ]),
+    });
+
+    const acts = await app.inject({
+      method: "GET",
+      url: `/api/v1/voice-tagging/${TASK}/activities`,
+      headers: { authorization: "Bearer secret" },
+    });
+    expect(acts.statusCode).toBe(200);
+    expect(acts.json().total).toBe(2);
+    expect(acts.json().activities[0].action).toBe("updated");
+  });
+
+  it("rejects an unknown tagId", async () => {
+    const app = buildServer(deps());
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/voice-tagging/${TASK}/tags`,
+      headers: { authorization: "Bearer secret" },
+      payload: { tags: ["00000000000000000000000000000000"] },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("rejects a non-array tags body", async () => {
+    const app = buildServer(deps());
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/voice-tagging/${TASK}/tags`,
+      headers: { authorization: "Bearer secret" },
+      payload: { tags: "nope" },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("returns 404 for an unknown task", async () => {
+    const d = deps();
+    d.taskTools.getTask = vi.fn(async () => {
+      throw new GatewayError(404, "NOT_FOUND", "Task 'nope' not found");
+    });
+    const app = buildServer(d);
+    const res = await app.inject({
+      method: "PUT",
+      url: "/api/v1/voice-tagging/nope/tags",
+      headers: { authorization: "Bearer secret" },
+      payload: { tags: [] },
+    });
+    expect(res.statusCode).toBe(404);
   });
 });

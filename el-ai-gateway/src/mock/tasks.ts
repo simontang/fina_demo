@@ -18,8 +18,9 @@ function tags(ids: string[]): TaskTag[] {
 }
 
 /**
- * Mock task store keyed by `baId|customerId`. Replace with the real task/tag
- * store later — the API contract stays.
+ * Mock task list keyed by `baId|customerId` (list-by-BA still mock: the task
+ * interface cannot filter by metadata). Task detail/tags/activities are served
+ * from the real task service.
  */
 const TASKS: Record<string, TaskSummary[]> = {
   "ba_001|cus_8899": [
@@ -65,15 +66,4 @@ const TASKS: Record<string, TaskSummary[]> = {
 /** Tasks for a BA + customer. Unknown combinations return an empty list. */
 export function getTasks(baId: string, customerId: string): TaskSummary[] {
   return TASKS[`${baId}|${customerId}`] ?? [];
-}
-
-export type TaskDetail = TaskSummary & { title: string };
-
-/** Task detail by id. Returns undefined when the task is unknown. */
-export function getTaskById(taskId: string): TaskDetail | undefined {
-  for (const list of Object.values(TASKS)) {
-    const task = list.find((t) => t.taskId === taskId);
-    if (task) return { ...task, title: `Voice tagging: ${task.fileId}` };
-  }
-  return undefined;
 }
