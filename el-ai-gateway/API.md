@@ -123,20 +123,20 @@ Content-Type: multipart/form-data
 | `file` | form-data | 是 | 语音文件 |
 | `path` | query | 否 | 逻辑目录，如 `voice-tagging` |
 | `fileName` | query | 否 | 显示文件名；缺省用上传文件名 |
-| `userId` | query | 否 | 上传人 id（并入 `meta.userId`） |
+| `baId` | query | 否 | 业务员（BA）id（并入 `meta.baId`） |
 | `customerId` | query | 否 | 关联客户 id（并入 `meta.customerId`） |
 | `fileCategory` | query | 否 | 文件分类，如 `raw` |
 | `usage` | query | 否 | 用途，如 `voice-tagging` |
 | `meta` | query | 否 | 自定义元数据，**URL 编码的 JSON 对象**，如 `{"src":"wms"}` |
 
-- `meta` 会与 `userId`/`customerId` 合并（后两者覆盖同名键），随文件一起保存，可在文件 `GET` 元数据里取回。
+- `meta` 会与 `baId`/`customerId` 合并（后两者覆盖同名键），随文件一起保存，可在文件 `GET` 元数据里取回。
 - `meta` 非法 JSON 或非对象 → `400 BAD_REQUEST`。
 
 示例：
 
 ```bash
 curl -X POST "https://ada.alphafina.cn/api/el-ai-gateway/files?path=voice-tagging\
-&userId=u_1001&customerId=cus_8899&fileCategory=raw&usage=voice-tagging\
+&baId=u_1001&customerId=cus_8899&fileCategory=raw&usage=voice-tagging\
 &meta=%7B%22store%22%3A%22XA001%22%7D" \
   -H "Authorization: Bearer <API_KEY>" \
   -F "file=@clip.wav;type=audio/wav"
@@ -157,7 +157,7 @@ curl -X POST "https://ada.alphafina.cn/api/el-ai-gateway/files?path=voice-taggin
   "mime": "audio/wav",
   "fileCategory": "raw",
   "usage": "voice-tagging",
-  "meta": "{\"store\":\"XA001\",\"userId\":\"u_1001\",\"customerId\":\"cus_8899\"}",
+  "meta": "{\"store\":\"XA001\",\"baId\":\"u_1001\",\"customerId\":\"cus_8899\"}",
   "status": "active",
   "createdBy": "api",
   "createdAt": "2026-09-15T06:13:00.000000",
@@ -166,6 +166,53 @@ curl -X POST "https://ada.alphafina.cn/api/el-ai-gateway/files?path=voice-taggin
 ```
 
 > **衔接**：本接口返回的 `uuid` 是下一步（[发起打标任务](#4-发起打标任务)）的入参；它也是 webhook 里的 `file_id`。
+
+### 3.1 查询文件（按 baId + customerId）
+
+按业务员与客户查询已上传的文件（**两个参数都必填**）。
+
+```
+GET /files?baId=<id>&customerId=<id>&path=&q=&recursive=&page=&size=
+```
+
+| 参数 | 必填 | 说明 |
+|---|---|---|
+| `baId` | 是 | 业务员 id |
+| `customerId` | 是 | 客户 id |
+| `path` | 否 | 目录范围 |
+| `q` | 否 | 文件名子串 |
+| `recursive` | 否 | 是否含子目录（默认 false） |
+| `page` / `size` | 否 | 分页（`page` 1-based；`size` 默认 20，最大 1000） |
+
+**响应 `200`**：
+
+```json
+{
+  "path": "voice-tagging",
+  "recursive": false,
+  "query": null,
+  "directories": [],
+  "files": [
+    {
+      "uuid": "471c20082b524316accc1b23cba8a4de",
+      "fullPath": "voice-tagging/domain.wav",
+      "filename": "domain.wav",
+      "size": 34,
+      "mime": "audio/wav",
+      "meta": "{\"baId\":\"u_1001\",\"customerId\":\"cus_8899\"}",
+      "status": "active",
+      "createdAt": "2026-09-15T06:13:00.000000"
+    }
+  ],
+  "page": 1,
+  "size": 20,
+  "total": 1,
+  "totalPages": 1
+}
+```
+
+- 过滤条件是 `baId` 与 `customerId` 的**同时精确匹配**。
+- 缺 `baId` 或 `customerId` → `400 BAD_REQUEST`。
 
 ## 4. 发起打标任务
 

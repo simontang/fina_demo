@@ -37,6 +37,7 @@ public interface FileObjectMapper extends BaseMapper<FileObject> {
               <if test="q != null and q != ''">AND filename ILIKE '%' || #{q} || '%'</if>
               <if test="fileCategory != null and fileCategory != ''">AND file_category = #{fileCategory}</if>
               <if test="usage != null and usage != ''">AND usage = #{usage}</if>
+              <if test="meta != null and meta != ''">AND meta @&gt; CAST(#{meta} AS jsonb)</if>
               <if test="from != null">AND created_at &gt;= #{from}</if>
               <if test="to != null">AND created_at &lt;= #{to}</if>
             ORDER BY id DESC
@@ -49,6 +50,7 @@ public interface FileObjectMapper extends BaseMapper<FileObject> {
                            @Param("q") String q,
                            @Param("fileCategory") String fileCategory,
                            @Param("usage") String usage,
+                           @Param("meta") String meta,
                            @Param("from") java.time.LocalDateTime from,
                            @Param("to") java.time.LocalDateTime to,
                            @Param("size") int size,
@@ -66,6 +68,7 @@ public interface FileObjectMapper extends BaseMapper<FileObject> {
               <if test="q != null and q != ''">AND filename ILIKE '%' || #{q} || '%'</if>
               <if test="fileCategory != null and fileCategory != ''">AND file_category = #{fileCategory}</if>
               <if test="usage != null and usage != ''">AND usage = #{usage}</if>
+              <if test="meta != null and meta != ''">AND meta @&gt; CAST(#{meta} AS jsonb)</if>
               <if test="from != null">AND created_at &gt;= #{from}</if>
               <if test="to != null">AND created_at &lt;= #{to}</if>
             </script>
@@ -76,6 +79,7 @@ public interface FileObjectMapper extends BaseMapper<FileObject> {
                     @Param("q") String q,
                     @Param("fileCategory") String fileCategory,
                     @Param("usage") String usage,
+                    @Param("meta") String meta,
                     @Param("from") java.time.LocalDateTime from,
                     @Param("to") java.time.LocalDateTime to);
 

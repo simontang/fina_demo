@@ -20,6 +20,15 @@ export type PlatformFilesClient = {
     usage?: string;
     meta?: Record<string, unknown>;
   }): Promise<UploadReceipt>;
+  list(input: {
+    tenantId: string;
+    meta: string;
+    path?: string;
+    q?: string;
+    recursive?: string;
+    page?: string;
+    size?: string;
+  }): Promise<unknown>;
   presign(input: { tenantId: string; uuid: string; ttlSeconds?: number }): Promise<PresignLink>;
 };
 
@@ -58,6 +67,24 @@ export function createPlatformFilesClient(
       );
       if (!res.ok) throw await upstreamError(res);
       return (await res.json()) as UploadReceipt;
+    },
+
+    async list(input) {
+      const params = new URLSearchParams();
+      if (input.path !== undefined) params.set("path", input.path);
+      if (input.q) params.set("q", input.q);
+      if (input.recursive) params.set("recursive", input.recursive);
+      if (input.page) params.set("page", input.page);
+      if (input.size) params.set("size", input.size);
+      params.set("meta", input.meta);
+      const res = await fetchWithTimeout(
+        fetchImpl,
+        `${config.platformFilesUrl}?${params.toString()}`,
+        { method: "GET", headers: baseHeaders(input.tenantId) },
+        config.upstreamTimeoutMs,
+      );
+      if (!res.ok) throw await upstreamError(res);
+      return (await res.json()) as unknown;
     },
 
     async presign(input) {

@@ -88,3 +88,25 @@ describe("platformFiles.presign", () => {
     expect(link.url).toBe("https://signed");
   });
 });
+
+describe("platformFiles.list", () => {
+  it("GETs the list with the meta filter and tenant header", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(JSON.stringify({ files: [], total: 0, page: 1, size: 20 }), { status: 200 }),
+    ) as unknown as typeof fetch;
+    const client = createPlatformFilesClient(config, fetchImpl);
+    const out = await client.list({
+      tenantId: "tenant_a",
+      meta: JSON.stringify({ baId: "u1", customerId: "c2" }),
+      path: "voice",
+      page: "1",
+    });
+    expect(out).toEqual({ files: [], total: 0, page: 1, size: 20 });
+    const [url, init] = (fetchImpl as any).mock.calls[0];
+    expect(String(url)).toContain("meta=");
+    expect(String(url)).toContain("path=voice");
+    expect(String(url)).toContain("page=1");
+    expect(init.method).toBe("GET");
+    expect(init.headers["X-Tenant-Id"]).toBe("tenant_a");
+  });
+});

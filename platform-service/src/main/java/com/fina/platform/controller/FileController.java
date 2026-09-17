@@ -140,11 +140,12 @@ public class FileController {
                             @RequestParam(value = "recursive", required = false, defaultValue = "false") boolean recursive,
                             @RequestParam(value = "fileCategory", required = false) String fileCategory,
                             @RequestParam(value = "usage", required = false) String usage,
+                            @RequestParam(value = "meta", required = false) String meta,
                             @RequestParam(value = "from", required = false) String from,
                             @RequestParam(value = "to", required = false) String to,
                             @RequestParam(value = "page", required = false) Integer page,
                             @RequestParam(value = "size", required = false) Integer size) {
-        return service.query(path, recursive, q, fileCategory, usage, from, to, page, size);
+        return service.query(path, recursive, q, fileCategory, usage, meta, from, to, page, size);
     }
 
     private void requireUuid(String uuid) {

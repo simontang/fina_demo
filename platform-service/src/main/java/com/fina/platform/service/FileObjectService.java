@@ -189,7 +189,7 @@ public class FileObjectService {
      * a UI can drill down.
      */
     public PathListing query(String path, Boolean recursive, String q, String fileCategory,
-                             String usage, String from, String to, Integer page, Integer size) {
+                             String usage, String meta, String from, String to, Integer page, Integer size) {
         String dir = normalizeDir(path);
         boolean recurse = Boolean.TRUE.equals(recursive);
         int pageNum = page == null ? 1 : Math.max(page, 1);
@@ -197,13 +197,15 @@ public class FileObjectService {
         String query = blankToNull(q);
         String category = blankToNull(fileCategory);
         String usageFilter = blankToNull(usage);
+        String metaFilter = blankToNull(meta);
         java.time.LocalDateTime fromTs = parseDate(from, false);
         java.time.LocalDateTime toTs = parseDate(to, true);
         String pathPrefix = dir.isEmpty() ? "%" : dir + "/%";
 
-        long total = mapper.countQuery(dir, pathPrefix, recurse, query, category, usageFilter, fromTs, toTs);
+        long total = mapper.countQuery(dir, pathPrefix, recurse, query, category, usageFilter,
+                metaFilter, fromTs, toTs);
         List<FileObject> rows = mapper.query(dir, pathPrefix, recurse, query, category, usageFilter,
-                fromTs, toTs, pageSize, (pageNum - 1) * pageSize);
+                metaFilter, fromTs, toTs, pageSize, (pageNum - 1) * pageSize);
 
         List<String> directories = List.of();
         if (!recurse) {

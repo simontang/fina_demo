@@ -140,6 +140,7 @@ GET /api/v1/files?path=ops/2026-09&q=stock&recursive=true
 | `q` | filename substring (case-insensitive) |
 | `recursive` | `false` (default) = that folder only; `true` = include all descendants |
 | `fileCategory`, `usage` | exact-match filters |
+| `meta` | JSONB containment filter, URL-encoded JSON object, e.g. `meta=%7B%22baId%22%3A%22u1%22%7D` → `meta @> '{"baId":"u1"}'` |
 | `from`, `to` | `YYYY-MM-DD` (inclusive; `to` covers the whole day) or ISO timestamp |
 | `page`, `size` | page number (1-based) / rows per page (default 20, max 1000) |
 

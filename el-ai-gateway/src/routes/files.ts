@@ -23,7 +23,7 @@ export function registerFileRoutes(app: FastifyInstance, deps: FileRouteDeps): v
       fileName?: string;
       fileCategory?: string;
       usage?: string;
-      userId?: string;
+      baId?: string;
       customerId?: string;
       meta?: string;
     };
@@ -42,7 +42,7 @@ export function registerFileRoutes(app: FastifyInstance, deps: FileRouteDeps): v
       }
       meta = parsed as Record<string, unknown>;
     }
-    if (query.userId) meta.userId = query.userId;
+    if (query.baId) meta.baId = query.baId;
     if (query.customerId) meta.customerId = query.customerId;
 
     const receipt = await deps.platformFiles.upload({
@@ -59,5 +59,35 @@ export function registerFileRoutes(app: FastifyInstance, deps: FileRouteDeps): v
     });
 
     return reply.send(receipt);
+  });
+
+  // List files filtered by baId + customerId (both required).
+  app.get("/api/v1/files", async (request) => {
+    const principal = requirePrincipal(deps.authenticator, request.headers.authorization);
+    const query = request.query as {
+      baId?: string;
+      customerId?: string;
+      path?: string;
+      q?: string;
+      recursive?: string;
+      page?: string;
+      size?: string;
+    };
+    if (typeof query.baId !== "string" || query.baId.trim() === "") {
+      throw new GatewayError(400, "BAD_REQUEST", "baId is required");
+    }
+    if (typeof query.customerId !== "string" || query.customerId.trim() === "") {
+      throw new GatewayError(400, "BAD_REQUEST", "customerId is required");
+    }
+    const meta = JSON.stringify({ baId: query.baId, customerId: query.customerId });
+    return deps.platformFiles.list({
+      tenantId: principal.tenantId,
+      meta,
+      path: query.path,
+      q: query.q,
+      recursive: query.recursive,
+      page: query.page,
+      size: query.size,
+    });
   });
 }

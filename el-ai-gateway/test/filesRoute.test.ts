@@ -50,7 +50,7 @@ describe("POST /api/v1/files", () => {
       method: "POST",
       url:
         "/api/v1/files?path=voice&fileName=a.wav&fileCategory=raw&usage=voice-tagging" +
-        `&userId=u1&customerId=c2&meta=${encodeURIComponent('{"src":"wms"}')}`,
+        `&baId=u1&customerId=c2&meta=${encodeURIComponent('{"src":"wms"}')}`,
       headers: { authorization: "Bearer secret", "content-type": contentType },
       payload,
     });
@@ -65,7 +65,7 @@ describe("POST /api/v1/files", () => {
     expect(arg.fileName).toBe("a.wav");
     expect(arg.fileCategory).toBe("raw");
     expect(arg.usage).toBe("voice-tagging");
-    expect(arg.meta).toEqual({ src: "wms", userId: "u1", customerId: "c2" });
+    expect(arg.meta).toEqual({ src: "wms", baId: "u1", customerId: "c2" });
   });
 
   it("rejects invalid meta JSON", async () => {
@@ -105,5 +105,69 @@ describe("POST /api/v1/files", () => {
     });
     expect(res.statusCode).toBe(401);
     expect(res.json().code).toBe("UNAUTHORIZED");
+  });
+});
+
+describe("GET /api/v1/files", () => {
+  const auth = (h?: string) =>
+    h === "Bearer secret" ? { tenantId: "tenant_a", keyLabel: "k" } : null;
+
+  it("requires baId", async () => {
+    const app = buildServer({
+      config,
+      authenticator: auth,
+      platformFiles: { upload: vi.fn(), presign: vi.fn(), list: vi.fn() } as any,
+      agentRuns: { startRun: vi.fn() } as any,
+      taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
+    });
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/files?customerId=c2",
+      headers: { authorization: "Bearer secret" },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("requires customerId", async () => {
+    const app = buildServer({
+      config,
+      authenticator: auth,
+      platformFiles: { upload: vi.fn(), presign: vi.fn(), list: vi.fn() } as any,
+      agentRuns: { startRun: vi.fn() } as any,
+      taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
+    });
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/files?baId=u1",
+      headers: { authorization: "Bearer secret" },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("lists files filtered by baId + customerId", async () => {
+    const list = vi.fn(async () => ({ files: [{ uuid: "abc" }], total: 1, page: 1, size: 20 }));
+    const app = buildServer({
+      config,
+      authenticator: auth,
+      platformFiles: { upload: vi.fn(), presign: vi.fn(), list } as any,
+      agentRuns: { startRun: vi.fn() } as any,
+      taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
+    });
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/files?baId=u1&customerId=c2&page=1&size=20",
+      headers: { authorization: "Bearer secret" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().total).toBe(1);
+    expect(list).toHaveBeenCalledWith({
+      tenantId: "tenant_a",
+      meta: JSON.stringify({ baId: "u1", customerId: "c2" }),
+      path: undefined,
+      q: undefined,
+      recursive: undefined,
+      page: "1",
+      size: "20",
+    });
   });
 });
