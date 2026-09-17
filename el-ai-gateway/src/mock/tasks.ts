@@ -67,39 +67,13 @@ export function getTasks(baId: string, customerId: string): TaskSummary[] {
   return TASKS[`${baId}|${customerId}`] ?? [];
 }
 
-export type TaskActivity = { id: string; action: string; markdown: string; createdAt: string };
-export type TaskDetail = TaskSummary & { title: string; activities: TaskActivity[] };
-
-function buildActivities(task: TaskSummary): TaskActivity[] {
-  const acts: TaskActivity[] = [];
-  if (task.status !== "failed") {
-    acts.push({
-      id: `${task.taskId}-transcribed`,
-      action: "activity",
-      markdown: `## 语音转写完成（MOCK）\n\n- **file_id**: \`${task.fileId}\`\n- **mock**: true`,
-      createdAt: task.createdAt,
-    });
-  }
-  if (task.tags.length > 0) {
-    const lines = task.tags.map((t) => `- **${t.name}**（${t.dimension}）`).join("\n");
-    acts.push({
-      id: `${task.taskId}-tagged`,
-      action: "activity",
-      markdown: `## 客户画像标签（MOCK）\n\n${lines}`,
-      createdAt: task.createdAt,
-    });
-  }
-  // Newest first.
-  return acts.reverse();
-}
+export type TaskDetail = TaskSummary & { title: string };
 
 /** Task detail by id. Returns undefined when the task is unknown. */
 export function getTaskById(taskId: string): TaskDetail | undefined {
   for (const list of Object.values(TASKS)) {
     const task = list.find((t) => t.taskId === taskId);
-    if (task) {
-      return { ...task, title: `Voice tagging: ${task.fileId}`, activities: buildActivities(task) };
-    }
+    if (task) return { ...task, title: `Voice tagging: ${task.fileId}` };
   }
   return undefined;
 }

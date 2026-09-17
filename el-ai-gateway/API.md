@@ -270,21 +270,12 @@ GET /voice-tagging/:taskId
   "title": "Voice tagging: 471c20082b524316accc1b23cba8a4de",
   "tags": [
     { "tagId": "9ce355bfacca49c4a9e9322a9317c196", "name": "抗老/紧致", "dimension": "concerns" }
-  ],
-  "activities": [
-    {
-      "id": "c3915a5a-…-tagged",
-      "action": "activity",
-      "markdown": "## 客户画像标签（MOCK）\n\n- **抗老/紧致**（concerns）",
-      "createdAt": "2026-09-15T06:13:00Z"
-    }
   ]
 }
 ```
 
 - `status`：`pending | in_progress | review | failed | interrupted | completed | cancelled`
 - `tags`：该任务打出的标签（`tagId` 32 位 hex / `name` / `dimension`）
-- `activities`：任务时间线（Markdown `markdown`），最新在前
 - 任务不存在 → `404 NOT_FOUND`
 - 说明：当前为 **mock 数据**；接入真实任务/标签存储后接口契约不变
 

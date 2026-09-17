@@ -126,7 +126,7 @@ describe("POST /api/v1/voice-tagging", () => {
 });
 
 describe("GET /api/v1/voice-tagging/:id", () => {
-  it("returns the (mock) task detail with fileId / status / tags / activities", async () => {
+  it("returns the (mock) task detail with fileId / status / tags", async () => {
     const app = buildServer(deps());
     const res = await app.inject({
       method: "GET",
@@ -140,8 +140,7 @@ describe("GET /api/v1/voice-tagging/:id", () => {
     expect(body.status).toBe("completed");
     expect(Array.isArray(body.tags)).toBe(true);
     expect(body.tags.length).toBeGreaterThan(0);
-    expect(Array.isArray(body.activities)).toBe(true);
-    expect(body.activities.length).toBeGreaterThan(0);
+    expect(body.activities).toBeUndefined();
   });
 
   it("returns 404 for an unknown task", async () => {
