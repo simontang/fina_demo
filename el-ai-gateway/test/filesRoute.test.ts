@@ -171,3 +171,53 @@ describe("GET /api/v1/files", () => {
     });
   });
 });
+
+describe("GET /api/v1/files/:uuid/url", () => {
+  const auth = (h?: string) =>
+    h === "Bearer secret" ? { tenantId: "tenant_a", keyLabel: "k" } : null;
+  const uuid = "471c20082b524316accc1b23cba8a4de";
+
+  it("returns a playable (presigned) url", async () => {
+    const presign = vi.fn(async () => ({
+      url: "https://signed",
+      kind: "presigned",
+      expiresInSeconds: 600,
+    }));
+    const app = buildServer({
+      config,
+      authenticator: auth,
+      platformFiles: { upload: vi.fn(), list: vi.fn(), presign } as any,
+      agentRuns: { startRun: vi.fn() } as any,
+      taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
+    });
+    const res = await app.inject({
+      method: "GET",
+      url: `/api/v1/files/${uuid}/url`,
+      headers: { authorization: "Bearer secret" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      uuid,
+      url: "https://signed",
+      kind: "presigned",
+      expiresInSeconds: 600,
+    });
+    expect(presign).toHaveBeenCalledWith({ tenantId: "tenant_a", uuid, ttlSeconds: undefined });
+  });
+
+  it("rejects a bad uuid", async () => {
+    const app = buildServer({
+      config,
+      authenticator: auth,
+      platformFiles: { upload: vi.fn(), list: vi.fn(), presign: vi.fn() } as any,
+      agentRuns: { startRun: vi.fn() } as any,
+      taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
+    });
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/files/nope/url",
+      headers: { authorization: "Bearer secret" },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+});

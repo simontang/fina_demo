@@ -90,4 +90,24 @@ export function registerFileRoutes(app: FastifyInstance, deps: FileRouteDeps): v
       size: query.size,
     });
   });
+
+  // Get a (presigned) URL to play/download the file — usable directly in <audio src>.
+  app.get("/api/v1/files/:uuid/url", async (request) => {
+    const principal = requirePrincipal(deps.authenticator, request.headers.authorization);
+    const { uuid } = request.params as { uuid: string };
+    if (!/^[0-9a-fA-F]{32}$/.test(uuid)) {
+      throw new GatewayError(400, "BAD_REQUEST", "uuid must be 32 hex characters");
+    }
+    const query = request.query as { ttlSeconds?: string };
+    const ttlSeconds = query.ttlSeconds ? Number(query.ttlSeconds) : undefined;
+    if (ttlSeconds !== undefined && (!Number.isFinite(ttlSeconds) || ttlSeconds <= 0)) {
+      throw new GatewayError(400, "BAD_REQUEST", "ttlSeconds must be a positive integer");
+    }
+    const link = await deps.platformFiles.presign({
+      tenantId: principal.tenantId,
+      uuid,
+      ttlSeconds,
+    });
+    return { uuid, ...link };
+  });
 }

@@ -216,6 +216,39 @@ GET /files?baId=<id>&customerId=<id>&path=&q=&recursive=&page=&size=
 - 过滤条件是 `baId` 与 `customerId` 的**同时精确匹配**。
 - 缺 `baId` 或 `customerId` → `400 BAD_REQUEST`。
 
+### 3.2 获取文件播放/下载链接
+
+获取某个文件的限时预签名 URL，**可直接用于 `<audio>` 播放**（云存储直链，不经过网关）。
+
+```
+GET /files/:uuid/url?ttlSeconds=
+```
+
+| 参数 | 位置 | 必填 | 说明 |
+|---|---|---|---|
+| `uuid` | path | 是 | 文件 uuid（32 hex），即任务里的 `fileId` |
+| `ttlSeconds` | query | 否 | 链接有效期（秒），缺省由服务端决定 |
+
+**响应 `200`**：
+
+```json
+{
+  "uuid": "471c20082b524316accc1b23cba8a4de",
+  "url": "https://finademo.tos-s3-cn-beijing.volces.com/estee_lauder/471c2008…?X-Amz-Signature=…",
+  "kind": "presigned",
+  "expiresInSeconds": 600
+}
+```
+
+播放示例：
+
+```html
+<audio controls src="https://…（响应里的 url）"></audio>
+```
+
+- `kind`：`presigned`（云存储直链）或 `direct`（服务转发）。
+- `uuid` 非 32 位 hex → `400 BAD_REQUEST`。
+
 ## 4. 发起打标任务
 
 用上一步的 `uuid` 创建一个打标任务；系统在后台执行**语音转写 + 客户画像打标签**。
