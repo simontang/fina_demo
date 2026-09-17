@@ -25,6 +25,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
 
     implementation("com.baomidou:mybatis-plus-spring-boot3-starter:3.5.5")
+    implementation("org.jooq:jooq")
 
     // Auto DB migration on startup (V* files in classpath:db/migration)
     implementation("org.flywaydb:flyway-core")

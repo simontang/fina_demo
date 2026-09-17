@@ -8,6 +8,8 @@ jest.mock("langchain", () => ({
 }));
 
 import { PluginRegistry } from "@axiom-lattice/core";
+import { businessObjectRecordsPlugin } from "../business_objects/recordsPlugin";
+import { businessObjectSchemaPlugin } from "../business_objects/schemaPlugin";
 import { storagePlugin } from "../storage/plugin";
 import { webhooksPlugin } from "../webhooks/plugin";
 
@@ -167,5 +169,72 @@ describe("webhooks plugin connection", () => {
         description: "gate.passed, job.completed | channels: vip, beta",
       },
     ]);
+  });
+});
+
+describe("business object plugins", () => {
+  it("registers schema and records plugins", () => {
+    expect(PluginRegistry.register).toHaveBeenCalledWith(businessObjectSchemaPlugin);
+    expect(PluginRegistry.register).toHaveBeenCalledWith(businessObjectRecordsPlugin);
+    expect(businessObjectSchemaPlugin.meta.type).toBe("business-object-schema");
+    expect(businessObjectRecordsPlugin.meta.type).toBe("business-object-records");
+  });
+
+  it("exposes schema management tools separately from record runtime tools", async () => {
+    const schemaMw = await businessObjectSchemaPlugin.middleware!({});
+    const schemaTools = ((schemaMw as { tools: Array<{ name: string }> }).tools ?? [])
+      .map((t) => t.name)
+      .sort();
+    expect(schemaTools).toEqual([
+      "create_object",
+      "create_store",
+      "delete_object",
+      "get_object",
+      "grant_store",
+      "list_objects",
+      "list_store_grants",
+      "list_stores",
+      "test_store",
+      "update_object",
+    ]);
+
+    const recordsMw = await businessObjectRecordsPlugin.middleware!({});
+    const recordTools = ((recordsMw as { tools: Array<{ name: string }> }).tools ?? [])
+      .map((t) => t.name)
+      .sort();
+    expect(recordTools).toEqual([
+      "create_record",
+      "delete_record",
+      "get_record",
+      "query_records",
+      "update_record",
+    ]);
+  });
+
+  it("BO connection discovery maps object definitions into selectable entities", async () => {
+    const fetchMock = jest.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => [
+        { objectKey: "customer", displayName: "Customer", storeKey: "crm_store" },
+      ],
+    } as unknown as Response);
+
+    const discover = businessObjectRecordsPlugin.connection!.discover as unknown as (
+      config: Record<string, unknown>,
+    ) => Promise<Array<{ id: string; name: string; description?: string }>>;
+
+    const result = await discover({ baseUrl: "http://svc:5707", boConnectionKey: "tenant" });
+
+    expect(result).toEqual([{ id: "customer", name: "Customer", description: "store: crm_store" }]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://svc:5707/api/v1/bo/objects",
+      expect.objectContaining({
+        method: "GET",
+        headers: expect.objectContaining({ "X-BO-Connection-Key": "tenant" }),
+      }),
+    );
+    const [, init] = fetchMock.mock.calls[0];
+    expect((init?.headers as Record<string, string>)["X-Tenant-Id"]).toBeUndefined();
   });
 });

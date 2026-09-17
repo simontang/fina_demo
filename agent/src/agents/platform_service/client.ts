@@ -1,6 +1,7 @@
 export interface PlatformServiceConn {
   baseUrl: string;
   apiKey?: string;
+  boConnectionKey?: string;
   selectedEntities: string[];
 }
 
@@ -37,10 +38,15 @@ function normalize(config: Record<string, unknown>): PlatformServiceConn {
   const apiKeyRaw = config.apiKey;
   const apiKey =
     typeof apiKeyRaw === "string" && apiKeyRaw.trim() ? apiKeyRaw.trim() : envApiKey();
+  const boConnectionKeyRaw = config.boConnectionKey;
+  const boConnectionKey =
+    typeof boConnectionKeyRaw === "string" && boConnectionKeyRaw.trim()
+      ? boConnectionKeyRaw.trim()
+      : undefined;
   const entities = Array.isArray(config.selectedEntities)
     ? config.selectedEntities.filter((x): x is string => typeof x === "string")
     : [];
-  return { baseUrl, apiKey, selectedEntities: entities };
+  return { baseUrl, apiKey, boConnectionKey, selectedEntities: entities };
 }
 
 /** Connection config from a bare config object (connection.test / discover). */
@@ -83,8 +89,8 @@ export class PlatformServiceError extends Error {
 
 export interface RequestOptions {
   conn: PlatformServiceConn;
-  tenantId: string;
-  method: "GET" | "POST" | "PUT" | "DELETE";
+  tenantId?: string;
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   path: string;
   query?: Record<string, string | number | boolean | undefined | null>;
   json?: unknown;
@@ -104,7 +110,11 @@ function buildUrl(base: string, path: string, query?: RequestOptions["query"]): 
 
 export async function request<T = unknown>(opts: RequestOptions): Promise<T> {
   const headers: Record<string, string> = { ...(opts.headers ?? {}) };
-  headers["X-Tenant-Id"] = opts.tenantId;
+  if (opts.tenantId) {
+    headers["X-Tenant-Id"] = opts.tenantId;
+  } else {
+    delete headers["X-Tenant-Id"];
+  }
   if (opts.conn.apiKey) {
     headers["X-Api-Key"] = opts.conn.apiKey;
   } else {

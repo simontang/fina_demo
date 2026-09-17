@@ -36,6 +36,10 @@ public class TenantContextInterceptor implements HandlerInterceptor {
             }
         }
 
+        if (request.getRequestURI().startsWith("/api/v1/bo/")) {
+            return true;
+        }
+
         String tenant = headerIgnoreCase(request, "X-Tenant-Id");
         if (tenant == null || tenant.isBlank()) {
             if (defaultTenant != null && !defaultTenant.isBlank()) {
