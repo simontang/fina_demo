@@ -1,4 +1,7 @@
 import { registerToolLattice, metricsServerManager } from "@axiom-lattice/core";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import ts from "typescript";
 import "../metricsTools";
 import { metricsFetch, validateReadOnlySql } from "../metricsToolClient";
 
@@ -24,6 +27,16 @@ const serverConfig = {
 };
 
 describe("metrics MCP-style tools", () => {
+  it("loads the metrics registration module from the production entrypoint", () => {
+    const filename = resolve(__dirname, "../../index.ts");
+    const source = ts.createSourceFile(filename, readFileSync(filename, "utf8"), ts.ScriptTarget.Latest, true);
+    const imports = source.statements
+      .filter(ts.isImportDeclaration)
+      .map((statement) => (statement.moduleSpecifier as ts.StringLiteral).text);
+
+    expect(imports).toContain("./tools/metricsTools");
+  });
+
   beforeEach(() => {
     metricsServerManagerMock.getServerKeys.mockResolvedValue([
       { key: "argo", type: "semantic" },

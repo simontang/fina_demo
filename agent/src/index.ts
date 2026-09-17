@@ -36,7 +36,8 @@ import {
 import "./agents";
 import "./tools/segmentCrud";
 import "./tools/marketingCampaignCrud";
-// import "./tools/metricsTools"; // 框架已内置 metrics 工具，本地注册重复
+// These admin/runtime tools supplement the framework's query_metrics_* middleware tools.
+import "./tools/metricsTools";
 
 // 加载环境变量
 
