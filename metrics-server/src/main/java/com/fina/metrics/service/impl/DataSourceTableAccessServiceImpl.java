@@ -2,6 +2,7 @@ package com.fina.metrics.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fina.metrics.config.DynamicDataSourceManager;
+import com.fina.metrics.config.DataSourceType;
 import com.fina.metrics.dto.*;
 import com.fina.metrics.entity.DataSourceConfig;
 import com.fina.metrics.entity.DataSourceTableGrant;
@@ -9,10 +10,11 @@ import com.fina.metrics.exception.ForbiddenException;
 import com.fina.metrics.mapper.DataSourceConfigMapper;
 import com.fina.metrics.mapper.DataSourceTableGrantMapper;
 import com.fina.metrics.service.DataSourceTableAccessService;
+import com.fina.metrics.service.DataSourceVisibleScope;
+import com.fina.metrics.service.RuntimeMetaCache;
 import com.fina.metrics.util.ReadOnlySqlValidator;
 import com.fina.metrics.util.JdbcValueNormalizer;
 import com.fina.metrics.util.SqlTableReferenceExtractor;
-import com.fina.metrics.util.TenantHeaderResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -44,6 +46,7 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
     private final DataSourceTableGrantMapper grantMapper;
     private final DataSourceConfigMapper datasourceMapper;
     private final DynamicDataSourceManager dsManager;
+    private final RuntimeMetaCache runtimeMetaCache;
 
     @Override
     public List<DataSourceTableGrantVO> listGrants(String tenantId, Long datasourceId) {
@@ -67,13 +70,14 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
             DataSourceTableGrantRequest request) {
         requireDatasource(datasourceId);
         DataSourceTableGrant grant = new DataSourceTableGrant();
-        grant.setTenantId(TenantHeaderResolver.resolve(tenantId));
+        grant.setTenantId(DataSourceVisibleScope.LEGACY_TENANT_MARKER);
         grant.setDatasourceId(datasourceId);
         applyRequest(grant, request);
         grant.setDeleted(0);
         grantMapper.insert(grant);
-        log.info("Created datasource table grant id={} tenant={} datasource={} pattern={}",
-                grant.getId(), grant.getTenantId(), datasourceId, grant.getTablePattern());
+        runtimeMetaCache.invalidateDatasourceAfterCommit(datasourceId, "visible scope created");
+        log.info("Created datasource visible scope id={} datasource={} pattern={}",
+                grant.getId(), datasourceId, grant.getTablePattern());
         return toVO(grant);
     }
 
@@ -87,8 +91,8 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
         DataSourceTableGrant grant = requireGrant(datasourceId, grantId);
         applyRequest(grant, request);
         grantMapper.updateById(grant);
-        log.info("Updated datasource table grant id={} tenant={} datasource={}",
-                grantId, grant.getTenantId(), datasourceId);
+        runtimeMetaCache.invalidateDatasourceAfterCommit(datasourceId, "visible scope updated");
+        log.info("Updated datasource visible scope id={} datasource={}", grantId, datasourceId);
         return toVO(grant);
     }
 
@@ -97,8 +101,8 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
     public void deleteGrant(String tenantId, Long datasourceId, Long grantId) {
         DataSourceTableGrant grant = requireGrant(datasourceId, grantId);
         grantMapper.deleteById(grant.getId());
-        log.info("Deleted datasource table grant id={} tenant={} datasource={}",
-                grantId, grant.getTenantId(), datasourceId);
+        runtimeMetaCache.invalidateDatasourceAfterCommit(datasourceId, "visible scope deleted");
+        log.info("Deleted datasource visible scope id={} datasource={}", grantId, datasourceId);
     }
 
     @Override
@@ -112,10 +116,7 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
             Long datasourceId,
             String schemaName,
             String tableName) {
-        List<DataSourceTableGrant> grants = selectEffectiveActiveGrants(tenantId, datasourceId);
-        DataSourceConfig datasource = resolveDatasource(datasourceId);
-        String effectiveSchema = resolveEffectiveSchema(schemaName, datasource, grants);
-        return grants.stream().anyMatch(grant -> matchesGrant(grant, effectiveSchema, tableName));
+        return visibleScope(datasourceId).allows(schemaName, tableName);
     }
 
     @Override
@@ -124,30 +125,26 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
             Long datasourceId,
             String schemaName,
             String tableName) {
-        List<DataSourceTableGrant> grants = selectEffectiveActiveGrants(tenantId, datasourceId);
-        if (grants.isEmpty()) {
-            return true;
-        }
-        DataSourceConfig datasource = resolveDatasource(datasourceId);
-        String effectiveSchema = resolveEffectiveSchema(schemaName, datasource, grants);
-        return grants.stream().anyMatch(grant -> matchesGrant(grant, effectiveSchema, tableName));
+        return isTableAuthorized(null, datasourceId, schemaName, tableName);
     }
 
     @Override
     public void assertSqlAuthorized(String tenantId, Long datasourceId, String sql) {
         ReadOnlySqlValidator.validate(sql);
-        List<DataSourceTableGrant> grants = selectEffectiveActiveGrants(tenantId, datasourceId);
-        if (grants.isEmpty()) {
-            throw new ForbiddenException("No table grants configured for tenant="
-                    + TenantHeaderResolver.resolve(tenantId) + " datasourceId=" + datasourceId);
-        }
-        DataSourceConfig datasource = resolveDatasource(datasourceId);
+        DataSourceConfig datasource = requireDatasource(datasourceId);
+        DataSourceVisibleScope scope = visibleScope(datasource);
         Set<SqlTableReferenceExtractor.TableReference> references = SqlTableReferenceExtractor.extract(sql);
+        if (!scope.isRestricted()) return;
+        if (scope.rules().isEmpty()) {
+            throw new ForbiddenException("No active datasource visible scopes for datasourceId=" + datasourceId);
+        }
         for (SqlTableReferenceExtractor.TableReference reference : references) {
-            String effectiveSchema = resolveEffectiveSchema(reference.schemaName(), datasource, grants);
-            boolean allowed = grants.stream()
-                    .anyMatch(grant -> matchesGrant(grant, effectiveSchema, reference.tableName()));
-            if (!allowed) {
+            if (!StringUtils.hasText(reference.schemaName())
+                    && (!StringUtils.hasText(datasource.getSchemaName())
+                        || DataSourceType.resolve(datasource.getSourceType(), datasource.getUrl()) == DataSourceType.SAP_B1_SQLSERVER)) {
+                throw new ForbiddenException("Schema-qualified table required in restricted SQL: " + reference.original());
+            }
+            if (!scope.allows(reference.schemaName(), reference.tableName())) {
                 throw new ForbiddenException("SQL references unauthorized table: " + reference.original());
             }
         }
@@ -156,7 +153,9 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
     @Override
     public List<DataSourceTableVO> listPhysicalTables(Long datasourceId, String schemaName) {
         DataSourceConfig datasource = requireDatasource(datasourceId);
-        String effectiveSchema = StringUtils.hasText(schemaName) ? schemaName : datasource.getSchemaName();
+        DataSourceVisibleScope scope = visibleScope(datasource);
+        if (scope.isRestricted() && scope.rules().isEmpty()) return List.of();
+        String effectiveSchema = trimToNull(schemaName);
         return withConnection(datasourceId, connection -> {
             DatabaseMetaData meta = connection.getMetaData();
             String catalog = connection.getCatalog();
@@ -168,6 +167,7 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
                     while (rs.next()) {
                         String rowSchema = rs.getString("TABLE_SCHEM");
                         String tableName = rs.getString("TABLE_NAME");
+                        if (!scope.allows(rowSchema, tableName)) continue;
                         String key = normalizeKey(rowSchema, tableName);
                         rows.putIfAbsent(key, DataSourceTableVO.builder()
                                 .schemaName(rowSchema)
@@ -184,41 +184,7 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
 
     @Override
     public List<DataSourceTableVO> listAuthorizedTables(String tenantId, Long datasourceId) {
-        requireDatasource(datasourceId);
-        List<DataSourceTableGrant> grants = selectEffectiveActiveGrants(tenantId, datasourceId);
-        if (grants.isEmpty()) {
-            return List.of();
-        }
-        return withConnection(datasourceId, connection -> {
-            DatabaseMetaData meta = connection.getMetaData();
-            String catalog = connection.getCatalog();
-            String escape = meta.getSearchStringEscape();
-            Map<String, DataSourceTableVO> rows = new LinkedHashMap<>();
-            for (DataSourceTableGrant grant : grants) {
-                for (String schemaPattern : candidateMetadataPatterns(grant.getSchemaName(), escape, grant.getCaseSensitive(), false)) {
-                    for (String tablePattern : candidateMetadataPatterns(
-                            grant.getTablePattern(), escape, grant.getCaseSensitive(), PATTERN_PREFIX.equals(grant.getPatternType()))) {
-                        try (ResultSet rs = meta.getTables(catalog, schemaPattern, tablePattern, new String[]{"TABLE", "VIEW"})) {
-                            while (rs.next()) {
-                                String schemaName = rs.getString("TABLE_SCHEM");
-                                String tableName = rs.getString("TABLE_NAME");
-                                if (!matchesAnyGrant(grants, schemaName, tableName)) {
-                                    continue;
-                                }
-                                String key = normalizeKey(schemaName, tableName);
-                                rows.putIfAbsent(key, DataSourceTableVO.builder()
-                                        .schemaName(schemaName)
-                                        .tableName(tableName)
-                                        .tableType(rs.getString("TABLE_TYPE"))
-                                        .remarks(rs.getString("REMARKS"))
-                                        .build());
-                            }
-                        }
-                    }
-                }
-            }
-            return new ArrayList<>(rows.values());
-        });
+        return listPhysicalTables(datasourceId, null);
     }
 
     @Override
@@ -228,8 +194,9 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
             String schemaName,
             String tableName) {
         if (!isTableAuthorized(tenantId, datasourceId, schemaName, tableName)) {
-            throw new ForbiddenException("Table is not authorized for this tenant: " + tableName);
+            throw new ForbiddenException("Table is not authorized by datasource visible scope: " + tableName);
         }
+        DataSourceVisibleScope scope = visibleScope(datasourceId);
         List<DataSourceTableGrant> grants = selectEffectiveActiveGrants(tenantId, datasourceId);
         DataSourceConfig datasource = resolveDatasource(datasourceId);
         String effectiveSchema = resolveEffectiveSchema(schemaName, datasource, grants);
@@ -248,7 +215,7 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
                             String rowSchema = rs.getString("TABLE_SCHEM");
                             String rowTable = rs.getString("TABLE_NAME");
                             String columnName = rs.getString("COLUMN_NAME");
-                            if (!matchesAnyGrant(grants, rowSchema, rowTable)) {
+                            if (!scope.allows(rowSchema, rowTable)) {
                                 continue;
                             }
                             String key = normalizeKey(rowSchema, rowTable) + "." + columnName;
@@ -273,7 +240,7 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
 
     @Override
     public MetricsQueryData queryDatasource(Long datasourceId, SqlProbeRequest request) {
-        ReadOnlySqlValidator.validate(request.getSql());
+        assertSqlAuthorized(null, datasourceId, request.getSql());
         return executeSql(datasourceId, request, "datasource_query", null);
     }
 
@@ -353,20 +320,21 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
     }
 
     private List<DataSourceTableGrant> selectEffectiveGrants(String tenantId, Long datasourceId, Integer status) {
-        String resolvedTenant = TenantHeaderResolver.resolve(tenantId);
-        List<DataSourceTableGrant> datasourceGrants = selectDatasourceGrants(datasourceId, status);
-        if (!datasourceGrants.isEmpty()) {
-            log.debug("Using datasource-level table grants tenant={} datasource={} grantCount={}",
-                    resolvedTenant, datasourceId, datasourceGrants.size());
-        }
-        return datasourceGrants;
+        return selectDatasourceGrants(datasourceId, status);
+    }
+
+    private DataSourceVisibleScope visibleScope(Long datasourceId) {
+        return visibleScope(requireDatasource(datasourceId));
+    }
+
+    private DataSourceVisibleScope visibleScope(DataSourceConfig datasource) {
+        return DataSourceVisibleScope.from(datasource, listActiveGrants(null, datasource.getId()));
     }
 
     private List<DataSourceTableGrant> selectDatasourceGrants(Long datasourceId, Integer status) {
         LambdaQueryWrapper<DataSourceTableGrant> wrapper = new LambdaQueryWrapper<DataSourceTableGrant>()
                 .eq(DataSourceTableGrant::getDatasourceId, datasourceId)
                 .eq(DataSourceTableGrant::getDeleted, 0)
-                .orderByAsc(DataSourceTableGrant::getTenantId)
                 .orderByAsc(DataSourceTableGrant::getId);
         if (status != null) {
             wrapper.eq(DataSourceTableGrant::getStatus, status);
@@ -382,7 +350,7 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
                         .eq(DataSourceTableGrant::getDeleted, 0)
         );
         if (grant == null) {
-            throw new IllegalArgumentException("DataSource table grant not found: id=" + grantId);
+            throw new IllegalArgumentException("Datasource visible scope not found: id=" + grantId);
         }
         return grant;
     }
@@ -419,33 +387,6 @@ public class DataSourceTableAccessServiceImpl implements DataSourceTableAccessSe
         grant.setPatternType(patternType);
         grant.setCaseSensitive(Boolean.TRUE.equals(request.getCaseSensitive()));
         grant.setStatus(status);
-    }
-
-    private boolean matchesAnyGrant(List<DataSourceTableGrant> grants, String schemaName, String tableName) {
-        return grants.stream().anyMatch(grant -> matchesGrant(grant, schemaName, tableName));
-    }
-
-    private boolean matchesGrant(DataSourceTableGrant grant, String schemaName, String tableName) {
-        if (!StringUtils.hasText(tableName)) {
-            return false;
-        }
-        boolean caseSensitive = Boolean.TRUE.equals(grant.getCaseSensitive());
-        if (StringUtils.hasText(grant.getSchemaName())
-                && !equalsMaybeCaseSensitive(grant.getSchemaName(), schemaName, caseSensitive)) {
-            return false;
-        }
-        String candidate = caseSensitive ? tableName : tableName.toLowerCase(Locale.ROOT);
-        String pattern = caseSensitive ? grant.getTablePattern() : grant.getTablePattern().toLowerCase(Locale.ROOT);
-        return PATTERN_EXACT.equals(grant.getPatternType())
-                ? candidate.equals(pattern)
-                : candidate.startsWith(pattern);
-    }
-
-    private boolean equalsMaybeCaseSensitive(String expected, String actual, boolean caseSensitive) {
-        if (!StringUtils.hasText(actual)) {
-            return false;
-        }
-        return caseSensitive ? expected.equals(actual) : expected.equalsIgnoreCase(actual);
     }
 
     private String resolveEffectiveSchema(

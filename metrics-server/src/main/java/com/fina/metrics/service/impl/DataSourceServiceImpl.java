@@ -9,6 +9,7 @@ import com.fina.metrics.dto.DataSourceVO;
 import com.fina.metrics.entity.DataSourceConfig;
 import com.fina.metrics.mapper.DataSourceConfigMapper;
 import com.fina.metrics.service.DataSourceService;
+import com.fina.metrics.service.RuntimeMetaCache;
 import com.fina.metrics.util.EncryptUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,7 @@ public class DataSourceServiceImpl implements DataSourceService {
 
     private final DataSourceConfigMapper configMapper;
     private final DynamicDataSourceManager dsManager;
+    private final RuntimeMetaCache runtimeMetaCache;
 
     @Value("${metrics.encryption.key}")
     private String encryptKey;
@@ -68,11 +70,13 @@ public class DataSourceServiceImpl implements DataSourceService {
     public DataSourceVO create(DataSourceRequest request) {
         DataSourceConfig config = new DataSourceConfig();
         BeanUtils.copyProperties(request, config);
+        config.setVisibleScopeMode(validateVisibleScopeMode(request.getVisibleScopeMode()));
         config.setSourceType(DataSourceType.resolve(request.getSourceType(), request.getUrl()).getCode());
         config.setPassword(EncryptUtil.encrypt(request.getPassword(), encryptKey));
         config.setDeleted(0);
 
         configMapper.insert(config);
+        runtimeMetaCache.invalidateDatasourceAfterCommit(config.getId(), "datasource created");
 
         if (config.getStatus() == 1) {
             dsManager.registerDataSource(config);
@@ -85,8 +89,13 @@ public class DataSourceServiceImpl implements DataSourceService {
     @Override
     @Transactional
     public DataSourceVO update(Long id, DataSourceUpdateRequest request) {
+        String visibleScopeMode = request.getVisibleScopeMode() == null
+                ? null : validateVisibleScopeMode(request.getVisibleScopeMode());
         DataSourceConfig config = requireConfig(id);
 
+        if (visibleScopeMode != null) {
+            config.setVisibleScopeMode(visibleScopeMode);
+        }
         config.setName(request.getName());
         config.setUrl(request.getUrl());
         config.setUsername(request.getUsername());
@@ -101,6 +110,7 @@ public class DataSourceServiceImpl implements DataSourceService {
         }
 
         configMapper.updateById(config);
+        runtimeMetaCache.invalidateDatasourceAfterCommit(id, "datasource updated");
 
         if (config.getStatus() == 1) {
             dsManager.registerDataSource(config);
@@ -117,6 +127,7 @@ public class DataSourceServiceImpl implements DataSourceService {
     public void delete(Long id) {
         requireConfig(id);
         configMapper.deleteById(id);
+        runtimeMetaCache.invalidateDatasourceAfterCommit(id, "datasource deleted");
         dsManager.removeDataSource(id);
         log.info("Deleted datasource id={}", id);
     }
@@ -141,6 +152,7 @@ public class DataSourceServiceImpl implements DataSourceService {
         DataSourceConfig config = requireConfig(id);
         config.setStatus(status);
         configMapper.updateById(config);
+        runtimeMetaCache.invalidateDatasourceAfterCommit(id, "datasource status changed");
 
         if (status == 1) {
             dsManager.registerDataSource(config);
@@ -159,6 +171,7 @@ public class DataSourceServiceImpl implements DataSourceService {
     public boolean testConnection(DataSourceRequest request) {
         DataSourceConfig config = new DataSourceConfig();
         BeanUtils.copyProperties(request, config);
+        config.setVisibleScopeMode(validateVisibleScopeMode(request.getVisibleScopeMode()));
         config.setSourceType(DataSourceType.resolve(request.getSourceType(), request.getUrl()).getCode());
         // Caller supplies plain-text password; encrypt so DynamicDataSourceManager
         // can decrypt it consistently (same path as persisted configs).
@@ -184,6 +197,7 @@ public class DataSourceServiceImpl implements DataSourceService {
     public void reload(Long id) {
         DataSourceConfig config = requireConfig(id);
         dsManager.registerDataSource(config);
+        runtimeMetaCache.invalidateDatasourceAfterCommit(id, "datasource reloaded");
         log.info("Reloaded datasource id={}", id);
     }
 
@@ -194,6 +208,16 @@ public class DataSourceServiceImpl implements DataSourceService {
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    private String validateVisibleScopeMode(String mode) {
+        if (mode == null) {
+            return "RESTRICTED";
+        }
+        if (!"ALL".equals(mode) && !"RESTRICTED".equals(mode)) {
+            throw new IllegalArgumentException("visibleScopeMode must be ALL or RESTRICTED");
+        }
+        return mode;
+    }
 
     private DataSourceConfig requireConfig(Long id) {
         DataSourceConfig config = configMapper.selectOne(

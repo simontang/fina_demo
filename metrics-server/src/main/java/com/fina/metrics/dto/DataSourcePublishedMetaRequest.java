@@ -27,8 +27,11 @@ public class DataSourcePublishedMetaRequest {
     private Integer status;
 
     /**
-     * Optional table access backing. If omitted for table meta, an EXACT grant is
-     * derived from tableName/viewName/objectKey.
+     * Deprecated compatibility field, validated only; publishing table or metric
+     * metadata never creates, updates, or deletes datasource scope rules.
+     * When supplied, must match an existing active rule exactly (schema, pattern,
+     * pattern type, case sensitivity, and active status). No broader or implicit
+     * rule is inferred, even in ALL mode. Omit when no identical rule exists.
      */
     @Valid
     private DataSourceTableGrantRequest accessGrant;

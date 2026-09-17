@@ -97,16 +97,21 @@ export function assertDatasourceAllowed(config: SemanticMetricsServerConfig, dat
 export async function metricsFetch(
   server: MetricsServerContext,
   path: string,
-  options?: RequestInit,
+  options?: RequestInit & { includeTenantHeader?: boolean },
 ): Promise<unknown> {
   const url = `${server.config.serverUrl.replace(/\/$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
+  const { includeTenantHeader = true, ...requestOptions } = options || {};
+  const headers = new Headers(buildHeaders(server.config));
+  new Headers(requestOptions.headers).forEach((value, name) => headers.set(name, value));
+  if (includeTenantHeader) {
+    headers.set("X-Tenant-Id", server.tenantId);
+  } else {
+    // Datasource-owned endpoints must not inherit tenant identity from config or callers.
+    headers.delete("X-Tenant-Id");
+  }
   const res = await fetch(url, {
-    ...options,
-    headers: {
-      ...buildHeaders(server.config),
-      ...options?.headers,
-      "X-Tenant-Id": server.tenantId,
-    },
+    ...requestOptions,
+    headers,
   });
 
   const text = await res.text();

@@ -45,6 +45,31 @@ public class DataSourceController {
     private final DataSourceService dataSourceService;
     private final DataSourceTableAccessService tableAccessService;
 
+    @GetMapping("/{id}/visible-scopes")
+    public ApiResponse<List<DataSourceVisibleScopeVO>> listVisibleScopes(@PathVariable Long id) {
+        return ApiResponse.ok(tableAccessService.listGrants(null, id).stream()
+                .map(DataSourceVisibleScopeVO::from).toList());
+    }
+
+    @PostMapping("/{id}/visible-scopes")
+    public ApiResponse<DataSourceVisibleScopeVO> createVisibleScope(
+            @PathVariable Long id, @Valid @RequestBody DataSourceVisibleScopeRequest request) {
+        return ApiResponse.ok(DataSourceVisibleScopeVO.from(tableAccessService.createGrant(null, id, request)));
+    }
+
+    @PutMapping("/{id}/visible-scopes/{scopeId}")
+    public ApiResponse<DataSourceVisibleScopeVO> updateVisibleScope(
+            @PathVariable Long id, @PathVariable Long scopeId,
+            @Valid @RequestBody DataSourceVisibleScopeRequest request) {
+        return ApiResponse.ok(DataSourceVisibleScopeVO.from(tableAccessService.updateGrant(null, id, scopeId, request)));
+    }
+
+    @DeleteMapping("/{id}/visible-scopes/{scopeId}")
+    public ApiResponse<Void> deleteVisibleScope(@PathVariable Long id, @PathVariable Long scopeId) {
+        tableAccessService.deleteGrant(null, id, scopeId);
+        return ApiResponse.ok();
+    }
+
     // ─── Query ────────────────────────────────────────────────────────────────
 
     @GetMapping
@@ -170,7 +195,7 @@ public class DataSourceController {
         return ApiResponse.ok(dataSourceService.getPoolStatus(id));
     }
 
-    // ─── Tenant-scoped table access ──────────────────────────────────────────
+    // Legacy scope routes retain their request shape; tenant headers do not affect visibility.
 
     @GetMapping("/{id}/table-grants")
     public ApiResponse<List<DataSourceTableGrantVO>> listTableGrants(

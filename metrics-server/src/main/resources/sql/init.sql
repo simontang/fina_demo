@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS t_datasource_config (
     password    VARCHAR(500)    NOT NULL,       -- AES-encrypted datasource password
     schema_name VARCHAR(128),                  -- optional default schema/search_path
     source_type VARCHAR(64)     NOT NULL DEFAULT 'sap_b1_hana',
+    visible_scope_mode VARCHAR(16) NOT NULL DEFAULT 'RESTRICTED'
+        CONSTRAINT ck_ds_visible_scope_mode CHECK (visible_scope_mode IN ('ALL', 'RESTRICTED')),
     description VARCHAR(1000),
     status      SMALLINT        NOT NULL DEFAULT 1,  -- 1=active 0=inactive
     created_at  TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -25,11 +27,11 @@ CREATE INDEX IF NOT EXISTS idx_ds_status ON t_datasource_config (status, deleted
 CREATE INDEX IF NOT EXISTS idx_ds_name   ON t_datasource_config (name);
 CREATE INDEX IF NOT EXISTS idx_ds_source_type ON t_datasource_config (source_type, status, deleted);
 
--- Tenant-scoped table authorization for datasource discovery/probing.
--- A tenant can only inspect/query tables matching active grants for a datasource.
+-- Datasource-scoped table visibility for discovery/probing.
+-- Historical tenant identifiers are retained for compatibility.
 CREATE TABLE IF NOT EXISTS t_datasource_table_grant (
     id             BIGSERIAL       PRIMARY KEY,
-    tenant_id      VARCHAR(100)    NOT NULL,
+    tenant_id      VARCHAR(100)    NOT NULL DEFAULT '__datasource__',
     datasource_id  BIGINT          NOT NULL,
     schema_name    VARCHAR(128),
     table_pattern  VARCHAR(200)    NOT NULL,
@@ -43,6 +45,9 @@ CREATE TABLE IF NOT EXISTS t_datasource_table_grant (
 
 CREATE INDEX IF NOT EXISTS idx_dstg_tenant_ds
     ON t_datasource_table_grant (tenant_id, datasource_id, status, deleted);
+
+CREATE INDEX IF NOT EXISTS idx_dstg_ds_status_deleted
+    ON t_datasource_table_grant (datasource_id, status, deleted);
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_dstg_tenant_ds_pattern
     ON t_datasource_table_grant (tenant_id, datasource_id, COALESCE(schema_name, ''), table_pattern, pattern_type)
@@ -101,27 +106,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_mmo_datasource_key
 -- ============================================================
 -- Sample seed data (adjust to your environment)
 -- ============================================================
-
-INSERT INTO t_datasource_table_grant (
-    tenant_id,
-    datasource_id,
-    schema_name,
-    table_pattern,
-    pattern_type,
-    case_sensitive,
-    status
-)
-SELECT 'hankel', 15, 'public', 'hankel_', 'PREFIX', FALSE, 1
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM t_datasource_table_grant
-    WHERE tenant_id = 'hankel'
-      AND datasource_id = 15
-      AND COALESCE(schema_name, '') = 'public'
-      AND table_pattern = 'hankel_'
-      AND pattern_type = 'PREFIX'
-      AND deleted = 0
-);
 
 -- Example: add a SAP B1 HANA datasource
 -- The password field must be AES-encrypted (use POST /api/v1/datasources/test

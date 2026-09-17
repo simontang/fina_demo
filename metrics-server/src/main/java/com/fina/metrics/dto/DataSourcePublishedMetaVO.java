@@ -7,5 +7,7 @@ import lombok.Data;
 @Builder
 public class DataSourcePublishedMetaVO {
     private MetricsMetaObjectVO metaObject;
+
+    /** Legacy response field; null because publishing metadata never creates or changes scope rules. */
     private DataSourceTableGrantVO tableGrant;
 }

@@ -4,6 +4,7 @@ import com.fina.metrics.dto.*;
 
 import java.util.List;
 
+/** Datasource-owned visibility. Legacy tenantId arguments are ignored. */
 public interface DataSourceTableAccessService {
 
     List<DataSourceTableGrantVO> listGrants(String tenantId, Long datasourceId);

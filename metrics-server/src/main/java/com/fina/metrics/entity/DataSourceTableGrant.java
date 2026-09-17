@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/** Legacy storage name for datasource visible scope rules; tenantId is historical only. */
 @Data
 @TableName("t_datasource_table_grant")
 public class DataSourceTableGrant {

@@ -1,6 +1,6 @@
 import { registerToolLattice, metricsServerManager } from "@axiom-lattice/core";
 import "../metricsTools";
-import { validateReadOnlySql } from "../metricsToolClient";
+import { metricsFetch, validateReadOnlySql } from "../metricsToolClient";
 
 jest.mock("@axiom-lattice/core", () => ({
   registerToolLattice: jest.fn(),
@@ -52,6 +52,10 @@ describe("metrics MCP-style tools", () => {
       "metrics_metric_create",
       "metrics_metric_update",
       "metrics_metric_delete",
+      "metrics_visible_scope_list",
+      "metrics_visible_scope_create",
+      "metrics_visible_scope_update",
+      "metrics_visible_scope_delete",
       "metrics_table_grant_list",
       "metrics_table_grant_create",
       "metrics_table_grant_update",
@@ -135,8 +139,8 @@ describe("metrics MCP-style tools", () => {
 
     const [url, requestInit] = (global.fetch as jest.Mock).mock.calls[0];
     expect(url).toBe("http://metrics.example/api/v1/metrics/query");
-    expect(requestInit.headers["X-Metrics-Test"]).toBe("yes");
-    expect(requestInit.headers["X-Tenant-Id"]).toBe("tenant_5");
+    expect(new Headers(requestInit.headers).get("X-Metrics-Test")).toBe("yes");
+    expect(new Headers(requestInit.headers).get("X-Tenant-Id")).toBe("tenant_5");
     expect(JSON.parse(requestInit.body)).toMatchObject({
       datasourceId: "15",
       metrics: ["sales_amount"],
@@ -160,7 +164,7 @@ describe("metrics MCP-style tools", () => {
 
     const [url, requestInit] = (global.fetch as jest.Mock).mock.calls[0];
     expect(url).toBe("http://metrics.example/api/v1/metrics/query");
-    expect(requestInit.headers["X-Tenant-Id"]).toBe("tenant_5");
+    expect(new Headers(requestInit.headers).get("X-Tenant-Id")).toBe("tenant_5");
     expect(JSON.parse(requestInit.body)).toMatchObject({
       datasourceId: "15",
       customSql: "SELECT * FROM hankel_sales",
@@ -169,13 +173,125 @@ describe("metrics MCP-style tools", () => {
     });
   });
 
-  it("calls datasource schema table and grant endpoints with tenant header", async () => {
-    await execute("metrics_table_grant_create", {
-      datasourceId: 15,
-      schemaName: "public",
-      tablePattern: "hankel_",
-      patternType: "PREFIX",
-    }, tenantConfig());
+  describe.each([
+    ["metrics_visible_scope", "scopeId"],
+    ["metrics_table_grant", "grantId"],
+  ])("%s datasource-owned scope tools", (toolPrefix, idField) => {
+    it.each([
+      ["list", "GET", ""],
+      ["create", "POST", ""],
+      ["update", "PUT", "/7"],
+      ["delete", "DELETE", "/7"],
+    ])("routes %s without tenant identity", async (action, method, suffix) => {
+      metricsServerManagerMock.getConfig.mockResolvedValue({
+        ...serverConfig,
+        apiKey: "metrics-test-key",
+        headers: {
+          ...serverConfig.headers,
+          "X-Tenant-Id": "configured-tenant",
+          "x-tenant-id": "lowercase-tenant",
+        },
+      });
+      const response = { datasourceId: 15, id: 7 };
+      (global.fetch as jest.Mock).mockResolvedValue(jsonResponse({ code: 200, data: response }));
+
+      const result = await execute(`${toolPrefix}_${action}`, {
+        datasourceId: 15,
+        [idField]: 7,
+        schemaName: "public",
+        tablePattern: "hankel_",
+        tenantId: "input-tenant",
+      }, tenantConfig());
+
+      const [url, request] = (global.fetch as jest.Mock).mock.calls[0];
+      const headers = new Headers(request.headers);
+      expect(url).toBe(`http://metrics.example/api/v1/datasources/15/visible-scopes${suffix}`);
+      expect(request.method || "GET").toBe(method);
+      expect(headers.has("X-Tenant-Id")).toBe(false);
+      expect(headers.get("X-Metrics-Test")).toBe("yes");
+      expect(headers.get("Authorization")).toBe("Bearer metrics-test-key");
+      expect(request).not.toHaveProperty("includeTenantHeader");
+      expect(metricsServerManagerMock.getConfig).toHaveBeenCalledWith("tenant_5", "argo");
+      expect(JSON.parse(result)).toEqual(response);
+      if (method === "POST" || method === "PUT") {
+        expect(headers.get("Content-Type")).toBe("application/json");
+        expect(JSON.parse(request.body)).toEqual({
+          schemaName: "public",
+          tablePattern: "hankel_",
+          patternType: "PREFIX",
+          caseSensitive: false,
+          status: 1,
+        });
+      } else {
+        expect(request.body).toBeUndefined();
+      }
+    });
+
+    it.each(["list", "create", "update", "delete"])("rejects %s outside selectedDataSources", async (action) => {
+      await expect(execute(`${toolPrefix}_${action}`, {
+        datasourceId: 99,
+        [idField]: 7,
+        tablePattern: "hankel_",
+      }, tenantConfig())).rejects.toThrow("not allowed");
+
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it("resolves the default datasource without a runConfig tenant", async () => {
+      await execute(`${toolPrefix}_list`, {}, {});
+
+      const [url, request] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(url).toBe("http://metrics.example/api/v1/datasources/15/visible-scopes");
+      expect(new Headers(request.headers).has("X-Tenant-Id")).toBe(false);
+    });
+
+    it("preserves runConfig server and datasource selection for reads", async () => {
+      metricsServerManagerMock.getConfig.mockResolvedValue({
+        ...serverConfig,
+        selectedDataSources: ["15", "20"],
+      });
+
+      await execute(`${toolPrefix}_list`, { serverKey: "input-server", datasourceId: 20 }, {
+        configurable: {
+          runConfig: {
+            tenantId: "tenant_5",
+            metricsDataSource: { serverKey: "run-server", datasourceId: 15 },
+          },
+        },
+      });
+
+      expect(metricsServerManagerMock.getConfig).toHaveBeenCalledWith("tenant_5", "run-server");
+      expect((global.fetch as jest.Mock).mock.calls[0][0])
+        .toBe("http://metrics.example/api/v1/datasources/15/visible-scopes");
+    });
+
+    it.each(["update", "delete"])("requires the compatible id field for %s", async (action) => {
+      await expect(execute(`${toolPrefix}_${action}`, {
+        datasourceId: 15,
+        tablePattern: "hankel_",
+      }, tenantConfig())).rejects.toThrow(idField);
+
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+  });
+
+  it.each([
+    ["record", { "x-TeNaNt-Id": "request-tenant", "X-Request-Test": "yes" }],
+    ["Headers", new Headers({ "x-TeNaNt-Id": "request-tenant", "X-Request-Test": "yes" })],
+    ["tuples", [["x-TeNaNt-Id", "request-tenant"], ["X-Request-Test", "yes"]]],
+  ] as [string, RequestInit["headers"]][])("strips request-level tenant headers from %s when metricsFetch explicitly opts out", async (_, requestHeaders) => {
+    await metricsFetch({ tenantId: "tenant_5", serverKey: "argo", config: { ...serverConfig, type: "semantic" } },
+      "/datasources/15/visible-scopes", {
+        includeTenantHeader: false,
+        headers: requestHeaders,
+      });
+
+    const headers = new Headers((global.fetch as jest.Mock).mock.calls[0][1].headers);
+    expect(headers.has("X-Tenant-Id")).toBe(false);
+    expect(headers.get("X-Request-Test")).toBe("yes");
+  });
+
+  it("calls datasource schema table and query endpoints with compatible tenant context", async () => {
     await execute("metrics_datasource_table_list", { datasourceId: 15, schemaName: "public" }, tenantConfig());
     await execute("metrics_datasource_query", {
       datasourceId: 15,
@@ -185,15 +301,12 @@ describe("metrics MCP-style tools", () => {
     }, tenantConfig());
 
     expect((global.fetch as jest.Mock).mock.calls[0][0])
-      .toBe("http://metrics.example/api/v1/datasources/15/table-grants");
-    expect((global.fetch as jest.Mock).mock.calls[1][0])
       .toBe("http://metrics.example/api/v1/datasources/15/schema/tables?schemaName=public");
-    expect((global.fetch as jest.Mock).mock.calls[2][0])
+    expect((global.fetch as jest.Mock).mock.calls[1][0])
       .toBe("http://metrics.example/api/v1/datasources/15/query");
-    expect((global.fetch as jest.Mock).mock.calls[0][1].headers["X-Tenant-Id"]).toBe("tenant_5");
-    expect((global.fetch as jest.Mock).mock.calls[1][1].headers["X-Tenant-Id"]).toBe("tenant_5");
-    expect((global.fetch as jest.Mock).mock.calls[2][1].headers["X-Tenant-Id"]).toBe("tenant_5");
-    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[2][1].body)).toMatchObject({
+    expect(new Headers((global.fetch as jest.Mock).mock.calls[0][1].headers).get("X-Tenant-Id")).toBe("tenant_5");
+    expect(new Headers((global.fetch as jest.Mock).mock.calls[1][1].headers).get("X-Tenant-Id")).toBe("tenant_5");
+    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body)).toMatchObject({
       sql: "SELECT column_name FROM information_schema.columns WHERE table_name = :tableName",
       maxRows: 20,
     });
@@ -241,8 +354,34 @@ describe("metrics MCP-style tools", () => {
       .toBe("http://metrics.example/api/v1/datasources/15/meta/tables");
     expect((global.fetch as jest.Mock).mock.calls[1][0])
       .toBe("http://metrics.example/api/v1/datasources/15/meta/metrics");
-    expect((global.fetch as jest.Mock).mock.calls[0][1].headers["X-Tenant-Id"]).toBe("tenant_5");
-    expect((global.fetch as jest.Mock).mock.calls[1][1].headers["X-Tenant-Id"]).toBe("tenant_5");
+    expect(new Headers((global.fetch as jest.Mock).mock.calls[0][1].headers).get("X-Tenant-Id")).toBe("tenant_5");
+    expect(new Headers((global.fetch as jest.Mock).mock.calls[1][1].headers).get("X-Tenant-Id")).toBe("tenant_5");
+    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body)).not.toHaveProperty("accessGrant");
+  });
+
+  it("updates and deletes published table meta without changing visible scopes", async () => {
+    await execute("metrics_datasource_table_meta_update", {
+      datasourceId: 15,
+      tableKey: "hankel_sales",
+      payload: { tableName: "hankel_sales" },
+      accessGrant: { tablePattern: "hankel_", patternType: "PREFIX" },
+    }, tenantConfig());
+    await execute("metrics_datasource_table_meta_delete", {
+      datasourceId: 15,
+      tableKey: "hankel_sales",
+    }, tenantConfig());
+
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    const [[updateUrl, updateRequest], [deleteUrl, deleteRequest]] = (global.fetch as jest.Mock).mock.calls;
+    expect(updateUrl).toBe("http://metrics.example/api/v1/datasources/15/meta/tables/hankel_sales");
+    expect(JSON.parse(updateRequest.body)).toEqual({
+      objectType: "table_view_detail",
+      payload: { tableName: "hankel_sales" },
+      status: 1,
+    });
+    expect(deleteUrl).toBe(updateUrl);
+    expect(deleteRequest.method).toBe("DELETE");
+    expect(deleteRequest.body).toBeUndefined();
   });
 
   it("checks metric id belongs to the allowed datasource before update", async () => {
@@ -308,14 +447,14 @@ describe("metrics MCP-style tools", () => {
   });
 });
 
-function execute(toolName: string, input: Record<string, unknown>, config: unknown): Promise<string> {
+async function execute(toolName: string, input: Record<string, unknown>, config: unknown): Promise<string> {
   const registration = registerToolLatticeMock.mock.calls.find(([key]) => key === toolName);
   expect(registration).toBeDefined();
   const executor = registration[2] as (
     input: Record<string, unknown>,
     config: unknown,
   ) => Promise<string>;
-  return executor(input, config);
+  return executor(registration[1].schema.parse(input), config);
 }
 
 function tenantConfig(): unknown {

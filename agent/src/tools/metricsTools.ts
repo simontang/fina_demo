@@ -38,6 +38,13 @@ const orderBySchema = z.object({
 
 const tableMetaTypeSchema = z.enum(["table_catalog", "table_view_detail"]);
 const metricMetaTypeSchema = z.enum(["metric_index", "metric_detail"]);
+const visibleScopeInput = {
+  schemaName: z.string().optional(),
+  tablePattern: z.string(),
+  patternType: z.enum(["PREFIX", "EXACT"]).default("PREFIX"),
+  caseSensitive: z.boolean().default(false),
+  status: z.number().default(1),
+};
 const tableAccessGrantSchema = z.object({
   schemaName: z.string().optional(),
   tablePattern: z.string(),
@@ -131,7 +138,7 @@ registerToolLattice(
   {
     name: "metrics_metric_query",
     description:
-      "执行 semantic metric query 或只读 customSql query。customSql 仅允许 SELECT/WITH，禁止写操作和多语句。",
+      "执行 semantic metric query 或只读 customSql query，均受 datasource 的 ALL/RESTRICTED 可见范围约束；runtime 还需已发布 meta。customSql 仅允许 SELECT/WITH，禁止写操作和多语句；tenant header 不是可见范围授权依据。",
     schema: z.object({
       ...serverInput,
       datasourceId: datasourceIdSchema.optional(),
@@ -171,131 +178,84 @@ registerToolLattice(
   },
 );
 
-registerToolLattice(
-  "metrics_table_grant_list",
-  {
-    name: "metrics_table_grant_list",
-    description:
-      "列出当前租户在某个 datasource 上的 table grants。租户来自 runConfig.tenantId。",
-    schema: z.object({
-      ...serverInput,
-      datasourceId: datasourceIdSchema.optional(),
-    }),
-  },
-  async (input, exeConfig) => {
-    const server = await resolveSemanticMetricsServer(exeConfig, input.serverKey);
-    const datasourceId = await resolveAllowedDatasourceId(server, exeConfig, input.datasourceId);
-    const result = await metricsFetch(server, `/datasources/${encodeURIComponent(datasourceId)}/table-grants`);
-    return JSON.stringify(result, null, 2);
-  },
-);
+for (const { toolPrefix, idField, compatibility } of [
+  { toolPrefix: "metrics_visible_scope", idField: "scopeId", compatibility: "" },
+  { toolPrefix: "metrics_table_grant", idField: "grantId", compatibility: "兼容旧工具名：对应 metrics_visible_scope_*，更新/删除沿用 grantId 输入。" },
+]) {
+  const scopeDescription = `${compatibility}Admin 管理工具：可见范围归 datasourceId 所有，tenant header 不是授权依据；请求不传 tenant 身份。`;
 
-registerToolLattice(
-  "metrics_table_grant_create",
-  {
-    name: "metrics_table_grant_create",
-    description:
-      "为当前租户创建 datasource table grant。patternType 支持 PREFIX/EXACT，body 不传 tenantId。",
-    schema: z.object({
-      ...serverInput,
-      datasourceId: datasourceIdSchema,
-      schemaName: z.string().optional(),
-      tablePattern: z.string(),
-      patternType: z.enum(["PREFIX", "EXACT"]).default("PREFIX"),
-      caseSensitive: z.boolean().default(false),
-      status: z.number().default(1),
-    }),
-  },
-  async (input, exeConfig) => {
-    const server = await resolveSemanticMetricsServer(exeConfig, input.serverKey);
-    assertDatasourceAllowed(server.config, input.datasourceId);
-    const datasourceId = String(input.datasourceId);
-    const result = await metricsFetch(server, `/datasources/${encodeURIComponent(datasourceId)}/table-grants`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        schemaName: input.schemaName,
-        tablePattern: input.tablePattern,
-        patternType: input.patternType,
-        caseSensitive: input.caseSensitive,
-        status: input.status,
+  registerToolLattice(
+    `${toolPrefix}_list`,
+    {
+      name: `${toolPrefix}_list`,
+      description: `${scopeDescription}列出 datasource 的 visible scopes；查询按 datasource ALL/RESTRICTED 模式执行。`,
+      schema: z.object({
+        ...serverInput,
+        datasourceId: datasourceIdSchema.optional(),
       }),
-    });
-    return JSON.stringify(result, null, 2);
-  },
-);
+    },
+    async (input, exeConfig) => {
+      const server = await resolveSemanticMetricsServer(exeConfig, input.serverKey);
+      const datasourceId = await resolveAllowedDatasourceId(server, exeConfig, input.datasourceId);
+      const result = await metricsFetch(server, `/datasources/${encodeURIComponent(datasourceId)}/visible-scopes`, {
+        includeTenantHeader: false,
+      });
+      return JSON.stringify(result, null, 2);
+    },
+  );
 
-registerToolLattice(
-  "metrics_table_grant_update",
-  {
-    name: "metrics_table_grant_update",
-    description:
-      "更新当前租户在某个 datasource 上的 table grant。",
-    schema: z.object({
-      ...serverInput,
-      datasourceId: datasourceIdSchema,
-      grantId: z.number(),
-      schemaName: z.string().optional(),
-      tablePattern: z.string(),
-      patternType: z.enum(["PREFIX", "EXACT"]).default("PREFIX"),
-      caseSensitive: z.boolean().default(false),
-      status: z.number().default(1),
-    }),
-  },
-  async (input, exeConfig) => {
-    const server = await resolveSemanticMetricsServer(exeConfig, input.serverKey);
-    assertDatasourceAllowed(server.config, input.datasourceId);
-    const datasourceId = String(input.datasourceId);
-    const result = await metricsFetch(
-      server,
-      `/datasources/${encodeURIComponent(datasourceId)}/table-grants/${input.grantId}`,
+  for (const { action, method } of [
+    { action: "create", method: "POST" },
+    { action: "update", method: "PUT" },
+    { action: "delete", method: "DELETE" },
+  ]) {
+    registerToolLattice(
+      `${toolPrefix}_${action}`,
       {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          schemaName: input.schemaName,
-          tablePattern: input.tablePattern,
-          patternType: input.patternType,
-          caseSensitive: input.caseSensitive,
-          status: input.status,
+        name: `${toolPrefix}_${action}`,
+        description: `${scopeDescription}执行 visible scope ${action}；patternType 支持 PREFIX/EXACT。发布或删除 meta 不会修改可见范围。`,
+        schema: z.object({
+          ...serverInput,
+          datasourceId: datasourceIdSchema,
+          ...(action === "create" ? {} : { [idField]: z.number() }),
+          ...(action === "delete" ? {} : visibleScopeInput),
         }),
       },
+      async (input, exeConfig) => {
+        const server = await resolveSemanticMetricsServer(exeConfig, input.serverKey);
+        assertDatasourceAllowed(server.config, input.datasourceId);
+        const datasourceId = String(input.datasourceId);
+        const suffix = action === "create" ? "" : `/${input[idField]}`;
+        const result = await metricsFetch(
+          server,
+          `/datasources/${encodeURIComponent(datasourceId)}/visible-scopes${suffix}`,
+          {
+            method,
+            includeTenantHeader: false,
+            ...(action === "delete" ? {} : {
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                schemaName: input.schemaName,
+                tablePattern: input.tablePattern,
+                patternType: input.patternType,
+                caseSensitive: input.caseSensitive,
+                status: input.status,
+              }),
+            }),
+          },
+        );
+        return JSON.stringify(result, null, 2);
+      },
     );
-    return JSON.stringify(result, null, 2);
-  },
-);
-
-registerToolLattice(
-  "metrics_table_grant_delete",
-  {
-    name: "metrics_table_grant_delete",
-    description:
-      "删除当前租户在某个 datasource 上的 table grant。",
-    schema: z.object({
-      ...serverInput,
-      datasourceId: datasourceIdSchema,
-      grantId: z.number(),
-    }),
-  },
-  async (input, exeConfig) => {
-    const server = await resolveSemanticMetricsServer(exeConfig, input.serverKey);
-    assertDatasourceAllowed(server.config, input.datasourceId);
-    const datasourceId = String(input.datasourceId);
-    const result = await metricsFetch(
-      server,
-      `/datasources/${encodeURIComponent(datasourceId)}/table-grants/${input.grantId}`,
-      { method: "DELETE" },
-    );
-    return JSON.stringify(result, null, 2);
-  },
-);
+  }
+}
 
 registerToolLattice(
   "metrics_datasource_table_list",
   {
     name: "metrics_datasource_table_list",
     description:
-      "列出 datasource 中可被 Builder/Admin 建模探查的真实表/视图。",
+      "列出 datasource 中可被 Builder/Admin 建模探查的真实表/视图，受 datasource 的 ALL/RESTRICTED 可见范围约束；tenant header 不是授权依据。",
     schema: z.object({
       ...serverInput,
       datasourceId: datasourceIdSchema.optional(),
@@ -318,7 +278,7 @@ registerToolLattice(
   {
     name: "metrics_datasource_query",
     description:
-      "执行 datasource 建模探查 SQL。仅允许 SELECT/WITH，禁止写操作和多语句；不按 table grants 过滤。",
+      "执行 Builder/Admin datasource 建模探查 SQL。仅允许 SELECT/WITH，禁止写操作和多语句；服务端按 datasource 的 ALL/RESTRICTED 可见范围约束查询，不要求先发布 meta；tenant header 不是授权依据。",
     schema: z.object({
       ...serverInput,
       datasourceId: datasourceIdSchema.optional(),
@@ -351,7 +311,7 @@ registerToolLattice(
   {
     name: "metrics_datasource_sql_probe",
     description:
-      "兼容旧工具名：执行 runtime customSql 查询。仅允许 SELECT/WITH；服务端会按已发布 table meta/table grants 校验。",
+      "兼容旧工具名：执行 runtime customSql 查询。仅允许 SELECT/WITH；服务端按已发布 table meta 和 datasource 的 ALL/RESTRICTED 可见范围校验，tenant header 不是授权依据。",
     schema: z.object({
       ...serverInput,
       datasourceId: datasourceIdSchema.optional(),
@@ -440,7 +400,7 @@ registerToolLattice(
   {
     name: "metrics_datasource_table_meta_create",
     description:
-      "创建 datasource table meta，并创建或复用对应 table grant，使该表可供 Agent runtime 使用。",
+      "创建 datasource table meta，发布 runtime 语义表；不能创建、扩展或修改 datasource 可见范围，物理表须符合 datasource ALL/RESTRICTED 模式。",
     schema: z.object({
       ...serverInput,
       datasourceId: datasourceIdSchema,
@@ -448,7 +408,7 @@ registerToolLattice(
       objectKey: z.string().optional(),
       payload: jsonPayloadSchema,
       status: z.number().default(1),
-      accessGrant: tableAccessGrantSchema.optional(),
+      accessGrant: tableAccessGrantSchema.optional().describe("Deprecated compatibility input; ignored and not sent. Manage visible scopes separately with metrics_visible_scope_* admin tools."),
     }),
   },
   async (input, exeConfig) => {
@@ -463,7 +423,6 @@ registerToolLattice(
         objectKey: input.objectKey,
         payload: input.payload,
         status: input.status,
-        accessGrant: input.accessGrant,
       }),
     });
     return JSON.stringify(result, null, 2);
@@ -475,7 +434,7 @@ registerToolLattice(
   {
     name: "metrics_datasource_table_meta_update",
     description:
-      "更新 datasource table meta；如传 accessGrant，会同步创建或复用 runtime table grant。",
+      "更新 datasource table meta；不修改 datasource 可见范围，旧 accessGrant 输入被忽略。",
     schema: z.object({
       ...serverInput,
       datasourceId: datasourceIdSchema,
@@ -483,7 +442,7 @@ registerToolLattice(
       objectType: tableMetaTypeSchema.default("table_view_detail"),
       payload: jsonPayloadSchema,
       status: z.number().default(1),
-      accessGrant: tableAccessGrantSchema.optional(),
+      accessGrant: tableAccessGrantSchema.optional().describe("Deprecated compatibility input; ignored and not sent. Manage visible scopes separately with metrics_visible_scope_* admin tools."),
     }),
   },
   async (input, exeConfig) => {
@@ -500,7 +459,6 @@ registerToolLattice(
           objectType: input.objectType,
           payload: input.payload,
           status: input.status,
-          accessGrant: input.accessGrant,
         }),
       },
     );
@@ -513,7 +471,7 @@ registerToolLattice(
   {
     name: "metrics_datasource_table_meta_delete",
     description:
-      "删除 datasource table meta，并移除同名 runtime table grant。",
+      "删除 datasource table meta；不删除或修改 datasource 可见范围。",
     schema: z.object({
       ...serverInput,
       datasourceId: datasourceIdSchema,
@@ -597,7 +555,7 @@ registerToolLattice(
   {
     name: "metrics_datasource_metric_meta_create",
     description:
-      "创建 datasource metric meta，支持 metric_index 或 metric_detail。",
+      "创建 datasource metric meta，支持 metric_index 或 metric_detail；发布语义资产不修改 datasource 可见范围。",
     schema: z.object({
       ...serverInput,
       datasourceId: datasourceIdSchema,

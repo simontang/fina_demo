@@ -24,6 +24,8 @@ import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -132,6 +134,8 @@ class MetricsServiceImplTest {
     @Test
     void retailScopeKeepsExistingBehaviorAndHidesCaterpillarMetadata() throws Exception {
         when(datasourceMapper.selectById(DATASOURCE_ID)).thenReturn(datasource("Retail CDP PostgreSQL"));
+        when(catalog.findDetailItem("retailcdp_total_revenue", DATASOURCE_ID)).thenReturn(Optional.of(
+                detailMetric("retailcdp_total_revenue", "retailcdp_transactions")));
         when(catalog.getIndexItems(DATASOURCE_ID)).thenReturn(List.of(
                 indexMetric("caterpillar_leads_received", null),
                 indexMetric("retailcdp_total_revenue", "cdp_postgres"),
@@ -436,7 +440,7 @@ class MetricsServiceImplTest {
     }
 
     @Test
-    void customSqlWithoutGrantsIsRejected() {
+    void customSqlWithoutPublishedTableIsRejected() {
         SemanticQueryRequest request = new SemanticQueryRequest();
         request.setDatasourceId(DATASOURCE_ID);
         request.setCustomSql("SELECT * FROM OCRD");
@@ -444,7 +448,7 @@ class MetricsServiceImplTest {
 
         assertThatThrownBy(() -> service.query(request, "tenant_5"))
                 .isInstanceOf(com.fina.metrics.exception.ForbiddenException.class)
-                .hasMessageContaining("requires active table grants");
+                .hasMessageContaining("unpublished table");
     }
 
     @Test
@@ -488,11 +492,84 @@ class MetricsServiceImplTest {
         return datasource(name, "cdp_postgres");
     }
 
+    @Test
+    void restrictedWithoutActiveRulesHidesPublishedMetaAndRejectsExecution() throws Exception {
+        when(datasourceMapper.selectById(DATASOURCE_ID)).thenReturn(datasource("Hankel PostgreSQL"));
+        when(catalog.getIndexItems(DATASOURCE_ID)).thenReturn(List.of(
+                indexMetricWithSource("hankel_total", "public.hankel_sales")));
+        when(catalog.findDetailItem("hankel_total", DATASOURCE_ID))
+                .thenReturn(Optional.of(detailMetric("hankel_total", "public.hankel_sales")));
+        when(tableViewMetaService.getTableViewsIndex(DATASOURCE_ID))
+                .thenReturn(List.of(table("public.hankel_sales")));
+
+        MetricsIndexResponse index = service.getMetricsIndex(DATASOURCE_ID, "unrelated-agent-tenant");
+        assertThat(index.getMetrics()).isEmpty();
+        assertThat(index.getTables()).isEmpty();
+        assertThatThrownBy(() -> service.getMetricDetail(DATASOURCE_ID, "hankel_total"))
+                .isInstanceOf(com.fina.metrics.exception.ForbiddenException.class);
+        assertThatThrownBy(() -> service.query(request("hankel_total")))
+                .isInstanceOf(com.fina.metrics.exception.ForbiddenException.class);
+        verify(dsManager, never()).getNamedJdbcTemplate(any());
+    }
+
+    @Test
+    void allModeCanUsePublishedCdpMetaWithoutScopeRules() throws Exception {
+        DataSourceConfig config = datasource("Hankel PostgreSQL");
+        config.setVisibleScopeMode("ALL");
+        when(datasourceMapper.selectById(DATASOURCE_ID)).thenReturn(config);
+        when(catalog.getIndexItems(DATASOURCE_ID)).thenReturn(List.of(
+                indexMetricWithSource("hankel_total", "public.hankel_sales"),
+                indexMetricWithSource("hankel_unpublished", "public.hankel_secret")));
+        when(tableViewMetaService.getTableViewsIndex(DATASOURCE_ID))
+                .thenReturn(List.of(table("public.hankel_sales")));
+
+        assertThat(service.getMetricsIndex(DATASOURCE_ID).getMetrics())
+                .extracting(MetricsIndexResponse.MetricIndexItem::getMetricName).containsExactly("hankel_total");
+    }
+
+    @Test
+    void publishingSameTableNameInOneSchemaDoesNotPublishAnotherSchema() {
+        when(datasourceMapper.selectById(DATASOURCE_ID)).thenReturn(datasource("Hankel PostgreSQL"));
+        when(tableViewMetaService.getTableViewsIndex(DATASOURCE_ID))
+                .thenReturn(List.of(table("public.hankel_sales")));
+        SemanticQueryRequest request = new SemanticQueryRequest();
+        request.setDatasourceId(DATASOURCE_ID);
+        request.setCustomSql("SELECT * FROM private.hankel_sales");
+        assertThatThrownBy(() -> service.query(request))
+                .isInstanceOf(com.fina.metrics.exception.ForbiddenException.class)
+                .hasMessageContaining("unpublished table");
+        verify(tableAccessService, never()).probeSql(any(), any(), any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ALL", "RESTRICTED"})
+    void finalSemanticSqlCannotReadVisibleButUnpublishedTables(String mode) throws Exception {
+        DataSourceConfig config = datasource("Hankel PostgreSQL");
+        config.setVisibleScopeMode(mode);
+        when(datasourceMapper.selectById(DATASOURCE_ID)).thenReturn(config);
+        when(tableAccessService.listActiveGrants(any(), eq(DATASOURCE_ID)))
+                .thenReturn(List.of(tableGrant("hankel_")));
+        when(catalog.findDetailItem("hankel_total", DATASOURCE_ID))
+                .thenReturn(Optional.of(detailMetric("hankel_total", "public.hankel_sales")));
+        when(tableViewMetaService.getTableViewsIndex(DATASOURCE_ID))
+                .thenReturn(List.of(table("public.hankel_sales")));
+        String sql = "SELECT (SELECT MAX(amount) FROM public.hankel_unpublished) FROM public.hankel_sales";
+        when(queryBuilder.buildMulti(any(), any(), any(), anyString()))
+                .thenReturn(new SemanticQueryBuilder.BuildResult(sql, Map.of(), List.of("hankel_total")));
+        assertThatThrownBy(() -> service.query(request("hankel_total")))
+                .isInstanceOf(com.fina.metrics.exception.ForbiddenException.class)
+                .hasMessageContaining("unpublished table");
+        verify(tableAccessService).assertSqlAuthorized(null, DATASOURCE_ID, sql);
+        verify(dsManager, never()).getNamedJdbcTemplate(any());
+    }
+
     private DataSourceConfig datasource(String name, String sourceType) {
         DataSourceConfig datasource = new DataSourceConfig();
         datasource.setId(DATASOURCE_ID);
         datasource.setName(name);
         datasource.setSourceType(sourceType);
+        datasource.setVisibleScopeMode(name.contains("Hankel") ? "RESTRICTED" : "ALL");
+        datasource.setSchemaName("public");
         datasource.setUrl("jdbc:postgresql://localhost/postgres");
         return datasource;
     }

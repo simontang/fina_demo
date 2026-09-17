@@ -83,6 +83,22 @@ class TableViewMetaServiceImplTest {
         assertThat(tables).isNotEmpty();
     }
 
+    @Test
+    void retainsSchemaIdentityForSameNamedPublishedTables() throws Exception {
+        when(metaObjectService.listActiveForOverlay(MetricsMetaObjectTypes.TABLE_VIEW_DETAIL, DATASOURCE_ID))
+                .thenReturn(List.of(
+                        metaObject(1L, "table_view_detail", "public_sales", """
+                                {"schemaName":"public","tableName":"sales","columns":[]}
+                                """),
+                        metaObject(2L, "table_view_detail", "private_sales", """
+                                {"schemaName":"private","tableName":"sales","columns":[]}
+                                """)));
+        assertThat(service.getTableViewsIndex(DATASOURCE_ID)).extracting(TableViewIndexItem::getTableName)
+                .contains("\"public\".\"sales\"", "\"private\".\"sales\"");
+        assertThat(service.getTableViewsDetails(DATASOURCE_ID)).extracting(TableViewDetailResponse::getTableName)
+                .contains("\"public\".\"sales\"", "\"private\".\"sales\"");
+    }
+
     private MetricsMetaObjectVO metaObject(Long id, String type, String key, String payloadJson) throws Exception {
         MetricsMetaObjectVO object = new MetricsMetaObjectVO();
         object.setId(id);

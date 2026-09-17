@@ -3,6 +3,7 @@ package com.fina.metrics.util;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SqlIdentifierUtilsTest {
 
@@ -41,5 +42,13 @@ class SqlIdentifierUtilsTest {
                 .isTrue();
         assertThat(SqlIdentifierUtils.sameTableName("public.hankel_sales", "sales.hankel_sales", false))
                 .isFalse();
+    }
+
+    @Test
+    void rejectsCrossDatabaseAndConflictingSchemaIdentifiers() {
+        assertThatThrownBy(() -> SqlIdentifierUtils.parseTableIdentifier(null, "other.public.hankel_sales"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Cross-database");
+        assertThatThrownBy(() -> SqlIdentifierUtils.parseTableIdentifier("public", "private.hankel_sales"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Conflicting");
     }
 }

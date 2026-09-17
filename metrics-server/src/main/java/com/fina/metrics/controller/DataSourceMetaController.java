@@ -2,10 +2,14 @@ package com.fina.metrics.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fina.metrics.dto.*;
+import com.fina.metrics.exception.ForbiddenException;
 import com.fina.metrics.service.DataSourceTableAccessService;
 import com.fina.metrics.service.MetricsMetaObjectService;
 import com.fina.metrics.service.MetricsMetaObjectTypes;
-import com.fina.metrics.util.TenantHeaderResolver;
+import com.fina.metrics.util.ReadOnlySqlValidator;
+import com.fina.metrics.util.SqlIdentifierUtils;
+import com.fina.metrics.util.SqlIdentifierUtils.TableIdentifier;
+import com.fina.metrics.util.SqlTableReferenceExtractor;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
@@ -59,11 +63,10 @@ public class DataSourceMetaController {
             @Valid @RequestBody DataSourcePublishedMetaRequest request) {
         String objectType = resolveObjectType(request.getObjectType(), MetricsMetaObjectTypes.TABLE_VIEW_DETAIL, TABLE_META_TYPES);
         String objectKey = resolveObjectKey(request, "tableName", "viewName");
+        validateTableMeta(dsId, request, objectKey);
         MetricsMetaObjectVO metaObject = metaObjectService.create(toMetaObjectRequest(dsId, objectType, objectKey, request));
-        DataSourceTableGrantVO grant = ensureTableGrant(resolveTenant(tenantId), dsId, request, objectKey);
         return ApiResponse.ok(DataSourcePublishedMetaVO.builder()
                 .metaObject(metaObject)
-                .tableGrant(grant)
                 .build());
     }
 
@@ -74,12 +77,11 @@ public class DataSourceMetaController {
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
             @Valid @RequestBody DataSourcePublishedMetaRequest request) {
         String objectType = resolveObjectType(request.getObjectType(), MetricsMetaObjectTypes.TABLE_VIEW_DETAIL, TABLE_META_TYPES);
+        validateTableMeta(dsId, request, tableKey);
         MetricsMetaObjectVO metaObject = metaObjectService.updateByDatasourceTypeKey(
                 dsId, objectType, tableKey, toMetaObjectRequest(dsId, objectType, tableKey, request));
-        DataSourceTableGrantVO grant = ensureTableGrant(resolveTenant(tenantId), dsId, request, tableKey);
         return ApiResponse.ok(DataSourcePublishedMetaVO.builder()
                 .metaObject(metaObject)
-                .tableGrant(grant)
                 .build());
     }
 
@@ -95,14 +97,9 @@ public class DataSourceMetaController {
         if (objects.isEmpty()) {
             throw new IllegalArgumentException("Datasource table meta not found: " + tableKey);
         }
-        Set<String> tablePatterns = new LinkedHashSet<>();
-        tablePatterns.add(tableKey);
         for (MetricsMetaObjectVO object : objects) {
-            addTextField(tablePatterns, object.getPayload(), "tableName");
-            addTextField(tablePatterns, object.getPayload(), "viewName");
             metaObjectService.delete(object.getId());
         }
-        deleteMatchingTableGrants(resolveTenant(tenantId), dsId, tablePatterns);
         return ApiResponse.ok();
     }
 
@@ -133,6 +130,7 @@ public class DataSourceMetaController {
             @Valid @RequestBody DataSourcePublishedMetaRequest request) {
         String objectType = resolveObjectType(request.getObjectType(), MetricsMetaObjectTypes.METRIC_DETAIL, METRIC_META_TYPES);
         String objectKey = resolveObjectKey(request, "metric_name", "metricName");
+        validateLegacyAccessGrant(dsId, request.getAccessGrant());
         return ApiResponse.ok(metaObjectService.create(toMetaObjectRequest(dsId, objectType, objectKey, request)));
     }
 
@@ -142,6 +140,7 @@ public class DataSourceMetaController {
             @PathVariable String metricKey,
             @Valid @RequestBody DataSourcePublishedMetaRequest request) {
         String objectType = resolveObjectType(request.getObjectType(), MetricsMetaObjectTypes.METRIC_DETAIL, METRIC_META_TYPES);
+        validateLegacyAccessGrant(dsId, request.getAccessGrant());
         return ApiResponse.ok(metaObjectService.updateByDatasourceTypeKey(
                 dsId, objectType, metricKey, toMetaObjectRequest(dsId, objectType, metricKey, request)));
     }
@@ -177,66 +176,72 @@ public class DataSourceMetaController {
         return metaRequest;
     }
 
-    private DataSourceTableGrantVO ensureTableGrant(
-            String tenantId,
+    private void validateTableMeta(
             Long datasourceId,
             DataSourcePublishedMetaRequest request,
             String objectKey) {
-        DataSourceTableGrantRequest grantRequest = request.getAccessGrant() != null
-                ? request.getAccessGrant()
-                : defaultGrantRequest(request, objectKey);
-        normalizeGrantRequest(grantRequest);
-        List<DataSourceTableGrantVO> grants = tableAccessService.listGrants(tenantId, datasourceId);
-        for (DataSourceTableGrantVO grant : grants) {
-            if (sameGrant(grant, grantRequest)) {
-                if (!Objects.equals(grant.getStatus(), grantRequest.getStatus())) {
-                    return tableAccessService.updateGrant(tenantId, datasourceId, grant.getId(), grantRequest);
-                }
-                return grant;
+        JsonNode payload = request.getPayload();
+        String schema = textField(payload, "schemaName");
+        for (String field : List.of("tableName", "viewName")) {
+            String target = textField(payload, field);
+            if (StringUtils.hasText(target)) SqlIdentifierUtils.parseTableIdentifier(schema, target);
+        }
+        Set<TableIdentifier> tables = new LinkedHashSet<>();
+        addTableReference(tables, schema, textField(payload, "tableName"));
+        addTableReference(tables, schema, textField(payload, "viewName"));
+        if (tables.isEmpty()) {
+            SqlIdentifierUtils.parseTableIdentifier(schema, objectKey);
+            addTableReference(tables, schema, objectKey);
+        }
+        addTableReference(tables, schema, textField(payload, "mainTable"));
+        addTableReference(tables, schema, textField(payload, "lineTable"));
+        String selectSql = textField(payload, "selectSql");
+        if (StringUtils.hasText(selectSql)) {
+            ReadOnlySqlValidator.validate(selectSql);
+            for (SqlTableReferenceExtractor.TableReference reference : SqlTableReferenceExtractor.extract(selectSql)) {
+                // Unqualified SQL resolves through the datasource, not the metadata payload schema.
+                tables.add(new TableIdentifier(reference.schemaName(), reference.tableName()));
             }
         }
-        return tableAccessService.createGrant(tenantId, datasourceId, grantRequest);
-    }
-
-    private DataSourceTableGrantRequest defaultGrantRequest(
-            DataSourcePublishedMetaRequest request,
-            String objectKey) {
-        DataSourceTableGrantRequest grant = new DataSourceTableGrantRequest();
-        grant.setSchemaName(textField(request.getPayload(), "schemaName"));
-        grant.setTablePattern(firstNonBlank(
-                textField(request.getPayload(), "tableName"),
-                textField(request.getPayload(), "viewName"),
-                objectKey));
-        grant.setPatternType("EXACT");
-        grant.setCaseSensitive(false);
-        grant.setStatus(request.getStatus() != null ? request.getStatus() : 1);
-        return grant;
-    }
-
-    private void normalizeGrantRequest(DataSourceTableGrantRequest request) {
-        if (!StringUtils.hasText(request.getPatternType())) {
-            request.setPatternType("PREFIX");
-        }
-        if (request.getCaseSensitive() == null) {
-            request.setCaseSensitive(false);
-        }
-        if (request.getStatus() == null) {
-            request.setStatus(1);
-        }
-    }
-
-    private void deleteMatchingTableGrants(String tenantId, Long datasourceId, Set<String> tablePatterns) {
-        for (DataSourceTableGrantVO grant : tableAccessService.listGrants(tenantId, datasourceId)) {
-            if (tablePatterns.contains(grant.getTablePattern())) {
-                tableAccessService.deleteGrant(tenantId, datasourceId, grant.getId());
+        for (TableIdentifier table : tables) {
+            if (!tableAccessService.isTableAuthorized(null, datasourceId, table.schemaName(), table.tableName())) {
+                throw new ForbiddenException("Table meta references a table outside datasource visible scope: "
+                        + (table.schemaName() == null ? "" : table.schemaName() + ".") + table.tableName());
             }
+        }
+        validateLegacyAccessGrant(datasourceId, request.getAccessGrant());
+    }
+
+    private void addTableReference(Set<TableIdentifier> tables, String schema, String tableName) {
+        if (!StringUtils.hasText(tableName)) {
+            return;
+        }
+        TableIdentifier table = SqlIdentifierUtils.parseTableIdentifier(null, tableName);
+        tables.add(new TableIdentifier(firstNonBlank(table.schemaName(), schema), table.tableName()));
+    }
+
+    /**
+     * Legacy accessGrant is an assertion of an identical active rule, never a scope edit.
+     * No prefix containment or implicit rule is inferred, even in ALL mode. Callers
+     * without an identical rule must omit accessGrant; concrete tables are checked above.
+     */
+    private void validateLegacyAccessGrant(Long datasourceId, DataSourceTableGrantRequest request) {
+        if (request == null) {
+            return;
+        }
+        boolean covered = tableAccessService.listActiveGrants(null, datasourceId).stream()
+                .anyMatch(existing -> sameGrant(existing, request));
+        if (!covered) {
+            throw new ForbiddenException("accessGrant must match an existing active datasource scope rule");
         }
     }
 
     private boolean sameGrant(DataSourceTableGrantVO existing, DataSourceTableGrantRequest request) {
-        return Objects.equals(normalizeBlank(existing.getSchemaName()), normalizeBlank(request.getSchemaName()))
-                && existing.getTablePattern().equals(request.getTablePattern())
-                && existing.getPatternType().equalsIgnoreCase(request.getPatternType())
+        return Objects.equals(existing.getStatus(), 1)
+                && Objects.equals(request.getStatus() == null ? 1 : request.getStatus(), 1)
+                && Objects.equals(normalizeBlank(existing.getSchemaName()), normalizeBlank(request.getSchemaName()))
+                && Objects.equals(existing.getTablePattern(), normalizeBlank(request.getTablePattern()))
+                && firstNonBlank(request.getPatternType(), "PREFIX").equalsIgnoreCase(existing.getPatternType())
                 && Objects.equals(Boolean.TRUE.equals(existing.getCaseSensitive()), Boolean.TRUE.equals(request.getCaseSensitive()));
     }
 
@@ -276,13 +281,6 @@ public class DataSourceMetaController {
         return null;
     }
 
-    private void addTextField(Set<String> values, JsonNode payload, String fieldName) {
-        String value = textField(payload, fieldName);
-        if (StringUtils.hasText(value)) {
-            values.add(value);
-        }
-    }
-
     private String firstNonBlank(String... values) {
         for (String value : values) {
             if (StringUtils.hasText(value)) {
@@ -293,10 +291,6 @@ public class DataSourceMetaController {
     }
 
     private String normalizeBlank(String value) {
-        return StringUtils.hasText(value) ? value : null;
-    }
-
-    private String resolveTenant(String tenantId) {
-        return TenantHeaderResolver.resolve(tenantId);
+        return StringUtils.hasText(value) ? value.trim() : null;
     }
 }

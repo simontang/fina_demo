@@ -18,6 +18,13 @@ public final class SqlIdentifierUtils {
             return new TableIdentifier(normalize(schemaName), null);
         }
         List<String> parts = splitQualifiedIdentifier(tableName);
+        if (parts.size() > 2) {
+            throw new IllegalArgumentException("Cross-database table identifiers are not supported: " + tableName);
+        }
+        if (parts.size() == 2 && StringUtils.hasText(schemaName)
+                && !normalize(schemaName).equalsIgnoreCase(parts.get(0))) {
+            throw new IllegalArgumentException("Conflicting table schema: " + tableName);
+        }
         String parsedTable = parts.isEmpty() ? normalize(tableName) : parts.get(parts.size() - 1);
         String parsedSchema = StringUtils.hasText(schemaName)
                 ? normalize(schemaName)

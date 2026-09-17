@@ -34,6 +34,9 @@ public class DataSourceConfig {
     /** Runtime datasource type, e.g. sap_b1_hana or cdp_postgres */
     private String sourceType;
 
+    /** ALL exposes every physical table; RESTRICTED uses datasource table grants. */
+    private String visibleScopeMode;
+
     private String description;
 
     /** 1 = active, 0 = inactive */

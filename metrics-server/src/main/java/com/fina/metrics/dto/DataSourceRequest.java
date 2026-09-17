@@ -2,6 +2,7 @@ package com.fina.metrics.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 /**
@@ -27,6 +28,9 @@ public class DataSourceRequest {
 
     /** Optional. When absent, inferred from url for backward compatibility. */
     private String sourceType;
+
+    @Pattern(regexp = "ALL|RESTRICTED", message = "visibleScopeMode must be ALL or RESTRICTED")
+    private String visibleScopeMode = "RESTRICTED";
 
     private String description;
 

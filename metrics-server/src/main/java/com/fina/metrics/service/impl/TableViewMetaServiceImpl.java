@@ -154,10 +154,10 @@ public class TableViewMetaServiceImpl implements TableViewMetaService {
         if (payload == null || !payload.isObject()) {
             return;
         }
-        String tableName = firstNonBlank(
+        String tableName = qualifiedPayloadTableName(payload, firstNonBlank(
                 payload.path("tableName").asText(null),
                 payload.path("viewName").asText(null),
-                object.getObjectKey());
+                object.getObjectKey()));
         if (tableName.isBlank()) {
             return;
         }
@@ -204,10 +204,10 @@ public class TableViewMetaServiceImpl implements TableViewMetaService {
         if (payload == null || !payload.isObject()) {
             return;
         }
-        String tableName = firstNonBlank(
+        String tableName = qualifiedPayloadTableName(payload, firstNonBlank(
                 payload.path("tableName").asText(null),
                 payload.path("viewName").asText(null),
-                object.getObjectKey());
+                object.getObjectKey()));
         if (tableName.isBlank()) {
             return;
         }
@@ -260,6 +260,14 @@ public class TableViewMetaServiceImpl implements TableViewMetaService {
                         : existingIndex != null ? existingIndex.getColumnCount() : null)
                 .shortDesc(existingIndex != null ? existingIndex.getShortDesc() : null)
                 .build());
+    }
+
+    private String qualifiedPayloadTableName(JsonNode payload, String tableName) {
+        String schema = payload.path("schemaName").asText(null);
+        var identifier = com.fina.metrics.util.SqlIdentifierUtils.parseTableIdentifier(schema, tableName);
+        if (schema == null || schema.isBlank()) return tableName;
+        return "\"" + identifier.schemaName().replace("\"", "\"\"") + "\".\""
+                + identifier.tableName().replace("\"", "\"\"") + "\"";
     }
 
     private List<TableViewDetailResponse.ColumnMeta> parsePayloadColumns(JsonNode columnsNode) {

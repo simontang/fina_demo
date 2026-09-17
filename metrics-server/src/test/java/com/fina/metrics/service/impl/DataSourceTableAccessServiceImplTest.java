@@ -13,6 +13,9 @@ import com.fina.metrics.entity.DataSourceTableGrant;
 import com.fina.metrics.exception.ForbiddenException;
 import com.fina.metrics.mapper.DataSourceConfigMapper;
 import com.fina.metrics.mapper.DataSourceTableGrantMapper;
+import com.fina.metrics.service.RuntimeMetaCache;
+import com.fina.metrics.service.DataSourceVisibleScope;
+import org.mockito.ArgumentCaptor;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +45,7 @@ class DataSourceTableAccessServiceImplTest {
     private DataSourceConfigMapper datasourceMapper;
     private DynamicDataSourceManager dsManager;
     private DataSourceTableAccessServiceImpl service;
+    private RuntimeMetaCache runtimeMetaCache;
 
     @BeforeAll
     static void initializeMybatisMetadata() {
@@ -58,7 +62,8 @@ class DataSourceTableAccessServiceImplTest {
         grantMapper = mock(DataSourceTableGrantMapper.class);
         datasourceMapper = mock(DataSourceConfigMapper.class);
         dsManager = mock(DynamicDataSourceManager.class);
-        service = new DataSourceTableAccessServiceImpl(grantMapper, datasourceMapper, dsManager);
+        runtimeMetaCache = mock(RuntimeMetaCache.class);
+        service = new DataSourceTableAccessServiceImpl(grantMapper, datasourceMapper, dsManager, runtimeMetaCache);
         when(datasourceMapper.selectOne(any())).thenReturn(datasource());
         when(grantMapper.selectList(any())).thenReturn(List.of(prefixGrant("hankel_")));
     }
@@ -145,7 +150,7 @@ class DataSourceTableAccessServiceImplTest {
     }
 
     @Test
-    void listPhysicalTablesDoesNotFilterByGrant() throws Exception {
+    void physicalInventoryEndpointFiltersByVisibleScope() throws Exception {
         DataSource dataSource = mock(DataSource.class);
         Connection connection = mock(Connection.class);
         DatabaseMetaData metaData = mock(DatabaseMetaData.class);
@@ -165,7 +170,7 @@ class DataSourceTableAccessServiceImplTest {
         List<DataSourceTableVO> tables = service.listPhysicalTables(DATASOURCE_ID, "public");
 
         assertThat(tables).extracting(DataSourceTableVO::getTableName)
-                .containsExactly("hankel_sales", "t_datasource_config");
+                .containsExactly("hankel_sales");
     }
 
     @Test
@@ -199,7 +204,10 @@ class DataSourceTableAccessServiceImplTest {
     }
 
     @Test
-    void queryDatasourceAllowsAnyReadOnlyTableWithoutGrantFiltering() {
+    void allModeAllowsAnyReadOnlyTableWithoutScopeRules() {
+        DataSourceConfig config = datasource();
+        config.setVisibleScopeMode("ALL");
+        when(datasourceMapper.selectOne(any())).thenReturn(config);
         when(grantMapper.selectList(any())).thenReturn(List.of());
         NamedParameterJdbcTemplate named = mock(NamedParameterJdbcTemplate.class);
         JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
@@ -246,8 +254,89 @@ class DataSourceTableAccessServiceImplTest {
         datasource.setId(DATASOURCE_ID);
         datasource.setSchemaName("public");
         datasource.setSourceType("cdp_postgres");
+        datasource.setVisibleScopeMode("RESTRICTED");
         datasource.setDeleted(0);
         return datasource;
+    }
+
+    @Test
+    void scopeCreationIgnoresTenantAndInvalidatesOnlyItsDatasource() {
+        DataSourceTableGrantRequest request = new DataSourceTableGrantRequest();
+        request.setTablePattern("hankel_");
+        request.setSchemaName("public");
+        service.createGrant("agent-tenant-unrelated", DATASOURCE_ID, request);
+        ArgumentCaptor<DataSourceTableGrant> row = ArgumentCaptor.forClass(DataSourceTableGrant.class);
+        verify(grantMapper).insert(row.capture());
+        assertThat(row.getValue().getTenantId()).isEqualTo(DataSourceVisibleScope.LEGACY_TENANT_MARKER);
+        assertThat(row.getValue().getDatasourceId()).isEqualTo(DATASOURCE_ID);
+        verify(runtimeMetaCache).invalidateDatasourceAfterCommit(eq(DATASOURCE_ID), anyString());
+        verify(datasourceMapper, never()).updateById(any());
+    }
+
+    @Test
+    void restrictedQueryRejectsOutOfScopeBeforeOpeningConnection() {
+        SqlProbeRequest request = new SqlProbeRequest();
+        request.setSql("SELECT * FROM public.t_datasource_config");
+        assertThatThrownBy(() -> service.queryDatasource(DATASOURCE_ID, request))
+                .isInstanceOf(ForbiddenException.class);
+        verifyNoInteractions(dsManager);
+    }
+
+    @Test
+    void removingLastRuleNeverRevertsToAll() {
+        when(grantMapper.selectOne(any())).thenReturn(prefixGrant("hankel_"));
+        service.deleteGrant("any-tenant", DATASOURCE_ID, 1L);
+        when(grantMapper.selectList(any())).thenReturn(List.of());
+        assertThat(service.isTableAuthorized(null, DATASOURCE_ID, "public", "hankel_sales")).isFalse();
+        assertThat(service.isTableAuthorizedIfGrantsConfigured(null, DATASOURCE_ID, "public", "hankel_sales")).isFalse();
+        assertThat(service.listPhysicalTables(DATASOURCE_ID, null)).isEmpty();
+        assertThatThrownBy(() -> service.assertSqlAuthorized(null, DATASOURCE_ID, "SELECT 1"))
+                .isInstanceOf(ForbiddenException.class).hasMessageContaining("No active datasource visible scopes");
+        verifyNoInteractions(dsManager);
+    }
+
+    @Test
+    void restrictedModeBlocksCatalogEvenWithBroadRules() {
+        DataSourceTableGrant broad = prefixGrant("pg_");
+        broad.setSchemaName("pg_catalog");
+        when(grantMapper.selectList(any())).thenReturn(List.of(broad));
+        assertThatThrownBy(() -> service.assertSqlAuthorized(null, DATASOURCE_ID, "SELECT * FROM pg_catalog.pg_class"))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
+    @Test
+    void tenantHeaderDoesNotChangeBoundaryAndRuleQueryUsesOnlyDatasourceId() {
+        assertThat(service.isTableAuthorized(null, DATASOURCE_ID, "public", "hankel_sales")).isTrue();
+        assertThat(service.isTableAuthorized("different", DATASOURCE_ID, "public", "hankel_sales")).isTrue();
+        ArgumentCaptor<com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<DataSourceTableGrant>> query =
+                ArgumentCaptor.forClass(com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper.class);
+        verify(grantMapper, times(2)).selectList(query.capture());
+        for (var wrapper : query.getAllValues()) {
+            assertThat(wrapper.getSqlSegment()).contains("datasource_id").doesNotContain("tenant_id");
+            assertThat(wrapper.getParamNameValuePairs()).containsValue(DATASOURCE_ID);
+        }
+    }
+
+    @Test
+    void rulesCannotInventSqlDefaultSchema() {
+        DataSourceConfig config = datasource();
+        config.setSchemaName(null);
+        when(datasourceMapper.selectOne(any())).thenReturn(config);
+        assertThatThrownBy(() -> service.assertSqlAuthorized(null, DATASOURCE_ID, "SELECT * FROM hankel_sales"))
+                .isInstanceOf(ForbiddenException.class).hasMessageContaining("Schema-qualified");
+        assertThatNoException().isThrownBy(() -> service.assertSqlAuthorized(null, DATASOURCE_ID,
+                "SELECT * FROM public.hankel_sales"));
+    }
+
+    @Test
+    void sqlServerCannotAssumeConfiguredSchemaChangesLoginDefault() {
+        DataSourceConfig config = datasource();
+        config.setSourceType("sap_b1_sqlserver");
+        when(datasourceMapper.selectOne(any())).thenReturn(config);
+        assertThatThrownBy(() -> service.assertSqlAuthorized(null, DATASOURCE_ID, "SELECT TOP 10 * FROM hankel_sales"))
+                .isInstanceOf(ForbiddenException.class).hasMessageContaining("Schema-qualified");
+        assertThatNoException().isThrownBy(() -> service.assertSqlAuthorized(null, DATASOURCE_ID,
+                "SELECT TOP 10 * FROM [public].[hankel_sales]"));
     }
 
     private DataSourceTableGrant prefixGrant(String prefix) {

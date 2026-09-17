@@ -2,13 +2,15 @@ package com.fina.metrics.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 /**
  * Request body for updating an existing SAP B1 HANA datasource.
  *
  * Password is optional: if left blank/null, the existing encrypted password is kept.
- * All other fields are required and will overwrite the current values.
+ * visibleScopeMode is optional: null preserves the existing mode.
+ * Other fields retain their existing replacement semantics.
  */
 @Data
 public class DataSourceUpdateRequest {
@@ -32,6 +34,10 @@ public class DataSourceUpdateRequest {
 
     /** Optional. When absent, inferred from url for backward compatibility. */
     private String sourceType;
+
+    /** Omit or supply null to keep the existing visibility mode. */
+    @Pattern(regexp = "ALL|RESTRICTED", message = "visibleScopeMode must be ALL or RESTRICTED")
+    private String visibleScopeMode;
 
     private String description;
 

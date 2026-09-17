@@ -13,6 +13,7 @@ import com.fina.metrics.exception.ForbiddenException;
 import com.fina.metrics.mapper.DataSourceConfigMapper;
 import com.fina.metrics.mapper.MetricsMetaMapper;
 import com.fina.metrics.service.DataSourceTableAccessService;
+import com.fina.metrics.service.DataSourceVisibleScope;
 import com.fina.metrics.service.MetaCatalogService;
 import com.fina.metrics.service.MetricsService;
 import com.fina.metrics.service.SemanticQueryBuilder;
@@ -70,15 +71,16 @@ public class MetricsServiceImpl implements MetricsService {
         DataSourceConfig datasource = resolveDatasourceConfig(datasourceId);
         DataSourceType sourceType = resolveDatasourceType(datasource);
         CdpCatalogScope cdpScope = resolveCdpCatalogScope(datasource, sourceType);
-        List<DataSourceTableGrantVO> tableGrants = tableAccessService.listActiveGrants(resolvedTenant, datasourceId);
-        boolean tableGrantFiltering = !tableGrants.isEmpty();
-        Map<String, JsonNode> detailLookup = tableGrantFiltering ? detailLookup(datasourceId) : Map.of();
+        DataSourceVisibleScope visibleScope = DataSourceVisibleScope.from(datasource,
+                tableAccessService.listActiveGrants(resolvedTenant, datasourceId));
+        boolean publishedMetaFiltering = visibleScope.isRestricted() || cdpScope == CdpCatalogScope.NONE;
+        Map<String, JsonNode> detailLookup = publishedMetaFiltering ? detailLookup(datasourceId) : Map.of();
         List<TableViewIndexItem> publishedTableViews = tableViewMetaService.getTableViewsIndex(datasourceId);
         Set<String> publishedTableNames = publishedTableViews.stream()
                 .map(TableViewIndexItem::getTableName)
                 .filter(StringUtils::hasText)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-        boolean legacyRegistrationRequired = requiresLegacyCdpRegistration(sourceType, tableGrantFiltering, cdpScope);
+        boolean legacyRegistrationRequired = requiresLegacyCdpRegistration(sourceType, publishedMetaFiltering, cdpScope);
         Set<String> registered = metaMapper.selectList(
                         new LambdaQueryWrapper<MetricsMeta>()
                                 .eq(MetricsMeta::getDatasourceId, datasourceId)
@@ -92,12 +94,15 @@ public class MetricsServiceImpl implements MetricsService {
         String dsName = datasource != null ? datasource.getName() : null;
 
         List<MetricsIndexResponse.MetricIndexItem> items = catalog.getIndexItems(datasourceId).stream()
-                .filter(node -> tableGrantFiltering
+                .filter(node -> publishedMetaFiltering
                         ? isMetricPublishedAndAuthorizedForRuntime(
-                                datasourceId, node, sourceType, tableGrants, detailLookup, publishedTableNames)
+                                datasourceId, node, sourceType, visibleScope, detailLookup, publishedTableNames)
                         : isMetricVisibleForDatasource(node, sourceType, cdpScope))
-                .filter(node -> isMetricAuthorizedForTenant(
-                        datasourceId, node, tableGrants, detailLookup))
+                .filter(node -> isMetricWithinVisibleScope(
+                        datasourceId, node, visibleScope, detailLookup))
+                .filter(node -> resolveMetricTableView(datasourceId, node, detailLookup)
+                        .filter(table -> isTablePublished(publishedTableNames, table, visibleScope.defaultSchema()))
+                        .isPresent())
                 .filter(node -> !legacyRegistrationRequired
                         || isRegisteredMetricOnPublishedTable(
                                 node, registered, datasourceId, detailLookup, publishedTableNames))
@@ -106,8 +111,8 @@ public class MetricsServiceImpl implements MetricsService {
                     node.path("search_keywords").forEach(k -> keywords.add(k.asText()));
                     String metricName = node.path("metric_name").asText("");
                     boolean runtimeQueryable = registered.contains(metricName)
-                            || (tableGrantFiltering && isMetricPublishedAndAuthorizedForRuntime(
-                                    datasourceId, node, sourceType, tableGrants, detailLookup,
+                            || (publishedMetaFiltering && isMetricPublishedAndAuthorizedForRuntime(
+                                    datasourceId, node, sourceType, visibleScope, detailLookup,
                                     publishedTableNames));
                     return MetricsIndexResponse.MetricIndexItem.builder()
                             .metricName(metricName)
@@ -121,10 +126,10 @@ public class MetricsServiceImpl implements MetricsService {
                 .collect(Collectors.toList());
 
         List<TableViewIndexItem> tables = publishedTableViews.stream()
-                .filter(item -> tableGrantFiltering
+                .filter(item -> publishedMetaFiltering
                         || isTableVisibleForDatasource(item.getTableName(), sourceType, cdpScope))
-                .filter(item -> !tableGrantFiltering
-                        || isTableAuthorizedByGrantList(tableGrants, null, item.getTableName()))
+                .filter(item -> !publishedMetaFiltering
+                        || isTableVisibleInScope(visibleScope, null, item.getTableName()))
                 .collect(Collectors.toList());
 
         return MetricsIndexResponse.builder()
@@ -152,23 +157,24 @@ public class MetricsServiceImpl implements MetricsService {
         JsonNode catalogDetail = catalog.findDetailItem(metricName, datasourceId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Metric not found in catalog: " + metricName));
-        List<DataSourceTableGrantVO> tableGrants = tableAccessService.listActiveGrants(resolvedTenant, datasourceId);
-        boolean tableGrantFiltering = !tableGrants.isEmpty();
-        if (tableGrantFiltering) {
+        DataSourceVisibleScope visibleScope = DataSourceVisibleScope.from(datasource,
+                tableAccessService.listActiveGrants(resolvedTenant, datasourceId));
+        boolean publishedMetaFiltering = visibleScope.isRestricted() || cdpScope == CdpCatalogScope.NONE;
+        if (publishedMetaFiltering) {
             if (!isMetricPublishedAndAuthorizedForRuntime(
-                    datasourceId, catalogDetail, sourceType, tableGrants, Map.of())) {
-                throw new ForbiddenException("Metric is not authorized for this tenant: " + metricName);
+                    datasourceId, catalogDetail, sourceType, visibleScope, Map.of())) {
+                throw new ForbiddenException("Metric is outside datasource visible scope or unpublished: " + metricName);
             }
         } else if (!isMetricVisibleForDatasource(catalogDetail, sourceType, cdpScope)) {
             throw new IllegalArgumentException(
                     "Metric " + metricName + " is not available for datasource type " + sourceType.getCode());
         }
-        if (!isMetricAuthorizedForTenant(
+        if (!isMetricWithinVisibleScope(
                 datasourceId,
                 catalogDetail,
-                tableGrants,
+                visibleScope,
                 Map.of())) {
-            throw new ForbiddenException("Metric is not authorized for this tenant: " + metricName);
+            throw new ForbiddenException("Metric is outside datasource visible scope or unpublished: " + metricName);
         }
 
         MetricsMeta dbMeta = metaMapper.selectOne(
@@ -178,11 +184,14 @@ public class MetricsServiceImpl implements MetricsService {
                         .eq(MetricsMeta::getStatus, 1)
                         .eq(MetricsMeta::getDeleted, 0)
         );
-        if (requiresLegacyCdpRegistration(sourceType, tableGrantFiltering, cdpScope)
+        if (requiresLegacyCdpRegistration(sourceType, publishedMetaFiltering, cdpScope)
                 && (dbMeta == null || !isTablePublishedForDatasource(
                         datasourceId, catalogDetail.path("source").path("table_view").asText(null)))) {
             throw new IllegalArgumentException(
                     "Metric " + metricName + " is not registered for this datasource");
+        }
+        if (!isTablePublishedForDatasource(datasourceId, catalogDetail.path("source").path("table_view").asText(null))) {
+            throw new ForbiddenException("Metric references an unpublished table: " + metricName);
         }
 
         return buildMetricDetailResponse(datasourceId, metricName, catalogDetail, dbMeta);
@@ -302,8 +311,9 @@ public class MetricsServiceImpl implements MetricsService {
         DataSourceConfig datasource = resolveDatasourceConfig(datasourceId);
         DataSourceType sourceType = resolveDatasourceType(datasource);
         CdpCatalogScope cdpScope = resolveCdpCatalogScope(datasource, sourceType);
-        List<DataSourceTableGrantVO> tableGrants = tableAccessService.listActiveGrants(resolvedTenant, datasourceId);
-        boolean tableGrantFiltering = !tableGrants.isEmpty();
+        DataSourceVisibleScope visibleScope = DataSourceVisibleScope.from(datasource,
+                tableAccessService.listActiveGrants(resolvedTenant, datasourceId));
+        boolean publishedMetaFiltering = visibleScope.isRestricted() || cdpScope == CdpCatalogScope.NONE;
         MetricsIndexResponse index = getMetricsIndex(datasourceId, resolvedTenant);
         Map<String, JsonNode> catalogDetailsByName = detailLookup(datasourceId);
         Map<String, MetricsMeta> dbMetaByName = metaMapper.selectList(
@@ -329,14 +339,14 @@ public class MetricsServiceImpl implements MetricsService {
                             dbMetaByName.get(item.getMetricName()));
                 })
                 .collect(Collectors.toList());
-        List<TableViewDetailResponse> tableDetails = tableGrantFiltering
+        List<TableViewDetailResponse> tableDetails = publishedMetaFiltering
                 && (index.getTables() == null || index.getTables().isEmpty())
                 ? List.of()
                 : tableViewMetaService.getTableViewsDetails(datasourceId).stream()
-                        .filter(item -> tableGrantFiltering
+                        .filter(item -> publishedMetaFiltering
                                 || isTableVisibleForDatasource(item.getTableName(), sourceType, cdpScope))
-                        .filter(item -> !tableGrantFiltering
-                                || isTableAuthorizedByGrantList(tableGrants, null, item.getTableName()))
+                        .filter(item -> !publishedMetaFiltering
+                                || isTableVisibleInScope(visibleScope, null, item.getTableName()))
                         .collect(Collectors.toList());
         return MetricsMetaFullResponse.builder()
                 .index(index)
@@ -421,11 +431,6 @@ public class MetricsServiceImpl implements MetricsService {
             sqlRequest.setParams(request.getParams());
             sqlRequest.setMaxRows(request.getLimit());
             sqlRequest.setDebug(request.getDebug());
-            if (!tableAccessService.hasActiveGrants(resolvedTenant, request.getDatasourceId())) {
-                throw new ForbiddenException(
-                        "Metrics runtime customSql requires active table grants for datasourceId="
-                                + request.getDatasourceId());
-            }
             assertSqlUsesPublishedTables(request.getDatasourceId(), sqlToRun);
             MetricsQueryData result = tableAccessService.probeSql(
                     resolvedTenant, request.getDatasourceId(), sqlRequest);
@@ -442,11 +447,11 @@ public class MetricsServiceImpl implements MetricsService {
         DataSourceConfig datasource = resolveDatasourceConfig(request.getDatasourceId());
         DataSourceType sourceType = resolveDatasourceType(datasource);
         CdpCatalogScope cdpScope = resolveCdpCatalogScope(datasource, sourceType);
-        List<DataSourceTableGrantVO> tableGrants = tableAccessService.listActiveGrants(
-                resolvedTenant, request.getDatasourceId());
-        boolean tableGrantFiltering = !tableGrants.isEmpty();
-        boolean legacyCdpSemanticAllowed = isLegacyCdpSemanticAllowed(sourceType, tableGrantFiltering, cdpScope);
-        if (sourceType.isCdp() && !tableGrantFiltering && !legacyCdpSemanticAllowed) {
+        DataSourceVisibleScope visibleScope = DataSourceVisibleScope.from(datasource,
+                tableAccessService.listActiveGrants(resolvedTenant, request.getDatasourceId()));
+        boolean publishedMetaFiltering = visibleScope.isRestricted() || cdpScope == CdpCatalogScope.NONE;
+        boolean legacyCdpSemanticAllowed = isLegacyCdpSemanticAllowed(sourceType, publishedMetaFiltering, cdpScope);
+        if (sourceType.isCdp() && !publishedMetaFiltering && !legacyCdpSemanticAllowed) {
             throw new IllegalArgumentException(
                     "Semantic metrics are not enabled for cdp_postgres yet; use custom_sql for CDP datasource queries");
         }
@@ -459,8 +464,8 @@ public class MetricsServiceImpl implements MetricsService {
                     request.getDatasourceId(),
                     sourceType,
                     cdpScope,
-                    tableGrantFiltering,
-                    tableGrants,
+                    publishedMetaFiltering,
+                    visibleScope,
                     catalogDetailsByName,
                     resolvingMetrics);
         }
@@ -484,6 +489,8 @@ public class MetricsServiceImpl implements MetricsService {
 
         SemanticQueryBuilder.BuildResult built = queryBuilder.buildMulti(
                 metrics, request, new ArrayList<>(catalogDetailsByName.values()), sourceType.getCode());
+        tableAccessService.assertSqlAuthorized(null, request.getDatasourceId(), built.sql());
+        assertSqlUsesPublishedTables(request.getDatasourceId(), built.sql());
         QueryResult qr = executeQuery(request.getDatasourceId(), built.sql(), built.params());
 
         String semanticModel = catalogDetailsByName.get(metrics.get(0)).path("source").path("table_view").asText("");
@@ -556,8 +563,8 @@ public class MetricsServiceImpl implements MetricsService {
             Long datasourceId,
             DataSourceType sourceType,
             CdpCatalogScope cdpScope,
-            boolean tableGrantFiltering,
-            List<DataSourceTableGrantVO> tableGrants,
+            boolean publishedMetaFiltering,
+            DataSourceVisibleScope visibleScope,
             Map<String, JsonNode> catalogDetailsByName,
             Set<String> resolvingMetrics) {
         if (catalogDetailsByName.containsKey(metricName)) {
@@ -578,8 +585,8 @@ public class MetricsServiceImpl implements MetricsService {
                     detail,
                     sourceType,
                     cdpScope,
-                    tableGrantFiltering,
-                    tableGrants);
+                    publishedMetaFiltering,
+                    visibleScope);
             catalogDetailsByName.put(metricName, detail);
             for (String dependency : metricDependencies(detail)) {
                 collectMetricDetailsForQuery(
@@ -587,8 +594,8 @@ public class MetricsServiceImpl implements MetricsService {
                         datasourceId,
                         sourceType,
                         cdpScope,
-                        tableGrantFiltering,
-                        tableGrants,
+                        publishedMetaFiltering,
+                        visibleScope,
                         catalogDetailsByName,
                         resolvingMetrics);
             }
@@ -603,24 +610,27 @@ public class MetricsServiceImpl implements MetricsService {
             JsonNode detail,
             DataSourceType sourceType,
             CdpCatalogScope cdpScope,
-            boolean tableGrantFiltering,
-            List<DataSourceTableGrantVO> tableGrants) {
-        if (tableGrantFiltering) {
+            boolean publishedMetaFiltering,
+            DataSourceVisibleScope visibleScope) {
+        if (publishedMetaFiltering) {
             if (!isMetricPublishedAndAuthorizedForRuntime(
-                    datasourceId, detail, sourceType, tableGrants, Map.of())) {
-                throw new ForbiddenException("Metric is not authorized for this tenant: " + metricName);
+                    datasourceId, detail, sourceType, visibleScope, Map.of())) {
+                throw new ForbiddenException("Metric is outside datasource visible scope or unpublished: " + metricName);
             }
         } else if (!isMetricVisibleForDatasource(detail, sourceType, cdpScope)) {
             throw new IllegalArgumentException(
                     "Metric '" + metricName + "' is not available for datasource type " + sourceType.getCode());
         }
-        if (requiresLegacyCdpRegistration(sourceType, tableGrantFiltering, cdpScope)) {
+        if (requiresLegacyCdpRegistration(sourceType, publishedMetaFiltering, cdpScope)) {
             requireMeta(datasourceId, metricName);
             if (!isTablePublishedForDatasource(
                     datasourceId, detail.path("source").path("table_view").asText(null))) {
                 throw new IllegalArgumentException(
                         "Metric '" + metricName + "' references an unpublished table");
             }
+        }
+        if (!isTablePublishedForDatasource(datasourceId, detail.path("source").path("table_view").asText(null))) {
+            throw new ForbiddenException("Metric references an unpublished table: " + metricName);
         }
     }
 
@@ -752,7 +762,7 @@ public class MetricsServiceImpl implements MetricsService {
             Long datasourceId,
             JsonNode node,
             DataSourceType sourceType,
-            List<DataSourceTableGrantVO> tableGrants,
+            DataSourceVisibleScope visibleScope,
             Map<String, JsonNode> detailLookup) {
         Set<String> publishedTableNames = tableViewMetaService.getTableViewsIndex(datasourceId).stream()
                 .map(TableViewIndexItem::getTableName)
@@ -762,7 +772,7 @@ public class MetricsServiceImpl implements MetricsService {
                 datasourceId,
                 node,
                 sourceType,
-                tableGrants,
+                visibleScope,
                 detailLookup,
                 publishedTableNames);
     }
@@ -771,7 +781,7 @@ public class MetricsServiceImpl implements MetricsService {
             Long datasourceId,
             JsonNode node,
             DataSourceType sourceType,
-            List<DataSourceTableGrantVO> tableGrants,
+            DataSourceVisibleScope visibleScope,
             Map<String, JsonNode> detailLookup,
             Set<String> publishedTableNames) {
         if (!isMetricSourceTypeCompatible(datasourceId, node, sourceType, detailLookup)) {
@@ -779,57 +789,28 @@ public class MetricsServiceImpl implements MetricsService {
         }
         String tableView = resolveMetricTableView(datasourceId, node, detailLookup).orElse(null);
         return StringUtils.hasText(tableView)
-                && isTableAuthorizedByGrantList(tableGrants, null, tableView)
-                && isTablePublished(publishedTableNames, tableView);
+                && isTableVisibleInScope(visibleScope, null, tableView)
+                && isTablePublished(publishedTableNames, tableView, visibleScope.defaultSchema());
     }
 
-    private boolean isMetricAuthorizedForTenant(
+    private boolean isMetricWithinVisibleScope(
             Long datasourceId,
             JsonNode node,
-            List<DataSourceTableGrantVO> tableGrants,
+            DataSourceVisibleScope visibleScope,
             Map<String, JsonNode> detailLookup) {
-        if (tableGrants.isEmpty()) {
+        if (!visibleScope.isRestricted()) {
             return true;
         }
         String tableView = resolveMetricTableView(datasourceId, node, detailLookup).orElse(null);
         return StringUtils.hasText(tableView)
-                && isTableAuthorizedByGrantList(tableGrants, null, tableView);
+                && isTableVisibleInScope(visibleScope, null, tableView);
     }
 
-    private boolean isTableAuthorizedByGrantList(
-            List<DataSourceTableGrantVO> tableGrants,
+    private boolean isTableVisibleInScope(
+            DataSourceVisibleScope visibleScope,
             String schemaName,
             String tableName) {
-        if (!StringUtils.hasText(tableName)) {
-            return false;
-        }
-        SqlIdentifierUtils.TableIdentifier tableIdentifier =
-                SqlIdentifierUtils.parseTableIdentifier(schemaName, tableName);
-        for (DataSourceTableGrantVO grant : tableGrants) {
-            boolean caseSensitive = Boolean.TRUE.equals(grant.getCaseSensitive());
-            String effectiveSchema = tableIdentifier.schemaName();
-            if (StringUtils.hasText(effectiveSchema)
-                    && StringUtils.hasText(grant.getSchemaName())) {
-                boolean schemaMatches = caseSensitive
-                        ? grant.getSchemaName().equals(effectiveSchema)
-                        : grant.getSchemaName().equalsIgnoreCase(effectiveSchema);
-                if (!schemaMatches) {
-                    continue;
-                }
-            }
-            String candidate = SqlIdentifierUtils.normalizeForComparison(
-                    tableIdentifier.tableName(), caseSensitive);
-            String pattern = caseSensitive
-                    ? grant.getTablePattern()
-                    : grant.getTablePattern().toLowerCase(Locale.ROOT);
-            boolean allowed = "EXACT".equals(grant.getPatternType())
-                    ? candidate.equals(pattern)
-                    : candidate.startsWith(pattern);
-            if (allowed) {
-                return true;
-            }
-        }
-        return false;
+        return visibleScope.allows(schemaName, tableName);
     }
 
     private Optional<String> resolveMetricTableView(
@@ -858,16 +839,23 @@ public class MetricsServiceImpl implements MetricsService {
                 .map(TableViewIndexItem::getTableName)
                 .filter(StringUtils::hasText)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-        return isTablePublished(publishedTableNames, tableName);
+        DataSourceConfig config = resolveDatasourceConfig(datasourceId);
+        return isTablePublished(publishedTableNames, tableName, config == null ? null : config.getSchemaName());
     }
 
-    private boolean isTablePublished(Set<String> publishedTableNames, String tableName) {
+    private boolean isTablePublished(Set<String> publishedTableNames, String tableName, String defaultSchema) {
         if (!StringUtils.hasText(tableName)) {
             return false;
         }
-        return publishedTableNames.stream()
-                .anyMatch(publishedTable -> SqlIdentifierUtils.sameTableName(
-                        publishedTable, tableName, false));
+        var requested = SqlIdentifierUtils.parseTableIdentifier(null, tableName);
+        String requestedSchema = requested.schemaName() == null ? defaultSchema : requested.schemaName();
+        return publishedTableNames.stream().anyMatch(publishedTable -> {
+            var published = SqlIdentifierUtils.parseTableIdentifier(null, publishedTable);
+            String publishedSchema = published.schemaName() == null ? defaultSchema : published.schemaName();
+            return requested.tableName().equalsIgnoreCase(published.tableName())
+                    && (requestedSchema == null ? publishedSchema == null
+                        : publishedSchema != null && requestedSchema.equalsIgnoreCase(publishedSchema));
+        });
     }
 
     private void assertSqlUsesPublishedTables(Long datasourceId, String sql) {
@@ -892,7 +880,10 @@ public class MetricsServiceImpl implements MetricsService {
             return false;
         }
         return resolveMetricTableView(datasourceId, indexNode, detailLookup)
-                .filter(tableView -> isTablePublished(publishedTableNames, tableView))
+                .filter(tableView -> {
+                    DataSourceConfig config = resolveDatasourceConfig(datasourceId);
+                    return isTablePublished(publishedTableNames, tableView, config == null ? null : config.getSchemaName());
+                })
                 .isPresent();
     }
 
@@ -924,18 +915,18 @@ public class MetricsServiceImpl implements MetricsService {
 
     private boolean isLegacyCdpSemanticAllowed(
             DataSourceType sourceType,
-            boolean tableGrantFiltering,
+            boolean publishedMetaFiltering,
             CdpCatalogScope cdpScope) {
         return sourceType.isCdp()
-                && !tableGrantFiltering
+                && !publishedMetaFiltering
                 && cdpScope == CdpCatalogScope.CATERPILLAR;
     }
 
     private boolean requiresLegacyCdpRegistration(
             DataSourceType sourceType,
-            boolean tableGrantFiltering,
+            boolean publishedMetaFiltering,
             CdpCatalogScope cdpScope) {
-        return isLegacyCdpSemanticAllowed(sourceType, tableGrantFiltering, cdpScope);
+        return isLegacyCdpSemanticAllowed(sourceType, publishedMetaFiltering, cdpScope);
     }
 
     private Map<String, JsonNode> detailLookup(Long datasourceId) {
