@@ -430,7 +430,7 @@ GET /customers/:customerId/tags
   "total": 3,
   "tags": [
     {
-      "tagId": "b1f2c3d4-0001-4a01-8001-000000000001",
+      "tagId": "9ce355bfacca49c4a9e9322a9317c196",
       "name": "抗老/紧致",
       "dimension": "concerns",
       "evidence": "很喜欢用黑钻光灿面霜"
@@ -443,7 +443,7 @@ GET /customers/:customerId/tags
 |---|---|
 | `customerId` | 客户 id |
 | `total` | 标签数量 |
-| `tags[].tagId` | 标签 uuid |
+| `tags[].tagId` | 标签 uuid（32 位十六进制，如 `9ce355bfacca49c4a9e9322a9317c196`） |
 | `tags[].name` | 标签名称 |
 | `tags[].dimension` | 维度：`concerns` / `interested_products` / `purchase_intent` / `price_sensitivity` / `service_opportunities` / `custom_tags` 等 |
 | `tags[].evidence` | 依据原文（可选） |

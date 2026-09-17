@@ -48,7 +48,7 @@ describe("GET /api/v1/customers/:customerId/tags", () => {
     expect(body.total).toBe(body.tags.length);
     expect(body.total).toBeGreaterThan(0);
     for (const tag of body.tags) {
-      expect(typeof tag.tagId).toBe("string");
+      expect(tag.tagId).toMatch(/^[0-9a-f]{32}$/);
       expect(typeof tag.name).toBe("string");
       expect(typeof tag.dimension).toBe("string");
     }
