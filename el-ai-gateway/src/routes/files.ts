@@ -18,8 +18,32 @@ export function registerFileRoutes(app: FastifyInstance, deps: FileRouteDeps): v
     const data = await request.file();
     if (!data) throw new GatewayError(400, "BAD_REQUEST", "multipart field 'file' is required");
 
-    const query = request.query as { path?: string; fileName?: string };
+    const query = request.query as {
+      path?: string;
+      fileName?: string;
+      fileCategory?: string;
+      usage?: string;
+      userId?: string;
+      customerId?: string;
+      meta?: string;
+    };
     const uuid = randomUUID().replace(/-/g, "");
+
+    let meta: Record<string, unknown> = {};
+    if (query.meta) {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(query.meta);
+      } catch {
+        throw new GatewayError(400, "BAD_REQUEST", "meta must be valid URL-encoded JSON");
+      }
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new GatewayError(400, "BAD_REQUEST", "meta must be a JSON object");
+      }
+      meta = parsed as Record<string, unknown>;
+    }
+    if (query.userId) meta.userId = query.userId;
+    if (query.customerId) meta.customerId = query.customerId;
 
     const receipt = await deps.platformFiles.upload({
       tenantId: principal.tenantId,
@@ -29,6 +53,9 @@ export function registerFileRoutes(app: FastifyInstance, deps: FileRouteDeps): v
       mime: data.mimetype,
       path: query.path,
       fileName: query.fileName,
+      fileCategory: query.fileCategory,
+      usage: query.usage,
+      meta,
     });
 
     return reply.send(receipt);

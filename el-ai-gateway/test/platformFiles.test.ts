@@ -38,6 +38,9 @@ describe("platformFiles.upload", () => {
       mime: "audio/wav",
       path: "voice",
       fileName: "a.wav",
+      fileCategory: "raw",
+      usage: "voice-tagging",
+      meta: { userId: "u1", customerId: "c2" },
     });
 
     expect(receipt).toEqual({ uuid: "abc", version: 1 });
@@ -49,6 +52,9 @@ describe("platformFiles.upload", () => {
     expect(init.headers["Content-Type"]).toBe("audio/wav");
     expect(init.headers["X-File-Path"]).toBe("voice");
     expect(init.headers["X-File-Name"]).toBe("a.wav");
+    expect(init.headers["X-File-Category"]).toBe("raw");
+    expect(init.headers["X-File-Usage"]).toBe("voice-tagging");
+    expect(init.headers["X-File-Meta"]).toBe(JSON.stringify({ userId: "u1", customerId: "c2" }));
     expect(init.duplex).toBe("half");
   });
 

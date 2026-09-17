@@ -16,6 +16,9 @@ export type PlatformFilesClient = {
     mime: string;
     path?: string;
     fileName?: string;
+    fileCategory?: string;
+    usage?: string;
+    meta?: Record<string, unknown>;
   }): Promise<UploadReceipt>;
   presign(input: { tenantId: string; uuid: string; ttlSeconds?: number }): Promise<PresignLink>;
 };
@@ -36,6 +39,11 @@ export function createPlatformFilesClient(
       headers["Content-Type"] = input.mime;
       if (input.path) headers["X-File-Path"] = input.path;
       headers["X-File-Name"] = input.fileName ?? input.filename;
+      if (input.fileCategory) headers["X-File-Category"] = input.fileCategory;
+      if (input.usage) headers["X-File-Usage"] = input.usage;
+      if (input.meta && Object.keys(input.meta).length > 0) {
+        headers["X-File-Meta"] = JSON.stringify(input.meta);
+      }
 
       const res = await fetchWithTimeout(
         fetchImpl,
