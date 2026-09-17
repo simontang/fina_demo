@@ -82,6 +82,7 @@ sequenceDiagram
 7. [Webhook 回调（2 次）](#7-webhook-回调2-次)
 8. [错误码](#8-错误码)
 9. [端到端示例](#9-端到端示例)
+10. [查询客户业务标签](#10-查询客户业务标签)
 
 ---
 
@@ -412,3 +413,40 @@ curl -s -X POST "$BASE/voice-tagging/$TASK/feedback" \
 ```
 
 **时序**：上传 → 发起（立即返回 `taskId`）→ 后台转写+打标（期间发 2 次 webhook：`voice.transcribed`、`voice.tagged`）→ 轮询状态可看到 activity → 反馈再次写入任务时间线。
+
+## 10. 查询客户业务标签
+
+查询某客户的全部业务标签（**标签名称 + 标签 uuid**）。
+
+```
+GET /customers/:customerId/tags
+```
+
+**响应 `200`**：
+
+```json
+{
+  "customerId": "cus_8899",
+  "total": 3,
+  "tags": [
+    {
+      "tagId": "b1f2c3d4-0001-4a01-8001-000000000001",
+      "name": "抗老/紧致",
+      "dimension": "concerns",
+      "evidence": "很喜欢用黑钻光灿面霜"
+    }
+  ]
+}
+```
+
+| 字段 | 说明 |
+|---|---|
+| `customerId` | 客户 id |
+| `total` | 标签数量 |
+| `tags[].tagId` | 标签 uuid |
+| `tags[].name` | 标签名称 |
+| `tags[].dimension` | 维度：`concerns` / `interested_products` / `purchase_intent` / `price_sensitivity` / `service_opportunities` / `custom_tags` 等 |
+| `tags[].evidence` | 依据原文（可选） |
+
+- 客户不存在 → `404 NOT_FOUND`。
+- 说明：当前为 **mock 数据**（示例客户 `cus_8899`、`cus_1001`）；接入真实标签存储后接口契约不变。
