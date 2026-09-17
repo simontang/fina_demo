@@ -126,19 +126,33 @@ describe("POST /api/v1/voice-tagging", () => {
 });
 
 describe("GET /api/v1/voice-tagging/:id", () => {
-  it("returns task status and activities", async () => {
+  it("returns the (mock) task detail with fileId / status / tags / activities", async () => {
     const app = buildServer(deps());
     const res = await app.inject({
       method: "GET",
-      url: "/api/v1/voice-tagging/task-1",
+      url: "/api/v1/voice-tagging/c3915a5a-85ed-4e31-a09e-492b3c11e938",
       headers: { authorization: "Bearer secret" },
     });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toMatchObject({
-      taskId: "task-1",
-      status: "completed",
-      activities: [{ id: "act-1" }],
+    const body = res.json();
+    expect(body.taskId).toBe("c3915a5a-85ed-4e31-a09e-492b3c11e938");
+    expect(body.fileId).toBe("471c20082b524316accc1b23cba8a4de");
+    expect(body.status).toBe("completed");
+    expect(Array.isArray(body.tags)).toBe(true);
+    expect(body.tags.length).toBeGreaterThan(0);
+    expect(Array.isArray(body.activities)).toBe(true);
+    expect(body.activities.length).toBeGreaterThan(0);
+  });
+
+  it("returns 404 for an unknown task", async () => {
+    const app = buildServer(deps());
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/voice-tagging/nope",
+      headers: { authorization: "Bearer secret" },
     });
+    expect(res.statusCode).toBe(404);
+    expect(res.json().code).toBe("NOT_FOUND");
   });
 });
 

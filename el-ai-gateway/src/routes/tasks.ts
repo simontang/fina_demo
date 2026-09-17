@@ -7,7 +7,7 @@ import type { Config } from "../types";
 import type { PlatformFilesClient } from "../upstream/platformFiles";
 import type { AgentRunsClient } from "../upstream/agentRuns";
 import type { TaskToolClient } from "../upstream/taskTools";
-import { getTasks } from "../mock/tasks";
+import { getTasks, getTaskById } from "../mock/tasks";
 
 export type TaskRouteDeps = {
   config: Config;
@@ -106,14 +106,9 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
   app.get("/api/v1/voice-tagging/:id", async (request) => {
     requirePrincipal(deps.authenticator, request.headers.authorization);
     const { id } = request.params as { id: string };
-    const task = await deps.taskTools.getTask({ id });
-    return {
-      taskId: task.id,
-      status: task.status,
-      title: task.title,
-      result: task.result,
-      activities: task.activities,
-    };
+    const task = getTaskById(id);
+    if (!task) throw new GatewayError(404, "NOT_FOUND", `Task '${id}' not found`);
+    return task;
   });
 
   app.post("/api/v1/voice-tagging/:id/feedback", async (request) => {
