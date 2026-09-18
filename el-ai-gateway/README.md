@@ -15,8 +15,8 @@ Estée Lauder AI project API gateway for **voice-file tagging and customer/file/
 | POST | `/api/v1/files?path=&fileName=` | multipart `file`; returns platform upload receipt (`uuid`, ...) |
 | GET | `/api/v1/files?baId=&customerId=` | list files for a BA + customer (both required) |
 | GET | `/api/v1/files/:uuid/url` | presigned playback/download URL for an `<audio>` |
-| POST | `/api/v1/voice-tagging` | `{uuid?,title?,description?,assistantId?}`; presigns, creates a task, dispatches an agent run (background) with only the task id (`uuid` defaults to `VOICE_TAGGING_FILE_UUID`) |
-| GET | `/api/v1/voice-tagging?baId=&customerId=` | list a BA's tasks for a customer (fileId/taskId/status/tags) |
+| POST | `/api/v1/voice-tagging` | `{uuid?,baId,customerId,title?,description?,assistantId?}`; presigns, creates a task (metadata carries uuid+baId+customerId), dispatches an agent run (background) with only the task id (`uuid` defaults to `VOICE_TAGGING_FILE_UUID`) |
+| GET | `/api/v1/voice-tagging?baId=&customerId=` | list a BA's tasks for a customer via task metadata filter (fileId/taskId/status/tags) |
 | GET | `/api/v1/voice-tagging/:id` | task status + tags |
 | GET | `/api/v1/voice-tagging/:id/activities` | task activity timeline |
 | PUT | `/api/v1/voice-tagging/:id/tags` | **overwrite** this task's tags `{tags:[tagId,...]}`; records an activity (**task-level, not customer-level**) |

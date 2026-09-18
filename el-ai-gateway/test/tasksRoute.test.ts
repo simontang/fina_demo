@@ -53,6 +53,7 @@ function deps(overrides: Record<string, unknown> = {}) {
         raw: {},
       })),
       updateResult: vi.fn(async () => ({ raw: {} })),
+      listTasks: vi.fn(async () => []),
     },
     ...overrides,
   } as any;
@@ -66,7 +67,7 @@ describe("POST /api/v1/voice-tagging", () => {
       method: "POST",
       url: "/api/v1/voice-tagging",
       headers: { authorization: "Bearer secret" },
-      payload: { uuid: "u1", title: "My task" },
+      payload: { uuid: "u1", title: "My task", baId: "ba_001", customerId: "cus_8899" },
     });
     expect(res.statusCode).toBe(200);
     const body = res.json();
@@ -78,7 +79,7 @@ describe("POST /api/v1/voice-tagging", () => {
       description: undefined,
       status: "in_progress",
       ownerId: "tenant_a",
-      metadata: { uuid: "u1", url: "https://signed" },
+      metadata: { uuid: "u1", url: "https://signed", baId: "ba_001", customerId: "cus_8899" },
     });
     const runArg = d.agentRuns.startRun.mock.calls[0][0];
     expect(runArg.assistantId).toBe("voice-agent");
@@ -92,7 +93,7 @@ describe("POST /api/v1/voice-tagging", () => {
       method: "POST",
       url: "/api/v1/voice-tagging",
       headers: { authorization: "Bearer secret" },
-      payload: {},
+      payload: { baId: "ba_001", customerId: "cus_8899" },
     });
     expect(res.statusCode).toBe(200);
     expect(d.platformFiles.presign).toHaveBeenCalledWith({
@@ -111,7 +112,7 @@ describe("POST /api/v1/voice-tagging", () => {
       method: "POST",
       url: "/api/v1/voice-tagging",
       headers: { authorization: "Bearer secret" },
-      payload: {},
+      payload: { baId: "ba_001", customerId: "cus_8899" },
     });
     expect(res.statusCode).toBe(400);
   });
@@ -126,7 +127,7 @@ describe("POST /api/v1/voice-tagging", () => {
       method: "POST",
       url: "/api/v1/voice-tagging",
       headers: { authorization: "Bearer secret" },
-      payload: { uuid: "u1" },
+      payload: { uuid: "u1", baId: "ba_001", customerId: "cus_8899" },
     });
     expect(res.statusCode).toBe(200);
     expect(res.json().taskId).toBe("task-1");
@@ -199,8 +200,33 @@ describe("POST /api/v1/voice-tagging/:id/feedback", () => {
 });
 
 describe("GET /api/v1/voice-tagging?baId=&customerId=", () => {
+  function listDeps() {
+    return deps({
+      taskTools: {
+        createTask: vi.fn(),
+        getTask: vi.fn(),
+        updateResult: vi.fn(),
+        listTasks: vi.fn(async () => [
+          {
+            id: "task-1",
+            status: "completed",
+            title: "Voice tagging: 471c20082b524316accc1b23cba8a4de",
+            createdAt: "2026-09-15T06:13:00Z",
+            metadata: { uuid: "471c20082b524316accc1b23cba8a4de", baId: "ba_001", customerId: "cus_8899" },
+            result: JSON.stringify([
+              { tagId: "9ce355bfacca49c4a9e9322a9317c196", name: "抗老/紧致", dimension: "concerns" },
+            ]),
+            activities: [],
+            raw: {},
+          },
+        ]),
+      },
+    });
+  }
+
   it("returns tasks with fileId / taskId / status / tags", async () => {
-    const app = buildServer(deps());
+    const d = listDeps();
+    const app = buildServer(d);
     const res = await app.inject({
       method: "GET",
       url: "/api/v1/voice-tagging?baId=ba_001&customerId=cus_8899",
@@ -210,8 +236,12 @@ describe("GET /api/v1/voice-tagging?baId=&customerId=", () => {
     const body = res.json();
     expect(body.baId).toBe("ba_001");
     expect(body.customerId).toBe("cus_8899");
-    expect(body.total).toBe(body.tasks.length);
-    expect(body.total).toBeGreaterThan(0);
+    expect(body.total).toBe(1);
+    expect(d.taskTools.listTasks).toHaveBeenCalledWith({
+      ownerId: "tenant_a",
+      baId: "ba_001",
+      customerId: "cus_8899",
+    });
     const task = body.tasks[0];
     expect(typeof task.taskId).toBe("string");
     expect(typeof task.fileId).toBe("string");

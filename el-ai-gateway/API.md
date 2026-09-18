@@ -155,7 +155,7 @@ Authorization: Bearer <API_KEY>
 | 步骤 | 接口 |
 |---|---|
 | 录音上传 | [`POST /files?baId=&customerId=&fileCategory=raw&usage=voice-tagging`](#71-上传文件) → 得 `uuid` |
-| 触发转写 + 打标 | [`POST /voice-tagging`](#81-发起打标任务) `{uuid}` → 得 `taskId` |
+| 触发转写 + 打标 | [`POST /voice-tagging`](#81-发起打标任务) `{uuid, baId, customerId}` → 得 `taskId` |
 | 手记列表 / 音频播放 | [`GET /voice-tagging?baId=&customerId=`](#82-查询任务列表)、[`GET /files/:uuid/url`](#73-获取文件播放下载链接) |
 | 查看转写与打标结果 | [`GET /voice-tagging/:taskId`](#83-查询任务状态) |
 | 查看时间线 | [`GET /voice-tagging/:taskId/activities`](#84-查询任务时间线) |
@@ -327,11 +327,21 @@ Content-Type: application/json
 ```json
 {
   "uuid": "471c20082b524316accc1b23cba8a4de",
+  "baId": "ba_001",
+  "customerId": "cus_8899",
   "title": "可选，任务名；缺省 Voice tagging: <uuid>",
   "description": "可选",
   "assistantId": "可选，覆盖服务端默认配置"
 }
 ```
+
+| 参数 | 必填 | 说明 |
+|---|---|---|
+| `uuid` | 是 | 上一步上传返回的文件 uuid（缺省可用服务端配置的 `VOICE_TAGGING_FILE_UUID`） |
+| `baId` | 是 | 业务员 id；写入任务元数据，供 [任务列表](#82-查询任务列表) 过滤 |
+| `customerId` | 是 | 客户 id；写入任务元数据，供 [任务列表](#82-查询任务列表) 过滤 |
+| `title` / `description` | 否 | 任务名 / 描述 |
+| `assistantId` | 否 | 覆盖服务端默认配置 |
 
 **响应 `200`**：
 
@@ -392,7 +402,7 @@ GET /voice-tagging?baId=<id>&customerId=<id>
 
 - 缺 `baId` 或 `customerId` → `400 BAD_REQUEST`。
 - `tasks[].status` 枚举同 [§8.3 查询任务状态](#83-查询任务状态)。
-- 说明：当前为 **mock 数据**（示例组合 `ba_001`+`cus_8899`、`ba_002`+`cus_8899`、`ba_001`+`cus_1001`）；未知组合返回空列表（`total:0`）。
+- 说明：按任务的 `baId` + `customerId` **元数据精确过滤**（由 [发起打标任务](#81-发起打标任务) 创建时写入）；无匹配时返回空列表（`total:0`）。
 
 ### 8.3 查询任务状态
 
@@ -582,15 +592,15 @@ GET /customers/:customerId/tags
 BASE=https://ada.alphafina.cn/api/el-ai-gateway
 KEY=<API_KEY>
 
-# 1) 上传
-UUID=$(curl -s -X POST "$BASE/files?path=voice-tagging&fileName=clip.wav" \
+# 1) 上传（baId / customerId 必填）
+UUID=$(curl -s -X POST "$BASE/files?path=voice-tagging&fileName=clip.wav&baId=ba_001&customerId=cus_8899" \
   -H "Authorization: Bearer $KEY" \
   -F "file=@clip.wav;type=audio/wav" | jq -r .uuid)
 
-# 2) 发起
+# 2) 发起（baId / customerId 必填）
 TASK=$(curl -s -X POST "$BASE/voice-tagging" \
   -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d "{\"uuid\":\"$UUID\"}" | jq -r .taskId)
+  -d "{\"uuid\":\"$UUID\",\"baId\":\"ba_001\",\"customerId\":\"cus_8899\"}" | jq -r .taskId)
 
 # 3) 查询状态（tags；转写/打标正文在 activities[].markdown）
 curl -s "$BASE/voice-tagging/$TASK" -H "Authorization: Bearer $KEY" | jq

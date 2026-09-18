@@ -7,7 +7,6 @@ import type { Config } from "../types";
 import type { PlatformFilesClient } from "../upstream/platformFiles";
 import type { AgentRunsClient } from "../upstream/agentRuns";
 import type { TaskToolClient, TaskRecord } from "../upstream/taskTools";
-import { getTasks } from "../mock/tasks";
 import { resolveTags } from "../mock/customerTags";
 
 export type TaskRouteDeps = {
@@ -85,6 +84,8 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
     const principal = requirePrincipal(deps.authenticator, request.headers.authorization);
     const body = (request.body ?? {}) as {
       uuid?: string;
+      baId?: string;
+      customerId?: string;
       title?: string;
       description?: string;
       assistantId?: string;
@@ -92,6 +93,12 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
     const uuid = body.uuid ?? deps.config.voiceTaggingFileUuid;
     if (typeof uuid !== "string" || uuid.trim() === "") {
       throw new GatewayError(400, "BAD_REQUEST", "uuid is required (or set VOICE_TAGGING_FILE_UUID)");
+    }
+    if (typeof body.baId !== "string" || body.baId.trim() === "") {
+      throw new GatewayError(400, "BAD_REQUEST", "baId is required");
+    }
+    if (typeof body.customerId !== "string" || body.customerId.trim() === "") {
+      throw new GatewayError(400, "BAD_REQUEST", "customerId is required");
     }
 
     const { url } = await deps.platformFiles.presign({ tenantId: principal.tenantId, uuid });
@@ -101,7 +108,7 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
       description: body.description,
       status: "in_progress",
       ownerId: principal.tenantId,
-      metadata: { uuid, url },
+      metadata: { uuid, url, baId: body.baId, customerId: body.customerId },
     });
 
     const assistantId = body.assistantId ?? deps.config.voiceTaggingAssistantId;
@@ -121,9 +128,9 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
     return { taskId, status: "in_progress", file: { uuid, url }, agent: { dispatched: true } };
   });
 
-  // List a BA's tasks for a customer (mock store): fileId / taskId / status / tags.
+  // List a BA's tasks for a customer (filtered by task metadata via the task service).
   app.get("/api/v1/voice-tagging", async (request) => {
-    requirePrincipal(deps.authenticator, request.headers.authorization);
+    const principal = requirePrincipal(deps.authenticator, request.headers.authorization);
     const query = request.query as { baId?: string; customerId?: string };
     if (typeof query.baId !== "string" || query.baId.trim() === "") {
       throw new GatewayError(400, "BAD_REQUEST", "baId is required");
@@ -131,7 +138,21 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
     if (typeof query.customerId !== "string" || query.customerId.trim() === "") {
       throw new GatewayError(400, "BAD_REQUEST", "customerId is required");
     }
-    const tasks = getTasks(query.baId, query.customerId);
+    const records = await deps.taskTools.listTasks({
+      ownerId: principal.tenantId,
+      baId: query.baId,
+      customerId: query.customerId,
+    });
+    const tasks = records.map((task) => {
+      const metadata = (task.metadata ?? {}) as Record<string, unknown>;
+      return {
+        taskId: task.id,
+        fileId: typeof metadata.uuid === "string" ? metadata.uuid : undefined,
+        status: task.status,
+        createdAt: task.createdAt,
+        tags: parseTags(task.result),
+      };
+    });
     return { baId: query.baId, customerId: query.customerId, total: tasks.length, tasks };
   });
 

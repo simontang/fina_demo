@@ -62,4 +62,41 @@ describe("taskTools", () => {
       code: "NOT_FOUND",
     });
   });
+
+  it("lists tasks by metadata filter (baId + customerId)", async () => {
+    const caller = callerReturning(
+      JSON.stringify({
+        success: true,
+        data: [
+          {
+            id: "t1",
+            status: "completed",
+            title: "T",
+            metadata: { uuid: "u1", baId: "ba_001", customerId: "cus_8899" },
+            result: "[]",
+            createdAt: "2026-09-15T06:13:00Z",
+          },
+        ],
+        count: 1,
+      }),
+    );
+    const tools = createTaskToolClient(caller);
+    const tasks = await tools.listTasks({ ownerId: "tenant_a", baId: "ba_001", customerId: "cus_8899" });
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]).toMatchObject({ id: "t1", status: "completed", metadata: { uuid: "u1" } });
+    expect(caller.callTool).toHaveBeenCalledWith("task_manage_task", {
+      action: "list",
+      ownerType: "user",
+      ownerId: "tenant_a",
+      metadataFilter: { baId: "ba_001", customerId: "cus_8899" },
+    });
+  });
+
+  it("returns an empty array when list has no tasks", async () => {
+    const caller = callerReturning(JSON.stringify({ success: true, data: [], count: 0 }));
+    const tools = createTaskToolClient(caller);
+    await expect(
+      tools.listTasks({ ownerId: "tenant_a", baId: "ba_x", customerId: "cus_y" }),
+    ).resolves.toEqual([]);
+  });
 });

@@ -23,6 +23,7 @@ export type TaskToolClient = {
     metadata?: Record<string, unknown>;
   }): Promise<{ taskId: string; raw: unknown }>;
   getTask(input: { id: string }): Promise<TaskRecord>;
+  listTasks(input: { ownerId: string; baId: string; customerId: string }): Promise<TaskRecord[]>;
   updateResult(input: { id: string; result: string }): Promise<{ raw: unknown }>;
 };
 
@@ -79,6 +80,26 @@ export function createTaskToolClient(mcp: McpCaller): TaskToolClient {
         activities: data?.activities ?? task.activities ?? [],
         raw: data,
       };
+    },
+
+    async listTasks({ ownerId, baId, customerId }) {
+      const data = await invoke({
+        action: "list",
+        ownerType: "user",
+        ownerId,
+        metadataFilter: { baId, customerId },
+      });
+      const list: any[] = Array.isArray(data) ? data : (data?.tasks ?? data?.data ?? []);
+      return list.map((task: any) => ({
+        id: task.id,
+        status: task.status,
+        title: task.title,
+        result: task.result,
+        metadata: task.metadata,
+        createdAt: task.createdAt,
+        activities: task.activities ?? [],
+        raw: task,
+      }));
     },
 
     async updateResult({ id, result }) {
