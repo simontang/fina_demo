@@ -27,6 +27,12 @@ export function registerFileRoutes(app: FastifyInstance, deps: FileRouteDeps): v
       customerId?: string;
       meta?: string;
     };
+    if (typeof query.baId !== "string" || query.baId.trim() === "") {
+      throw new GatewayError(400, "BAD_REQUEST", "baId is required");
+    }
+    if (typeof query.customerId !== "string" || query.customerId.trim() === "") {
+      throw new GatewayError(400, "BAD_REQUEST", "customerId is required");
+    }
     const uuid = randomUUID().replace(/-/g, "");
 
     let meta: Record<string, unknown> = {};

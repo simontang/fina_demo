@@ -8,6 +8,8 @@ export type Config = {
   platformFilesUrl: string;
   fileServiceApiKey?: string;
   maxUploadBytes: number;
+  // Comma-separated allowed origins, or "*" for any (default).
+  corsOrigins?: string;
   agentRunsUrl: string;
   agentAuthUrl: string;
   agentLoginEmail?: string;

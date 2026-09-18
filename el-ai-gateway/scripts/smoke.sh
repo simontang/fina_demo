@@ -9,7 +9,7 @@ echo "== health =="
 curl -sS "$BASE/health"; echo
 
 echo "== upload =="
-UPLOAD=$(curl -sS -X POST "$BASE/api/v1/files?path=voice" \
+UPLOAD=$(curl -sS -X POST "$BASE/api/v1/files?path=voice&baId=ba_001&customerId=cus_8899" \
   -H "Authorization: Bearer $KEY" \
   -F "file=@${FILE}")
 echo "$UPLOAD"

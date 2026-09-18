@@ -1,4 +1,5 @@
 import Fastify, { type FastifyInstance } from "fastify";
+import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
 import type { Authenticator } from "./auth";
 import { toErrorResponse } from "./lib/errors";
@@ -22,6 +23,16 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
   const app = Fastify({ logger: false, bodyLimit: deps.config.maxUploadBytes });
 
   app.register(multipart, { limits: { fileSize: deps.config.maxUploadBytes } });
+
+  const rawCorsOrigins = (deps.config.corsOrigins ?? "*").trim();
+  const corsOrigin =
+    rawCorsOrigins === "*"
+      ? "*"
+      : rawCorsOrigins
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+  app.register(cors, { origin: corsOrigin });
 
   app.get("/health", async () => ({ status: "ok" }));
 

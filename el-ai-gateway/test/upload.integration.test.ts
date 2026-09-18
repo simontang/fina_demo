@@ -86,7 +86,7 @@ describe("upload integration (real fetch streaming)", () => {
     const { payload, contentType } = multipartBody("clip.wav", content);
     const res = await app.inject({
       method: "POST",
-      url: "/api/v1/files?path=voice&fileName=clip.wav",
+      url: "/api/v1/files?path=voice&fileName=clip.wav&baId=u_b&customerId=c_1",
       headers: { authorization: "Bearer secret", "content-type": contentType },
       payload,
     });

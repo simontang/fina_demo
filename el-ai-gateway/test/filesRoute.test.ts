@@ -80,7 +80,47 @@ describe("POST /api/v1/files", () => {
     const { payload, contentType } = multipartBody("a.wav", "RIFF");
     const res = await app.inject({
       method: "POST",
-      url: `/api/v1/files?meta=${encodeURIComponent("not json")}`,
+      url: `/api/v1/files?baId=u1&customerId=c2&meta=${encodeURIComponent("not json")}`,
+      headers: { authorization: "Bearer secret", "content-type": contentType },
+      payload,
+    });
+    expect(res.statusCode).toBe(400);
+    expect(upload).not.toHaveBeenCalled();
+  });
+
+  it("requires baId", async () => {
+    const upload = vi.fn();
+    const app = buildServer({
+      config,
+      authenticator: (h) => (h === "Bearer secret" ? { tenantId: "tenant_a", keyLabel: "k" } : null),
+      platformFiles: { upload, presign: vi.fn() } as any,
+      agentRuns: { startRun: vi.fn() } as any,
+      taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
+    });
+    const { payload, contentType } = multipartBody("a.wav", "RIFF");
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/files?customerId=c2",
+      headers: { authorization: "Bearer secret", "content-type": contentType },
+      payload,
+    });
+    expect(res.statusCode).toBe(400);
+    expect(upload).not.toHaveBeenCalled();
+  });
+
+  it("requires customerId", async () => {
+    const upload = vi.fn();
+    const app = buildServer({
+      config,
+      authenticator: (h) => (h === "Bearer secret" ? { tenantId: "tenant_a", keyLabel: "k" } : null),
+      platformFiles: { upload, presign: vi.fn() } as any,
+      agentRuns: { startRun: vi.fn() } as any,
+      taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
+    });
+    const { payload, contentType } = multipartBody("a.wav", "RIFF");
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/files?baId=u1",
       headers: { authorization: "Bearer secret", "content-type": contentType },
       payload,
     });

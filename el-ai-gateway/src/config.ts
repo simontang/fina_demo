@@ -13,6 +13,8 @@ const EnvSchema = z.object({
   PLATFORM_FILES_URL: z.string().url().default("http://127.0.0.1:5707/api/v1/files"),
   FILE_SERVICE_API_KEY: z.string().optional(),
   GATEWAY_MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(52428800),
+  // CORS: "*" (any origin) by default; set a comma-separated allowlist in production.
+  GATEWAY_CORS_ORIGINS: z.string().default("*"),
 
   AGENT_RUNS_URL: z.string().url().default("http://127.0.0.1:5702/api/runs"),
   AGENT_AUTH_URL: z.string().url().default("http://127.0.0.1:5702/api/auth/login"),
@@ -56,6 +58,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     platformFilesUrl: parsed.PLATFORM_FILES_URL.replace(/\/$/, ""),
     fileServiceApiKey: parsed.FILE_SERVICE_API_KEY,
     maxUploadBytes: parsed.GATEWAY_MAX_UPLOAD_BYTES,
+    corsOrigins: parsed.GATEWAY_CORS_ORIGINS,
     agentRunsUrl: parsed.AGENT_RUNS_URL,
     agentAuthUrl: parsed.AGENT_AUTH_URL,
     agentLoginEmail: parsed.AGENT_LOGIN_EMAIL,

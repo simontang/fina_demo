@@ -16,6 +16,7 @@
     "mcp:probe": "tsx scripts/mcp-probe.ts"
   },
   "dependencies": {
+    "@fastify/cors": "^11.3.0",
     "@fastify/multipart": "^9.3.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "dotenv": "^16.6.1",
@@ -24,10 +25,12 @@
   },
   "devDependencies": {
     "@types/node": "^20.19.27",
-    "tsx": "^4.19.2",
     "tsup": "^8.5.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.8.2",
     "vitest": "^2.1.9"
   },
-  "engines": { "node": ">=20.0.0" }
+  "engines": {
+    "node": ">=20.0.0"
+  }
 }
