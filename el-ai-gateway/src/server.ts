@@ -8,7 +8,6 @@ import type { AgentRunsClient } from "./upstream/agentRuns";
 import type { TaskToolClient } from "./upstream/taskTools";
 import { registerFileRoutes } from "./routes/files";
 import { registerTaskRoutes } from "./routes/tasks";
-import { registerWebhookRoutes } from "./routes/webhooks";
 import { registerCustomerRoutes } from "./routes/customers";
 
 export type ServerDeps = {
@@ -28,7 +27,6 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
 
   registerFileRoutes(app, deps);
   registerTaskRoutes(app, deps);
-  registerWebhookRoutes(app);
   registerCustomerRoutes(app, deps);
 
   app.setErrorHandler((error, _request, reply) => {
