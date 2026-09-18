@@ -15,6 +15,7 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 const baseURL = process.env.LLM_BASE_URL || "https://llm.alphafina.cn/v1";
 
 import { startServer } from "./gateway";
+import { restoreConnectedMcpServersAcrossTenants } from "./mcpStartupRestore";
 import {
   registerCheckpointSaver,
   registerModelLattice,
@@ -357,6 +358,7 @@ try {
 
 async function main() {
   await initializePgStores();
+  await restoreConnectedMcpServersAcrossTenants();
 
   // Sandbox provider 由 gateway 框架自动根据环境变量注册，无需在此手动配置
 
