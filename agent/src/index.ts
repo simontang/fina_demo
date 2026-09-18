@@ -31,6 +31,7 @@ import {
   createSandboxProvider,
   registerEmbeddingsLattice,
   registerSTTModelLattice,
+  modelLatticeManager,
 } from "@axiom-lattice/core";
 
 import "./agents";
@@ -40,6 +41,12 @@ import "./tools/marketingCampaignCrud";
 import "./tools/metricsTools";
 
 // 加载环境变量
+
+function hideDefaultModelAliasFromListings() {
+  const originalGetAllLattices = modelLatticeManager.getAllLattices.bind(modelLatticeManager);
+  modelLatticeManager.getAllLattices = () =>
+    originalGetAllLattices().filter((lattice) => lattice.key !== "default");
+}
 
 // registerModelLattice("default", {
 //   model: "deepseek-chat",
@@ -79,22 +86,23 @@ import "./tools/metricsTools";
 
 // 如果设置了 MODEL_LIST 环境变量，则跳过所有代码注册
 if (!process.env.MODEL_LIST) {
-  // registerModelLattice(
-  //   "deepseek-v4-pro",
-  //
-  //   {
-  //     model: "deepseek-v4-pro",
-  //     displayName: "deepseek-v4-pro",
-  //     provider: "openai",
-  //     streaming: true,
-  //     apiKeyEnvName: "API_KEY3",
-  //     baseURL: baseURL,
-  //     modelKwargs: {
-  //       "enable_thinking": false,
-  //       "thinking": { "type": "disabled" }
-  //     }
-  //   }
-  // );
+  registerModelLattice(
+    "deepseek-v4-pro",
+
+    {
+      model: "deepseek-v4-pro",
+      displayName: "deepseek-v4-pro",
+      provider: "openai",
+      streaming: true,
+      apiKeyEnvName: "API_KEY3",
+      baseURL: baseURL,
+      supportsVision: true,
+      modelKwargs: {
+        "enable_thinking": false,
+        "thinking": { "type": "disabled" }
+      }
+    }
+  );
   registerModelLattice(
     "qwen3.8-flash",
 
@@ -276,6 +284,8 @@ if (defaultModel) {
   });
   console.log(`[env] Default model set to: ${defaultModel}`);
 }
+
+hideDefaultModelAliasFromListings();
 
 // registerModelLattice("default", {
 //   model: "qwen-plus",
