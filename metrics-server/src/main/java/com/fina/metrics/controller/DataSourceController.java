@@ -65,7 +65,7 @@ public class DataSourceController {
         return ApiResponse.ok(List.of(dataSourceService.getById(auth.datasourceId())));
     }
 
-    @GetMapping("/{id}/api-keys")
+    @GetMapping("/{id:\\d+}/api-keys")
     public ApiResponse<List<DataSourceApiKeyVO>> listApiKeys(
             @PathVariable Long id,
             HttpServletRequest httpRequest) {
@@ -73,7 +73,7 @@ public class DataSourceController {
         return ApiResponse.ok(datasourceKeyService.list(id));
     }
 
-    @PostMapping("/{id}/api-keys")
+    @PostMapping("/{id:\\d+}/api-keys")
     public ApiResponse<DataSourceApiKeyVO> createApiKey(
             @PathVariable Long id,
             @Valid @RequestBody DataSourceApiKeyRequest request,
@@ -82,7 +82,7 @@ public class DataSourceController {
         return ApiResponse.ok(datasourceKeyService.create(id, request));
     }
 
-    @PostMapping("/{id}/api-keys/{keyId}/disable")
+    @PostMapping("/{id:\\d+}/api-keys/{keyId:\\d+}/disable")
     public ApiResponse<DataSourceApiKeyVO> disableApiKey(
             @PathVariable Long id,
             @PathVariable Long keyId,
@@ -91,7 +91,7 @@ public class DataSourceController {
         return ApiResponse.ok(datasourceKeyService.disable(id, keyId));
     }
 
-    @GetMapping("/{id}/visible-scopes")
+    @GetMapping("/{id:\\d+}/visible-scopes")
     public ApiResponse<List<DataSourceVisibleScopeVO>> listVisibleScopes(
             @PathVariable Long id,
             HttpServletRequest httpRequest) {
@@ -100,7 +100,7 @@ public class DataSourceController {
                 .map(DataSourceVisibleScopeVO::from).toList());
     }
 
-    @PostMapping("/{id}/visible-scopes")
+    @PostMapping("/{id:\\d+}/visible-scopes")
     public ApiResponse<DataSourceVisibleScopeVO> createVisibleScope(
             @PathVariable Long id,
             @Valid @RequestBody DataSourceVisibleScopeRequest request,
@@ -109,7 +109,7 @@ public class DataSourceController {
         return ApiResponse.ok(DataSourceVisibleScopeVO.from(tableAccessService.createGrant(null, id, request)));
     }
 
-    @PutMapping("/{id}/visible-scopes/{scopeId}")
+    @PutMapping("/{id:\\d+}/visible-scopes/{scopeId:\\d+}")
     public ApiResponse<DataSourceVisibleScopeVO> updateVisibleScope(
             @PathVariable Long id, @PathVariable Long scopeId,
             @Valid @RequestBody DataSourceVisibleScopeRequest request,
@@ -118,7 +118,7 @@ public class DataSourceController {
         return ApiResponse.ok(DataSourceVisibleScopeVO.from(tableAccessService.updateGrant(null, id, scopeId, request)));
     }
 
-    @DeleteMapping("/{id}/visible-scopes/{scopeId}")
+    @DeleteMapping("/{id:\\d+}/visible-scopes/{scopeId:\\d+}")
     public ApiResponse<Void> deleteVisibleScope(
             @PathVariable Long id,
             @PathVariable Long scopeId,
@@ -142,7 +142,7 @@ public class DataSourceController {
         return ApiResponse.ok(dataSourceService.listActive());
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public ApiResponse<DataSourceVO> getById(@PathVariable Long id, HttpServletRequest httpRequest) {
         adminAuth.requireAdmin(httpRequest);
         return ApiResponse.ok(dataSourceService.getById(id));
@@ -167,7 +167,7 @@ public class DataSourceController {
      * Update a datasource.
      * Password is optional — omit or leave blank to keep the current password.
      */
-    @PutMapping("/{id}")
+    @PutMapping("/{id:\\d+}")
     public ApiResponse<DataSourceVO> update(
             @PathVariable Long id,
             @Valid @RequestBody DataSourceUpdateRequest request,
@@ -180,7 +180,7 @@ public class DataSourceController {
     /**
      * Soft-delete a datasource. The connection pool is closed immediately.
      */
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     public ApiResponse<Void> delete(@PathVariable Long id, HttpServletRequest httpRequest) {
         adminAuth.requireAdmin(httpRequest);
         log.debug("Delete datasource id={}", id);
@@ -194,7 +194,7 @@ public class DataSourceController {
      * Set datasource status (1=active, 0=inactive).
      * Activating registers the pool; deactivating closes it.
      */
-    @PatchMapping("/{id}/status")
+    @PatchMapping("/{id:\\d+}/status")
     public ApiResponse<DataSourceVO> setStatus(
             @PathVariable Long id,
             @Valid @RequestBody DataSourceStatusRequest request,
@@ -204,14 +204,14 @@ public class DataSourceController {
     }
 
     /** Enable shortcut — equivalent to PATCH /{id}/status with status=1 */
-    @PostMapping("/{id}/enable")
+    @PostMapping("/{id:\\d+}/enable")
     public ApiResponse<DataSourceVO> enable(@PathVariable Long id, HttpServletRequest httpRequest) {
         adminAuth.requireAdmin(httpRequest);
         return ApiResponse.ok(dataSourceService.enable(id));
     }
 
     /** Disable shortcut — equivalent to PATCH /{id}/status with status=0 */
-    @PostMapping("/{id}/disable")
+    @PostMapping("/{id:\\d+}/disable")
     public ApiResponse<DataSourceVO> disable(@PathVariable Long id, HttpServletRequest httpRequest) {
         adminAuth.requireAdmin(httpRequest);
         return ApiResponse.ok(dataSourceService.disable(id));
@@ -241,7 +241,7 @@ public class DataSourceController {
      * Test connectivity of an already-saved datasource using its stored credentials.
      * Returns {connected, message, datasourceId}.
      */
-    @PostMapping("/{id}/test")
+    @PostMapping("/{id:\\d+}/test")
     public ApiResponse<Map<String, Object>> testConnectionById(
             @PathVariable Long id,
             HttpServletRequest httpRequest) {
@@ -255,7 +255,7 @@ public class DataSourceController {
      * Reload the connection pool from the current DB config.
      * Use this after externally updating credentials.
      */
-    @PostMapping("/{id}/reload")
+    @PostMapping("/{id:\\d+}/reload")
     public ApiResponse<Void> reload(@PathVariable Long id, HttpServletRequest httpRequest) {
         adminAuth.requireAdmin(httpRequest);
         dataSourceService.reload(id);
@@ -267,7 +267,7 @@ public class DataSourceController {
      * Returns: registered, poolName, totalConnections, activeConnections,
      *          idleConnections, pendingThreads.
      */
-    @GetMapping("/{id}/pool")
+    @GetMapping("/{id:\\d+}/pool")
     public ApiResponse<Map<String, Object>> poolStatus(@PathVariable Long id, HttpServletRequest httpRequest) {
         adminAuth.requireAdmin(httpRequest);
         return ApiResponse.ok(dataSourceService.getPoolStatus(id));
@@ -275,7 +275,7 @@ public class DataSourceController {
 
     // Legacy scope routes retain their request shape; tenant headers do not affect visibility.
 
-    @GetMapping("/{id}/table-grants")
+    @GetMapping("/{id:\\d+}/table-grants")
     public ApiResponse<List<DataSourceTableGrantVO>> listTableGrants(
             @PathVariable Long id,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
@@ -284,7 +284,7 @@ public class DataSourceController {
         return ApiResponse.ok(tableAccessService.listGrants(resolveTenant(tenantId), id));
     }
 
-    @PostMapping("/{id}/table-grants")
+    @PostMapping("/{id:\\d+}/table-grants")
     public ApiResponse<DataSourceTableGrantVO> createTableGrant(
             @PathVariable Long id,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
@@ -294,7 +294,7 @@ public class DataSourceController {
         return ApiResponse.ok(tableAccessService.createGrant(resolveTenant(tenantId), id, request));
     }
 
-    @PutMapping("/{id}/table-grants/{grantId}")
+    @PutMapping("/{id:\\d+}/table-grants/{grantId:\\d+}")
     public ApiResponse<DataSourceTableGrantVO> updateTableGrant(
             @PathVariable Long id,
             @PathVariable Long grantId,
@@ -305,7 +305,7 @@ public class DataSourceController {
         return ApiResponse.ok(tableAccessService.updateGrant(resolveTenant(tenantId), id, grantId, request));
     }
 
-    @DeleteMapping("/{id}/table-grants/{grantId}")
+    @DeleteMapping("/{id:\\d+}/table-grants/{grantId:\\d+}")
     public ApiResponse<Void> deleteTableGrant(
             @PathVariable Long id,
             @PathVariable Long grantId,
@@ -316,7 +316,7 @@ public class DataSourceController {
         return ApiResponse.ok();
     }
 
-    @GetMapping("/{id}/schema/tables")
+    @GetMapping("/{id:\\d+}/schema/tables")
     public ApiResponse<List<DataSourceTableVO>> listSchemaTables(
             @PathVariable Long id,
             @RequestParam(required = false) String schemaName,
@@ -325,7 +325,7 @@ public class DataSourceController {
         return ApiResponse.ok(tableAccessService.listPhysicalTables(id, schemaName));
     }
 
-    @PostMapping("/{id}/query")
+    @PostMapping("/{id:\\d+}/query")
     public ApiResponse<MetricsQueryData> queryDatasource(
             @PathVariable Long id,
             @Valid @RequestBody SqlProbeRequest request,
@@ -334,7 +334,7 @@ public class DataSourceController {
         return ApiResponse.ok(tableAccessService.queryDatasource(id, request));
     }
 
-    @GetMapping("/{id}/tables")
+    @GetMapping("/{id:\\d+}/tables")
     public ApiResponse<List<DataSourceTableVO>> listTables(
             @PathVariable Long id,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
@@ -343,7 +343,7 @@ public class DataSourceController {
         return ApiResponse.ok(tableAccessService.listAuthorizedTables(resolveTenant(tenantId), id));
     }
 
-    @GetMapping("/{id}/tables/{tableName}/columns")
+    @GetMapping("/{id:\\d+}/tables/{tableName}/columns")
     public ApiResponse<List<DataSourceColumnVO>> listColumns(
             @PathVariable Long id,
             @PathVariable String tableName,
@@ -355,7 +355,7 @@ public class DataSourceController {
                 resolveTenant(tenantId), id, schemaName, tableName));
     }
 
-    @PostMapping("/{id}/sql/probe")
+    @PostMapping("/{id:\\d+}/sql/probe")
     public ApiResponse<MetricsQueryData> probeSql(
             @PathVariable Long id,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,

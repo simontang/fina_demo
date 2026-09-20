@@ -8,6 +8,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
 
@@ -32,6 +35,18 @@ public class GlobalExceptionHandler {
         return ApiResponse.badRequest(ex.getMessage());
     }
 
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiResponse<Void> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        String name = ex.getName();
+        Object value = ex.getValue();
+        String message = "Invalid path or query parameter"
+                + (name == null ? "" : " '" + name + "'")
+                + (value == null ? "" : ": " + value);
+        log.warn("Type mismatch: {}", message);
+        return ApiResponse.badRequest(message);
+    }
+
     @ExceptionHandler(IllegalStateException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ApiResponse<Void> handleIllegalState(IllegalStateException ex) {
@@ -51,6 +66,13 @@ public class GlobalExceptionHandler {
     public ApiResponse<Void> handleUnauthorized(UnauthorizedException ex) {
         log.warn("Unauthorized: {}", ex.getMessage());
         return ApiResponse.fail(401, ex.getMessage());
+    }
+
+    @ExceptionHandler({NoHandlerFoundException.class, NoResourceFoundException.class})
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ApiResponse<Void> handleNotFound(Exception ex) {
+        log.warn("Not found: {}", ex.getMessage());
+        return ApiResponse.fail(404, "Not found");
     }
 
     @ExceptionHandler(Exception.class)

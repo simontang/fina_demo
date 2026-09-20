@@ -84,6 +84,33 @@ class DataSourceVisibleScopeControllerTest {
     }
 
     @Test
+    void currentAndAuthorizedRoutesAreNotCapturedByNumericDatasourceIdRoute() throws Exception {
+        when(datasourceAuth.requireAnyDatasourceKey(any(HttpServletRequest.class)))
+                .thenReturn(new DataSourceApiKeyAuthService.AuthContext(15L, "default"));
+        when(datasourceService.getById(15L)).thenReturn(new DataSourceVO());
+
+        mvc.perform(get("/api/v1/datasources/current")
+                        .header("X-Metrics-Datasource-Key", "metrics-datasource-default-15"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/v1/datasources/authorized")
+                        .header("X-Metrics-Datasource-Key", "metrics-datasource-default-15"))
+                .andExpect(status().isOk());
+
+        verify(datasourceAuth, times(2)).requireAnyDatasourceKey(any(HttpServletRequest.class));
+        verify(datasourceService, times(2)).getById(15L);
+        verifyNoInteractions(adminAuth);
+    }
+
+    @Test
+    void nonNumericDatasourceIdDoesNotReachAdminDatasourceLookup() throws Exception {
+        mvc.perform(get("/api/v1/datasources/not-a-number"))
+                .andExpect(status().isNotFound());
+
+        verifyNoInteractions(adminAuth);
+        verifyNoInteractions(datasourceService);
+    }
+
+    @Test
     void preferredScopeRoutesContainNoTenantAndIgnoreHeader() throws Exception {
         DataSourceTableGrantVO rule = rule();
         when(scopes.listGrants(isNull(), eq(15L))).thenReturn(List.of(rule));
