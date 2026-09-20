@@ -61,6 +61,7 @@ services:
       PYTHON_API_URL: http://prediction_app:5703
       CDP_API_URL: http://cdp-service:5706
       UPLOAD_DIR: /app/uploads
+      DEFAULT_METRICS_DATASOURCE_KEY_PREFIX: ${DEFAULT_METRICS_DATASOURCE_KEY_PREFIX:-metrics-datasource-default-}
       # Database configuration (for dataset queries - Aliyun RDS PostgreSQL)
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres_fuli:jfd4whz@GPF2nqx7zhm@pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com:5432/postgres}
       DB_HOST: ${DB_HOST:-pgm-uf615169n98t95tflo.pg.rds.aliyuncs.com}
@@ -126,6 +127,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-jfd4whz@GPF2nqx7zhm}
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
       ENCRYPT_KEY: ${ENCRYPT_KEY:-fina-metrics-2024!}
+      METRICS_ADMIN_API_KEY: ${METRICS_ADMIN_API_KEY:-}
+      METRICS_DATASOURCE_KEY_DEFAULT_PREFIX: ${METRICS_DATASOURCE_KEY_DEFAULT_PREFIX:-metrics-datasource-default-}
       # Migration baseline must be 0 here too (see application.yml): the RDS
       # database is pre-existing, and V1 has to run on it.
       SPRING_FLYWAY_BASELINE_VERSION: "0"

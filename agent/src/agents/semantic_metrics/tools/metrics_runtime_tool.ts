@@ -5,7 +5,7 @@ import { assertDatasourceSelected, effectiveDatasourceScope, readToolRunConfig, 
 
 const DESCRIPTION = `RUNTIME QUERY SURFACE — read what is published and answer business questions with numbers. Business agents use ONLY this tool; Builder agents also use it to verify freshly published metrics.
 
-OWNS: list_datasources (self-contained datasource discovery — redacted output, the first step before anything else), read_semantic_catalog (the published semantic model for a datasource: tables, metrics, dimensions, filters) and query_metrics (the semantic metric query: metrics / groupBy / filters / orderBy / limit — the server generates the SQL, so there is no free-form SQL here).
+OWNS: list_datasources (returns the single datasource authorized by the current connection key — redacted output, the first step before anything else), read_semantic_catalog (the published semantic model for a datasource: tables, metrics, dimensions, filters) and query_metrics (the semantic metric query: metrics / groupBy / filters / orderBy / limit — the server generates the SQL, so there is no free-form SQL here).
 
 DOES NOT OWN:
 - Publishing or correcting semantic tables/metrics → metrics_meta_tool (create_table/update_table/create_metric/update_metric/list_tables/read_table_meta/list_metrics/read_metric_meta).
@@ -121,7 +121,7 @@ export function createMetricsRuntimeTool(params: SemanticMetricsToolParams) {
       description: DESCRIPTION,
       schema: z.object({
         action: z.enum(["list_datasources", "read_semantic_catalog", "query_metrics"]).describe(
-          "Actions ONLY in this runtime tool: list_datasources (list available datasources — ALWAYS call this first to obtain the datasourceId; output is redacted to non-sensitive fields), read_semantic_catalog (read the published semantic model: tables, metrics, dimensions), query_metrics (run a semantic metric query — the only way to get business numbers). Do NOT put meta-tool actions (list_tables/read_table_meta/create_table/update_table/list_metrics/read_metric_meta/create_metric/update_metric) here",
+          "Actions ONLY in this runtime tool: list_datasources (return the datasource authorized by this connection key — ALWAYS call this first to obtain the datasourceId; output is redacted to non-sensitive fields), read_semantic_catalog (read the published semantic model: tables, metrics, dimensions), query_metrics (run a semantic metric query — the only way to get business numbers). Do NOT put meta-tool actions (list_tables/read_table_meta/create_table/update_table/list_metrics/read_metric_meta/create_metric/update_metric) here",
         ),
         connectionKey: z.string().optional().describe("Connection key. Omit when only one semantic-metrics connection exists"),
         datasourceId: z.coerce.number().optional().describe("Numeric datasource id, e.g. 15 (required for read_semantic_catalog; optional if set in runConfig.metricsDataSource)"),

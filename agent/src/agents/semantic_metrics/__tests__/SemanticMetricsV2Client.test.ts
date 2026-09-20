@@ -29,7 +29,7 @@ describe("SemanticMetricsV2Client", () => {
   it("unwraps a success envelope and resolves to its data payload", async () => {
     fetchMock.mockResolvedValue(mockResponse({
       code: 200, message: "success",
-      data: [{ id: 15, name: "Analytics" }],
+      data: { id: 15, name: "Analytics" },
     }));
     const client = new SemanticMetricsV2Client({ serverUrl: "https://metrics.example/api/v1" });
     const result = await client.listDatasources();
@@ -48,7 +48,7 @@ describe("SemanticMetricsV2Client", () => {
     fetchMock.mockResolvedValue(mockResponse([{ id: 1 }]));
     const client = new SemanticMetricsV2Client({ serverUrl: "https://metrics.example/api/v1" });
     const result = await client.listDatasources();
-    expect(result).toEqual([{ id: 1 }]);
+    expect(result).toEqual([[{ id: 1 }]]);
   });
 
   it("returns a plain-text success body as-is", async () => {
@@ -58,37 +58,56 @@ describe("SemanticMetricsV2Client", () => {
       text: jest.fn().mockResolvedValue("ok"),
     });
     const client = new SemanticMetricsV2Client({ serverUrl: "https://metrics.example/api/v1" });
-    await expect(client.listDatasources()).resolves.toBe("ok");
+    await expect(client.listDatasources()).resolves.toEqual(["ok"]);
   });
 
-  it("reads selectedEntities (UI contract) as the connection's resource scope", () => {
+  it("reads selectedEntities and legacy selectedDataSources as the connection's resource scope", () => {
     const viaEntities = new SemanticMetricsV2Client({
       serverUrl: "https://m.example/api/v1",
       selectedEntities: ["15", 16],
     });
     expect(viaEntities.getSelectedEntities()).toEqual([15, 16]);
 
+    const viaLegacySelectedDataSources = new SemanticMetricsV2Client({
+      serverUrl: "https://m.example/api/v1",
+      selectedDataSources: ["17"],
+    } as never);
+    expect(viaLegacySelectedDataSources.getSelectedEntities()).toEqual([17]);
+
     const unrestricted = new SemanticMetricsV2Client({ serverUrl: "https://m.example/api/v1" });
     expect(unrestricted.getSelectedEntities()).toEqual([]);
   });
 
-  it("builds headers with Accept, apiKey bearer, and custom headers (no X-Tenant-Id)", async () => {
-    fetchMock.mockResolvedValue(mockResponse([{ id: 1 }]));
+  it("builds headers with Accept, datasource key, and custom headers (no X-Tenant-Id)", async () => {
+    fetchMock.mockResolvedValue(mockResponse({ code: 200, data: { id: 1 } }));
     const client = new SemanticMetricsV2Client({
       serverUrl: "https://metrics.example/api/v1/",
-      apiKey: "secret",
+      datasourceKey: "secret",
       headers: { "X-Custom": "1" },
     });
 
     await client.listDatasources();
 
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe("https://metrics.example/api/v1/datasources");
+    expect(url).toBe("https://metrics.example/api/v1/datasources/current");
     expect(init.headers).toEqual({
       Accept: "application/json",
       "X-Custom": "1",
-      Authorization: "Bearer secret",
+      "X-Metrics-Datasource-Key": "secret",
     });
+  });
+
+  it("keeps apiKey as a legacy datasource key alias", async () => {
+    fetchMock.mockResolvedValue(mockResponse({ code: 200, data: { id: 1 } }));
+    const client = new SemanticMetricsV2Client({
+      serverUrl: "https://metrics.example/api/v1/",
+      apiKey: "legacy-secret",
+    });
+
+    await client.listDatasources();
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.headers).toMatchObject({ "X-Metrics-Datasource-Key": "legacy-secret" });
   });
 
   it("rejects a non-SELECT datasource query before fetch", async () => {
@@ -112,7 +131,7 @@ describe("SemanticMetricsV2Client", () => {
   });
 
   it.each([
-    ["listDatasources", "GET", "/datasources"],
+    ["listDatasources", "GET", "/datasources/current"],
     ["getTableGrants", "GET", "/datasources/15/table-grants"],
     ["getPoolStatus", "GET", "/datasources/15/pool"],
     ["getRuntimeMeta", "GET", "/datasources/15/meta"],
@@ -186,7 +205,7 @@ describe("SemanticMetricsV2Client", () => {
       text: jest.fn().mockResolvedValue(""),
     });
     const client = new SemanticMetricsV2Client({ serverUrl: "https://metrics.example/api/v1" });
-    await expect(client.listDatasources()).resolves.toBeUndefined();
+    await expect(client.listDatasources()).resolves.toEqual([]);
   });
 
   it("updateTable merges the incoming fields over the stored payload (read-modify-write)", async () => {

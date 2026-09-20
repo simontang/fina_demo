@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fina.metrics.dto.*;
 import com.fina.metrics.exception.ForbiddenException;
 import com.fina.metrics.exception.GlobalExceptionHandler;
+import com.fina.metrics.service.DataSourceApiKeyAuthService;
 import com.fina.metrics.service.DataSourceTableAccessService;
 import com.fina.metrics.service.MetricsMetaObjectService;
 import com.fina.metrics.service.MetricsMetaObjectTypes;
@@ -38,13 +39,15 @@ class DataSourceMetaControllerTest {
     private final ObjectMapper mapper = new ObjectMapper();
     private MetricsMetaObjectService metaObjectService;
     private DataSourceTableAccessService tableAccessService;
+    private DataSourceApiKeyAuthService datasourceAuth;
     private DataSourceMetaController controller;
 
     @BeforeEach
     void setUp() {
         metaObjectService = mock(MetricsMetaObjectService.class);
         tableAccessService = mock(DataSourceTableAccessService.class);
-        controller = new DataSourceMetaController(metaObjectService, tableAccessService);
+        datasourceAuth = mock(DataSourceApiKeyAuthService.class);
+        controller = new DataSourceMetaController(metaObjectService, tableAccessService, datasourceAuth);
     }
 
     @AfterEach
@@ -105,8 +108,8 @@ class DataSourceMetaControllerTest {
     void tenantHeaderIsIgnoredForCreateAndUpdate(String tenantId) throws Exception {
         authorize("public", TABLE_NAME);
 
-        controller.createTableMeta(DATASOURCE_ID, tenantId, tableRequest());
-        controller.updateTableMeta(DATASOURCE_ID, TABLE_NAME, tenantId, tableRequest());
+        controller.createTableMeta(DATASOURCE_ID, tenantId, tableRequest(), null);
+        controller.updateTableMeta(DATASOURCE_ID, TABLE_NAME, tenantId, tableRequest(), null);
 
         verify(tableAccessService, times(2)).isTableAuthorized(null, DATASOURCE_ID, "public", TABLE_NAME);
         verifyNoMoreInteractions(tableAccessService);
@@ -117,7 +120,7 @@ class DataSourceMetaControllerTest {
         DataSourcePublishedMetaRequest request = tableRequest();
         request.setObjectType(MetricsMetaObjectTypes.TABLE_CATALOG);
 
-        assertThatThrownBy(() -> controller.createTableMeta(DATASOURCE_ID, null, request))
+        assertThatThrownBy(() -> controller.createTableMeta(DATASOURCE_ID, null, request, null))
                 .isInstanceOf(ForbiddenException.class);
 
         verifyNoInteractions(metaObjectService);
@@ -129,7 +132,7 @@ class DataSourceMetaControllerTest {
         request.setObjectKey("stable-meta-key");
         authorize("public", TABLE_NAME);
 
-        controller.createTableMeta(DATASOURCE_ID, null, request);
+        controller.createTableMeta(DATASOURCE_ID, null, request, null);
 
         verify(tableAccessService).isTableAuthorized(null, DATASOURCE_ID, "public", TABLE_NAME);
         verifyNoMoreInteractions(tableAccessService);
@@ -157,7 +160,7 @@ class DataSourceMetaControllerTest {
         request.setPayload(mapper.readTree("{\"schemaName\":\"public\",\"viewName\":\"sales_view\"}"));
         authorize("public", "sales_view");
 
-        controller.createTableMeta(DATASOURCE_ID, null, request);
+        controller.createTableMeta(DATASOURCE_ID, null, request, null);
 
         verify(tableAccessService).isTableAuthorized(null, DATASOURCE_ID, "public", "sales_view");
         ArgumentCaptor<MetricsMetaObjectRequest> captor = ArgumentCaptor.forClass(MetricsMetaObjectRequest.class);
@@ -174,9 +177,9 @@ class DataSourceMetaControllerTest {
 
         assertThatThrownBy(() -> {
             if (update) {
-                controller.updateTableMeta(DATASOURCE_ID, "private.orders", null, request);
+                controller.updateTableMeta(DATASOURCE_ID, "private.orders", null, request, null);
             } else {
-                controller.createTableMeta(DATASOURCE_ID, null, request);
+                controller.createTableMeta(DATASOURCE_ID, null, request, null);
             }
         }).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Conflicting table schema");
 
@@ -203,7 +206,7 @@ class DataSourceMetaControllerTest {
         ((ObjectNode) request.getPayload()).put("tableName", "\"private\".\"hankel_sales\"");
         authorize("public", TABLE_NAME);
 
-        assertThatThrownBy(() -> controller.createTableMeta(DATASOURCE_ID, null, request))
+        assertThatThrownBy(() -> controller.createTableMeta(DATASOURCE_ID, null, request, null))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Conflicting table schema");
 
         verify(tableAccessService, never()).isTableAuthorized(any(), any(), any(), any());
@@ -239,7 +242,7 @@ class DataSourceMetaControllerTest {
         authorize("sales", "hankel_items");
         authorize(null, TABLE_NAME);
 
-        controller.createTableMeta(DATASOURCE_ID, null, request);
+        controller.createTableMeta(DATASOURCE_ID, null, request, null);
 
         InOrder order = inOrder(tableAccessService, metaObjectService);
         order.verify(tableAccessService).isTableAuthorized(null, DATASOURCE_ID, "public", TABLE_NAME);
@@ -257,7 +260,7 @@ class DataSourceMetaControllerTest {
         ((ObjectNode) request.getPayload()).put("selectSql", "CREATE VIEW hankel_sales AS SELECT * FROM private.payroll");
         authorize("public", TABLE_NAME);
 
-        assertThatThrownBy(() -> controller.createTableMeta(DATASOURCE_ID, null, request))
+        assertThatThrownBy(() -> controller.createTableMeta(DATASOURCE_ID, null, request, null))
                 .isInstanceOf(IllegalArgumentException.class);
 
         verifyNoInteractions(metaObjectService);
@@ -269,7 +272,7 @@ class DataSourceMetaControllerTest {
         ((ObjectNode) request.getPayload()).put("selectSql", "SELECT * FROM hankel_sales");
         authorize("public", TABLE_NAME);
 
-        assertThatThrownBy(() -> controller.createTableMeta(DATASOURCE_ID, null, request))
+        assertThatThrownBy(() -> controller.createTableMeta(DATASOURCE_ID, null, request, null))
                 .isInstanceOf(ForbiddenException.class);
 
         verify(tableAccessService).isTableAuthorized(null, DATASOURCE_ID, null, TABLE_NAME);
@@ -322,11 +325,11 @@ class DataSourceMetaControllerTest {
         request.setAccessGrant(grantRequest(TABLE_NAME, "EXACT"));
 
         if (update) {
-            controller.updateMetricMeta(DATASOURCE_ID, "hankel_sales_amount", request);
+            controller.updateMetricMeta(DATASOURCE_ID, "hankel_sales_amount", request, null);
             verify(metaObjectService).updateByDatasourceTypeKey(
                     eq(DATASOURCE_ID), eq(MetricsMetaObjectTypes.METRIC_DETAIL), eq("hankel_sales_amount"), any());
         } else {
-            controller.createMetricMeta(DATASOURCE_ID, request);
+            controller.createMetricMeta(DATASOURCE_ID, request, null);
             verify(metaObjectService).create(any());
         }
 
@@ -340,7 +343,7 @@ class DataSourceMetaControllerTest {
         DataSourcePublishedMetaRequest request = metricRequest();
         request.setAccessGrant(grantRequest("hankel_", "PREFIX"));
 
-        assertThatThrownBy(() -> controller.updateMetricMeta(DATASOURCE_ID, "hankel_sales_amount", request))
+        assertThatThrownBy(() -> controller.updateMetricMeta(DATASOURCE_ID, "hankel_sales_amount", request, null))
                 .isInstanceOf(ForbiddenException.class);
 
         verifyNoInteractions(metaObjectService);
@@ -358,7 +361,7 @@ class DataSourceMetaControllerTest {
         DataSourceTableGrantRequest legacyGrant = grantRequest(pattern, patternType);
         request.setAccessGrant(legacyGrant);
 
-        ApiResponse<DataSourcePublishedMetaVO> response = controller.createTableMeta(DATASOURCE_ID, "other", request);
+        ApiResponse<DataSourcePublishedMetaVO> response = controller.createTableMeta(DATASOURCE_ID, "other", request, null);
 
         assertThat(response.getData().getTableGrant()).isNull();
         InOrder order = inOrder(tableAccessService, metaObjectService);
@@ -400,7 +403,7 @@ class DataSourceMetaControllerTest {
         }
         request.setAccessGrant(grant);
 
-        assertThatThrownBy(() -> controller.createTableMeta(DATASOURCE_ID, null, request))
+        assertThatThrownBy(() -> controller.createTableMeta(DATASOURCE_ID, null, request, null))
                 .isInstanceOf(ForbiddenException.class);
 
         verifyNoInteractions(metaObjectService);
@@ -416,7 +419,7 @@ class DataSourceMetaControllerTest {
         DataSourcePublishedMetaRequest request = tableRequest();
         request.setAccessGrant(grantRequest(TABLE_NAME, "EXACT"));
 
-        assertThatThrownBy(() -> controller.createTableMeta(DATASOURCE_ID, null, request))
+        assertThatThrownBy(() -> controller.createTableMeta(DATASOURCE_ID, null, request, null))
                 .isInstanceOf(ForbiddenException.class);
 
         verify(tableAccessService).listActiveGrants(null, DATASOURCE_ID);
@@ -430,7 +433,7 @@ class DataSourceMetaControllerTest {
         request.setAccessGrant(grantRequest(TABLE_NAME, "EXACT"));
         when(tableAccessService.listActiveGrants(null, DATASOURCE_ID)).thenReturn(List.of(tableGrant(TABLE_NAME)));
 
-        assertThatThrownBy(() -> controller.createTableMeta(DATASOURCE_ID, null, request))
+        assertThatThrownBy(() -> controller.createTableMeta(DATASOURCE_ID, null, request, null))
                 .isInstanceOf(ForbiddenException.class);
 
         verifyNoInteractions(metaObjectService);
@@ -447,7 +450,7 @@ class DataSourceMetaControllerTest {
                 TABLE_NAME, 1, 2))
                 .thenReturn(PageResult.<MetricsMetaObjectVO>builder().items(List.of(catalog, detail)).build());
 
-        ApiResponse<Void> response = controller.deleteTableMeta(DATASOURCE_ID, TABLE_NAME, "other", null);
+        ApiResponse<Void> response = controller.deleteTableMeta(DATASOURCE_ID, TABLE_NAME, "other", null, null);
 
         assertThat(response.getCode()).isEqualTo(200);
         verify(metaObjectService).delete(1L);
@@ -463,7 +466,7 @@ class DataSourceMetaControllerTest {
                 {"metric_name":"hankel_sales_amount","source":{"table_view":"hankel_sales"}}
                 """));
 
-        ApiResponse<MetricsMetaObjectVO> response = controller.createMetricMeta(DATASOURCE_ID, request);
+        ApiResponse<MetricsMetaObjectVO> response = controller.createMetricMeta(DATASOURCE_ID, request, null);
 
         assertThat(response.getCode()).isEqualTo(200);
         assertThat(response.getData().getObjectKey()).isEqualTo("hankel_sales_amount");
@@ -474,8 +477,8 @@ class DataSourceMetaControllerTest {
     private ApiResponse<DataSourcePublishedMetaVO> publish(
             boolean update, String tenantId, DataSourcePublishedMetaRequest request) {
         return update
-                ? controller.updateTableMeta(DATASOURCE_ID, TABLE_NAME, tenantId, request)
-                : controller.createTableMeta(DATASOURCE_ID, tenantId, request);
+                ? controller.updateTableMeta(DATASOURCE_ID, TABLE_NAME, tenantId, request, null)
+                : controller.createTableMeta(DATASOURCE_ID, tenantId, request, null);
     }
 
     private DataSourcePublishedMetaRequest tableRequest() throws Exception {

@@ -54,6 +54,9 @@ public interface MetricsService {
     /** Get a single metric definition by datasource + code */
     MetricsMetaVO getMetricMeta(Long datasourceId, String metricCode);
 
+    /** Get a single metric definition by id */
+    MetricsMetaVO getMetricMetaById(Long id);
+
     /** Create a metric definition */
     MetricsMetaVO createMetricMeta(MetricsMetaRequest request);
 

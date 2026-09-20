@@ -22,8 +22,8 @@ const contextSchema = z.object({ runConfig: z.any() });
  * Create the Semantic Metrics middleware exposing three action-dispatch tools.
  *
  * @param config - Plugin config; reads `connections`/`connectAll` (resolved per
- * invocation from the tenant-scoped Connection Store). Resource scope is owned
- * by the connection's own `selectedEntities`.
+ * invocation from the tenant-scoped Connection Store). The datasource scope is
+ * enforced by the connection's datasource key on the Metrics Server.
  * @returns Middleware with the datasource/meta/runtime tool set.
  */
 export function createSemanticMetricsMiddleware(
@@ -48,21 +48,60 @@ export function createSemanticMetricsMiddleware(
  * Build request headers for a connection's Metrics Server call.
  *
  * Mirrors the {@link SemanticMetricsV2Client} behavior: `Accept: application/json`,
- * any custom `config.headers`, plus a Bearer `Authorization` header when an API
- * key is configured (the API key overrides a custom `Authorization`).
+ * any custom `config.headers`, plus `X-Metrics-Datasource-Key` when a datasource
+ * key is configured. Legacy `apiKey` is accepted as a datasource-key alias.
  *
  * @param config - Connection config (may carry optional `apiKey` and `headers`).
  * @returns Merged headers for the outgoing fetch call.
  */
 function buildConnectionHeaders(config: Record<string, unknown>): Record<string, string> {
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-    ...(config.headers !== undefined && config.headers !== null
-      ? (config.headers as Record<string, string>)
-      : {}),
-  };
-  if (config.apiKey) headers["Authorization"] = `Bearer ${config.apiKey}`;
+  const headers: Record<string, string> = { Accept: "application/json" };
+  const customHeaders = config.headers;
+  if (customHeaders && typeof customHeaders === "object" && !Array.isArray(customHeaders)) {
+    for (const [key, value] of Object.entries(customHeaders)) {
+      if (typeof value === "string") headers[key] = value;
+    }
+  }
+  const datasourceKey = resolveDatasourceKey(config);
+  if (datasourceKey) headers["X-Metrics-Datasource-Key"] = datasourceKey;
   return headers;
+}
+
+function resolveDatasourceKey(config: Record<string, unknown>): string | undefined {
+  for (const key of ["datasourceKey", "apiKey"]) {
+    const value = config[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  const fallback = process.env.DEFAULT_METRICS_DATASOURCE_KEY;
+  return fallback?.trim() || undefined;
+}
+
+function valueToId(value: unknown): string | undefined {
+  if (typeof value === "string" || typeof value === "number") {
+    const id = String(value).trim();
+    return id ? id : undefined;
+  }
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>;
+    return valueToId(record.id ?? record.key ?? record.value);
+  }
+  return undefined;
+}
+
+function parseCurrentDatasourceEnvelope(text: string): Record<string, unknown> {
+  const parsed = JSON.parse(text) as { code?: number; message?: string; data?: unknown } | Record<string, unknown>;
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Metrics server returned an unexpected payload");
+  }
+  const envelope = parsed as { code?: number; message?: string; data?: unknown };
+  if (typeof envelope.code === "number" && envelope.code !== 200) {
+    throw new Error(envelope.message || `API ${envelope.code}`);
+  }
+  const data = "data" in envelope ? envelope.data : parsed;
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new Error("Metrics server returned an unexpected payload (expected one datasource)");
+  }
+  return data as Record<string, unknown>;
 }
 
 /**
@@ -73,11 +112,11 @@ function buildConnectionHeaders(config: Record<string, unknown>): Record<string,
  * @throws An actionable error when `serverUrl` is absent.
  */
 function resolveBaseUrl(config: Record<string, unknown>): string {
-  const serverUrl = config.serverUrl as string | undefined;
-  if (!serverUrl) {
+  const serverUrl = config.serverUrl;
+  if (typeof serverUrl !== "string" || !serverUrl.trim()) {
     throw new Error("serverUrl is required");
   }
-  return serverUrl.replace(/\/$/, "");
+  return serverUrl.trim().replace(/\/$/, "");
 }
 
 /** Built-in Semantic Metrics plugin definition. */
@@ -132,80 +171,45 @@ export const semanticMetricsPlugin: Plugin = {
     // so headers is NOT a form field; the V2 client still reads config.headers at runtime.
     fields: [
       { key: "serverUrl", type: "string", title: "Metrics Server Base URL (include /api/v1)", required: true },
-      { key: "apiKey", type: "password", title: "API Key (optional)" },
+      {
+        key: "datasourceKey",
+        type: "password",
+        title: "Datasource Key",
+        required: true,
+        helpText: "Authorizes exactly one Metrics datasource/account. Use one connection per datasource.",
+      },
     ],
     test: async (config) => {
       try {
         const baseUrl = resolveBaseUrl(config);
-        const res = await fetch(`${baseUrl}/datasources`, {
+        const res = await fetch(`${baseUrl}/datasources/current`, {
           headers: buildConnectionHeaders(config),
         });
         const text = await res.text().catch(() => "");
         let ok = res.ok;
         let detail = "";
+        let datasourceName = "";
         try {
-          const parsed: unknown = JSON.parse(text);
-          if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
-            const code = (parsed as Record<string, unknown>).code;
-            if (typeof code === "number") {
-              ok = res.ok && code === 200;
-              if (!ok) detail = ` (${(parsed as Record<string, unknown>).message ?? code})`;
-            }
-          }
-        } catch {
-          // Non-JSON body — fall back to the HTTP status.
+          const datasource = parseCurrentDatasourceEnvelope(text || "{}");
+          const id = valueToId(datasource.id);
+          datasourceName = typeof datasource.name === "string" && datasource.name.trim()
+            ? datasource.name.trim()
+            : id || "";
+        } catch (err) {
+          ok = false;
+          detail = ` (${err instanceof Error ? err.message : String(err)})`;
         }
         return {
           ok,
-          message: ok ? `Reachable at ${baseUrl}` : `HTTP ${res.status}${detail}`,
+          message: ok
+            ? `Reachable at ${baseUrl}${datasourceName ? `; datasource ${datasourceName} authorized` : ""}`
+            : `HTTP ${res.status}${detail}`,
         };
       } catch (err) {
         return {
           ok: false,
           message: `Cannot connect: ${err instanceof Error ? err.message : String(err)}`,
         };
-      }
-    },
-    discover: async (config) => {
-      try {
-        const baseUrl = resolveBaseUrl(config);
-        const res = await fetch(`${baseUrl}/datasources`, {
-          headers: buildConnectionHeaders(config),
-        });
-        const text = await res.text();
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}${text ? `: ${text.slice(0, 200)}` : ""}`);
-        }
-        const parsed: unknown = JSON.parse(text);
-        if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-          throw new Error("Metrics server returned an unexpected payload (expected a JSON envelope)");
-        }
-        const envelope = parsed as { code?: unknown; message?: unknown; data?: unknown };
-        if (typeof envelope.code === "number" && envelope.code !== 200) {
-          throw new Error(envelope.message as string || `API ${envelope.code}`);
-        }
-        const data = envelope.data;
-        if (!Array.isArray(data)) {
-          throw new Error("Metrics server returned an unexpected payload (expected a datasource array)");
-        }
-        // Resource identity is the metrics-server datasource id. A name is NOT a
-        // valid key: the runtime coerces keys to numbers, so a non-numeric name
-        // would be dropped and silently widen the effective scope to "all".
-        // Entries without an id are skipped rather than keyed by name.
-        return data
-          .filter((d): d is { id: string | number; name?: string } => {
-            if (d === null || typeof d !== "object") return false;
-            const id = (d as { id?: unknown }).id;
-            return id !== undefined && id !== null && id !== "";
-          })
-          .map((item) => ({
-            id: String(item.id),
-            name: item.name ?? String(item.id),
-          }));
-      } catch (err) {
-        throw new Error(
-          `Cannot discover datasources: ${err instanceof Error ? err.message : String(err)}`,
-        );
       }
     },
   },

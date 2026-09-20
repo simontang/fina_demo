@@ -3,6 +3,8 @@ package com.fina.metrics.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fina.metrics.dto.*;
 import com.fina.metrics.exception.ForbiddenException;
+import com.fina.metrics.service.DataSourceApiKeyAuthService;
+import com.fina.metrics.service.DataSourceApiKeyPermission;
 import com.fina.metrics.service.DataSourceTableAccessService;
 import com.fina.metrics.service.MetricsMetaObjectService;
 import com.fina.metrics.service.MetricsMetaObjectTypes;
@@ -10,6 +12,7 @@ import com.fina.metrics.util.ReadOnlySqlValidator;
 import com.fina.metrics.util.SqlIdentifierUtils;
 import com.fina.metrics.util.SqlIdentifierUtils.TableIdentifier;
 import com.fina.metrics.util.SqlTableReferenceExtractor;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
@@ -34,6 +37,7 @@ public class DataSourceMetaController {
 
     private final MetricsMetaObjectService metaObjectService;
     private final DataSourceTableAccessService tableAccessService;
+    private final DataSourceApiKeyAuthService datasourceAuth;
 
     @GetMapping("/tables")
     public ApiResponse<PageResult<MetricsMetaObjectVO>> listTableMeta(
@@ -41,7 +45,9 @@ public class DataSourceMetaController {
             @RequestParam(required = false) String objectType,
             @RequestParam(required = false) String objectKey,
             @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer pageSize) {
+            @RequestParam(required = false) Integer pageSize,
+            HttpServletRequest httpRequest) {
+        datasourceAuth.requirePermission(httpRequest, dsId, DataSourceApiKeyPermission.META_READ);
         return ApiResponse.ok(metaObjectService.listByDatasourceAndTypes(
                 dsId, resolveTypes(objectType, TABLE_META_TYPES), objectKey, page, pageSize));
     }
@@ -50,7 +56,9 @@ public class DataSourceMetaController {
     public ApiResponse<List<MetricsMetaObjectVO>> getTableMeta(
             @PathVariable Long dsId,
             @PathVariable String tableKey,
-            @RequestParam(required = false) String objectType) {
+            @RequestParam(required = false) String objectType,
+            HttpServletRequest httpRequest) {
+        datasourceAuth.requirePermission(httpRequest, dsId, DataSourceApiKeyPermission.META_READ);
         return ApiResponse.ok(metaObjectService.listByDatasourceAndTypes(
                 dsId, resolveTypes(objectType, TABLE_META_TYPES), tableKey, 1, TABLE_META_TYPES.size())
                 .getItems());
@@ -60,7 +68,9 @@ public class DataSourceMetaController {
     public ApiResponse<DataSourcePublishedMetaVO> createTableMeta(
             @PathVariable Long dsId,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
-            @Valid @RequestBody DataSourcePublishedMetaRequest request) {
+            @Valid @RequestBody DataSourcePublishedMetaRequest request,
+            HttpServletRequest httpRequest) {
+        datasourceAuth.requirePermission(httpRequest, dsId, DataSourceApiKeyPermission.META_WRITE);
         String objectType = resolveObjectType(request.getObjectType(), MetricsMetaObjectTypes.TABLE_VIEW_DETAIL, TABLE_META_TYPES);
         String objectKey = resolveObjectKey(request, "tableName", "viewName");
         validateTableMeta(dsId, request, objectKey);
@@ -75,7 +85,9 @@ public class DataSourceMetaController {
             @PathVariable Long dsId,
             @PathVariable String tableKey,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
-            @Valid @RequestBody DataSourcePublishedMetaRequest request) {
+            @Valid @RequestBody DataSourcePublishedMetaRequest request,
+            HttpServletRequest httpRequest) {
+        datasourceAuth.requirePermission(httpRequest, dsId, DataSourceApiKeyPermission.META_WRITE);
         String objectType = resolveObjectType(request.getObjectType(), MetricsMetaObjectTypes.TABLE_VIEW_DETAIL, TABLE_META_TYPES);
         validateTableMeta(dsId, request, tableKey);
         MetricsMetaObjectVO metaObject = metaObjectService.updateByDatasourceTypeKey(
@@ -90,7 +102,9 @@ public class DataSourceMetaController {
             @PathVariable Long dsId,
             @PathVariable String tableKey,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
-            @RequestParam(required = false) String objectType) {
+            @RequestParam(required = false) String objectType,
+            HttpServletRequest httpRequest) {
+        datasourceAuth.requirePermission(httpRequest, dsId, DataSourceApiKeyPermission.META_WRITE);
         List<MetricsMetaObjectVO> objects = metaObjectService.listByDatasourceAndTypes(
                 dsId, resolveTypes(objectType, TABLE_META_TYPES), tableKey, 1, TABLE_META_TYPES.size())
                 .getItems();
@@ -109,7 +123,9 @@ public class DataSourceMetaController {
             @RequestParam(required = false) String objectType,
             @RequestParam(required = false) String objectKey,
             @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer pageSize) {
+            @RequestParam(required = false) Integer pageSize,
+            HttpServletRequest httpRequest) {
+        datasourceAuth.requirePermission(httpRequest, dsId, DataSourceApiKeyPermission.META_READ);
         return ApiResponse.ok(metaObjectService.listByDatasourceAndTypes(
                 dsId, resolveTypes(objectType, METRIC_META_TYPES), objectKey, page, pageSize));
     }
@@ -118,7 +134,9 @@ public class DataSourceMetaController {
     public ApiResponse<List<MetricsMetaObjectVO>> getMetricMeta(
             @PathVariable Long dsId,
             @PathVariable String metricKey,
-            @RequestParam(required = false) String objectType) {
+            @RequestParam(required = false) String objectType,
+            HttpServletRequest httpRequest) {
+        datasourceAuth.requirePermission(httpRequest, dsId, DataSourceApiKeyPermission.META_READ);
         return ApiResponse.ok(metaObjectService.listByDatasourceAndTypes(
                 dsId, resolveTypes(objectType, METRIC_META_TYPES), metricKey, 1, METRIC_META_TYPES.size())
                 .getItems());
@@ -127,7 +145,9 @@ public class DataSourceMetaController {
     @PostMapping("/metrics")
     public ApiResponse<MetricsMetaObjectVO> createMetricMeta(
             @PathVariable Long dsId,
-            @Valid @RequestBody DataSourcePublishedMetaRequest request) {
+            @Valid @RequestBody DataSourcePublishedMetaRequest request,
+            HttpServletRequest httpRequest) {
+        datasourceAuth.requirePermission(httpRequest, dsId, DataSourceApiKeyPermission.META_WRITE);
         String objectType = resolveObjectType(request.getObjectType(), MetricsMetaObjectTypes.METRIC_DETAIL, METRIC_META_TYPES);
         String objectKey = resolveObjectKey(request, "metric_name", "metricName");
         validateLegacyAccessGrant(dsId, request.getAccessGrant());
@@ -138,7 +158,9 @@ public class DataSourceMetaController {
     public ApiResponse<MetricsMetaObjectVO> updateMetricMeta(
             @PathVariable Long dsId,
             @PathVariable String metricKey,
-            @Valid @RequestBody DataSourcePublishedMetaRequest request) {
+            @Valid @RequestBody DataSourcePublishedMetaRequest request,
+            HttpServletRequest httpRequest) {
+        datasourceAuth.requirePermission(httpRequest, dsId, DataSourceApiKeyPermission.META_WRITE);
         String objectType = resolveObjectType(request.getObjectType(), MetricsMetaObjectTypes.METRIC_DETAIL, METRIC_META_TYPES);
         validateLegacyAccessGrant(dsId, request.getAccessGrant());
         return ApiResponse.ok(metaObjectService.updateByDatasourceTypeKey(
@@ -149,7 +171,9 @@ public class DataSourceMetaController {
     public ApiResponse<Void> deleteMetricMeta(
             @PathVariable Long dsId,
             @PathVariable String metricKey,
-            @RequestParam(required = false) String objectType) {
+            @RequestParam(required = false) String objectType,
+            HttpServletRequest httpRequest) {
+        datasourceAuth.requirePermission(httpRequest, dsId, DataSourceApiKeyPermission.META_WRITE);
         List<MetricsMetaObjectVO> objects = metaObjectService.listByDatasourceAndTypes(
                 dsId, resolveTypes(objectType, METRIC_META_TYPES), metricKey, 1, METRIC_META_TYPES.size())
                 .getItems();

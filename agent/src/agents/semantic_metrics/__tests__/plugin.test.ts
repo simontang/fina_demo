@@ -39,7 +39,7 @@ describe("semanticMetricsPlugin", () => {
       "metrics_datasource_tool", "metrics_meta_tool", "metrics_runtime_tool",
     ]);
     expect(semanticMetricsPlugin.connection?.fields?.map((f) => f.key)).toEqual([
-      "serverUrl", "apiKey",
+      "serverUrl", "datasourceKey",
     ]);
     expect(typeof semanticMetricsPlugin.connection?.test).toBe("function");
   });
@@ -51,8 +51,8 @@ describe("semanticMetricsPlugin", () => {
     expect(semanticMetricsPlugin.meta.configSchema?.properties).not.toHaveProperty("resourceKeys");
     expect(semanticMetricsPlugin.meta.defaultConfig).toEqual({ connections: [], connectAll: false });
     expect(semanticMetricsPlugin.connection?.fields?.[0]).toMatchObject({ key: "serverUrl", type: "string", required: true });
-    expect(semanticMetricsPlugin.connection?.fields?.[1]).toMatchObject({ key: "apiKey", type: "password" });
-    expect(typeof semanticMetricsPlugin.connection?.discover).toBe("function");
+    expect(semanticMetricsPlugin.connection?.fields?.[1]).toMatchObject({ key: "datasourceKey", type: "password", required: true });
+    expect(semanticMetricsPlugin.connection).not.toHaveProperty("discover");
     expect(semanticMetricsPlugin.middleware).toBeInstanceOf(Function);
   });
 });
@@ -69,33 +69,35 @@ describe("semanticMetricsPlugin connection", () => {
     (global as { fetch?: unknown }).fetch = undefined;
   });
 
-  it("connection.test reports ok on a reachable server and sends the bearer key", async () => {
-    fetchMock.mockResolvedValue(mockResponse({ ok: true }));
+  it("connection.test reports ok for the authorized datasource and sends the datasource key", async () => {
+    fetchMock.mockResolvedValue(mockResponse({ code: 200, data: { id: 15, name: "Hankel PostgreSQL" } }));
     const result = await semanticMetricsPlugin.connection!.test!({
       serverUrl: "https://m.example/api/v1",
-      apiKey: "secret",
+      datasourceKey: "secret",
     });
     expect(result.ok).toBe(true);
+    expect(result.message).toContain("datasource Hankel PostgreSQL authorized");
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe("https://m.example/api/v1/datasources");
-    expect(init.headers).toMatchObject({ Accept: "application/json", Authorization: "Bearer secret" });
+    expect(url).toBe("https://m.example/api/v1/datasources/current");
+    expect(init.headers).toMatchObject({ Accept: "application/json", "X-Metrics-Datasource-Key": "secret" });
   });
 
-  it("connection.test reports ok and omits the Authorization header without an apiKey", async () => {
-    fetchMock.mockResolvedValue(mockResponse({ ok: true }));
+  it("connection.test keeps apiKey as a legacy datasource key alias", async () => {
+    fetchMock.mockResolvedValue(mockResponse({ code: 200, data: { id: 15, name: "Hankel PostgreSQL" } }));
     const result = await semanticMetricsPlugin.connection!.test!({
       serverUrl: "https://m.example/api/v1",
+      apiKey: "legacy-secret",
     });
     expect(result.ok).toBe(true);
     const [, init] = fetchMock.mock.calls[0];
-    expect(init.headers).toEqual({ Accept: "application/json" });
+    expect(init.headers).toEqual({ Accept: "application/json", "X-Metrics-Datasource-Key": "legacy-secret" });
   });
 
   it("connection.test merges custom config.headers for header-gated servers", async () => {
-    fetchMock.mockResolvedValue(mockResponse({ ok: true }));
+    fetchMock.mockResolvedValue(mockResponse({ code: 200, data: { id: 15, name: "Hankel PostgreSQL" } }));
     const result = await semanticMetricsPlugin.connection!.test!({
       serverUrl: "https://m.example/api/v1",
-      apiKey: "secret",
+      datasourceKey: "secret",
       headers: { "X-Api-Key": "header-key", "X-Tenant": "acme" },
     });
     expect(result.ok).toBe(true);
@@ -104,7 +106,7 @@ describe("semanticMetricsPlugin connection", () => {
       Accept: "application/json",
       "X-Api-Key": "header-key",
       "X-Tenant": "acme",
-      Authorization: "Bearer secret",
+      "X-Metrics-Datasource-Key": "secret",
     });
   });
 
@@ -123,60 +125,17 @@ describe("semanticMetricsPlugin connection", () => {
     expect(result.message).toContain("serverUrl is required");
   });
 
-  it("connection.discover keys resources by datasource id and sends the bearer key", async () => {
-    fetchMock.mockResolvedValue(mockResponse({
-      code: 200, message: "success",
-      // Entries without an id are skipped — a name is not a valid resource key.
-      data: [{ id: 15, name: "Analytics" }, { id: "2", name: "Ops" }, { name: "No Id" }],
-    }));
-    const result = await semanticMetricsPlugin.connection!.discover!({
-      serverUrl: "https://m.example/api/v1/",
-      apiKey: "secret",
-    });
-    expect(result).toEqual([
-      { id: "15", name: "Analytics" },
-      { id: "2", name: "Ops" },
-    ]);
-    const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe("https://m.example/api/v1/datasources");
-    expect(init.headers).toMatchObject({ Accept: "application/json", Authorization: "Bearer secret" });
-  });
-
-  it("connection.discover throws an actionable error on a non-ok response", async () => {
-    fetchMock.mockResolvedValue(mockResponse({ code: 500, message: "boom" }, false, 500));
-    await expect(semanticMetricsPlugin.connection!.discover!({
-      serverUrl: "https://m.example/api/v1",
-    })).rejects.toThrow(/Cannot discover datasources: HTTP 500/);
-  });
-
-  it("connection.discover throws an actionable error on a business-error envelope", async () => {
-    fetchMock.mockResolvedValue(mockResponse({ code: 401, message: "unauthorized" }));
-    await expect(semanticMetricsPlugin.connection!.discover!({
-      serverUrl: "https://m.example/api/v1",
-    })).rejects.toThrow(/Cannot discover datasources: unauthorized/);
-  });
-
-  it("connection.discover throws an actionable error on an unexpected payload", async () => {
-    fetchMock.mockResolvedValue(mockResponse({ datasources: [] }));
-    await expect(semanticMetricsPlugin.connection!.discover!({
-      serverUrl: "https://m.example/api/v1",
-    })).rejects.toThrow(/unexpected payload/);
-  });
-
-  it("connection.discover throws an actionable error when serverUrl is absent", async () => {
-    await expect(semanticMetricsPlugin.connection!.discover!({}))
-      .rejects.toThrow(/serverUrl is required/);
-  });
-
-  it("connection.discover surfaces JSON parse failures as actionable errors", async () => {
+  it("connection.test reports failure on an unexpected payload", async () => {
     fetchMock.mockResolvedValue({
       ok: true,
       status: 200,
-      json: jest.fn().mockRejectedValue(new SyntaxError("Unexpected token < in JSON")),
       text: jest.fn().mockResolvedValue("<html>nope</html>"),
     });
-    await expect(semanticMetricsPlugin.connection!.discover!({
+    const result = await semanticMetricsPlugin.connection!.test!({
       serverUrl: "https://m.example/api/v1",
-    })).rejects.toThrow(/Cannot discover datasources:.*Unexpected token/);
+      datasourceKey: "secret",
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("Unexpected token");
   });
 });

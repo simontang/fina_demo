@@ -27,6 +27,31 @@ CREATE INDEX IF NOT EXISTS idx_ds_status ON t_datasource_config (status, deleted
 CREATE INDEX IF NOT EXISTS idx_ds_name   ON t_datasource_config (name);
 CREATE INDEX IF NOT EXISTS idx_ds_source_type ON t_datasource_config (source_type, status, deleted);
 
+-- Datasource authorization keys.
+-- One datasource can issue many keys; one key is valid for exactly one datasource.
+CREATE TABLE IF NOT EXISTS t_datasource_api_key (
+    id               BIGSERIAL       PRIMARY KEY,
+    datasource_id    BIGINT          NOT NULL,
+    key_name         VARCHAR(200)    NOT NULL,
+    key_hash         VARCHAR(128)    NOT NULL,
+    permissions_json TEXT            NOT NULL,
+    status           SMALLINT        NOT NULL DEFAULT 1,
+    created_at       TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted          SMALLINT        NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_ds_api_key_datasource
+    ON t_datasource_api_key (datasource_id, status, deleted);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_ds_api_key_hash
+    ON t_datasource_api_key (key_hash)
+    WHERE deleted = 0;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_ds_api_key_name
+    ON t_datasource_api_key (datasource_id, key_name)
+    WHERE deleted = 0;
+
 -- Datasource-scoped table visibility for discovery/probing.
 -- Historical tenant identifiers are retained for compatibility.
 CREATE TABLE IF NOT EXISTS t_datasource_table_grant (

@@ -37,6 +37,7 @@ import {
 import "./agents";
 import "./tools/segmentCrud";
 import "./tools/marketingCampaignCrud";
+import { migrateLegacyMetricsConfigsToConnections } from "./agents/semantic_metrics/connectionMigration";
 
 // 加载环境变量
 
@@ -324,6 +325,14 @@ async function initializePgStores(): Promise<void> {
 
   // Additional config loading after stores are registered
   await sqlDatabaseManager.loadAllConfigsFromStore(stores.database);
+  const metricsMigration = await migrateLegacyMetricsConfigsToConnections(stores.metrics, stores.connection);
+  if (metricsMigration.scanned > 0) {
+    console.log(
+      `[semantic-metrics] migrated legacy metrics configs to connections: `
+      + `scanned=${metricsMigration.scanned}, created=${metricsMigration.created}, `
+      + `updated=${metricsMigration.updated}, skipped=${metricsMigration.skipped}`,
+    );
+  }
   // await metricsServerManager.loadConfigsFromStore(stores.metrics, "default");
   // await metricsServerManager.loadConfigsFromStore(stores.metrics, "tenant_3");
   // await metricsServerManager.loadConfigsFromStore(stores.metrics, "retail_cdp");

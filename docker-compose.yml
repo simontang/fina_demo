@@ -53,6 +53,7 @@ services:
       PYTHON_API_URL: http://prediction_app:5703
       CDP_API_URL: http://cdp-service:5706
       UPLOAD_DIR: /app/uploads
+      DEFAULT_METRICS_DATASOURCE_KEY_PREFIX: ${DEFAULT_METRICS_DATASOURCE_KEY_PREFIX:-metrics-datasource-default-}
       # Optional (LLM provider for the agent + some Python insight endpoints).
       VOLCENGINE_API_KEY2: ${VOLCENGINE_API_KEY2:-a0533576-d6ed-4ca4-a308-473cbf7ebd10}
       VOLCENGINE_API_URL: ${VOLCENGINE_API_URL:-https://ark.cn-beijing.volces.com/api/v3}
@@ -100,6 +101,8 @@ services:
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
       # AES key for encrypting SAP B1 HANA passwords at rest
       ENCRYPT_KEY: ${ENCRYPT_KEY:-fina-metrics-2024!}
+      METRICS_ADMIN_API_KEY: ${METRICS_ADMIN_API_KEY:-}
+      METRICS_DATASOURCE_KEY_DEFAULT_PREFIX: ${METRICS_DATASOURCE_KEY_DEFAULT_PREFIX:-metrics-datasource-default-}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       SKIP_INIT: ${SKIP_INIT:-false}
     volumes:

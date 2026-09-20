@@ -37,6 +37,13 @@ mybatis-plus:
 
 # AES key used to encrypt SAP B1 HANA passwords stored in t_datasource_config
 metrics:
+  admin:
+    api-key: ${METRICS_ADMIN_API_KEY:}
+  datasource-api-key:
+    bootstrap:
+      enabled: ${METRICS_DATASOURCE_KEY_BOOTSTRAP_ENABLED:true}
+      default-key-name: ${METRICS_DATASOURCE_KEY_DEFAULT_NAME:default}
+      default-key-prefix: ${METRICS_DATASOURCE_KEY_DEFAULT_PREFIX:metrics-datasource-default-}
   encryption:
     key: ${ENCRYPT_KEY:fina-metrics-2024!}
   # Set true to skip loading dynamic HANA datasources on startup (dev mode without HANA)

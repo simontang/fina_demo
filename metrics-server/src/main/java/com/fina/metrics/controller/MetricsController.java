@@ -1,9 +1,12 @@
 package com.fina.metrics.controller;
 
 import com.fina.metrics.dto.*;
+import com.fina.metrics.service.DataSourceApiKeyAuthService;
+import com.fina.metrics.service.DataSourceApiKeyPermission;
 import com.fina.metrics.service.MetricsService;
 import com.fina.metrics.service.RuntimeMetaCache;
 import com.fina.metrics.util.TenantHeaderResolver;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +41,7 @@ public class MetricsController {
 
     private final MetricsService metricsService;
     private final RuntimeMetaCache runtimeMetaCache;
+    private final DataSourceApiKeyAuthService datasourceAuth;
 
     // ── Agent discovery ───────────────────────────────────────────────────────
 
@@ -50,7 +54,9 @@ public class MetricsController {
     @GetMapping("/api/v1/datasources/{dsId}/metrics/index")
     public ApiResponse<MetricsIndexResponse> getMetricsIndex(
             @PathVariable Long dsId,
-            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
+            HttpServletRequest httpRequest) {
+        datasourceAuth.requirePermission(httpRequest, dsId, DataSourceApiKeyPermission.META_READ);
         return ApiResponse.ok(metricsService.getMetricsIndex(dsId, resolveTenant(tenantId)));
     }
 
@@ -65,7 +71,9 @@ public class MetricsController {
     public ApiResponse<MetricsDetailResponse> getMetricDetail(
             @PathVariable Long dsId,
             @PathVariable String metricName,
-            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
+            HttpServletRequest httpRequest) {
+        datasourceAuth.requirePermission(httpRequest, dsId, DataSourceApiKeyPermission.META_READ);
         return ApiResponse.ok(metricsService.getMetricDetail(dsId, metricName, resolveTenant(tenantId)));
     }
 
@@ -76,7 +84,9 @@ public class MetricsController {
     @GetMapping("/api/v1/datasources/{dsId}/meta")
     public ApiResponse<MetricsMetaFullResponse> getMetricsMeta(
             @PathVariable Long dsId,
-            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
+            HttpServletRequest httpRequest) {
+        datasourceAuth.requirePermission(httpRequest, dsId, DataSourceApiKeyPermission.META_READ);
         String resolvedTenant = resolveTenant(tenantId);
         return ApiResponse.ok(runtimeMetaCache.get(
                 dsId,
@@ -96,7 +106,9 @@ public class MetricsController {
     @PostMapping("/api/v1/metrics/query")
     public ApiResponse<MetricsQueryData> query(
             @Valid @RequestBody SemanticQueryRequest request,
-            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
+            HttpServletRequest httpRequest) {
+        datasourceAuth.requirePermission(httpRequest, request.getDatasourceId(), DataSourceApiKeyPermission.RUNTIME_QUERY);
         if (log.isInfoEnabled()) {
             log.info("Query datasource={} metrics={} customSql={}",
                     request.getDatasourceId(),
@@ -110,7 +122,10 @@ public class MetricsController {
 
     /** List all SQL-level metric definitions stored for a datasource */
     @GetMapping("/api/v1/datasources/{dsId}/metrics")
-    public ApiResponse<List<MetricsMetaVO>> listMetrics(@PathVariable Long dsId) {
+    public ApiResponse<List<MetricsMetaVO>> listMetrics(
+            @PathVariable Long dsId,
+            HttpServletRequest httpRequest) {
+        datasourceAuth.requirePermission(httpRequest, dsId, DataSourceApiKeyPermission.META_READ);
         return ApiResponse.ok(metricsService.listByDatasource(dsId));
     }
 
@@ -118,14 +133,18 @@ public class MetricsController {
     @GetMapping("/api/v1/datasources/{dsId}/metrics/{code}")
     public ApiResponse<MetricsMetaVO> getMetric(
             @PathVariable Long dsId,
-            @PathVariable String code) {
+            @PathVariable String code,
+            HttpServletRequest httpRequest) {
+        datasourceAuth.requirePermission(httpRequest, dsId, DataSourceApiKeyPermission.META_READ);
         return ApiResponse.ok(metricsService.getMetricMeta(dsId, code));
     }
 
     @PostMapping("/api/v1/datasources/{dsId}/metrics")
     public ApiResponse<MetricsMetaVO> createMetric(
             @PathVariable Long dsId,
-            @Valid @RequestBody MetricsMetaRequest request) {
+            @Valid @RequestBody MetricsMetaRequest request,
+            HttpServletRequest httpRequest) {
+        datasourceAuth.requirePermission(httpRequest, dsId, DataSourceApiKeyPermission.META_WRITE);
         request.setDatasourceId(dsId);
         return ApiResponse.ok(metricsService.createMetricMeta(request));
     }
@@ -133,12 +152,23 @@ public class MetricsController {
     @PutMapping("/api/v1/metrics/{id}")
     public ApiResponse<MetricsMetaVO> updateMetric(
             @PathVariable Long id,
-            @Valid @RequestBody MetricsMetaRequest request) {
+            @Valid @RequestBody MetricsMetaRequest request,
+            HttpServletRequest httpRequest) {
+        MetricsMetaVO existing = metricsService.getMetricMetaById(id);
+        datasourceAuth.requirePermission(httpRequest, existing.getDatasourceId(), DataSourceApiKeyPermission.META_WRITE);
+        if (request.getDatasourceId() != null && !request.getDatasourceId().equals(existing.getDatasourceId())) {
+            throw new IllegalArgumentException("metric datasourceId cannot be changed");
+        }
+        request.setDatasourceId(existing.getDatasourceId());
         return ApiResponse.ok(metricsService.updateMetricMeta(id, request));
     }
 
     @DeleteMapping("/api/v1/metrics/{id}")
-    public ApiResponse<Void> deleteMetric(@PathVariable Long id) {
+    public ApiResponse<Void> deleteMetric(
+            @PathVariable Long id,
+            HttpServletRequest httpRequest) {
+        MetricsMetaVO existing = metricsService.getMetricMetaById(id);
+        datasourceAuth.requirePermission(httpRequest, existing.getDatasourceId(), DataSourceApiKeyPermission.META_WRITE);
         metricsService.deleteMetricMeta(id);
         return ApiResponse.ok();
     }

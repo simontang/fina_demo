@@ -2,7 +2,7 @@
  * Semantic Metrics V2 HTTP client.
  *
  * Talks to the Metrics Server `/api/v1` surface. This iteration does NOT send
- * `X-Tenant-Id`; tenant isolation relies on the connection's own credentials.
+ * `X-Tenant-Id`; authorization relies on the connection's datasource-bound key.
  */
 import { SemanticMetricsV2Config, validateSql } from "./types";
 import {
@@ -86,7 +86,8 @@ export async function resolveMetricsClientFromSelector(
  *
  * @remarks
  * - A trailing slash on `serverUrl` is normalized away.
- * - When `apiKey` is set it is sent as a `Bearer` `Authorization` header.
+ * - When `datasourceKey` (or legacy `apiKey`) is set it is sent as
+ *   `X-Metrics-Datasource-Key`.
  * - Custom `headers` are merged on top of the default `Accept` header; per-call
  *   headers merge on top of both.
  */
@@ -104,7 +105,7 @@ export class SemanticMetricsV2Client {
 
   /**
    * Build default request headers: `Accept: application/json`, custom headers,
-   * and a Bearer `Authorization` header when an API key is configured.
+   * and a datasource key header when configured.
    *
    * @returns Merged headers.
    */
@@ -113,22 +114,33 @@ export class SemanticMetricsV2Client {
       Accept: "application/json",
       ...(this.config.headers ?? {}),
     };
-    if (this.config.apiKey) {
-      headers["Authorization"] = `Bearer ${this.config.apiKey}`;
-    }
+    const datasourceKey = this.resolveDatasourceKey();
+    if (datasourceKey) headers["X-Metrics-Datasource-Key"] = datasourceKey;
     return headers;
+  }
+
+  private resolveDatasourceKey(): string | undefined {
+    for (const value of [this.config.datasourceKey, this.config.apiKey]) {
+      if (typeof value === "string" && value.trim()) return value.trim();
+    }
+    const fallback = process.env.DEFAULT_METRICS_DATASOURCE_KEY;
+    return fallback?.trim() || undefined;
   }
 
   /**
    * Numeric selected resource ids of this connection (normalized).
    *
-   * Reads `selectedEntities` — the standard connection resource-selection
-   * field written by the connection UI (`connection.discover` + selection).
+   * Reads legacy `selectedEntities` / `selectedDataSources` as an optional
+   * narrowing layer. Current connections rely on the datasource key itself for
+   * server-side authorization.
    *
    * @returns The selected resource ids; empty when unrestricted.
    */
   getSelectedEntities(): number[] {
-    const raw = (this.config as unknown as Record<string, unknown>).selectedEntities;
+    const record = this.config as unknown as Record<string, unknown>;
+    const raw = Array.isArray(record.selectedEntities)
+      ? record.selectedEntities
+      : record.selectedDataSources;
     if (!Array.isArray(raw)) return [];
     return raw
       .map((v) => Number(v))
@@ -234,7 +246,9 @@ export class SemanticMetricsV2Client {
    * @returns Parsed JSON response body.
    */
   listDatasources(): Promise<unknown> {
-    return this.request("/datasources");
+    return this.request("/datasources/current").then((datasource) =>
+      datasource === undefined ? [] : [datasource],
+    );
   }
 
   /**

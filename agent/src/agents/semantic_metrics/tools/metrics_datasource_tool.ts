@@ -5,13 +5,13 @@ import { assertDatasourceSelected, effectiveDatasourceScope, readToolRunConfig, 
 
 const DESCRIPTION = `PHYSICAL LAYER EXPLORATION — the only tool for probing raw datasource structure (Builder/Admin only; business agents do not need it).
 
-OWNS: discovering datasources, reading table-grants (the exploration boundary for this tenant), and running read-only SQL (SELECT/WITH only) to inspect physical tables, columns, sample rows, and value distributions. Also: per-datasource connection test and pool status.
+OWNS: reading the datasource authorized by the current connection key, reading table-grants / visible scope, and running read-only SQL (SELECT/WITH only) to inspect visible physical tables, columns, sample rows, and value distributions. Also: per-datasource connection test and pool status.
 
 DOES NOT OWN:
 - Published semantic assets (table meta / metric meta) → use metrics_meta_tool.
 - Runtime meta and business metric queries → use metrics_runtime_tool.
 
-USE WHEN: starting a modeling task — \`list_datasources\` is always the FIRST step: it returns the datasource ids that every other action and tool requires (get_grants, query_sql here; read_semantic_catalog, query_metrics in metrics_runtime_tool; the meta actions in metrics_meta_tool). Read grants next, then probe tables, columns, samples, and distributions within the grant. If a field's business meaning is unclear, probe sample values and distributions here before publishing anything.
+USE WHEN: starting a modeling task — \`list_datasources\` is always the FIRST step: it returns the single datasource authorized by this connection key and the datasource id that every other action and tool requires (get_grants, query_sql here; read_semantic_catalog, query_metrics in metrics_runtime_tool; the meta actions in metrics_meta_tool). Read grants next, then probe tables, columns, samples, and distributions within the grant. If a field's business meaning is unclear, probe sample values and distributions here before publishing anything.
 
 COMMON MISTAKES (do not):
 - Do not answer business metric questions here (e.g. "monthly sales by region") — that is metrics_runtime_tool \`query\` against published metrics, NOT this tool's \`query_sql\` (physical-table SQL).
@@ -128,7 +128,7 @@ export function createMetricsDatasourceTool(params: SemanticMetricsToolParams) {
       description: DESCRIPTION,
       schema: z.object({
         action: z.enum(["list_datasources", "get_grants", "query_sql", "test_connection", "pool_status"]).describe(
-          "list_datasources: list datasources — ALWAYS call this first to obtain the datasource id used by every other action and tool; get_grants: read table-grants; query_sql: run read-only SQL against PHYSICAL tables (note: this is query_sql, NOT the semantic 'query' action of metrics_runtime_tool); test_connection: test the datasource; pool_status: connection-pool status",
+          "list_datasources: return the datasource authorized by this connection key — ALWAYS call this first to obtain the datasource id used by every other action and tool; get_grants: read table-grants; query_sql: run read-only SQL against PHYSICAL tables (note: this is query_sql, NOT the semantic 'query' action of metrics_runtime_tool); test_connection: test the datasource; pool_status: connection-pool status",
         ),
         connectionKey: z.string().optional().describe("Connection key. Omit when only one semantic-metrics connection exists"),
         datasourceId: z.coerce.number().optional().describe("Numeric datasource id, e.g. 15 (required for all actions except list_datasources; optional if set in runConfig.metricsDataSource)"),

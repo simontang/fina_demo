@@ -5,13 +5,14 @@
 /** Connection config read from the tenant-scoped Connection Store. */
 export interface SemanticMetricsV2Config {
   serverUrl: string;
+  /** Preferred datasource-bound Metrics authorization key. */
+  datasourceKey?: string;
+  /** Legacy alias for datasourceKey. */
   apiKey?: string;
   headers?: Record<string, string>;
   /**
-   * Resource ids this connection exposes to agents; empty/absent means all.
-   * Read from `selectedEntities` (the standard connection resource-selection
-   * field written by the connection UI) by
-   * {@link SemanticMetricsV2Client.getSelectedEntities}.
+   * Legacy resource ids this connection exposes to agents; empty/absent means
+   * the server-side datasource key is authoritative.
    */
   selectedEntities?: Array<number | string>;
 }
@@ -61,8 +62,9 @@ export interface SemanticMetricsToolParams {
 /**
  * Effective datasource authorization for a resolved connection.
  *
- * Datasource scope is owned by the connection itself (`selectedEntities`); the
- * agent config only selects connections, so there is no agent-level narrowing.
+ * Datasource scope is owned by the connection credential. Legacy selected
+ * entities can still narrow older connections, but cannot expand the
+ * server-side datasource-key authorization.
  */
 export interface DatasourceScope {
   /**
@@ -110,9 +112,8 @@ export function assertDatasourceSelected(scope: DatasourceScope, datasourceId: n
 }
 
 /**
- * Compute the effective datasource scope from the connection's own resource
- * selection (`selectedEntities`). Agent config selects connections only, so
- * this is the single constraint layer.
+ * Compute the effective datasource scope from a legacy connection resource
+ * selection. Empty scope means the server-side datasource key is authoritative.
  *
  * @param connectionScope - Connection-layer selected resource ids (empty means the connection exposes all).
  * @returns The effective {@link DatasourceScope}.

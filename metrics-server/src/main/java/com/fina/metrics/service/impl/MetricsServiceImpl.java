@@ -374,6 +374,19 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
+    public MetricsMetaVO getMetricMetaById(Long id) {
+        MetricsMeta meta = metaMapper.selectOne(
+                new LambdaQueryWrapper<MetricsMeta>()
+                        .eq(MetricsMeta::getId, id)
+                        .eq(MetricsMeta::getDeleted, 0)
+        );
+        if (meta == null) {
+            throw new IllegalArgumentException("MetricsMeta not found: " + id);
+        }
+        return toVO(meta);
+    }
+
+    @Override
     @Transactional
     public MetricsMetaVO createMetricMeta(MetricsMetaRequest request) {
         MetricsMeta meta = new MetricsMeta();
