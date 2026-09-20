@@ -37,8 +37,6 @@ import {
 import "./agents";
 import "./tools/segmentCrud";
 import "./tools/marketingCampaignCrud";
-// These admin/runtime tools supplement the framework's query_metrics_* middleware tools.
-import "./tools/metricsTools";
 
 // 加载环境变量
 
