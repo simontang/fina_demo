@@ -1,6 +1,11 @@
 import type { PluginSkillDefinition } from "@axiom-lattice/protocols";
 
-const CONTENT = `# Business Objects Modeling
+const CONTENT = `---
+name: business-objects-modeling
+description: Builder policy for modeling Business Object stores, object definitions, fields and indexes; covers naming, store selection, field types, indexes, v1 evolution limits, grants, confirmations, and the standard build/verify workflow.
+---
+
+# Business Objects Modeling
 
 You are modeling business data as Business Objects. A store is one PostgreSQL database plus schema; an object definition maps an objectKey to a physical table; records are rows. This policy is mandatory for every build action.
 

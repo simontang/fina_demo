@@ -54,6 +54,7 @@ describe("business objects builder assets", () => {
   it("skill declares a version and all modeling sections", () => {
     expect(BUSINESS_OBJECTS_MODELING_SKILL.version).toBe("1.0.0");
     const content = BUSINESS_OBJECTS_MODELING_SKILL.content;
+    expect(content).toContain("name: business-objects-modeling");
     for (const heading of [
       "## 1. 概念模型",
       "## 2. 命名规范",
@@ -71,7 +72,8 @@ describe("business objects builder assets", () => {
   });
 
   it("builder prompt requires loading the modeling skill first", () => {
-    expect(BUSINESS_OBJECTS_BUILDER_PROMPT).toContain("business-objects-modeling");
+    expect(BUSINESS_OBJECTS_BUILDER_PROMPT).toContain("CRITICAL FIRST ACTION");
+    expect(BUSINESS_OBJECTS_BUILDER_PROMPT).toMatch(/skill_name:\s*"business-objects-modeling"/);
   });
 });
 ```
@@ -108,7 +110,12 @@ Create `agent/src/agents/platform_service/business_objects/skill.ts`:
 ```ts
 import type { PluginSkillDefinition } from "@axiom-lattice/protocols";
 
-const CONTENT = `# Business Objects Modeling
+const CONTENT = `---
+name: business-objects-modeling
+description: Builder policy for modeling Business Object stores, object definitions, fields and indexes; covers naming, store selection, field types, indexes, v1 evolution limits, grants, confirmations, and the standard build/verify workflow.
+---
+
+# Business Objects Modeling
 
 You are modeling business data as Business Objects. A store is one PostgreSQL database plus schema; an object definition maps an objectKey to a physical table; records are rows. This policy is mandatory for every build action.
 

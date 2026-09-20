@@ -5,6 +5,7 @@ describe("business objects builder assets", () => {
   it("skill declares a version and all modeling sections", () => {
     expect(BUSINESS_OBJECTS_MODELING_SKILL.version).toBe("1.0.0");
     const content = BUSINESS_OBJECTS_MODELING_SKILL.content;
+    expect(content).toContain("name: business-objects-modeling");
     for (const heading of [
       "## 1. 概念模型",
       "## 2. 命名规范",
@@ -22,6 +23,7 @@ describe("business objects builder assets", () => {
   });
 
   it("builder prompt requires loading the modeling skill first", () => {
-    expect(BUSINESS_OBJECTS_BUILDER_PROMPT).toContain("business-objects-modeling");
+    expect(BUSINESS_OBJECTS_BUILDER_PROMPT).toContain("CRITICAL FIRST ACTION");
+    expect(BUSINESS_OBJECTS_BUILDER_PROMPT).toMatch(/skill_name:\s*"business-objects-modeling"/);
   });
 });
