@@ -1,13 +1,14 @@
 jest.mock("@axiom-lattice/core", () => ({
   PluginRegistry: { register: jest.fn(), list: jest.fn(() => []), get: jest.fn() },
   getSandBoxManager: jest.fn(),
+  resolvePluginConnections: jest.fn(),
 }));
 jest.mock("langchain", () => ({
   createMiddleware: (o: unknown) => o,
   tool: (fn: unknown, cfg: Record<string, unknown>) => ({ ...cfg, invoke: fn }),
 }));
 
-import { PluginRegistry } from "@axiom-lattice/core";
+import { PluginRegistry, resolvePluginConnections } from "@axiom-lattice/core";
 import { AgentType } from "@axiom-lattice/protocols";
 import { businessObjectPlugin } from "../business_objects/plugin";
 import { storagePlugin } from "../storage/plugin";
@@ -203,6 +204,31 @@ describe("business objects plugin", () => {
       "update_record",
       "update_store_key",
     ]);
+  });
+
+  it("resolves its connection dynamically, passing its own plugin type", async () => {
+    (resolvePluginConnections as jest.Mock).mockReset();
+    (resolvePluginConnections as jest.Mock).mockResolvedValue([
+      { key: "demo", config: { baseUrl: "https://ada.alphafina.cn", boStoreKey: "bos_x" } },
+    ]);
+    const fetchMock = jest
+      .spyOn(global, "fetch")
+      .mockResolvedValue({ ok: true, status: 200, json: async () => [] } as Response);
+
+    const mw = await businessObjectPlugin.middleware!({ connections: ["demo"], connectAll: false });
+    const tool = ((mw as { tools: Array<{ name: string; invoke: Function }> }).tools).find(
+      (t) => t.name === "list_stores",
+    )!;
+    await tool.invoke({}, { configurable: { runConfig: { tenantId: "estee_lauder" } } });
+
+    expect(resolvePluginConnections).toHaveBeenCalledWith(
+      "business-objects",
+      { connections: ["demo"], connectAll: false },
+      { tenantId: "estee_lauder" },
+    );
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toBe("https://ada.alphafina.cn/api/v1/bo/stores");
+    jest.restoreAllMocks();
   });
 
   it("exposes only read-only tools to Open, all present in the middleware", async () => {
