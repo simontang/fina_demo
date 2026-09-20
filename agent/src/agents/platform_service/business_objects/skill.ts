@@ -2,7 +2,7 @@ import type { PluginSkillDefinition } from "@axiom-lattice/protocols";
 
 const CONTENT = `---
 name: business-objects-modeling
-description: Builder policy for modeling Business Object stores, object definitions, fields and indexes; covers naming, store selection, field types, indexes, v1 evolution limits, grants, confirmations, and the standard build/verify workflow.
+description: Builder policy for modeling Business Object stores, object definitions, fields and indexes; covers naming, store selection, field types, indexes, v1 evolution limits, store keys, confirmations, and the standard build/verify workflow.
 ---
 
 # Business Objects Modeling
@@ -10,8 +10,8 @@ description: Builder policy for modeling Business Object stores, object definiti
 You are modeling business data as Business Objects. A store is one PostgreSQL database plus schema; an object definition maps an objectKey to a physical table; records are rows. This policy is mandatory for every build action.
 
 ## 1. 概念模型
-- **Store**：一个 store 对应一个 PostgreSQL 库 + schema（默认 public）。创建 store 时平台自动写入一条 granteeKey=tenant、can_read/write/manage=true 的默认 grant。
-- **Store grant**：granteeKey + can_read / can_write / can_manage，决定该连接键能读/写/管理哪些 store。
+- **Store**：一个 store 对应一个 PostgreSQL 库 + schema（默认 public）。
+- **Store key**：一个授权 key 只绑定一个 store；permissions = READ / WRITE / MANAGE，决定该连接能读、写记录或管理对象结构。
 - **Object 定义**：objectKey → 物理表，含 fields 与 indexes；由 platform-service 同步生成 DDL。
 - **Record**：object 下的一行数据，按 id 读写；删除为软删。
 
@@ -24,7 +24,7 @@ You are modeling business data as Business Objects. A store is one PostgreSQL da
 - 先 list_stores，再用 test_store 确认连通。
 - 无合适 store 才 create_store：仅接受 jdbc:postgresql: URL；默认 schema public。
 - 同一业务域复用同一 store，不要为每个 object 新建库。
-- 创建后 list_store_grants 确认默认 tenant grant 存在。
+- 创建后用 create_store_key 显式创建 store key；不再有默认授权。
 
 ## 4. 字段类型映射
 - string：短文本，配 maxLength（常见 ≤255）。
@@ -48,10 +48,10 @@ You are modeling business data as Business Objects. A store is one PostgreSQL da
 - 需要删列/改类型时：新建 object，或加新列后由数据侧迁移，不原地改。
 - 加列用 update_object，fields 传完整定义。
 
-## 7. 权限与 grant
-- 默认 tenant grant 覆盖读写管理；跨 grantee 授权用 grant_store。
-- can_manage 允许改定义；can_write 允许写记录；can_read 只读。
-- 收窄权限用 grant_store 覆盖，不要新建 store。
+## 7. 权限与 store key
+- READ 允许 list/get/query；WRITE 允许写记录；MANAGE 允许创建/更新/删除对象定义。
+- 一个 connection 使用一个 store key；需要多个 store 时配置多个 connection。
+- 轮换或收窄权限用 update_store_key；禁用授权用 delete_store_key。
 
 ## 8. 安全与确认
 - delete_object / delete_record 必须先取得用户明确确认，再传 confirm: true。

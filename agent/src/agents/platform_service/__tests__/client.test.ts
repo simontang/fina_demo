@@ -55,12 +55,12 @@ describe("resolveConnection", () => {
     expect(resolveConnection().apiKey).toBeUndefined();
   });
 
-  it("keeps business object connection key separate from the platform service api key", () => {
+  it("keeps business object store key separate from the platform service api key", () => {
     const conn = resolveConnection({
-      _resolvedConnections: [{ config: { apiKey: "platform_key", boConnectionKey: "tenant" } }],
+      _resolvedConnections: [{ config: { apiKey: "platform_key", boStoreKey: "bos_secret" } }],
     });
     expect(conn.apiKey).toBe("platform_key");
-    expect(conn.boConnectionKey).toBe("tenant");
+    expect(conn.boStoreKey).toBe("bos_secret");
   });
 
   it("reads selectedEntities from the resolved connection config", () => {

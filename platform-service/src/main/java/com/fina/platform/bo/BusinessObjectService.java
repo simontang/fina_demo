@@ -12,8 +12,8 @@ import com.fina.platform.bo.BusinessObjectDtos.QueryResponse;
 import com.fina.platform.bo.BusinessObjectDtos.RecordRequest;
 import com.fina.platform.bo.BusinessObjectDtos.RecordResponse;
 import com.fina.platform.bo.BusinessObjectDtos.Sort;
-import com.fina.platform.bo.BusinessObjectDtos.StoreGrantRequest;
-import com.fina.platform.bo.BusinessObjectDtos.StoreGrantResponse;
+import com.fina.platform.bo.BusinessObjectDtos.StoreApiKeyRequest;
+import com.fina.platform.bo.BusinessObjectDtos.StoreApiKeyResponse;
 import com.fina.platform.bo.BusinessObjectDtos.StoreRequest;
 import com.fina.platform.bo.BusinessObjectDtos.StoreResponse;
 import com.fina.platform.exception.ApiException;
@@ -36,11 +36,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.sql.DataSource;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -50,6 +57,7 @@ import java.util.stream.Collectors;
 public class BusinessObjectService {
     private static final int DEFAULT_PAGE_SIZE = 50;
     private static final int MAX_PAGE_SIZE = 500;
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     static {
         System.setProperty("org.jooq.no-logo", "true");
@@ -63,32 +71,33 @@ public class BusinessObjectService {
     public BoAuthContext authenticate(HttpServletRequest request) {
         String connectionKey = headerIgnoreCase(request, "X-BO-Connection-Key");
         if (isBlank(connectionKey)) {
-            throw new ApiException(401, "BO_CONNECTION_KEY_REQUIRED", "X-BO-Connection-Key header is required");
+            throw new ApiException(401, "BO_STORE_KEY_REQUIRED", "X-BO-Connection-Key header is required");
         }
-        String granteeKey = BusinessObjectSqlSupport.requireIdentifier(connectionKey.trim(), "connectionKey");
         List<BoGrant> grants = jdbcTemplate.query("""
-                SELECT s.id AS store_id, s.store_key, g.grantee_key,
-                       g.can_read, g.can_write, g.can_manage
-                  FROM bo_store_grants g
+                SELECT s.id AS store_id, s.store_key, k.key_name, k.permissions_json
+                  FROM bo_store_api_keys k
                   JOIN bo_stores s
-                    ON s.id = g.store_id
+                    ON s.id = k.store_id
                    AND s.status = 1
                    AND s.deleted = 0
-                 WHERE g.grantee_key = ?
-                   AND g.status = 1
-                   AND g.deleted = 0
-                """, (rs, rowNum) -> new BoGrant(
-                rs.getLong("store_id"),
-                rs.getString("store_key"),
-                rs.getString("grantee_key"),
-                rs.getBoolean("can_read"),
-                rs.getBoolean("can_write"),
-                rs.getBoolean("can_manage")
-        ), granteeKey);
+                 WHERE k.key_hash = ?
+                   AND k.status = 1
+                   AND k.deleted = 0
+                """, (rs, rowNum) -> {
+            Set<String> permissions = permissions(rs.getString("permissions_json"));
+            return new BoGrant(
+                    rs.getLong("store_id"),
+                    rs.getString("store_key"),
+                    rs.getString("key_name"),
+                    permissions.contains(Grant.READ.name()),
+                    permissions.contains(Grant.WRITE.name()),
+                    permissions.contains(Grant.MANAGE.name())
+            );
+        }, hash(connectionKey.trim()));
         if (grants.isEmpty()) {
-            throw new ApiException(403, "BO_CONNECTION_FORBIDDEN", "BO connection key is not granted");
+            throw new ApiException(401, "BO_STORE_KEY_INVALID", "BO store key is invalid");
         }
-        return new BoAuthContext(granteeKey, List.copyOf(grants));
+        return new BoAuthContext("store-key", List.copyOf(grants));
     }
 
     public List<StoreResponse> listStores() {
@@ -133,17 +142,6 @@ public class BusinessObjectService {
                 RETURNING id
                 """, Long.class, storeKey, name, request.description(), request.jdbcUrl().trim(), schemaName,
                 request.username().trim(), request.password(), status);
-        jdbcTemplate.update("""
-                INSERT INTO bo_store_grants (store_id, grantee_key, can_read, can_write, can_manage, status)
-                VALUES (?, 'tenant', true, true, true, 1)
-                ON CONFLICT (store_id, grantee_key)
-                WHERE deleted = 0
-                DO UPDATE SET can_read = true,
-                              can_write = true,
-                              can_manage = true,
-                              status = 1,
-                              updated_at = now()
-                """, id);
         return getStoreById(id);
     }
 
@@ -154,50 +152,88 @@ public class BusinessObjectService {
         return Map.of("ok", ok != null && ok == 1, "storeKey", storeKey);
     }
 
-    public List<StoreGrantResponse> listStoreGrants(String storeKey) {
+    public StoreResponse currentStore(BoAuthContext auth) {
+        return getStoreById(singleGrant(auth).storeId());
+    }
+
+    public List<StoreApiKeyResponse> listStoreApiKeys(String storeKey) {
         StoreConnection store = loadStoreConnection(storeKey);
         return jdbcTemplate.query("""
-                SELECT id, store_id, grantee_key, can_read, can_write, can_manage, status
-                FROM bo_store_grants
+                SELECT id, store_id, key_name, permissions_json, status, created_at, updated_at
+                FROM bo_store_api_keys
                 WHERE store_id = ? AND deleted = 0
-                ORDER BY grantee_key
-                """, (rs, rowNum) -> new StoreGrantResponse(
+                ORDER BY key_name
+                """, (rs, rowNum) -> new StoreApiKeyResponse(
                 rs.getLong("id"),
                 rs.getLong("store_id"),
                 store.storeKey(),
-                rs.getString("grantee_key"),
-                rs.getBoolean("can_read"),
-                rs.getBoolean("can_write"),
-                rs.getBoolean("can_manage"),
-                rs.getInt("status")
+                rs.getString("key_name"),
+                permissions(rs.getString("permissions_json")).stream().sorted().toList(),
+                rs.getInt("status"),
+                rs.getTimestamp("created_at").toLocalDateTime(),
+                rs.getTimestamp("updated_at").toLocalDateTime(),
+                null
         ), store.storeId());
     }
 
     @Transactional
-    public StoreGrantResponse createOrUpdateStoreGrant(String storeKey, StoreGrantRequest request) {
+    public StoreApiKeyResponse createStoreApiKey(String storeKey, StoreApiKeyRequest request) {
         StoreConnection store = loadStoreConnection(storeKey);
-        String granteeKey = isBlank(request.granteeKey()) ? "tenant"
-                : BusinessObjectSqlSupport.requireIdentifier(request.granteeKey(), "granteeKey");
-        boolean canRead = request.canRead() == null || request.canRead();
-        boolean canWrite = Boolean.TRUE.equals(request.canWrite());
-        boolean canManage = Boolean.TRUE.equals(request.canManage());
-        int status = request.status() == null ? 1 : request.status();
+        String keyName = BusinessObjectSqlSupport.requireIdentifier(request.keyName(), "keyName");
+        List<String> normalizedPermissions = normalizePermissions(request.permissions());
+        String rawKey = isBlank(request.rawKey()) ? generateKey() : request.rawKey().trim();
+        Integer status = request.status() == null ? 1 : request.status();
         Long id = jdbcTemplate.queryForObject("""
-                INSERT INTO bo_store_grants (store_id, grantee_key, can_read, can_write, can_manage, status)
-                VALUES (?, ?, ?, ?, ?, ?)
-                ON CONFLICT (store_id, grantee_key)
-                WHERE deleted = 0
-                DO UPDATE SET can_read = EXCLUDED.can_read,
-                              can_write = EXCLUDED.can_write,
-                              can_manage = EXCLUDED.can_manage,
-                              status = EXCLUDED.status,
-                              updated_at = now()
+                INSERT INTO bo_store_api_keys (store_id, key_name, key_hash, permissions_json, status)
+                VALUES (?, ?, ?, ?, ?)
                 RETURNING id
-                """, Long.class, store.storeId(), granteeKey, canRead, canWrite, canManage, status);
-        return listStoreGrants(storeKey).stream()
-                .filter(grant -> grant.id().equals(id))
-                .findFirst()
-                .orElseThrow(() -> ApiException.notFound("store grant not found"));
+                """, Long.class, store.storeId(), keyName, hash(rawKey), writeJson(normalizedPermissions), status);
+        StoreApiKeyResponse stored = getStoreApiKey(store, id);
+        return new StoreApiKeyResponse(stored.id(), stored.storeId(), stored.storeKey(), stored.keyName(),
+                stored.permissions(), stored.status(), stored.createdAt(), stored.updatedAt(),
+                isBlank(request.rawKey()) ? rawKey : null);
+    }
+
+    @Transactional
+    public StoreApiKeyResponse updateStoreApiKey(String storeKey, Long keyId, StoreApiKeyRequest request) {
+        StoreConnection store = loadStoreConnection(storeKey);
+        StoreApiKeyResponse existing = getStoreApiKey(store, keyId);
+        String keyName = isBlank(request.keyName())
+                ? existing.keyName()
+                : BusinessObjectSqlSupport.requireIdentifier(request.keyName(), "keyName");
+        List<String> normalizedPermissions = request.permissions() == null
+                ? existing.permissions()
+                : normalizePermissions(request.permissions());
+        Integer status = request.status() == null ? existing.status() : request.status();
+        if (isBlank(request.rawKey())) {
+            jdbcTemplate.update("""
+                    UPDATE bo_store_api_keys
+                    SET key_name = ?, permissions_json = ?, status = ?, updated_at = now()
+                    WHERE id = ? AND store_id = ? AND deleted = 0
+                    """, keyName, writeJson(normalizedPermissions), status, keyId, store.storeId());
+        } else {
+            jdbcTemplate.update("""
+                    UPDATE bo_store_api_keys
+                    SET key_name = ?, key_hash = ?, permissions_json = ?, status = ?, updated_at = now()
+                    WHERE id = ? AND store_id = ? AND deleted = 0
+                    """, keyName, hash(request.rawKey().trim()), writeJson(normalizedPermissions),
+                    status, keyId, store.storeId());
+        }
+        return getStoreApiKey(store, keyId);
+    }
+
+    @Transactional
+    public Map<String, Object> deleteStoreApiKey(String storeKey, Long keyId) {
+        StoreConnection store = loadStoreConnection(storeKey);
+        int updated = jdbcTemplate.update("""
+                UPDATE bo_store_api_keys
+                SET deleted = 1, status = 0, updated_at = now()
+                WHERE id = ? AND store_id = ? AND deleted = 0
+                """, keyId, store.storeId());
+        if (updated == 0) {
+            throw ApiException.notFound("store API key not found: " + keyId);
+        }
+        return Map.of("deleted", true, "id", keyId);
     }
 
     public List<ObjectDefinitionResponse> listObjects(BoAuthContext auth) {
@@ -232,8 +268,8 @@ public class BusinessObjectService {
 
     @Transactional
     public ObjectDefinitionResponse createObject(BoAuthContext auth, ObjectDefinitionRequest request) {
-        String storeKey = BusinessObjectSqlSupport.requireIdentifier(request.storeKey(), "storeKey");
-        StoreConnection connection = loadStoreConnection(storeKey);
+        BoGrant targetGrant = resolveTargetGrant(auth, request.storeKey());
+        StoreConnection connection = loadStoreConnection(targetGrant.storeId());
         requireGrant(auth, connection.storeId(), Grant.MANAGE);
         String objectKey = BusinessObjectSqlSupport.requireIdentifier(request.objectKey(), "objectKey");
         String tableName = BusinessObjectSqlSupport.tableNameFor(objectKey);
@@ -664,6 +700,28 @@ public class BusinessObjectService {
         return rows.get(0);
     }
 
+    private StoreApiKeyResponse getStoreApiKey(StoreConnection store, Long keyId) {
+        List<StoreApiKeyResponse> rows = jdbcTemplate.query("""
+                SELECT id, store_id, key_name, permissions_json, status, created_at, updated_at
+                FROM bo_store_api_keys
+                WHERE id = ? AND store_id = ? AND deleted = 0
+                """, (rs, rowNum) -> new StoreApiKeyResponse(
+                rs.getLong("id"),
+                rs.getLong("store_id"),
+                store.storeKey(),
+                rs.getString("key_name"),
+                permissions(rs.getString("permissions_json")).stream().sorted().toList(),
+                rs.getInt("status"),
+                rs.getTimestamp("created_at").toLocalDateTime(),
+                rs.getTimestamp("updated_at").toLocalDateTime(),
+                null
+        ), keyId, store.storeId());
+        if (rows.isEmpty()) {
+            throw ApiException.notFound("store API key not found: " + keyId);
+        }
+        return rows.get(0);
+    }
+
     private StoreConnection loadStoreConnection(String storeKey) {
         String normalized = BusinessObjectSqlSupport.requireIdentifier(storeKey, "storeKey");
         List<StoreConnection> rows = jdbcTemplate.query("""
@@ -734,6 +792,25 @@ public class BusinessObjectService {
         }
     }
 
+    private BoGrant singleGrant(BoAuthContext auth) {
+        if (auth.grants().isEmpty()) {
+            throw new ApiException(403, "BO_STORE_FORBIDDEN", "business object store is not granted");
+        }
+        return auth.grants().get(0);
+    }
+
+    private BoGrant resolveTargetGrant(BoAuthContext auth, String requestedStoreKey) {
+        if (isBlank(requestedStoreKey)) {
+            return singleGrant(auth);
+        }
+        String normalized = BusinessObjectSqlSupport.requireIdentifier(requestedStoreKey, "storeKey");
+        return auth.grants().stream()
+                .filter(grant -> normalized.equals(grant.storeKey()))
+                .findFirst()
+                .orElseThrow(() -> new ApiException(403, "BO_STORE_FORBIDDEN",
+                        "BO store key is not authorized for storeKey=" + normalized));
+    }
+
     private void executeDdl(Long storeId, String objectKey, JdbcTemplate store, List<String> ddl) {
         for (String sql : ddl) {
             try {
@@ -757,6 +834,58 @@ public class BusinessObjectService {
             return objectMapper.writeValueAsString(value);
         } catch (Exception e) {
             throw ApiException.badRequest("invalid JSON value: " + e.getMessage());
+        }
+    }
+
+    private Set<String> permissions(String permissionsJson) {
+        try {
+            return objectMapper.readValue(permissionsJson, new TypeReference<List<String>>() {
+                    }).stream()
+                    .filter(permission -> !isBlank(permission))
+                    .map(permission -> permission.trim().toUpperCase())
+                    .collect(Collectors.toSet());
+        } catch (Exception e) {
+            throw new ApiException(500, "BO_KEY_PERMISSIONS_INVALID",
+                    "stored BO key permissions are invalid: " + e.getMessage());
+        }
+    }
+
+    private List<String> normalizePermissions(List<String> requested) {
+        Set<String> allowed = Arrays.stream(Grant.values())
+                .map(Enum::name)
+                .collect(Collectors.toSet());
+        List<String> normalized = requested == null || requested.isEmpty()
+                ? Arrays.stream(Grant.values()).map(Enum::name).toList()
+                : requested.stream()
+                .filter(permission -> !isBlank(permission))
+                .map(permission -> permission.trim().toUpperCase())
+                .distinct()
+                .toList();
+        for (String permission : normalized) {
+            if (!allowed.contains(permission)) {
+                throw ApiException.badRequest("unsupported BO store key permission: " + permission);
+            }
+        }
+        return normalized;
+    }
+
+    private String generateKey() {
+        byte[] bytes = new byte[24];
+        RANDOM.nextBytes(bytes);
+        return "bos_" + HexFormat.of().formatHex(bytes);
+    }
+
+    static String hash(String rawKey) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] bytes = digest.digest(rawKey.getBytes(StandardCharsets.UTF_8));
+            StringBuilder out = new StringBuilder(bytes.length * 2);
+            for (byte b : bytes) {
+                out.append(String.format("%02x", b));
+            }
+            return out.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is unavailable", e);
         }
     }
 
@@ -802,7 +931,7 @@ public class BusinessObjectService {
     public record BoAuthContext(String connectionKey, List<BoGrant> grants) {
     }
 
-    public record BoGrant(Long storeId, String storeKey, String granteeKey,
+    public record BoGrant(Long storeId, String storeKey, String keyName,
                           boolean canRead, boolean canWrite, boolean canManage) {
     }
 

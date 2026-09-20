@@ -13,7 +13,7 @@ const rawConfig = {
     config: {
       baseUrl: "http://svc:5707",
       apiKey: "k",
-      boConnectionKey: "tenant",
+      boStoreKey: "bos_secret",
       selectedEntities: ["customer"],
     },
   }],
@@ -63,7 +63,7 @@ describe("business object executors", () => {
     const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
     expect(url).toBe("http://svc:5707/api/v1/bo/objects");
     expect(init.method).toBe("POST");
-    expect(init.headers["X-BO-Connection-Key"]).toBe("tenant");
+    expect(init.headers["X-BO-Connection-Key"]).toBe("bos_secret");
     expect(init.headers["X-Tenant-Id"]).toBeUndefined();
     expect(JSON.parse(init.body)).toMatchObject({
       storeKey: "crm_store",
@@ -83,7 +83,7 @@ describe("business object executors", () => {
     const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
     expect(url).toBe("http://svc:5707/api/v1/bo/objects/customer/records/query");
     expect(init.method).toBe("POST");
-    expect(init.headers["X-BO-Connection-Key"]).toBe("tenant");
+    expect(init.headers["X-BO-Connection-Key"]).toBe("bos_secret");
     expect(init.headers["X-Tenant-Id"]).toBeUndefined();
     const body = JSON.parse(init.body);
     expect(body).toEqual({
@@ -105,7 +105,7 @@ describe("business object executors", () => {
     const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
     expect(url).toBe("http://svc:5707/api/v1/bo/objects/customer/records/r1");
     expect(init.method).toBe("PATCH");
-    expect(init.headers["X-BO-Connection-Key"]).toBe("tenant");
+    expect(init.headers["X-BO-Connection-Key"]).toBe("bos_secret");
     expect(init.headers["X-Tenant-Id"]).toBeUndefined();
     expect(JSON.parse(init.body)).toEqual({ data: { tier: "gold" } });
   });

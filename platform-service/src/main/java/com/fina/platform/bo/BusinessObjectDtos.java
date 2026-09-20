@@ -1,5 +1,8 @@
 package com.fina.platform.bo;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -31,24 +34,25 @@ public final class BusinessObjectDtos {
     ) {
     }
 
-    public record StoreGrantRequest(
-            String granteeKey,
-            Boolean canRead,
-            Boolean canWrite,
-            Boolean canManage,
+    public record StoreApiKeyRequest(
+            String keyName,
+            String rawKey,
+            List<String> permissions,
             Integer status
     ) {
     }
 
-    public record StoreGrantResponse(
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record StoreApiKeyResponse(
             Long id,
             Long storeId,
             String storeKey,
-            String granteeKey,
-            Boolean canRead,
-            Boolean canWrite,
-            Boolean canManage,
-            Integer status
+            String keyName,
+            List<String> permissions,
+            Integer status,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt,
+            String rawKey
     ) {
     }
 

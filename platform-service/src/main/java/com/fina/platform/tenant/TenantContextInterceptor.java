@@ -27,6 +27,10 @@ public class TenantContextInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
             throws Exception {
+        if (request.getRequestURI().startsWith("/api/v1/bo/")) {
+            return true;
+        }
+
         if (apiKey != null && !apiKey.isBlank()) {
             String presented = headerIgnoreCase(request, "X-Api-Key");
             if (!apiKey.equals(presented)) {
@@ -34,10 +38,6 @@ public class TenantContextInterceptor implements HandlerInterceptor {
                         "API_KEY_INVALID", "X-Api-Key header is missing or invalid");
                 return false;
             }
-        }
-
-        if (request.getRequestURI().startsWith("/api/v1/bo/")) {
-            return true;
         }
 
         String tenant = headerIgnoreCase(request, "X-Tenant-Id");

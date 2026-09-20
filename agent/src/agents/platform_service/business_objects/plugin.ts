@@ -5,7 +5,7 @@ import { z } from "zod";
 import { connectionFromConfig, request } from "../client";
 import { platformServiceConnection } from "../connection";
 import {
-  boConnectionKey,
+  boStoreKey,
   boObjectCreate,
   boObjectDelete,
   boObjectGet,
@@ -17,8 +17,10 @@ import {
   boRecordQuery,
   boRecordUpdate,
   boStoreCreate,
-  boStoreGrantList,
-  boStoreGrantUpsert,
+  boStoreKeyCreate,
+  boStoreKeyDelete,
+  boStoreKeyList,
+  boStoreKeyUpdate,
   boStoreList,
   boStoreTest,
 } from "./executors";
@@ -86,13 +88,25 @@ const schemas = {
     status: z.number().int().optional(),
   }),
   storeKey: z.object({ storeKey: identifier }),
-  storeGrant: z.object({
+  storeKeyCreate: z.object({
     storeKey: identifier,
-    granteeKey: identifier.optional(),
-    canRead: z.boolean().optional(),
-    canWrite: z.boolean().optional(),
-    canManage: z.boolean().optional(),
+    keyName: identifier,
+    rawKey: z.string().optional(),
+    permissions: z.array(z.enum(["READ", "WRITE", "MANAGE"])).optional(),
     status: z.number().int().optional(),
+  }),
+  storeKeyUpdate: z.object({
+    storeKey: identifier,
+    keyId: z.number().int(),
+    keyName: identifier.optional(),
+    rawKey: z.string().optional(),
+    permissions: z.array(z.enum(["READ", "WRITE", "MANAGE"])).optional(),
+    status: z.number().int().optional(),
+  }),
+  storeKeyDelete: z.object({
+    storeKey: identifier,
+    keyId: z.number().int(),
+    confirm: z.boolean().optional(),
   }),
   objectGet: z.object({ objectKey: identifier }),
   objectCreate: objectDefinition.extend({ storeKey: identifier }),
@@ -133,7 +147,7 @@ export const businessObjectPlugin: Plugin = {
     type: "business-objects",
     name: "Business Objects",
     description:
-      "Business Object stores, grants, object definitions and record CRUDQ. PERMISSION MODEL — query-only agents enable this middleware with allowedTools set to the read tools; schema/record writes belong to the built-in 'business-objects-builder' agent.",
+      "Business Object stores, store-bound API keys, object definitions and record CRUDQ. PERMISSION MODEL — each connection uses one BO store key; query-only agents enable this middleware with allowedTools set to the read tools; schema/record writes belong to the built-in 'business-objects-builder' agent.",
     version: "1.0.0",
     category: "data",
     capabilityBundleEligible: true,
@@ -142,14 +156,16 @@ export const businessObjectPlugin: Plugin = {
       {
         name: "create_store",
         description:
-          "Create a Business Object store backed by one PostgreSQL database and create the default store grant.",
+          "Create a Business Object store backed by one PostgreSQL database. Store access keys are created separately.",
       },
       { name: "test_store", description: "Test connectivity to a Business Object store." },
-      { name: "list_store_grants", description: "List grants for one Business Object store." },
-      { name: "grant_store", description: "Create or update a Business Object store grant." },
+      { name: "list_store_keys", description: "List API keys for one Business Object store." },
+      { name: "create_store_key", description: "Create a store-bound Business Object API key." },
+      { name: "update_store_key", description: "Update or rotate a store-bound Business Object API key." },
+      { name: "delete_store_key", description: "Disable a store-bound Business Object API key." },
       {
         name: "list_objects",
-        description: "List Business Object definitions visible to the configured BO grant key.",
+        description: "List Business Object definitions visible to the configured BO store key.",
       },
       { name: "get_object", description: "Get one Business Object definition by objectKey." },
       {
@@ -183,7 +199,7 @@ export const businessObjectPlugin: Plugin = {
     openExpose: [
       { name: "list_stores", readOnly: true },
       { name: "test_store", readOnly: true },
-      { name: "list_store_grants", readOnly: true },
+      { name: "list_store_keys", readOnly: true },
       { name: "list_objects", readOnly: true },
       { name: "get_object", readOnly: true },
       { name: "query_records", readOnly: true },
@@ -205,13 +221,31 @@ export const businessObjectPlugin: Plugin = {
   },
   connection: {
     ...platformServiceConnection,
+    fields: platformServiceConnection.fields.map((field) =>
+      field.key === "boStoreKey" ? { ...field, required: true } : field,
+    ),
+    test: async (config) => {
+      try {
+        const conn = connectionFromConfig(config);
+        const store = await request<{ storeKey?: string; name?: string }>({
+          conn,
+          method: "GET",
+          path: "/api/v1/bo/stores/current",
+          headers: { "X-BO-Connection-Key": boStoreKey(conn) },
+        });
+        const label = store.name || store.storeKey || "authorized store";
+        return { ok: true, message: `Connected; ${label} authorized` };
+      } catch (err) {
+        return { ok: false, message: err instanceof Error ? err.message : String(err) };
+      }
+    },
     discover: async (config) => {
       const conn = connectionFromConfig(config);
       const rows = await request<Array<{ objectKey: string; displayName?: string; storeKey?: string }>>({
         conn,
         method: "GET",
         path: "/api/v1/bo/objects",
-        headers: { "X-BO-Connection-Key": boConnectionKey(conn) },
+        headers: { "X-BO-Connection-Key": boStoreKey(conn) },
       });
       return rows.map((row) => ({
         id: row.objectKey,
@@ -290,7 +324,7 @@ export const businessObjectPlugin: Plugin = {
           {
             name: "create_store",
             description:
-              "Create a Business Object store backed by one PostgreSQL database and create the default store grant.",
+              "Create a Business Object store backed by one PostgreSQL database. Store access keys are created separately.",
             schema: schemas.storeCreate,
           },
         ),
@@ -301,25 +335,43 @@ export const businessObjectPlugin: Plugin = {
         }),
         tool(
           (input: z.infer<typeof schemas.storeKey>, exeConfig) =>
-            boStoreGrantList(input, exeConfig, rawConfig),
+            boStoreKeyList(input, exeConfig, rawConfig),
           {
-            name: "list_store_grants",
-            description: "List grants for one Business Object store.",
+            name: "list_store_keys",
+            description: "List API keys for one Business Object store.",
             schema: schemas.storeKey,
           },
         ),
         tool(
-          (input: z.infer<typeof schemas.storeGrant>, exeConfig) =>
-            boStoreGrantUpsert(input, exeConfig, rawConfig),
+          (input: z.infer<typeof schemas.storeKeyCreate>, exeConfig) =>
+            boStoreKeyCreate(input, exeConfig, rawConfig),
           {
-            name: "grant_store",
-            description: "Create or update a Business Object store grant.",
-            schema: schemas.storeGrant,
+            name: "create_store_key",
+            description: "Create a store-bound Business Object API key. If rawKey is omitted, the platform returns it once.",
+            schema: schemas.storeKeyCreate,
+          },
+        ),
+        tool(
+          (input: z.infer<typeof schemas.storeKeyUpdate>, exeConfig) =>
+            boStoreKeyUpdate(input, exeConfig, rawConfig),
+          {
+            name: "update_store_key",
+            description: "Update permissions/status or rotate a Business Object store API key.",
+            schema: schemas.storeKeyUpdate,
+          },
+        ),
+        tool(
+          (input: z.infer<typeof schemas.storeKeyDelete>, exeConfig) =>
+            boStoreKeyDelete(input, exeConfig, rawConfig),
+          {
+            name: "delete_store_key",
+            description: "Disable a Business Object store API key. Requires user confirmation, then pass confirm:true.",
+            schema: schemas.storeKeyDelete,
           },
         ),
         tool((input: z.infer<typeof schemas.empty>, exeConfig) => boObjectList(input, exeConfig, rawConfig), {
           name: "list_objects",
-          description: "List Business Object definitions visible to the configured BO grant key.",
+          description: "List Business Object definitions visible to the configured BO store key.",
           schema: schemas.empty,
         }),
         tool(

@@ -6,12 +6,14 @@ import com.fina.platform.bo.BusinessObjectDtos.QueryRequest;
 import com.fina.platform.bo.BusinessObjectDtos.QueryResponse;
 import com.fina.platform.bo.BusinessObjectDtos.RecordRequest;
 import com.fina.platform.bo.BusinessObjectDtos.RecordResponse;
-import com.fina.platform.bo.BusinessObjectDtos.StoreGrantRequest;
-import com.fina.platform.bo.BusinessObjectDtos.StoreGrantResponse;
+import com.fina.platform.bo.BusinessObjectDtos.StoreApiKeyRequest;
+import com.fina.platform.bo.BusinessObjectDtos.StoreApiKeyResponse;
 import com.fina.platform.bo.BusinessObjectDtos.StoreRequest;
 import com.fina.platform.bo.BusinessObjectDtos.StoreResponse;
+import com.fina.platform.exception.ApiException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -31,30 +33,64 @@ import java.util.Map;
 public class BusinessObjectController {
     private final BusinessObjectService service;
 
+    @Value("${file.api-key:}")
+    private String apiKey;
+
     @GetMapping("/stores")
-    public List<StoreResponse> listStores() {
+    public List<StoreResponse> listStores(HttpServletRequest request) {
+        requireAdmin(request);
         return service.listStores();
     }
 
     @PostMapping("/stores")
-    public StoreResponse createStore(@RequestBody StoreRequest request) {
+    public StoreResponse createStore(HttpServletRequest servletRequest,
+                                     @RequestBody StoreRequest request) {
+        requireAdmin(servletRequest);
         return service.createStore(request);
     }
 
+    @GetMapping("/stores/current")
+    public StoreResponse currentStore(HttpServletRequest request) {
+        return service.currentStore(service.authenticate(request));
+    }
+
     @PostMapping("/stores/{storeKey}/test")
-    public Map<String, Object> testStore(@PathVariable String storeKey) {
+    public Map<String, Object> testStore(HttpServletRequest request,
+                                         @PathVariable String storeKey) {
+        requireAdmin(request);
         return service.testStore(storeKey);
     }
 
-    @GetMapping("/stores/{storeKey}/grants")
-    public List<StoreGrantResponse> listStoreGrants(@PathVariable String storeKey) {
-        return service.listStoreGrants(storeKey);
+    @GetMapping("/stores/{storeKey}/keys")
+    public List<StoreApiKeyResponse> listStoreKeys(HttpServletRequest request,
+                                                   @PathVariable String storeKey) {
+        requireAdmin(request);
+        return service.listStoreApiKeys(storeKey);
     }
 
-    @PostMapping("/stores/{storeKey}/grants")
-    public StoreGrantResponse grantStore(@PathVariable String storeKey,
-                                         @RequestBody StoreGrantRequest request) {
-        return service.createOrUpdateStoreGrant(storeKey, request);
+    @PostMapping("/stores/{storeKey}/keys")
+    public StoreApiKeyResponse createStoreKey(HttpServletRequest servletRequest,
+                                              @PathVariable String storeKey,
+                                              @RequestBody StoreApiKeyRequest request) {
+        requireAdmin(servletRequest);
+        return service.createStoreApiKey(storeKey, request);
+    }
+
+    @PutMapping("/stores/{storeKey}/keys/{keyId}")
+    public StoreApiKeyResponse updateStoreKey(HttpServletRequest request,
+                                              @PathVariable String storeKey,
+                                              @PathVariable Long keyId,
+                                              @RequestBody StoreApiKeyRequest body) {
+        requireAdmin(request);
+        return service.updateStoreApiKey(storeKey, keyId, body);
+    }
+
+    @DeleteMapping("/stores/{storeKey}/keys/{keyId}")
+    public Map<String, Object> deleteStoreKey(HttpServletRequest request,
+                                              @PathVariable String storeKey,
+                                              @PathVariable Long keyId) {
+        requireAdmin(request);
+        return service.deleteStoreApiKey(storeKey, keyId);
     }
 
     @GetMapping("/objects")
@@ -121,5 +157,30 @@ public class BusinessObjectController {
                                       @PathVariable String objectKey,
                                       @RequestBody(required = false) QueryRequest request) {
         return service.queryRecords(service.authenticate(servletRequest), objectKey, request);
+    }
+
+    private void requireAdmin(HttpServletRequest request) {
+        if (apiKey == null || apiKey.isBlank()) {
+            return;
+        }
+        String presented = headerIgnoreCase(request, "X-Api-Key");
+        if (!apiKey.equals(presented)) {
+            throw new ApiException(401, "API_KEY_INVALID", "X-Api-Key header is missing or invalid");
+        }
+    }
+
+    private String headerIgnoreCase(HttpServletRequest request, String name) {
+        String exact = request.getHeader(name);
+        if (exact != null) {
+            return exact;
+        }
+        java.util.Enumeration<String> names = request.getHeaderNames();
+        while (names.hasMoreElements()) {
+            String candidate = names.nextElement();
+            if (name.equalsIgnoreCase(candidate)) {
+                return request.getHeader(candidate);
+            }
+        }
+        return null;
     }
 }

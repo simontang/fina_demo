@@ -3,6 +3,8 @@ package com.fina.platform.bo;
 import com.fina.platform.bo.BusinessObjectDtos.QueryResponse;
 import com.fina.platform.bo.BusinessObjectDtos.RecordRequest;
 import com.fina.platform.bo.BusinessObjectDtos.RecordResponse;
+import com.fina.platform.bo.BusinessObjectDtos.StoreApiKeyRequest;
+import com.fina.platform.bo.BusinessObjectDtos.StoreApiKeyResponse;
 import com.fina.platform.bo.BusinessObjectDtos.StoreRequest;
 import com.fina.platform.bo.BusinessObjectDtos.StoreResponse;
 import com.fina.platform.bo.BusinessObjectService.BoAuthContext;
@@ -15,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -26,6 +29,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -39,8 +43,10 @@ class BusinessObjectControllerTest {
 
     @BeforeEach
     void setUp() {
+        BusinessObjectController controller = new BusinessObjectController(service);
+        ReflectionTestUtils.setField(controller, "apiKey", "admin-secret");
         mvc = MockMvcBuilders
-                .standaloneSetup(new BusinessObjectController(service))
+                .standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
         auth = new BoAuthContext("tenant",
@@ -89,6 +95,7 @@ class BusinessObjectControllerTest {
                         "jdbc:postgresql://localhost/bo_crm", "public", "bo", 1));
 
         mvc.perform(post("/api/v1/bo/stores")
+                        .header("X-Api-Key", "admin-secret")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -102,5 +109,57 @@ class BusinessObjectControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.storeKey").value("crm_store"))
                 .andExpect(jsonPath("$.password").doesNotExist());
+    }
+
+    @Test
+    void storeManagementRequiresPlatformAdminKey() throws Exception {
+        mvc.perform(post("/api/v1/bo/stores")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "storeKey": "crm_store",
+                                  "name": "CRM",
+                                  "jdbcUrl": "jdbc:postgresql://localhost/bo_crm",
+                                  "username": "bo",
+                                  "password": "secret"
+                                }
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("API_KEY_INVALID"));
+    }
+
+    @Test
+    void currentStoreUsesStoreKeyAuthContext() throws Exception {
+        when(service.authenticate(any(HttpServletRequest.class))).thenReturn(auth);
+        when(service.currentStore(auth))
+                .thenReturn(new StoreResponse(1L, "crm_store", "CRM", null,
+                        "jdbc:postgresql://localhost/bo_crm", "public", "bo", 1));
+
+        mvc.perform(get("/api/v1/bo/stores/current")
+                        .header("X-BO-Connection-Key", "bos_secret"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.storeKey").value("crm_store"))
+                .andExpect(jsonPath("$.password").doesNotExist());
+    }
+
+    @Test
+    void storeKeyManagementUsesExplicitStoreKey() throws Exception {
+        when(service.createStoreApiKey(eq("crm_store"), any(StoreApiKeyRequest.class)))
+                .thenReturn(new StoreApiKeyResponse(10L, 1L, "crm_store", "agent_key",
+                        List.of("READ", "WRITE"), 1, null, null, "bos_generated"));
+
+        mvc.perform(post("/api/v1/bo/stores/crm_store/keys")
+                        .header("X-Api-Key", "admin-secret")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "keyName": "agent_key",
+                                  "permissions": ["READ", "WRITE"]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.storeKey").value("crm_store"))
+                .andExpect(jsonPath("$.keyName").value("agent_key"))
+                .andExpect(jsonPath("$.rawKey").value("bos_generated"));
     }
 }

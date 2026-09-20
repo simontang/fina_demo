@@ -188,18 +188,20 @@ describe("business objects plugin", () => {
       "create_object",
       "create_record",
       "create_store",
+      "create_store_key",
       "delete_object",
       "delete_record",
+      "delete_store_key",
       "get_object",
       "get_record",
-      "grant_store",
       "list_objects",
-      "list_store_grants",
+      "list_store_keys",
       "list_stores",
       "query_records",
       "test_store",
       "update_object",
       "update_record",
+      "update_store_key",
     ]);
   });
 
@@ -211,7 +213,7 @@ describe("business objects plugin", () => {
       "get_object",
       "get_record",
       "list_objects",
-      "list_store_grants",
+      "list_store_keys",
       "list_stores",
       "query_records",
       "test_store",
@@ -258,17 +260,40 @@ describe("business objects plugin", () => {
       config: Record<string, unknown>,
     ) => Promise<Array<{ id: string; name: string; description?: string }>>;
 
-    const result = await discover({ baseUrl: "http://svc:5707", boConnectionKey: "tenant" });
+    const result = await discover({ baseUrl: "http://svc:5707", boStoreKey: "bos_secret" });
 
     expect(result).toEqual([{ id: "customer", name: "Customer", description: "store: crm_store" }]);
     expect(fetchMock).toHaveBeenCalledWith(
       "http://svc:5707/api/v1/bo/objects",
       expect.objectContaining({
         method: "GET",
-        headers: expect.objectContaining({ "X-BO-Connection-Key": "tenant" }),
+        headers: expect.objectContaining({ "X-BO-Connection-Key": "bos_secret" }),
       }),
     );
     const [, init] = fetchMock.mock.calls[0];
     expect((init?.headers as Record<string, string>)["X-Tenant-Id"]).toBeUndefined();
+  });
+
+  it("BO connection test verifies the single store authorized by boStoreKey", async () => {
+    const fetchMock = jest.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ storeKey: "crm_store", name: "CRM" }),
+    } as unknown as Response);
+
+    const result = await businessObjectPlugin.connection!.test!({
+      baseUrl: "http://svc:5707",
+      boStoreKey: "bos_secret",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.message).toContain("CRM authorized");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://svc:5707/api/v1/bo/stores/current",
+      expect.objectContaining({
+        method: "GET",
+        headers: expect.objectContaining({ "X-BO-Connection-Key": "bos_secret" }),
+      }),
+    );
   });
 });

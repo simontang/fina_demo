@@ -20,12 +20,12 @@ export const platformServiceConnection: PluginConnection = {
         "Can be provided by the FILE_SERVICE_API_KEY environment variable; leave blank if the server does not enable authentication",
     },
     {
-      key: "boConnectionKey",
-      type: "string",
-      title: "Business Object Connection Key",
-      widget: "input",
+      key: "boStoreKey",
+      type: "password",
+      title: "Business Object Store Key",
+      widget: "password",
       helpText:
-        "Connection/grantee key used by Business Object APIs. The Agent does not send X-Tenant-Id for BO object access; platform-service resolves store scope from this key.",
+        "Store-bound key used by Business Object APIs. One key authorizes exactly one BO store; BO object access does not send X-Tenant-Id.",
     },
   ],
   test: async (config) => {

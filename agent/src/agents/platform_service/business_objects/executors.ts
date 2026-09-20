@@ -61,12 +61,20 @@ export interface StoreInput {
   status?: number;
 }
 
-export interface StoreGrantInput {
+export interface StoreKeyInput {
   storeKey: string;
-  granteeKey?: string;
-  canRead?: boolean;
-  canWrite?: boolean;
-  canManage?: boolean;
+  keyName: string;
+  rawKey?: string;
+  permissions?: Array<"READ" | "WRITE" | "MANAGE">;
+  status?: number;
+}
+
+export interface StoreKeyUpdateInput {
+  storeKey: string;
+  keyId: number;
+  keyName?: string;
+  rawKey?: string;
+  permissions?: Array<"READ" | "WRITE" | "MANAGE">;
   status?: number;
 }
 
@@ -74,10 +82,10 @@ function connection(rawConfig: unknown, exeConfig: unknown): PlatformServiceConn
   return resolveConnection(rawConfig, exeConfig);
 }
 
-export function boConnectionKey(conn: PlatformServiceConn): string {
-  const key = conn.boConnectionKey;
+export function boStoreKey(conn: PlatformServiceConn): string {
+  const key = conn.boStoreKey;
   if (!key) {
-    throw new Error("Business Object connection key is required in the platform-service connection");
+    throw new Error("Business Object store key is required in the platform-service connection");
   }
   return key;
 }
@@ -126,7 +134,7 @@ async function callBoObjectApi(
       conn,
       method,
       path,
-      headers: { "X-BO-Connection-Key": boConnectionKey(conn) },
+      headers: { "X-BO-Connection-Key": boStoreKey(conn) },
       ...(json === undefined ? {} : { json }),
     });
     return JSON.stringify(result ?? null);
@@ -147,13 +155,29 @@ export async function boStoreTest(input: { storeKey: string }, exeConfig: unknow
   return callPlatform(rawConfig, exeConfig, "POST", `/api/v1/bo/stores/${encodeURIComponent(input.storeKey)}/test`);
 }
 
-export async function boStoreGrantList(input: { storeKey: string }, exeConfig: unknown, rawConfig: unknown): Promise<string> {
-  return callPlatform(rawConfig, exeConfig, "GET", `/api/v1/bo/stores/${encodeURIComponent(input.storeKey)}/grants`);
+export async function boStoreKeyList(input: { storeKey: string }, exeConfig: unknown, rawConfig: unknown): Promise<string> {
+  return callPlatform(rawConfig, exeConfig, "GET", `/api/v1/bo/stores/${encodeURIComponent(input.storeKey)}/keys`);
 }
 
-export async function boStoreGrantUpsert(input: StoreGrantInput, exeConfig: unknown, rawConfig: unknown): Promise<string> {
+export async function boStoreKeyCreate(input: StoreKeyInput, exeConfig: unknown, rawConfig: unknown): Promise<string> {
   const { storeKey, ...body } = input;
-  return callPlatform(rawConfig, exeConfig, "POST", `/api/v1/bo/stores/${encodeURIComponent(storeKey)}/grants`, body);
+  return callPlatform(rawConfig, exeConfig, "POST", `/api/v1/bo/stores/${encodeURIComponent(storeKey)}/keys`, body);
+}
+
+export async function boStoreKeyUpdate(input: StoreKeyUpdateInput, exeConfig: unknown, rawConfig: unknown): Promise<string> {
+  const { storeKey, keyId, ...body } = input;
+  return callPlatform(rawConfig, exeConfig, "PUT", `/api/v1/bo/stores/${encodeURIComponent(storeKey)}/keys/${encodeURIComponent(keyId)}`, body);
+}
+
+export async function boStoreKeyDelete(input: { storeKey: string; keyId: number; confirm?: boolean }, exeConfig: unknown, rawConfig: unknown): Promise<string> {
+  if (input.confirm !== true) {
+    return JSON.stringify({
+      ok: false,
+      code: "CONFIRM_REQUIRED",
+      message: "Explicit user confirmation is required before deleting a store key.",
+    });
+  }
+  return callPlatform(rawConfig, exeConfig, "DELETE", `/api/v1/bo/stores/${encodeURIComponent(input.storeKey)}/keys/${encodeURIComponent(input.keyId)}`);
 }
 
 export async function boObjectList(_input: {}, exeConfig: unknown, rawConfig: unknown): Promise<string> {

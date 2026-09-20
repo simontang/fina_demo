@@ -1,7 +1,7 @@
 export interface PlatformServiceConn {
   baseUrl: string;
   apiKey?: string;
-  boConnectionKey?: string;
+  boStoreKey?: string;
   selectedEntities: string[];
 }
 
@@ -38,15 +38,15 @@ function normalize(config: Record<string, unknown>): PlatformServiceConn {
   const apiKeyRaw = config.apiKey;
   const apiKey =
     typeof apiKeyRaw === "string" && apiKeyRaw.trim() ? apiKeyRaw.trim() : envApiKey();
-  const boConnectionKeyRaw = config.boConnectionKey;
-  const boConnectionKey =
-    typeof boConnectionKeyRaw === "string" && boConnectionKeyRaw.trim()
-      ? boConnectionKeyRaw.trim()
+  const boStoreKeyRaw = config.boStoreKey;
+  const boStoreKey =
+    typeof boStoreKeyRaw === "string" && boStoreKeyRaw.trim()
+      ? boStoreKeyRaw.trim()
       : undefined;
   const entities = Array.isArray(config.selectedEntities)
     ? config.selectedEntities.filter((x): x is string => typeof x === "string")
     : [];
-  return { baseUrl, apiKey, boConnectionKey, selectedEntities: entities };
+  return { baseUrl, apiKey, boStoreKey, selectedEntities: entities };
 }
 
 /** Connection config from a bare config object (connection.test / discover). */
