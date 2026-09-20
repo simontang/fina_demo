@@ -6,6 +6,7 @@ import {
   boRecordQuery,
   boRecordUpdate,
   boStoreCreate,
+  boStoreList,
 } from "../business_objects/executors";
 
 const rawConfig = {
@@ -122,6 +123,43 @@ describe("business object executors", () => {
     });
     expect(JSON.parse(out).message).toContain("not allowed");
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("strips connection credentials from store listings", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ([{
+        id: 1,
+        storeKey: "elc",
+        name: "ELC",
+        description: "d",
+        jdbcUrl: "jdbc:postgresql://host:5432/elc",
+        schemaName: "bo",
+        username: "elc_bo_runtime",
+        status: 1,
+      }]),
+    } as Response);
+
+    const out = JSON.parse(await boStoreList({}, exeConfig, rawConfig));
+    expect(out).toEqual([
+      { storeKey: "elc", name: "ELC", description: "d", schemaName: "bo", status: 1 },
+    ]);
+    const text = JSON.stringify(out);
+    expect(text).not.toContain("jdbc");
+    expect(text).not.toContain("username");
+    expect(text).not.toContain("elc_bo_runtime");
+  });
+
+  it("passes through store errors unchanged", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 403,
+      text: async () => JSON.stringify({ code: "FORBIDDEN", message: "nope" }),
+    } as Response);
+
+    const out = JSON.parse(await boStoreList({}, exeConfig, rawConfig));
+    expect(out).toMatchObject({ ok: false, status: 403, code: "FORBIDDEN", message: "nope" });
   });
 
   it("delete operations require explicit confirmation", async () => {

@@ -143,12 +143,41 @@ async function callBoObjectApi(
   }
 }
 
+/**
+ * Store fields safe to surface to the agent. Connection credentials
+ * (`jdbcUrl`, `username`, `id`) are intentionally omitted so they never enter
+ * the model context or conversation history.
+ */
+const STORE_PUBLIC_FIELDS = ["storeKey", "name", "description", "schemaName", "status"] as const;
+
+function sanitizeStoreResult(raw: string): string {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+  if (parsed && typeof parsed === "object" && (parsed as { ok?: unknown }).ok === false) {
+    return raw;
+  }
+  const pick = (store: unknown): Record<string, unknown> => {
+    if (!store || typeof store !== "object" || Array.isArray(store)) return {};
+    const record = store as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const key of STORE_PUBLIC_FIELDS) {
+      if (key in record) out[key] = record[key];
+    }
+    return out;
+  };
+  return JSON.stringify(Array.isArray(parsed) ? parsed.map(pick) : pick(parsed));
+}
+
 export async function boStoreList(_input: {}, exeConfig: unknown, rawConfig: unknown): Promise<string> {
-  return callPlatform(rawConfig, exeConfig, "GET", "/api/v1/bo/stores");
+  return sanitizeStoreResult(await callPlatform(rawConfig, exeConfig, "GET", "/api/v1/bo/stores"));
 }
 
 export async function boStoreCreate(input: StoreInput, exeConfig: unknown, rawConfig: unknown): Promise<string> {
-  return callPlatform(rawConfig, exeConfig, "POST", "/api/v1/bo/stores", input);
+  return sanitizeStoreResult(await callPlatform(rawConfig, exeConfig, "POST", "/api/v1/bo/stores", input));
 }
 
 export async function boStoreTest(input: { storeKey: string }, exeConfig: unknown, rawConfig: unknown): Promise<string> {
