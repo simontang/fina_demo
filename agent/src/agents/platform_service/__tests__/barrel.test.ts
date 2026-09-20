@@ -11,7 +11,7 @@ import { PluginRegistry } from "@axiom-lattice/core";
 import "../index";
 
 describe("platform_service barrel", () => {
-  it("registers both plugins when the barrel is imported", () => {
+  it("registers the storage, webhooks and business-objects plugins when the barrel is imported", () => {
     const types = (PluginRegistry.register as jest.Mock).mock.calls
       .map(([p]) => (p as { meta: { type: string } }).meta.type)
       .sort();
