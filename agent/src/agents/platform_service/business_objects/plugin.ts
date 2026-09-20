@@ -1,0 +1,415 @@
+import { PluginRegistry } from "@axiom-lattice/core";
+import { AgentType, type Plugin } from "@axiom-lattice/protocols";
+import { createMiddleware, tool } from "langchain";
+import { z } from "zod";
+import { connectionFromConfig, request } from "../client";
+import { platformServiceConnection } from "../connection";
+import {
+  boConnectionKey,
+  boObjectCreate,
+  boObjectDelete,
+  boObjectGet,
+  boObjectList,
+  boObjectUpdate,
+  boRecordCreate,
+  boRecordDelete,
+  boRecordGet,
+  boRecordQuery,
+  boRecordUpdate,
+  boStoreCreate,
+  boStoreGrantList,
+  boStoreGrantUpsert,
+  boStoreList,
+  boStoreTest,
+} from "./executors";
+import { BUSINESS_OBJECTS_BUILDER_PROMPT } from "./prompt";
+import { BUSINESS_OBJECTS_MODELING_SKILL } from "./skill";
+
+const identifier = z.string().regex(/^[a-z][a-z0-9_]{0,62}$/);
+
+const field = z.object({
+  key: identifier,
+  type: z.enum([
+    "string",
+    "text",
+    "integer",
+    "long",
+    "decimal",
+    "boolean",
+    "date",
+    "datetime",
+    "json",
+  ]),
+  required: z.boolean().optional(),
+  maxLength: z.number().int().optional(),
+  precision: z.number().int().optional(),
+  scale: z.number().int().optional(),
+  description: z.string().optional(),
+});
+
+const index = z.object({
+  name: identifier.optional(),
+  fields: z.array(identifier).min(1),
+  unique: z.boolean().optional(),
+});
+
+const objectDefinition = z.object({
+  storeKey: identifier.optional(),
+  objectKey: identifier,
+  displayName: z.string().optional(),
+  description: z.string().optional(),
+  fields: z.array(field).min(1).optional(),
+  indexes: z.array(index).optional(),
+  status: z.number().int().optional(),
+});
+
+const filter = z.object({
+  field: identifier,
+  op: z.enum(["eq", "ne", "gt", "gte", "lt", "lte", "contains", "in"]).optional(),
+  value: z.unknown(),
+});
+
+const sort = z.object({
+  field: identifier,
+  direction: z.enum(["asc", "desc"]).optional(),
+});
+
+const schemas = {
+  empty: z.object({}),
+  storeCreate: z.object({
+    storeKey: identifier,
+    name: z.string().optional(),
+    description: z.string().optional(),
+    jdbcUrl: z.string().startsWith("jdbc:postgresql:"),
+    username: z.string(),
+    password: z.string(),
+    status: z.number().int().optional(),
+  }),
+  storeKey: z.object({ storeKey: identifier }),
+  storeGrant: z.object({
+    storeKey: identifier,
+    granteeKey: identifier.optional(),
+    canRead: z.boolean().optional(),
+    canWrite: z.boolean().optional(),
+    canManage: z.boolean().optional(),
+    status: z.number().int().optional(),
+  }),
+  objectGet: z.object({ objectKey: identifier }),
+  objectCreate: objectDefinition.extend({ storeKey: identifier }),
+  objectUpdate: objectDefinition.extend({ fields: z.array(field).min(1) }),
+  objectDelete: z.object({
+    objectKey: identifier,
+    confirm: z.boolean().optional(),
+  }),
+  recordCreate: z.object({
+    objectKey: identifier,
+    data: z.record(z.unknown()),
+  }),
+  recordGet: z.object({
+    objectKey: identifier,
+    id: z.string(),
+  }),
+  recordUpdate: z.object({
+    objectKey: identifier,
+    id: z.string(),
+    data: z.record(z.unknown()),
+  }),
+  recordDelete: z.object({
+    objectKey: identifier,
+    id: z.string(),
+    confirm: z.boolean().optional(),
+  }),
+  recordQuery: z.object({
+    objectKey: identifier,
+    filters: z.array(filter).optional(),
+    sort: z.array(sort).optional(),
+    page: z.number().int().optional(),
+    pageSize: z.number().int().optional(),
+  }),
+};
+
+export const businessObjectPlugin: Plugin = {
+  meta: {
+    type: "business-objects",
+    name: "Business Objects",
+    description:
+      "Business Object stores, grants, object definitions and record CRUDQ. PERMISSION MODEL — query-only agents enable this middleware with allowedTools set to the read tools; schema/record writes belong to the built-in 'business-objects-builder' agent.",
+    version: "1.0.0",
+    category: "data",
+    capabilityBundleEligible: true,
+    tools: [
+      { name: "list_stores", description: "List Business Object stores." },
+      {
+        name: "create_store",
+        description:
+          "Create a Business Object store backed by one PostgreSQL database and create the default store grant.",
+      },
+      { name: "test_store", description: "Test connectivity to a Business Object store." },
+      { name: "list_store_grants", description: "List grants for one Business Object store." },
+      { name: "grant_store", description: "Create or update a Business Object store grant." },
+      {
+        name: "list_objects",
+        description: "List Business Object definitions visible to the configured BO grant key.",
+      },
+      { name: "get_object", description: "Get one Business Object definition by objectKey." },
+      {
+        name: "create_object",
+        description: "Create a Business Object definition and synchronize it into PostgreSQL DDL.",
+      },
+      {
+        name: "update_object",
+        description:
+          "Update a Business Object definition. v1 supports additive columns only; no field removal/type changes.",
+      },
+      {
+        name: "delete_object",
+        description:
+          "Soft-delete a Business Object definition. Requires user confirmation, then pass confirm:true.",
+      },
+      { name: "query_records", description: "Query Business Object records by objectKey." },
+      { name: "get_record", description: "Get one Business Object record by objectKey and id." },
+      {
+        name: "create_record",
+        description:
+          "Create one Business Object record. Data is validated by the platform-service object schema.",
+      },
+      { name: "update_record", description: "Patch one Business Object record by objectKey and id." },
+      {
+        name: "delete_record",
+        description:
+          "Soft-delete one Business Object record. Requires user confirmation, then pass confirm:true.",
+      },
+    ],
+    openExpose: [
+      { name: "list_stores", readOnly: true },
+      { name: "test_store", readOnly: true },
+      { name: "list_store_grants", readOnly: true },
+      { name: "list_objects", readOnly: true },
+      { name: "get_object", readOnly: true },
+      { name: "query_records", readOnly: true },
+      { name: "get_record", readOnly: true },
+    ],
+    configSchema: {
+      type: "object",
+      properties: {
+        connections: {
+          type: "array",
+          title: "Connections",
+          widget: "connectionSelect",
+          items: { type: "string" },
+        },
+        connectAll: { type: "boolean", title: "Connect all available connections" },
+      },
+    },
+    defaultConfig: { connections: [], connectAll: false },
+  },
+  connection: {
+    ...platformServiceConnection,
+    discover: async (config) => {
+      const conn = connectionFromConfig(config);
+      const rows = await request<Array<{ objectKey: string; displayName?: string; storeKey?: string }>>({
+        conn,
+        method: "GET",
+        path: "/api/v1/bo/objects",
+        headers: { "X-BO-Connection-Key": boConnectionKey(conn) },
+      });
+      return rows.map((row) => ({
+        id: row.objectKey,
+        name: row.displayName || row.objectKey,
+        description: row.storeKey ? `store: ${row.storeKey}` : undefined,
+      }));
+    },
+  },
+  skills: {
+    "business-objects-modeling": BUSINESS_OBJECTS_MODELING_SKILL,
+  },
+  agents: {
+    "business-objects-builder": {
+      key: "business-objects-builder",
+      name: "Business Objects Builder",
+      description:
+        "Interactively design and build Business Object stores, object definitions, fields and indexes; verify each step with record queries.",
+      type: AgentType.DEEP_AGENT,
+      prompt: BUSINESS_OBJECTS_BUILDER_PROMPT,
+      middleware: [
+        {
+          id: "business-objects",
+          type: "business-objects",
+          name: "Business Objects",
+          description: "Manage stores/objects and run record CRUDQ for verification",
+          enabled: true,
+          config: { connections: [], connectAll: true },
+        },
+        {
+          id: "skill",
+          type: "skill",
+          name: "Skill",
+          description: "Load the business-objects-modeling policy",
+          enabled: true,
+          config: { readAll: false, skills: ["business-objects-modeling", "task-definition"] },
+        },
+        {
+          id: "task",
+          type: "task",
+          name: "Task",
+          description: "Persistent TaskItems as the planning surface",
+          enabled: true,
+          config: {},
+        },
+        {
+          id: "ask_user_to_clarify",
+          type: "ask_user_to_clarify",
+          name: "Ask User",
+          description: "Confirm modeling decisions before writes",
+          enabled: true,
+          config: {},
+        },
+        {
+          id: "filesystem",
+          type: "filesystem",
+          name: "Filesystem",
+          description: "Read user-provided data dictionaries or sample data",
+          enabled: true,
+          config: {},
+        },
+      ],
+    },
+  },
+  middleware: (rawConfig) =>
+    createMiddleware({
+      name: "BusinessObjects",
+      tools: [
+        tool((input: z.infer<typeof schemas.empty>, exeConfig) => boStoreList(input, exeConfig, rawConfig), {
+          name: "list_stores",
+          description: "List Business Object stores.",
+          schema: schemas.empty,
+        }),
+        tool(
+          (input: z.infer<typeof schemas.storeCreate>, exeConfig) =>
+            boStoreCreate(input, exeConfig, rawConfig),
+          {
+            name: "create_store",
+            description:
+              "Create a Business Object store backed by one PostgreSQL database and create the default store grant.",
+            schema: schemas.storeCreate,
+          },
+        ),
+        tool((input: z.infer<typeof schemas.storeKey>, exeConfig) => boStoreTest(input, exeConfig, rawConfig), {
+          name: "test_store",
+          description: "Test connectivity to a Business Object store.",
+          schema: schemas.storeKey,
+        }),
+        tool(
+          (input: z.infer<typeof schemas.storeKey>, exeConfig) =>
+            boStoreGrantList(input, exeConfig, rawConfig),
+          {
+            name: "list_store_grants",
+            description: "List grants for one Business Object store.",
+            schema: schemas.storeKey,
+          },
+        ),
+        tool(
+          (input: z.infer<typeof schemas.storeGrant>, exeConfig) =>
+            boStoreGrantUpsert(input, exeConfig, rawConfig),
+          {
+            name: "grant_store",
+            description: "Create or update a Business Object store grant.",
+            schema: schemas.storeGrant,
+          },
+        ),
+        tool((input: z.infer<typeof schemas.empty>, exeConfig) => boObjectList(input, exeConfig, rawConfig), {
+          name: "list_objects",
+          description: "List Business Object definitions visible to the configured BO grant key.",
+          schema: schemas.empty,
+        }),
+        tool(
+          (input: z.infer<typeof schemas.objectGet>, exeConfig) =>
+            boObjectGet(input, exeConfig, rawConfig),
+          {
+            name: "get_object",
+            description: "Get one Business Object definition by objectKey.",
+            schema: schemas.objectGet,
+          },
+        ),
+        tool(
+          (input: z.infer<typeof schemas.objectCreate>, exeConfig) =>
+            boObjectCreate(input, exeConfig, rawConfig),
+          {
+            name: "create_object",
+            description: "Create a Business Object definition and synchronize it into PostgreSQL DDL.",
+            schema: schemas.objectCreate,
+          },
+        ),
+        tool(
+          (input: z.infer<typeof schemas.objectUpdate>, exeConfig) =>
+            boObjectUpdate(input, exeConfig, rawConfig),
+          {
+            name: "update_object",
+            description:
+              "Update a Business Object definition. v1 supports additive columns only; no field removal/type changes.",
+            schema: schemas.objectUpdate,
+          },
+        ),
+        tool(
+          (input: z.infer<typeof schemas.objectDelete>, exeConfig) =>
+            boObjectDelete(input, exeConfig, rawConfig),
+          {
+            name: "delete_object",
+            description:
+              "Soft-delete a Business Object definition. Requires user confirmation, then pass confirm:true.",
+            schema: schemas.objectDelete,
+          },
+        ),
+        tool(
+          (input: z.infer<typeof schemas.recordQuery>, exeConfig) =>
+            boRecordQuery(input, exeConfig, rawConfig),
+          {
+            name: "query_records",
+            description:
+              "Query Business Object records by objectKey. The object definition resolves the store; do not pass storeKey.",
+            schema: schemas.recordQuery,
+          },
+        ),
+        tool(
+          (input: z.infer<typeof schemas.recordGet>, exeConfig) =>
+            boRecordGet(input, exeConfig, rawConfig),
+          {
+            name: "get_record",
+            description: "Get one Business Object record by objectKey and id.",
+            schema: schemas.recordGet,
+          },
+        ),
+        tool(
+          (input: z.infer<typeof schemas.recordCreate>, exeConfig) =>
+            boRecordCreate(input, exeConfig, rawConfig),
+          {
+            name: "create_record",
+            description:
+              "Create one Business Object record. Data is validated by the platform-service object schema.",
+            schema: schemas.recordCreate,
+          },
+        ),
+        tool(
+          (input: z.infer<typeof schemas.recordUpdate>, exeConfig) =>
+            boRecordUpdate(input, exeConfig, rawConfig),
+          {
+            name: "update_record",
+            description: "Patch one Business Object record by objectKey and id.",
+            schema: schemas.recordUpdate,
+          },
+        ),
+        tool(
+          (input: z.infer<typeof schemas.recordDelete>, exeConfig) =>
+            boRecordDelete(input, exeConfig, rawConfig),
+          {
+            name: "delete_record",
+            description:
+              "Soft-delete one Business Object record. Requires user confirmation, then pass confirm:true.",
+            schema: schemas.recordDelete,
+          },
+        ),
+      ],
+    }),
+};
+
+PluginRegistry.register(businessObjectPlugin);

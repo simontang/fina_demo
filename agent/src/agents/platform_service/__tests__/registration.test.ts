@@ -8,8 +8,8 @@ jest.mock("langchain", () => ({
 }));
 
 import { PluginRegistry } from "@axiom-lattice/core";
-import { businessObjectRecordsPlugin } from "../business_objects/recordsPlugin";
-import { businessObjectSchemaPlugin } from "../business_objects/schemaPlugin";
+import { AgentType } from "@axiom-lattice/protocols";
+import { businessObjectPlugin } from "../business_objects/plugin";
 import { storagePlugin } from "../storage/plugin";
 import { webhooksPlugin } from "../webhooks/plugin";
 
@@ -172,43 +172,77 @@ describe("webhooks plugin connection", () => {
   });
 });
 
-describe("business object plugins", () => {
-  it("registers schema and records plugins", () => {
-    expect(PluginRegistry.register).toHaveBeenCalledWith(businessObjectSchemaPlugin);
-    expect(PluginRegistry.register).toHaveBeenCalledWith(businessObjectRecordsPlugin);
-    expect(businessObjectSchemaPlugin.meta.type).toBe("business-object-schema");
-    expect(businessObjectRecordsPlugin.meta.type).toBe("business-object-records");
+describe("business objects plugin", () => {
+  it("registers one business-objects plugin in the data category", () => {
+    expect(PluginRegistry.register).toHaveBeenCalledWith(businessObjectPlugin);
+    expect(businessObjectPlugin.meta.type).toBe("business-objects");
+    expect(businessObjectPlugin.meta.category).toBe("data");
   });
 
-  it("exposes schema management tools separately from record runtime tools", async () => {
-    const schemaMw = await businessObjectSchemaPlugin.middleware!({});
-    const schemaTools = ((schemaMw as { tools: Array<{ name: string }> }).tools ?? [])
+  it("provides the full store/object/record tool set", async () => {
+    const mw = await businessObjectPlugin.middleware!({});
+    const names = ((mw as { tools: Array<{ name: string }> }).tools ?? [])
       .map((t) => t.name)
       .sort();
-    expect(schemaTools).toEqual([
+    expect(names).toEqual([
       "create_object",
+      "create_record",
       "create_store",
       "delete_object",
+      "delete_record",
       "get_object",
+      "get_record",
       "grant_store",
       "list_objects",
       "list_store_grants",
       "list_stores",
+      "query_records",
       "test_store",
       "update_object",
-    ]);
-
-    const recordsMw = await businessObjectRecordsPlugin.middleware!({});
-    const recordTools = ((recordsMw as { tools: Array<{ name: string }> }).tools ?? [])
-      .map((t) => t.name)
-      .sort();
-    expect(recordTools).toEqual([
-      "create_record",
-      "delete_record",
-      "get_record",
-      "query_records",
       "update_record",
     ]);
+  });
+
+  it("exposes only read-only tools to Open, all present in the middleware", async () => {
+    const expose = (businessObjectPlugin.meta.openExpose ?? []).map((e) =>
+      typeof e === "string" ? { name: e, readOnly: false } : e,
+    );
+    expect(expose.map((e) => e.name).sort()).toEqual([
+      "get_object",
+      "get_record",
+      "list_objects",
+      "list_store_grants",
+      "list_stores",
+      "query_records",
+      "test_store",
+    ]);
+    for (const e of expose) expect(e.readOnly).toBe(true);
+
+    const mw = await businessObjectPlugin.middleware!({});
+    const toolNames = ((mw as { tools: Array<{ name: string }> }).tools ?? []).map((t) => t.name);
+    for (const e of expose) expect(toolNames).toContain(e.name);
+  });
+
+  it("ships a business-objects-builder agent wired to the plugin and modeling skill", () => {
+    const agent = businessObjectPlugin.agents?.["business-objects-builder"];
+    expect(agent).toBeDefined();
+    expect(agent!.type).toBe(AgentType.DEEP_AGENT);
+    const types = (agent!.middleware ?? []).map((m) => m.type).sort();
+    expect(types).toEqual([
+      "ask_user_to_clarify",
+      "business-objects",
+      "filesystem",
+      "skill",
+      "task",
+    ]);
+    const skillMw = (agent!.middleware ?? []).find((m) => m.type === "skill");
+    expect((skillMw!.config as { skills: string[] }).skills).toContain("business-objects-modeling");
+  });
+
+  it("names the modeling skill with the plugin prefix", () => {
+    for (const key of Object.keys(businessObjectPlugin.skills ?? {})) {
+      expect(key.startsWith("business-objects-")).toBe(true);
+    }
   });
 
   it("BO connection discovery maps object definitions into selectable entities", async () => {
@@ -220,7 +254,7 @@ describe("business object plugins", () => {
       ],
     } as unknown as Response);
 
-    const discover = businessObjectRecordsPlugin.connection!.discover as unknown as (
+    const discover = businessObjectPlugin.connection!.discover as unknown as (
       config: Record<string, unknown>,
     ) => Promise<Array<{ id: string; name: string; description?: string }>>;
 
