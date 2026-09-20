@@ -35,7 +35,7 @@ export interface ObjectDefinitionInput {
 
 export interface QueryRecordsInput {
   objectKey: string;
-  filters?: Array<{ field: string; op?: string; value: unknown }>;
+  filters?: Array<{ field: string; op?: string; value?: unknown }>;
   sort?: Array<{ field: string; direction?: "asc" | "desc" }>;
   page?: number;
   pageSize?: number;
