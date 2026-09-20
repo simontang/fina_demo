@@ -15,6 +15,6 @@ describe("platform_service barrel", () => {
     const types = (PluginRegistry.register as jest.Mock).mock.calls
       .map(([p]) => (p as { meta: { type: string } }).meta.type)
       .sort();
-    expect(types).toEqual(["business-object-records", "business-object-schema", "storage", "webhooks"]);
+    expect(types).toEqual(["business-objects", "storage", "webhooks"]);
   });
 });
