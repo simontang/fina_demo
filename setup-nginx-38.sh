@@ -53,6 +53,18 @@ server {
         proxy_connect_timeout 10s;
     }
 
+    # Business Objects runtime API (platform-service 5707)
+    location /api/v1/bo/ {
+        proxy_pass http://127.0.0.1:5707;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+        proxy_connect_timeout 10s;
+    }
+
     location /api {
         proxy_pass http://127.0.0.1:5702;
         proxy_http_version 1.1;
