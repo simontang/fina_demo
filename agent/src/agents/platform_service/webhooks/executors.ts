@@ -23,7 +23,7 @@ export async function webhooksListDestinations(
 ): Promise<string> {
   try {
     const result = await request<Array<{ endpointId: string }>>({
-      conn: resolveConnection(rawConfig, exeConfig),
+      conn: await resolveConnection(rawConfig, exeConfig),
       tenantId: tenantFromExeConfig(exeConfig),
       method: "GET",
       path: "/api/v1/webhooks/destinations",
@@ -41,7 +41,7 @@ export async function webhooksPublishEvent(
 ): Promise<string> {
   try {
     const result = await request({
-      conn: resolveConnection(rawConfig, exeConfig),
+      conn: await resolveConnection(rawConfig, exeConfig),
       tenantId: tenantFromExeConfig(exeConfig),
       method: "POST",
       path: "/api/v1/webhooks/publish",
@@ -64,7 +64,7 @@ export async function webhooksListRecentEvents(
 ): Promise<string> {
   try {
     const result = await request({
-      conn: resolveConnection(rawConfig, exeConfig),
+      conn: await resolveConnection(rawConfig, exeConfig),
       tenantId: tenantFromExeConfig(exeConfig),
       method: "GET",
       path: "/api/v1/webhooks/messages",
@@ -90,7 +90,7 @@ export async function webhooksGetDeliveryStatus(
       });
     }
     const result = await request({
-      conn: resolveConnection(rawConfig, exeConfig),
+      conn: await resolveConnection(rawConfig, exeConfig),
       tenantId: tenantFromExeConfig(exeConfig),
       method: "GET",
       path: `/api/v1/webhooks/messages/${input.messageId}/attempts`,
@@ -108,7 +108,7 @@ export async function registerDestination(
 ): Promise<string> {
   try {
     const result = await request({
-      conn: resolveConnection(rawConfig, exeConfig),
+      conn: await resolveConnection(rawConfig, exeConfig),
       tenantId: tenantFromExeConfig(exeConfig),
       method: "POST",
       path: "/api/v1/webhooks/destinations",
@@ -143,7 +143,7 @@ export async function deleteDestination(
   }
   try {
     const result = await request({
-      conn: resolveConnection(rawConfig, exeConfig),
+      conn: await resolveConnection(rawConfig, exeConfig),
       tenantId: tenantFromExeConfig(exeConfig),
       method: "DELETE",
       path: `/api/v1/webhooks/destinations/${input.endpointId}`,

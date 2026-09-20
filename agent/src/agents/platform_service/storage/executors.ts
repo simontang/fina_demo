@@ -98,7 +98,7 @@ export async function storageUpload(
 ): Promise<string> {
   try {
     const tenantId = tenantFromExeConfig(exeConfig);
-    const conn = resolveConnection(rawConfig, exeConfig);
+    const conn = await resolveConnection(rawConfig, exeConfig);
     const fileName = input.fileName?.trim() || input.sandboxPath.split("/").pop() || "file";
     if (
       !isAscii(fileName) ||
@@ -173,7 +173,7 @@ export async function storageList(
 ): Promise<string> {
   try {
     const result = await request({
-      conn: resolveConnection(rawConfig, exeConfig),
+      conn: await resolveConnection(rawConfig, exeConfig),
       tenantId: tenantFromExeConfig(exeConfig),
       method: "GET",
       path: "/api/v1/files",
@@ -195,7 +195,7 @@ export async function storageGetMetadata(
   }
   try {
     const result = await request({
-      conn: resolveConnection(rawConfig, exeConfig),
+      conn: await resolveConnection(rawConfig, exeConfig),
       tenantId: tenantFromExeConfig(exeConfig),
       method: "GET",
       path: `/api/v1/files/${input.uuid}`,
@@ -216,7 +216,7 @@ export async function storageGetDownloadUrl(
   }
   try {
     const result = await request({
-      conn: resolveConnection(rawConfig, exeConfig),
+      conn: await resolveConnection(rawConfig, exeConfig),
       tenantId: tenantFromExeConfig(exeConfig),
       method: "POST",
       path: "/api/v1/files/presign",
@@ -246,7 +246,7 @@ export async function storageDelete(
   }
   try {
     const result = await request({
-      conn: resolveConnection(rawConfig, exeConfig),
+      conn: await resolveConnection(rawConfig, exeConfig),
       tenantId: tenantFromExeConfig(exeConfig),
       method: "DELETE",
       path: `/api/v1/files/${input.uuid}`,

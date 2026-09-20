@@ -7,17 +7,23 @@ import {
   errorResult,
   request,
 } from "../client";
+import { resolvePluginConnections } from "@axiom-lattice/core";
+
+jest.mock("@axiom-lattice/core", () => ({
+  resolvePluginConnections: jest.fn(),
+}));
 
 describe("resolveConnection", () => {
   const OLD = process.env;
   beforeEach(() => {
     process.env = { ...OLD };
+    (resolvePluginConnections as jest.Mock).mockReset();
   });
   afterAll(() => {
     process.env = OLD;
   });
 
-  it("prefers invoke-time _resolvedConnections over build-time", () => {
+  it("prefers a pre-resolved connection over dynamic resolution", async () => {
     const rawConfig = {
       _resolvedConnections: [{ config: { baseUrl: "http://build:5707" } }],
     };
@@ -26,45 +32,74 @@ describe("resolveConnection", () => {
         runConfig: { _resolvedConnections: [{ config: { baseUrl: "http://invoke:5707" } }] },
       },
     };
-    expect(resolveConnection(rawConfig, exeConfig).baseUrl).toBe("http://invoke:5707");
+    expect((await resolveConnection(rawConfig, exeConfig)).baseUrl).toBe("http://invoke:5707");
+    expect(resolvePluginConnections).not.toHaveBeenCalled();
   });
 
-  it("falls back to env then default", () => {
+  it("resolves a connection dynamically from the plugin selector", async () => {
+    (resolvePluginConnections as jest.Mock).mockResolvedValue([
+      { key: "demo", config: { baseUrl: "https://ada.alphafina.cn/", boStoreKey: "bos_x" } },
+    ]);
+    const conn = await resolveConnection(
+      { connectionType: "business-objects", connections: ["demo"] },
+      { configurable: { runConfig: { tenantId: "estee_lauder" } } },
+    );
+    expect(conn.baseUrl).toBe("https://ada.alphafina.cn");
+    expect(conn.boStoreKey).toBe("bos_x");
+    expect(resolvePluginConnections).toHaveBeenCalledWith(
+      "business-objects",
+      { connections: ["demo"], connectAll: false },
+      { tenantId: "estee_lauder" },
+    );
+  });
+
+  it("throws an actionable error when the selector resolves nothing", async () => {
+    (resolvePluginConnections as jest.Mock).mockResolvedValue([]);
+    await expect(
+      resolveConnection(
+        { connectionType: "business-objects", connectAll: true },
+        { configurable: { runConfig: { tenantId: "t1" } } },
+      ),
+    ).rejects.toThrow(/No "business-objects" connection/);
+  });
+
+  it("falls back to env then default when no selector is configured", async () => {
     process.env.PLATFORM_SERVICE_URL = "http://env:5707/";
-    expect(resolveConnection(undefined, undefined).baseUrl).toBe("http://env:5707");
+    expect((await resolveConnection(undefined, undefined)).baseUrl).toBe("http://env:5707");
     delete process.env.PLATFORM_SERVICE_URL;
-    expect(resolveConnection().baseUrl).toBe("http://127.0.0.1:5707");
+    expect((await resolveConnection()).baseUrl).toBe("http://127.0.0.1:5707");
+    expect(resolvePluginConnections).not.toHaveBeenCalled();
   });
 
-  it("treats an empty baseUrl as absent and falls back", () => {
+  it("treats an empty baseUrl as absent and falls back", async () => {
     process.env.PLATFORM_SERVICE_URL = "http://env:5707/";
     expect(
-      resolveConnection({ _resolvedConnections: [{ config: { baseUrl: "" } }] }).baseUrl,
+      (await resolveConnection({ _resolvedConnections: [{ config: { baseUrl: "" } }] })).baseUrl,
     ).toBe("http://env:5707");
     delete process.env.PLATFORM_SERVICE_URL;
     expect(
-      resolveConnection({ _resolvedConnections: [{ config: { baseUrl: "   " } }] }).baseUrl,
+      (await resolveConnection({ _resolvedConnections: [{ config: { baseUrl: "   " } }] })).baseUrl,
     ).toBe("http://127.0.0.1:5707");
   });
 
-  it("uses connection apiKey, else env, else undefined", () => {
+  it("uses connection apiKey, else env, else undefined", async () => {
     process.env.FILE_SERVICE_API_KEY = "envkey";
-    expect(resolveConnection({ _resolvedConnections: [{ config: { apiKey: "connkey" } }] }).apiKey).toBe("connkey");
-    expect(resolveConnection().apiKey).toBe("envkey");
+    expect((await resolveConnection({ _resolvedConnections: [{ config: { apiKey: "connkey" } }] })).apiKey).toBe("connkey");
+    expect((await resolveConnection()).apiKey).toBe("envkey");
     delete process.env.FILE_SERVICE_API_KEY;
-    expect(resolveConnection().apiKey).toBeUndefined();
+    expect((await resolveConnection()).apiKey).toBeUndefined();
   });
 
-  it("keeps business object store key separate from the platform service api key", () => {
-    const conn = resolveConnection({
+  it("keeps business object store key separate from the platform service api key", async () => {
+    const conn = await resolveConnection({
       _resolvedConnections: [{ config: { apiKey: "platform_key", boStoreKey: "bos_secret" } }],
     });
     expect(conn.apiKey).toBe("platform_key");
     expect(conn.boStoreKey).toBe("bos_secret");
   });
 
-  it("reads selectedEntities from the resolved connection config", () => {
-    const conn = resolveConnection({
+  it("reads selectedEntities from the resolved connection config", async () => {
+    const conn = await resolveConnection({
       _resolvedConnections: [{ config: { selectedEntities: ["ep_1", 42] } }],
     });
     expect(conn.selectedEntities).toEqual(["ep_1"]);

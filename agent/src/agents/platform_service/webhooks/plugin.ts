@@ -119,13 +119,14 @@ export const webhooksPlugin: Plugin = {
       }));
     },
   },
-  middleware: (rawConfig) =>
-    createMiddleware({
+  middleware: (rawConfig) => {
+    const pluginConfig = { ...rawConfig, connectionType: "webhooks" };
+    return createMiddleware({
       name: "Webhooks",
       tools: [
         tool(
           (input: z.infer<typeof SCHEMAS.listDestinations>, exeConfig) =>
-            webhooksListDestinations(input, exeConfig, rawConfig),
+            webhooksListDestinations(input, exeConfig, pluginConfig),
           {
             name: "list_destinations",
             description: "List the tenant's delivery destinations (signing secrets are not returned).",
@@ -134,7 +135,7 @@ export const webhooksPlugin: Plugin = {
         ),
         tool(
           (input: z.infer<typeof SCHEMAS.publish>, exeConfig) =>
-            webhooksPublishEvent(input, exeConfig, rawConfig),
+            webhooksPublishEvent(input, exeConfig, pluginConfig),
           {
             name: "publish_event",
             description:
@@ -144,7 +145,7 @@ export const webhooksPlugin: Plugin = {
         ),
         tool(
           (input: z.infer<typeof SCHEMAS.listRecent>, exeConfig) =>
-            webhooksListRecentEvents(input, exeConfig, rawConfig),
+            webhooksListRecentEvents(input, exeConfig, pluginConfig),
           {
             name: "list_recent_events",
             description: "List recent events for the current tenant (messageId/eventType/timestamp).",
@@ -153,7 +154,7 @@ export const webhooksPlugin: Plugin = {
         ),
         tool(
           (input: z.infer<typeof SCHEMAS.deliveryStatus>, exeConfig) =>
-            webhooksGetDeliveryStatus(input, exeConfig, rawConfig),
+            webhooksGetDeliveryStatus(input, exeConfig, pluginConfig),
           {
             name: "get_delivery_status",
             description: "Query the delivery status and next retry time of a message for each destination.",
@@ -162,7 +163,7 @@ export const webhooksPlugin: Plugin = {
         ),
         tool(
           (input: z.infer<typeof SCHEMAS.register>, exeConfig) =>
-            registerDestination(input, exeConfig, rawConfig),
+            registerDestination(input, exeConfig, pluginConfig),
           {
             name: "register_destination",
             description:
@@ -172,7 +173,7 @@ export const webhooksPlugin: Plugin = {
         ),
         tool(
           (input: z.infer<typeof SCHEMAS.delete>, exeConfig) =>
-            deleteDestination(input, exeConfig, rawConfig),
+            deleteDestination(input, exeConfig, pluginConfig),
           {
             name: "delete_destination",
             description: "Delete a delivery destination. Requires user confirmation, then pass confirm:true.",
@@ -180,7 +181,8 @@ export const webhooksPlugin: Plugin = {
           },
         ),
       ],
-    }),
+    });
+  },
 };
 
 PluginRegistry.register(webhooksPlugin);

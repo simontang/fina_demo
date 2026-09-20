@@ -309,18 +309,19 @@ export const businessObjectPlugin: Plugin = {
       ],
     },
   },
-  middleware: (rawConfig) =>
-    createMiddleware({
+  middleware: (rawConfig) => {
+    const pluginConfig = { ...rawConfig, connectionType: "business-objects" };
+    return createMiddleware({
       name: "BusinessObjects",
       tools: [
-        tool((input: z.infer<typeof schemas.empty>, exeConfig) => boStoreList(input, exeConfig, rawConfig), {
+        tool((input: z.infer<typeof schemas.empty>, exeConfig) => boStoreList(input, exeConfig, pluginConfig), {
           name: "list_stores",
           description: "List Business Object stores.",
           schema: schemas.empty,
         }),
         tool(
           (input: z.infer<typeof schemas.storeCreate>, exeConfig) =>
-            boStoreCreate(input, exeConfig, rawConfig),
+            boStoreCreate(input, exeConfig, pluginConfig),
           {
             name: "create_store",
             description:
@@ -328,14 +329,14 @@ export const businessObjectPlugin: Plugin = {
             schema: schemas.storeCreate,
           },
         ),
-        tool((input: z.infer<typeof schemas.storeKey>, exeConfig) => boStoreTest(input, exeConfig, rawConfig), {
+        tool((input: z.infer<typeof schemas.storeKey>, exeConfig) => boStoreTest(input, exeConfig, pluginConfig), {
           name: "test_store",
           description: "Test connectivity to a Business Object store.",
           schema: schemas.storeKey,
         }),
         tool(
           (input: z.infer<typeof schemas.storeKey>, exeConfig) =>
-            boStoreKeyList(input, exeConfig, rawConfig),
+            boStoreKeyList(input, exeConfig, pluginConfig),
           {
             name: "list_store_keys",
             description: "List API keys for one Business Object store.",
@@ -344,7 +345,7 @@ export const businessObjectPlugin: Plugin = {
         ),
         tool(
           (input: z.infer<typeof schemas.storeKeyCreate>, exeConfig) =>
-            boStoreKeyCreate(input, exeConfig, rawConfig),
+            boStoreKeyCreate(input, exeConfig, pluginConfig),
           {
             name: "create_store_key",
             description: "Create a store-bound Business Object API key. If rawKey is omitted, the platform returns it once.",
@@ -353,7 +354,7 @@ export const businessObjectPlugin: Plugin = {
         ),
         tool(
           (input: z.infer<typeof schemas.storeKeyUpdate>, exeConfig) =>
-            boStoreKeyUpdate(input, exeConfig, rawConfig),
+            boStoreKeyUpdate(input, exeConfig, pluginConfig),
           {
             name: "update_store_key",
             description: "Update permissions/status or rotate a Business Object store API key.",
@@ -362,21 +363,21 @@ export const businessObjectPlugin: Plugin = {
         ),
         tool(
           (input: z.infer<typeof schemas.storeKeyDelete>, exeConfig) =>
-            boStoreKeyDelete(input, exeConfig, rawConfig),
+            boStoreKeyDelete(input, exeConfig, pluginConfig),
           {
             name: "delete_store_key",
             description: "Disable a Business Object store API key. Requires user confirmation, then pass confirm:true.",
             schema: schemas.storeKeyDelete,
           },
         ),
-        tool((input: z.infer<typeof schemas.empty>, exeConfig) => boObjectList(input, exeConfig, rawConfig), {
+        tool((input: z.infer<typeof schemas.empty>, exeConfig) => boObjectList(input, exeConfig, pluginConfig), {
           name: "list_objects",
           description: "List Business Object definitions visible to the configured BO store key.",
           schema: schemas.empty,
         }),
         tool(
           (input: z.infer<typeof schemas.objectGet>, exeConfig) =>
-            boObjectGet(input, exeConfig, rawConfig),
+            boObjectGet(input, exeConfig, pluginConfig),
           {
             name: "get_object",
             description: "Get one Business Object definition by objectKey.",
@@ -385,7 +386,7 @@ export const businessObjectPlugin: Plugin = {
         ),
         tool(
           (input: z.infer<typeof schemas.objectCreate>, exeConfig) =>
-            boObjectCreate(input, exeConfig, rawConfig),
+            boObjectCreate(input, exeConfig, pluginConfig),
           {
             name: "create_object",
             description: "Create a Business Object definition and synchronize it into PostgreSQL DDL.",
@@ -394,7 +395,7 @@ export const businessObjectPlugin: Plugin = {
         ),
         tool(
           (input: z.infer<typeof schemas.objectUpdate>, exeConfig) =>
-            boObjectUpdate(input, exeConfig, rawConfig),
+            boObjectUpdate(input, exeConfig, pluginConfig),
           {
             name: "update_object",
             description:
@@ -404,7 +405,7 @@ export const businessObjectPlugin: Plugin = {
         ),
         tool(
           (input: z.infer<typeof schemas.objectDelete>, exeConfig) =>
-            boObjectDelete(input, exeConfig, rawConfig),
+            boObjectDelete(input, exeConfig, pluginConfig),
           {
             name: "delete_object",
             description:
@@ -414,7 +415,7 @@ export const businessObjectPlugin: Plugin = {
         ),
         tool(
           (input: z.infer<typeof schemas.recordQuery>, exeConfig) =>
-            boRecordQuery(input, exeConfig, rawConfig),
+            boRecordQuery(input, exeConfig, pluginConfig),
           {
             name: "query_records",
             description:
@@ -424,7 +425,7 @@ export const businessObjectPlugin: Plugin = {
         ),
         tool(
           (input: z.infer<typeof schemas.recordGet>, exeConfig) =>
-            boRecordGet(input, exeConfig, rawConfig),
+            boRecordGet(input, exeConfig, pluginConfig),
           {
             name: "get_record",
             description: "Get one Business Object record by objectKey and id.",
@@ -433,7 +434,7 @@ export const businessObjectPlugin: Plugin = {
         ),
         tool(
           (input: z.infer<typeof schemas.recordCreate>, exeConfig) =>
-            boRecordCreate(input, exeConfig, rawConfig),
+            boRecordCreate(input, exeConfig, pluginConfig),
           {
             name: "create_record",
             description:
@@ -443,7 +444,7 @@ export const businessObjectPlugin: Plugin = {
         ),
         tool(
           (input: z.infer<typeof schemas.recordUpdate>, exeConfig) =>
-            boRecordUpdate(input, exeConfig, rawConfig),
+            boRecordUpdate(input, exeConfig, pluginConfig),
           {
             name: "update_record",
             description: "Patch one Business Object record by objectKey and id.",
@@ -452,7 +453,7 @@ export const businessObjectPlugin: Plugin = {
         ),
         tool(
           (input: z.infer<typeof schemas.recordDelete>, exeConfig) =>
-            boRecordDelete(input, exeConfig, rawConfig),
+            boRecordDelete(input, exeConfig, pluginConfig),
           {
             name: "delete_record",
             description:
@@ -461,7 +462,8 @@ export const businessObjectPlugin: Plugin = {
           },
         ),
       ],
-    }),
+    });
+  },
 };
 
 PluginRegistry.register(businessObjectPlugin);

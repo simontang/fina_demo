@@ -74,13 +74,14 @@ export const storagePlugin: Plugin = {
     ],
   },
   connection: platformServiceConnection,
-  middleware: (rawConfig) =>
-    createMiddleware({
+  middleware: (rawConfig) => {
+    const pluginConfig = { ...rawConfig, connectionType: "storage" };
+    return createMiddleware({
       name: "Storage",
       tools: [
         tool(
           (input: z.infer<typeof SCHEMAS.upload>, exeConfig) =>
-            storageUpload(input, exeConfig, rawConfig),
+            storageUpload(input, exeConfig, pluginConfig),
           {
             name: "upload",
             description:
@@ -90,7 +91,7 @@ export const storagePlugin: Plugin = {
         ),
         tool(
           (input: z.infer<typeof SCHEMAS.list>, exeConfig) =>
-            storageList(input, exeConfig, rawConfig),
+            storageList(input, exeConfig, pluginConfig),
           {
             name: "list",
             description:
@@ -100,7 +101,7 @@ export const storagePlugin: Plugin = {
         ),
         tool(
           (input: z.infer<typeof SCHEMAS.metadata>, exeConfig) =>
-            storageGetMetadata(input, exeConfig, rawConfig),
+            storageGetMetadata(input, exeConfig, pluginConfig),
           {
             name: "get_metadata",
             description: "Get file metadata by uuid (without downloading contents).",
@@ -109,7 +110,7 @@ export const storagePlugin: Plugin = {
         ),
         tool(
           (input: z.infer<typeof SCHEMAS.presign>, exeConfig) =>
-            storageGetDownloadUrl(input, exeConfig, rawConfig),
+            storageGetDownloadUrl(input, exeConfig, pluginConfig),
           {
             name: "get_download_url",
             description:
@@ -119,7 +120,7 @@ export const storagePlugin: Plugin = {
         ),
         tool(
           (input: z.infer<typeof SCHEMAS.delete>, exeConfig) =>
-            storageDelete(input, exeConfig, rawConfig),
+            storageDelete(input, exeConfig, pluginConfig),
           {
             name: "delete",
             description:
@@ -128,7 +129,8 @@ export const storagePlugin: Plugin = {
           },
         ),
       ],
-    }),
+    });
+  },
 };
 
 PluginRegistry.register(storagePlugin);

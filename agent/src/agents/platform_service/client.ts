@@ -5,6 +5,18 @@ export interface PlatformServiceConn {
   selectedEntities: string[];
 }
 
+/**
+ * Plugin connection selector captured from the plugin's middleware config.
+ *
+ * `connectionType` is the plugin's `meta.type`; `connections`/`connectAll` come
+ * straight from the agent's middleware config.
+ */
+export interface PlatformServiceSelector {
+  connectionType?: string;
+  connections?: unknown;
+  connectAll?: unknown;
+}
+
 const DEFAULT_BASE_URL = "http://127.0.0.1:5707";
 
 function firstResolvedConfig(container?: unknown): Record<string, unknown> {
@@ -54,13 +66,64 @@ export function connectionFromConfig(config: Record<string, unknown>): PlatformS
   return normalize(config ?? {});
 }
 
-/** Merge build-time and invoke-time resolved connections, then env fallbacks. */
-export function resolveConnection(rawConfig?: unknown, exeConfig?: unknown): PlatformServiceConn {
-  const merged = {
-    ...firstResolvedConfig(rawConfig),
+function noConnectionHint(connectionType: string, tenantId: string): string {
+  return (
+    `No "${connectionType}" connection is configured for tenant "${tenantId}". ` +
+    `Add a connection of type "${connectionType}" and select it (connections) or enable connectAll ` +
+    `in the agent's middleware config.`
+  );
+}
+
+/**
+ * Resolve the platform-service connection for a tool invocation.
+ *
+ * Prefers a host-injected, pre-resolved connection (`_resolvedConnections`).
+ * Otherwise resolves dynamically from the tenant-scoped Connection Store using
+ * the plugin selector (`connectionType` + `connections`/`connectAll`), so
+ * connection changes apply without rebuilding the agent. Falls back to env /
+ * default only when no selector is configured.
+ *
+ * @param pluginConfig - Plugin middleware config (selector) or pre-resolved container.
+ * @param exeConfig - LangChain execution config; `runConfig.tenantId` scopes resolution.
+ * @throws When a selector is configured but resolves to no connection for the tenant.
+ */
+export async function resolveConnection(
+  pluginConfig?: unknown,
+  exeConfig?: unknown,
+): Promise<PlatformServiceConn> {
+  const preResolved = {
+    ...firstResolvedConfig(pluginConfig),
     ...firstResolvedConfig(runConfigOf(exeConfig)),
   };
-  return normalize(merged);
+  if (Object.keys(preResolved).length > 0) {
+    return normalize(preResolved);
+  }
+
+  const selector = (pluginConfig ?? {}) as PlatformServiceSelector;
+  const connectionType =
+    typeof selector.connectionType === "string" ? selector.connectionType : undefined;
+  const connections = Array.isArray(selector.connections)
+    ? selector.connections.filter((key): key is string => typeof key === "string")
+    : [];
+  const connectAll = selector.connectAll === true;
+
+  if (!connectionType || (!connectAll && connections.length === 0)) {
+    return normalize({});
+  }
+
+  const tenantId = tenantFromExeConfig(exeConfig);
+  // Imported lazily so unit tests that only exercise pre-resolved/env paths do not
+  // load the full core dependency graph (chalk and other ESM-only modules).
+  const { resolvePluginConnections } = await import("@axiom-lattice/core");
+  const resolved = await resolvePluginConnections(
+    connectionType,
+    { connections, connectAll },
+    { tenantId },
+  );
+  if (resolved.length === 0) {
+    throw new Error(noConnectionHint(connectionType, tenantId));
+  }
+  return normalize(resolved[0].config);
 }
 
 export function tenantFromExeConfig(exeConfig?: unknown): string {

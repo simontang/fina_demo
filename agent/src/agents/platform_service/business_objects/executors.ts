@@ -78,7 +78,7 @@ export interface StoreKeyUpdateInput {
   status?: number;
 }
 
-function connection(rawConfig: unknown, exeConfig: unknown): PlatformServiceConn {
+async function connection(rawConfig: unknown, exeConfig: unknown): Promise<PlatformServiceConn> {
   return resolveConnection(rawConfig, exeConfig);
 }
 
@@ -110,7 +110,7 @@ async function callPlatform(
 ): Promise<string> {
   try {
     const result = await request({
-      conn: connection(rawConfig, exeConfig),
+      conn: await connection(rawConfig, exeConfig),
       method,
       path,
       ...(json === undefined ? {} : { json }),
@@ -129,7 +129,7 @@ async function callBoObjectApi(
   json?: unknown,
 ): Promise<string> {
   try {
-    const conn = connection(rawConfig, exeConfig);
+    const conn = await connection(rawConfig, exeConfig);
     const result = await request({
       conn,
       method,
@@ -186,7 +186,7 @@ export async function boObjectList(_input: {}, exeConfig: unknown, rawConfig: un
 
 export async function boObjectGet(input: { objectKey: string }, exeConfig: unknown, rawConfig: unknown): Promise<string> {
   try {
-    const conn = connection(rawConfig, exeConfig);
+    const conn = await connection(rawConfig, exeConfig);
     requireObjectAllowed(conn, input.objectKey);
     return await callBoObjectApi(rawConfig, exeConfig, "GET", `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}`);
   } catch (err) {
@@ -196,7 +196,7 @@ export async function boObjectGet(input: { objectKey: string }, exeConfig: unkno
 
 export async function boObjectCreate(input: ObjectDefinitionInput, exeConfig: unknown, rawConfig: unknown): Promise<string> {
   try {
-    const conn = connection(rawConfig, exeConfig);
+    const conn = await connection(rawConfig, exeConfig);
     requireMaybeObjectAllowed(conn, input);
     return await callBoObjectApi(rawConfig, exeConfig, "POST", "/api/v1/bo/objects", input);
   } catch (err) {
@@ -206,7 +206,7 @@ export async function boObjectCreate(input: ObjectDefinitionInput, exeConfig: un
 
 export async function boObjectUpdate(input: ObjectDefinitionInput, exeConfig: unknown, rawConfig: unknown): Promise<string> {
   try {
-    const conn = connection(rawConfig, exeConfig);
+    const conn = await connection(rawConfig, exeConfig);
     requireObjectAllowed(conn, input.objectKey);
     return await callBoObjectApi(rawConfig, exeConfig, "PUT", `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}`, input);
   } catch (err) {
@@ -223,7 +223,7 @@ export async function boObjectDelete(input: { objectKey: string; confirm?: boole
     });
   }
   try {
-    const conn = connection(rawConfig, exeConfig);
+    const conn = await connection(rawConfig, exeConfig);
     requireObjectAllowed(conn, input.objectKey);
     return await callBoObjectApi(rawConfig, exeConfig, "DELETE", `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}`);
   } catch (err) {
@@ -233,7 +233,7 @@ export async function boObjectDelete(input: { objectKey: string; confirm?: boole
 
 export async function boRecordCreate(input: RecordInput, exeConfig: unknown, rawConfig: unknown): Promise<string> {
   try {
-    const conn = connection(rawConfig, exeConfig);
+    const conn = await connection(rawConfig, exeConfig);
     requireObjectAllowed(conn, input.objectKey);
     return await callBoObjectApi(rawConfig, exeConfig, "POST",
       `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}/records`,
@@ -245,7 +245,7 @@ export async function boRecordCreate(input: RecordInput, exeConfig: unknown, raw
 
 export async function boRecordGet(input: RecordIdInput, exeConfig: unknown, rawConfig: unknown): Promise<string> {
   try {
-    const conn = connection(rawConfig, exeConfig);
+    const conn = await connection(rawConfig, exeConfig);
     requireObjectAllowed(conn, input.objectKey);
     return await callBoObjectApi(rawConfig, exeConfig, "GET",
       `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}/records/${encodeURIComponent(input.id)}`);
@@ -256,7 +256,7 @@ export async function boRecordGet(input: RecordIdInput, exeConfig: unknown, rawC
 
 export async function boRecordUpdate(input: RecordIdInput & { data: JsonObject }, exeConfig: unknown, rawConfig: unknown): Promise<string> {
   try {
-    const conn = connection(rawConfig, exeConfig);
+    const conn = await connection(rawConfig, exeConfig);
     requireObjectAllowed(conn, input.objectKey);
     return await callBoObjectApi(rawConfig, exeConfig, "PATCH",
       `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}/records/${encodeURIComponent(input.id)}`,
@@ -275,7 +275,7 @@ export async function boRecordDelete(input: RecordIdInput & { confirm?: boolean 
     });
   }
   try {
-    const conn = connection(rawConfig, exeConfig);
+    const conn = await connection(rawConfig, exeConfig);
     requireObjectAllowed(conn, input.objectKey);
     return await callBoObjectApi(rawConfig, exeConfig, "DELETE",
       `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}/records/${encodeURIComponent(input.id)}`);
@@ -286,7 +286,7 @@ export async function boRecordDelete(input: RecordIdInput & { confirm?: boolean 
 
 export async function boRecordQuery(input: QueryRecordsInput, exeConfig: unknown, rawConfig: unknown): Promise<string> {
   try {
-    const conn = connection(rawConfig, exeConfig);
+    const conn = await connection(rawConfig, exeConfig);
     requireObjectAllowed(conn, input.objectKey);
     const { objectKey, ...body } = input;
     return await callBoObjectApi(rawConfig, exeConfig, "POST",
