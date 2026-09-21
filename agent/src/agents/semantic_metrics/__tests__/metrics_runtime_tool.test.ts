@@ -45,11 +45,44 @@ describe("metrics_runtime_tool", () => {
     expect(out).not.toContain("secret_user");
   });
 
-  it("dispatches read_semantic_catalog", async () => {
-    const spy = jest.spyOn(SemanticMetricsV2Client.prototype, "getRuntimeMeta").mockResolvedValue({ index: {} });
+  it("dispatches read_semantic_catalog and returns index only (no full definitions)", async () => {
+    const spy = jest.spyOn(SemanticMetricsV2Client.prototype, "getRuntimeMeta").mockResolvedValue({
+      index: { metrics: [{ metricName: "m1" }], tables: [{ tableName: "t1" }] },
+      metricsDetails: [{ metricName: "m1", aiAgentContext: "huge" }],
+      tablesDetails: [{ tableName: "t1" }],
+    });
     const tool = createMetricsRuntimeTool(toolParams());
-    await tool.invoke({ action: "read_semantic_catalog", connectionKey: "primary", datasourceId: "15" }, runtimeConfig());
+    const out = await tool.invoke({ action: "read_semantic_catalog", connectionKey: "primary", datasourceId: "15" }, runtimeConfig());
     expect(spy).toHaveBeenCalledWith(15);
+    expect(out).toContain("\"index\"");
+    expect(out).toContain("m1");
+    expect(out).not.toContain("metricsDetails");
+    expect(out).not.toContain("tablesDetails");
+    expect(out).not.toContain("aiAgentContext");
+  });
+
+  it("reads one metric's full definition on demand", async () => {
+    const spy = jest.spyOn(SemanticMetricsV2Client.prototype, "getMetric")
+      .mockResolvedValue([{ metricName: "m1", supportedDimensions: ["d1"] }]);
+    const tool = createMetricsRuntimeTool(toolParams());
+    const out = await tool.invoke(
+      { action: "read_metric", connectionKey: "primary", datasourceId: "15", metricName: "m1" },
+      runtimeConfig(),
+    );
+    expect(spy).toHaveBeenCalledWith(15, "m1");
+    expect(out).toContain("supportedDimensions");
+  });
+
+  it("reads one table's full definition on demand", async () => {
+    const spy = jest.spyOn(SemanticMetricsV2Client.prototype, "getTable")
+      .mockResolvedValue([{ tableName: "t1" }]);
+    const tool = createMetricsRuntimeTool(toolParams());
+    const out = await tool.invoke(
+      { action: "read_table", connectionKey: "primary", datasourceId: "15", tableName: "t1" },
+      runtimeConfig(),
+    );
+    expect(spy).toHaveBeenCalledWith(15, "t1");
+    expect(out).toContain("t1");
   });
 
   it("dispatches query_metrics with the semantic request", async () => {
