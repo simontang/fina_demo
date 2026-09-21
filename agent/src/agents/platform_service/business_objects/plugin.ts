@@ -12,7 +12,9 @@ import {
   boObjectList,
   boObjectUpdate,
   boRecordCreate,
+  boRecordCreateMany,
   boRecordDelete,
+  boRecordDeleteMany,
   boRecordGet,
   boRecordQuery,
   boRecordUpdate,
@@ -133,6 +135,15 @@ const schemas = {
     id: z.string(),
     confirm: z.boolean().optional(),
   }),
+  recordCreateMany: z.object({
+    objectKey: identifier,
+    records: z.array(z.record(z.unknown())).min(1).max(500),
+  }),
+  recordDeleteMany: z.object({
+    objectKey: identifier,
+    ids: z.array(z.string()).min(1).max(500),
+    confirm: z.boolean().optional(),
+  }),
   recordQuery: z.object({
     objectKey: identifier,
     filters: z.array(filter).optional(),
@@ -194,6 +205,16 @@ export const businessObjectPlugin: Plugin = {
         name: "delete_record",
         description:
           "Soft-delete one Business Object record. Requires user confirmation, then pass confirm:true.",
+      },
+      {
+        name: "create_records",
+        description:
+          "Create many Business Object records atomically (1-500). All records are validated first; any failure rolls the whole batch back.",
+      },
+      {
+        name: "delete_records",
+        description:
+          "Soft-delete many Business Object records by id atomically (1-500). Idempotent: missing ids are ignored. Requires user confirmation, then pass confirm:true.",
       },
     ],
     openExpose: [
@@ -459,6 +480,26 @@ export const businessObjectPlugin: Plugin = {
             description:
               "Soft-delete one Business Object record. Requires user confirmation, then pass confirm:true.",
             schema: schemas.recordDelete,
+          },
+        ),
+        tool(
+          (input: z.infer<typeof schemas.recordCreateMany>, exeConfig) =>
+            boRecordCreateMany(input, exeConfig, pluginConfig),
+          {
+            name: "create_records",
+            description:
+              "Create many Business Object records atomically (1-500). All records are validated first; any failure rolls the whole batch back. Returns {created, ids}.",
+            schema: schemas.recordCreateMany,
+          },
+        ),
+        tool(
+          (input: z.infer<typeof schemas.recordDeleteMany>, exeConfig) =>
+            boRecordDeleteMany(input, exeConfig, pluginConfig),
+          {
+            name: "delete_records",
+            description:
+              "Soft-delete many Business Object records by id atomically (1-500). Idempotent: missing ids are ignored. Requires user confirmation, then pass confirm:true. Returns {deleted, ids}.",
+            schema: schemas.recordDeleteMany,
           },
         ),
       ],

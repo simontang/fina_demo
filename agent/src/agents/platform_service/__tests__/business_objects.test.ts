@@ -2,7 +2,9 @@ import {
   boObjectCreate,
   boObjectDelete,
   boRecordCreate,
+  boRecordCreateMany,
   boRecordDelete,
+  boRecordDeleteMany,
   boRecordQuery,
   boRecordUpdate,
   boStoreCreate,
@@ -160,6 +162,41 @@ describe("business object executors", () => {
 
     const out = JSON.parse(await boStoreList({}, exeConfig, rawConfig));
     expect(out).toMatchObject({ ok: false, status: 403, code: "FORBIDDEN", message: "nope" });
+  });
+
+  it("batch creates records via the batch endpoint", async () => {
+    await boRecordCreateMany({
+      objectKey: "customer",
+      records: [{ name: "A" }, { name: "B" }],
+    }, exeConfig, rawConfig);
+
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe("http://svc:5707/api/v1/bo/objects/customer/records/batch");
+    expect(init.method).toBe("POST");
+    expect(init.headers["X-BO-Connection-Key"]).toBe("bos_secret");
+    expect(init.headers["X-Tenant-Id"]).toBeUndefined();
+    expect(JSON.parse(init.body)).toEqual({ records: [{ name: "A" }, { name: "B" }] });
+  });
+
+  it("batch delete requires confirmation, then posts ids", async () => {
+    const refused = await boRecordDeleteMany(
+      { objectKey: "customer", ids: ["r1"] },
+      exeConfig,
+      rawConfig,
+    );
+    expect(JSON.parse(refused).code).toBe("CONFIRM_REQUIRED");
+    expect(global.fetch).not.toHaveBeenCalled();
+
+    await boRecordDeleteMany(
+      { objectKey: "customer", ids: ["r1", "r2"], confirm: true },
+      exeConfig,
+      rawConfig,
+    );
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe("http://svc:5707/api/v1/bo/objects/customer/records/batch-delete");
+    expect(init.method).toBe("POST");
+    expect(init.headers["X-BO-Connection-Key"]).toBe("bos_secret");
+    expect(JSON.parse(init.body)).toEqual({ ids: ["r1", "r2"] });
   });
 
   it("delete operations require explicit confirmation", async () => {

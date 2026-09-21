@@ -1,5 +1,9 @@
 package com.fina.platform.bo;
 
+import com.fina.platform.bo.BusinessObjectDtos.BatchCreateResponse;
+import com.fina.platform.bo.BusinessObjectDtos.BatchDeleteRequest;
+import com.fina.platform.bo.BusinessObjectDtos.BatchDeleteResponse;
+import com.fina.platform.bo.BusinessObjectDtos.BatchRecordRequest;
 import com.fina.platform.bo.BusinessObjectDtos.ObjectDefinitionRequest;
 import com.fina.platform.bo.BusinessObjectDtos.ObjectDefinitionResponse;
 import com.fina.platform.bo.BusinessObjectDtos.QueryRequest;
@@ -150,6 +154,20 @@ public class BusinessObjectController {
                                             @PathVariable String objectKey,
                                             @PathVariable String id) {
         return service.deleteRecord(service.authenticate(request), objectKey, id);
+    }
+
+    @PostMapping("/objects/{objectKey}/records/batch")
+    public BatchCreateResponse createRecords(HttpServletRequest servletRequest,
+                                             @PathVariable String objectKey,
+                                             @RequestBody BatchRecordRequest request) {
+        return service.createRecords(service.authenticate(servletRequest), objectKey, request);
+    }
+
+    @PostMapping("/objects/{objectKey}/records/batch-delete")
+    public BatchDeleteResponse deleteRecords(HttpServletRequest servletRequest,
+                                             @PathVariable String objectKey,
+                                             @RequestBody BatchDeleteRequest request) {
+        return service.deleteRecords(service.authenticate(servletRequest), objectKey, request);
     }
 
     @PostMapping("/objects/{objectKey}/records/query")

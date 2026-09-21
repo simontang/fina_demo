@@ -109,6 +109,26 @@ public final class BusinessObjectDtos {
     ) {
     }
 
+    public record BatchRecordRequest(List<Map<String, Object>> records) {
+    }
+
+    public record BatchDeleteRequest(List<String> ids) {
+    }
+
+    public record BatchCreateResponse(
+            String objectKey,
+            int created,
+            List<String> ids
+    ) {
+    }
+
+    public record BatchDeleteResponse(
+            String objectKey,
+            int deleted,
+            List<String> ids
+    ) {
+    }
+
     public record QueryRequest(
             List<Filter> filters,
             List<Sort> sort,

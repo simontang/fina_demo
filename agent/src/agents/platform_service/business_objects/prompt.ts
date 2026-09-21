@@ -9,5 +9,6 @@ Operating rules:
 - Confirm modeling decisions with the user before any write (create_store, create_store_key, update_store_key, delete_store_key, create_object, update_object, delete_object).
 - Never pass storeKey to record tools: objectKey resolves the store.
 - Deleting an object or a record requires explicit user confirmation, then pass confirm: true.
+- For bulk work use create_records / delete_records (1-500 per call, atomic; delete_records is idempotent) instead of looping the single-record tools.
 - Keep test data out of production: create a sample record to verify, then delete it.
 - Track progress as tasks and record the final object definition in the task description.`;

@@ -188,10 +188,12 @@ describe("business objects plugin", () => {
     expect(names).toEqual([
       "create_object",
       "create_record",
+      "create_records",
       "create_store",
       "create_store_key",
       "delete_object",
       "delete_record",
+      "delete_records",
       "delete_store_key",
       "get_object",
       "get_record",

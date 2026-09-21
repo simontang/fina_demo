@@ -2,6 +2,10 @@ package com.fina.platform.bo;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fina.platform.bo.BusinessObjectDtos.BatchCreateResponse;
+import com.fina.platform.bo.BusinessObjectDtos.BatchDeleteRequest;
+import com.fina.platform.bo.BusinessObjectDtos.BatchDeleteResponse;
+import com.fina.platform.bo.BusinessObjectDtos.BatchRecordRequest;
 import com.fina.platform.bo.BusinessObjectDtos.FieldDefinition;
 import com.fina.platform.bo.BusinessObjectDtos.Filter;
 import com.fina.platform.bo.BusinessObjectDtos.IndexDefinition;
@@ -57,6 +61,7 @@ import java.util.stream.Collectors;
 public class BusinessObjectService {
     private static final int DEFAULT_PAGE_SIZE = 50;
     private static final int MAX_PAGE_SIZE = 500;
+    private static final int MAX_BATCH_RECORDS = 500;
     private static final SecureRandom RANDOM = new SecureRandom();
 
     static {
@@ -409,6 +414,97 @@ public class BusinessObjectService {
                 .where(idField().eq(id).and(deletedField().eq(0)))
                 .execute();
         return Map.of("deleted", updated > 0, "id", id);
+    }
+
+    /**
+     * Create many records atomically. All records are validated against the object
+     * schema first; any validation or insert failure rolls the whole batch back.
+     * Runs in a transaction on the store database (the platform metadata
+     * transaction does not cover the per-store datasource).
+     */
+    public BatchCreateResponse createRecords(BoAuthContext auth, String objectKey, BatchRecordRequest request) {
+        ObjectDefinition definition = loadDefinition(auth, objectKey);
+        requireGrant(auth, definition.storeId(), Grant.WRITE);
+        List<Map<String, Object>> records = request == null || request.records() == null
+                ? List.of()
+                : request.records();
+        if (records.isEmpty()) {
+            throw ApiException.badRequest("records is required");
+        }
+        if (records.size() > MAX_BATCH_RECORDS) {
+            throw ApiException.badRequest("records exceeds the maximum batch size of " + MAX_BATCH_RECORDS);
+        }
+        List<Map<String, Object>> payloads = new ArrayList<>(records.size());
+        for (Map<String, Object> record : records) {
+            Map<String, Object> data = record == null ? Map.of() : record;
+            validateRecord(definition.schema(), data, true);
+            payloads.add(data);
+        }
+        Table<?> table = table(definition);
+        List<String> ids = storeRuntime(definition.storeId()).dsl().transactionResult(configuration -> {
+            DSLContext tx = DSL.using(configuration);
+            List<String> created = new ArrayList<>(payloads.size());
+            for (Map<String, Object> data : payloads) {
+                String id = java.util.UUID.randomUUID().toString().replace("-", "");
+                Map<Field<?>, Object> values = new LinkedHashMap<>();
+                values.put(field("id", String.class), id);
+                for (FieldDefinition field : definition.schema().fields()) {
+                    if (!data.containsKey(field.key())) {
+                        continue;
+                    }
+                    values.put(runtimeField(field), jooqValue(field, data.get(field.key())));
+                }
+                tx.insertInto(table).set(values).execute();
+                created.add(id);
+            }
+            return created;
+        });
+        return new BatchCreateResponse(objectKey, ids.size(), ids);
+    }
+
+    /**
+     * Soft-delete many records by id atomically. Idempotent: ids that do not exist
+     * (or were already deleted) are ignored, not an error; {@code deleted} counts
+     * the rows actually updated. Runs in a transaction on the store database.
+     */
+    public BatchDeleteResponse deleteRecords(BoAuthContext auth, String objectKey, BatchDeleteRequest request) {
+        ObjectDefinition definition = loadDefinition(auth, objectKey);
+        requireGrant(auth, definition.storeId(), Grant.WRITE);
+        List<String> requested = new ArrayList<>();
+        if (request != null && request.ids() != null) {
+            for (String id : request.ids()) {
+                if (id == null || id.isBlank()) {
+                    continue;
+                }
+                String normalized = id.trim();
+                if (!requested.contains(normalized)) {
+                    requested.add(normalized);
+                }
+            }
+        }
+        if (requested.isEmpty()) {
+            throw ApiException.badRequest("ids is required");
+        }
+        if (requested.size() > MAX_BATCH_RECORDS) {
+            throw ApiException.badRequest("ids exceeds the maximum batch size of " + MAX_BATCH_RECORDS);
+        }
+        Table<?> table = table(definition);
+        List<String> deleted = storeRuntime(definition.storeId()).dsl().transactionResult(configuration -> {
+            DSLContext tx = DSL.using(configuration);
+            List<String> removed = new ArrayList<>(requested.size());
+            for (String id : requested) {
+                int updated = tx.update(table)
+                        .set(deletedField(), 1)
+                        .set(field("updated_at", LocalDateTime.class), LocalDateTime.now())
+                        .where(idField().eq(id).and(deletedField().eq(0)))
+                        .execute();
+                if (updated > 0) {
+                    removed.add(id);
+                }
+            }
+            return removed;
+        });
+        return new BatchDeleteResponse(objectKey, deleted.size(), deleted);
     }
 
     public QueryResponse queryRecords(BoAuthContext auth, String objectKey, QueryRequest request) {

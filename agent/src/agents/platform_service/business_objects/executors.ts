@@ -51,6 +51,17 @@ export interface RecordIdInput {
   id: string;
 }
 
+export interface RecordBatchInput {
+  objectKey: string;
+  records: JsonObject[];
+}
+
+export interface RecordIdBatchInput {
+  objectKey: string;
+  ids: string[];
+  confirm?: boolean;
+}
+
 export interface StoreInput {
   storeKey: string;
   name?: string;
@@ -308,6 +319,37 @@ export async function boRecordDelete(input: RecordIdInput & { confirm?: boolean 
     requireObjectAllowed(conn, input.objectKey);
     return await callBoObjectApi(rawConfig, exeConfig, "DELETE",
       `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}/records/${encodeURIComponent(input.id)}`);
+  } catch (err) {
+    return errorResult(err);
+  }
+}
+
+export async function boRecordCreateMany(input: RecordBatchInput, exeConfig: unknown, rawConfig: unknown): Promise<string> {
+  try {
+    const conn = await connection(rawConfig, exeConfig);
+    requireObjectAllowed(conn, input.objectKey);
+    return await callBoObjectApi(rawConfig, exeConfig, "POST",
+      `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}/records/batch`,
+      { records: input.records });
+  } catch (err) {
+    return errorResult(err);
+  }
+}
+
+export async function boRecordDeleteMany(input: RecordIdBatchInput, exeConfig: unknown, rawConfig: unknown): Promise<string> {
+  if (input.confirm !== true) {
+    return JSON.stringify({
+      ok: false,
+      code: "CONFIRM_REQUIRED",
+      message: "Explicit user confirmation is required before deleting records.",
+    });
+  }
+  try {
+    const conn = await connection(rawConfig, exeConfig);
+    requireObjectAllowed(conn, input.objectKey);
+    return await callBoObjectApi(rawConfig, exeConfig, "POST",
+      `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}/records/batch-delete`,
+      { ids: input.ids });
   } catch (err) {
     return errorResult(err);
   }

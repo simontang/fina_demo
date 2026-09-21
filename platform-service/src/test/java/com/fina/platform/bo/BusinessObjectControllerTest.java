@@ -1,5 +1,9 @@
 package com.fina.platform.bo;
 
+import com.fina.platform.bo.BusinessObjectDtos.BatchCreateResponse;
+import com.fina.platform.bo.BusinessObjectDtos.BatchDeleteRequest;
+import com.fina.platform.bo.BusinessObjectDtos.BatchDeleteResponse;
+import com.fina.platform.bo.BusinessObjectDtos.BatchRecordRequest;
 import com.fina.platform.bo.BusinessObjectDtos.QueryResponse;
 import com.fina.platform.bo.BusinessObjectDtos.RecordRequest;
 import com.fina.platform.bo.BusinessObjectDtos.RecordResponse;
@@ -86,6 +90,44 @@ class BusinessObjectControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("r1"))
                 .andExpect(jsonPath("$.objectKey").value("customer"));
+    }
+
+    @Test
+    void batchRecordCreateIsAddressedByObjectKeyWithoutStoreKey() throws Exception {
+        when(service.authenticate(any(HttpServletRequest.class))).thenReturn(auth);
+        when(service.createRecords(eq(auth), eq("customer"), any(BatchRecordRequest.class)))
+                .thenReturn(new BatchCreateResponse("customer", 2, List.of("r1", "r2")));
+
+        mvc.perform(post("/api/v1/bo/objects/customer/records/batch")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"records":[{"name":"A"},{"name":"B"}]}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.objectKey").value("customer"))
+                .andExpect(jsonPath("$.created").value(2))
+                .andExpect(jsonPath("$.ids[0]").value("r1"));
+
+        verify(service).createRecords(eq(auth), eq("customer"), any(BatchRecordRequest.class));
+    }
+
+    @Test
+    void batchRecordDeleteIsAddressedByObjectKeyWithoutStoreKey() throws Exception {
+        when(service.authenticate(any(HttpServletRequest.class))).thenReturn(auth);
+        when(service.deleteRecords(eq(auth), eq("customer"), any(BatchDeleteRequest.class)))
+                .thenReturn(new BatchDeleteResponse("customer", 1, List.of("r1")));
+
+        mvc.perform(post("/api/v1/bo/objects/customer/records/batch-delete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"ids":["r1","missing"]}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.objectKey").value("customer"))
+                .andExpect(jsonPath("$.deleted").value(1))
+                .andExpect(jsonPath("$.ids[0]").value("r1"));
+
+        verify(service).deleteRecords(eq(auth), eq("customer"), any(BatchDeleteRequest.class));
     }
 
     @Test

@@ -54,9 +54,15 @@ You are modeling business data as Business Objects. A store is one PostgreSQL da
 - 轮换或收窄权限用 update_store_key；禁用授权用 delete_store_key。
 
 ## 8. 安全与确认
-- delete_object / delete_record 必须先取得用户明确确认，再传 confirm: true。
+- delete_object / delete_record / delete_records 必须先取得用户明确确认，再传 confirm: true。
 - 删除为软删，但不得在未确认时执行。
 - 不要把生产数据当测试数据；测试记录用完删除。
+
+## 8.1 批量写入 / 删除
+- 批量导入用 **create_records**（1-500 条/次，**原子**：任一条校验/写入失败则整批回滚）；不要逐条调 create_record。
+- 批量清理用 **delete_records**（1-500 个 id，**幂等**：不存在的 id 忽略、不报错）；返回实际删除的 id。
+- 超过 500 条时**分批**多次调用。
+- 两者都是写操作：先确认，delete_records 需 confirm:true。
 
 ## 9. 标准工作流
 1. 澄清业务实体与关键字段；不确定时用 ask_user_to_clarify。
@@ -65,7 +71,8 @@ You are modeling business data as Business Objects. A store is one PostgreSQL da
 4. create_object（或 update_object 加列）。
 5. get_object 复核定义。
 6. 验证：create_record 造样本 → query_records / get_record 核对 → delete_record 清理。
-7. 用 task 记录进度与最终定义。
+7. 数据量大时用 create_records / delete_records 批量处理（≤500/批）。
+8. 用 task 记录进度与最终定义。
 
 ## 10. 验收清单
 - [ ] 命名全部符合 ^[a-z][a-z0-9_]{0,62}$。
