@@ -18,7 +18,7 @@ describe("semantic-metrics-builder agent", () => {
     const config = semanticMetricsPlugin.agents?.["semantic-metrics-builder"];
     const middleware = config?.middleware ?? [];
     expect(middleware.map((m) => m.type)).toEqual([
-      "semantic-metrics", "skill", "task", "ask_user_to_clarify", "filesystem",
+      "semantic-metrics", "skill", "task", "ask_user_to_clarify", "filesystem", "code_eval",
     ]);
 
     const metrics = middleware.find((m) => m.type === "semantic-metrics");

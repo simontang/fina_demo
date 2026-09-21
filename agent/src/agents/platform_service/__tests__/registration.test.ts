@@ -261,6 +261,7 @@ describe("business objects plugin", () => {
     expect(types).toEqual([
       "ask_user_to_clarify",
       "business-objects",
+      "code_eval",
       "filesystem",
       "skill",
       "task",
