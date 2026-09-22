@@ -13,7 +13,7 @@ You are modeling business data as Business Objects. A store is one PostgreSQL da
 - **Store**：一个 store 对应一个 PostgreSQL 库 + schema（默认 public）。
 - **Store key**：一个授权 key 只绑定一个 store；permissions = READ / WRITE / MANAGE，决定该连接能读、写记录或管理对象结构。
 - **Object 定义**：objectKey → 物理表，含 fields 与 indexes；由 platform-service 同步生成 DDL。
-- **Record**：object 下的一行数据，按 id 读写；删除为软删。
+- **Record**：object 下的一行数据，按 id 读写；删除模式由对象的 deleteMode 决定（soft 软删 / hard 物理删除），默认物理删除。
 
 ## 2. 命名规范
 - storeKey / objectKey / field.key / index.name 一律匹配 ^[a-z][a-z0-9_]{0,62}$。
@@ -43,6 +43,12 @@ You are modeling business data as Business Objects. A store is one PostgreSQL da
 - 高频过滤/排序列建索引；低基数或写多读少的列不要建。
 - index.name 可省略，由服务端派生。
 
+## 5.1 删除模式（deleteMode）
+- create_object 可传 deleteMode：\`hard\`（物理删除，**默认**）或 \`soft\`（软删，保留 deleted=1 行，可审计）。
+- **建表前必须询问用户**需要物理删除还是软删除；用户未明确时用默认 \`hard\`。
+- update_object **不能修改** deleteMode；需要改就重建对象。
+- 唯一索引一律是部分唯一索引（WHERE deleted = 0）；soft 对象删除后可再用同名键。
+
 ## 6. v1 演进约束
 - update_object 只支持增量加列，**不支持删列或改类型**。
 - 需要删列/改类型时：新建 object，或加新列后由数据侧迁移，不原地改。
@@ -55,7 +61,7 @@ You are modeling business data as Business Objects. A store is one PostgreSQL da
 
 ## 8. 安全与确认
 - delete_object / delete_record / delete_records 必须先取得用户明确确认，再传 confirm: true。
-- 删除为软删，但不得在未确认时执行。
+- 删除遵循对象的 deleteMode（soft 软删 / hard 物理删除）；无论哪种模式都不得在未确认时执行。
 - 不要把生产数据当测试数据；测试记录用完删除。
 
 ## 8.1 批量写入 / 删除
@@ -68,7 +74,7 @@ You are modeling business data as Business Objects. A store is one PostgreSQL da
 1. 澄清业务实体与关键字段；不确定时用 ask_user_to_clarify。
 2. list_stores / test_store 选定 store。
 3. list_objects / get_object 检查是否已存在。
-4. create_object（或 update_object 加列）。
+4. 先询问用户 deleteMode（默认物理删除），再 create_object（或 update_object 加列）。
 5. get_object 复核定义。
 6. 验证：create_record 造样本 → query_records / get_record 核对 → delete_record 清理。
 7. 数据量大时用 create_records / delete_records 批量处理（≤500/批）。
@@ -80,6 +86,7 @@ You are modeling business data as Business Objects. A store is one PostgreSQL da
 - [ ] 索引覆盖主要查询，无过度索引。
 - [ ] get_object 结果与预期定义一致。
 - [ ] 测试记录已清理。
+- [ ] 已与用户确认 deleteMode（默认物理删除）。
 - [ ] task 描述记录了最终 object 定义。`;
 
 export const BUSINESS_OBJECTS_MODELING_SKILL: PluginSkillDefinition = {

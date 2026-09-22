@@ -31,6 +31,7 @@ export interface ObjectDefinitionInput {
   fields?: FieldDefinition[];
   indexes?: IndexDefinition[];
   status?: number;
+  deleteMode?: "soft" | "hard";
 }
 
 export interface QueryRecordsInput {

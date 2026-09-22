@@ -65,6 +65,7 @@ const objectDefinition = z.object({
   fields: z.array(field).min(1).optional(),
   indexes: z.array(index).optional(),
   status: z.number().int().optional(),
+  deleteMode: z.enum(["soft", "hard"]).optional(),
 });
 
 const filter = z.object({
@@ -181,7 +182,8 @@ export const businessObjectPlugin: Plugin = {
       { name: "get_object", description: "Get one Business Object definition by objectKey." },
       {
         name: "create_object",
-        description: "Create a Business Object definition and synchronize it into PostgreSQL DDL.",
+        description:
+          "Create a Business Object definition and synchronize it into PostgreSQL DDL. Optional deleteMode: 'hard' (default, physical delete) or 'soft' (keeps deleted rows).",
       },
       {
         name: "update_object",
@@ -204,7 +206,7 @@ export const businessObjectPlugin: Plugin = {
       {
         name: "delete_record",
         description:
-          "Soft-delete one Business Object record. Requires user confirmation, then pass confirm:true.",
+          "Delete one Business Object record (respecting the object's deleteMode). Requires user confirmation, then pass confirm:true.",
       },
       {
         name: "create_records",
@@ -214,7 +216,7 @@ export const businessObjectPlugin: Plugin = {
       {
         name: "delete_records",
         description:
-          "Soft-delete many Business Object records by id atomically (1-500). Idempotent: missing ids are ignored. Requires user confirmation, then pass confirm:true.",
+          "Delete many Business Object records by id atomically (1-500), respecting the object's deleteMode. Idempotent: missing ids are ignored. Requires user confirmation, then pass confirm:true.",
       },
     ],
     openExpose: [
@@ -423,7 +425,8 @@ export const businessObjectPlugin: Plugin = {
             boObjectCreate(input, exeConfig, pluginConfig),
           {
             name: "create_object",
-            description: "Create a Business Object definition and synchronize it into PostgreSQL DDL.",
+            description:
+              "Create a Business Object definition and synchronize it into PostgreSQL DDL. Optional deleteMode: 'hard' (default, physical delete) or 'soft' (keeps deleted rows).",
             schema: schemas.objectCreate,
           },
         ),
@@ -491,7 +494,7 @@ export const businessObjectPlugin: Plugin = {
           {
             name: "delete_record",
             description:
-              "Soft-delete one Business Object record. Requires user confirmation, then pass confirm:true.",
+              "Delete one Business Object record (respecting the object's deleteMode). Requires user confirmation, then pass confirm:true.",
             schema: schemas.recordDelete,
           },
         ),
@@ -511,7 +514,7 @@ export const businessObjectPlugin: Plugin = {
           {
             name: "delete_records",
             description:
-              "Soft-delete many Business Object records by id atomically (1-500). Idempotent: missing ids are ignored. Requires user confirmation, then pass confirm:true. Returns {deleted, ids}.",
+              "Delete many Business Object records by id atomically (1-500), respecting the object's deleteMode. Idempotent: missing ids are ignored. Requires user confirmation, then pass confirm:true. Returns {deleted, ids}.",
             schema: schemas.recordDeleteMany,
           },
         ),

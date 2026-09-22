@@ -26,4 +26,12 @@ describe("business objects builder assets", () => {
     expect(BUSINESS_OBJECTS_BUILDER_PROMPT).toContain("CRITICAL FIRST ACTION");
     expect(BUSINESS_OBJECTS_BUILDER_PROMPT).toMatch(/skill_name:\s*"business-objects-modeling"/);
   });
+
+  it("documents the delete mode policy and default", () => {
+    const content = BUSINESS_OBJECTS_MODELING_SKILL.content;
+    expect(content).toContain("## 5.1 删除模式");
+    expect(content).toContain("deleteMode");
+    expect(content).toContain("物理删除");
+    expect(BUSINESS_OBJECTS_BUILDER_PROMPT).toContain("deleteMode");
+  });
 });

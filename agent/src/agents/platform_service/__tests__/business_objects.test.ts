@@ -17,7 +17,7 @@ const rawConfig = {
       baseUrl: "http://svc:5707",
       apiKey: "k",
       boStoreKey: "bos_secret",
-      selectedEntities: ["customer"],
+      selectedEntities: ["customer", "customer_tag"],
     },
   }],
 };
@@ -72,6 +72,22 @@ describe("business object executors", () => {
       storeKey: "crm_store",
       objectKey: "customer",
       fields: [{ key: "name", type: "string", required: true }],
+    });
+  });
+
+  it("forwards deleteMode when creating object definitions", async () => {
+    await boObjectCreate({
+      storeKey: "crm_store",
+      objectKey: "customer_tag",
+      fields: [{ key: "tag_key", type: "string", required: true }],
+      deleteMode: "soft",
+    }, exeConfig, rawConfig);
+
+    const [, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(JSON.parse(init.body)).toMatchObject({
+      storeKey: "crm_store",
+      objectKey: "customer_tag",
+      deleteMode: "soft",
     });
   });
 

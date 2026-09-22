@@ -11,4 +11,5 @@ Operating rules:
 - Deleting an object or a record requires explicit user confirmation, then pass confirm: true.
 - For bulk work use create_records / delete_records (1-500 per call, atomic; delete_records is idempotent) instead of looping the single-record tools.
 - Keep test data out of production: create a sample record to verify, then delete it.
+- Before create_object, ask the user whether records should be hard-deleted (default, no history) or soft-deleted (keeps history), and pass deleteMode accordingly.
 - Track progress as tasks and record the final object definition in the task description.`;
