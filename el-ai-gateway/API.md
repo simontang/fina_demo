@@ -450,13 +450,40 @@ PUT /voice-tagging/:taskId/tags
 Content-Type: application/json
 ```
 
+**请求体**
+
 ```json
-{ "tags": [ { "tagId": "9ce355bfacca49c4a9e9322a9317c196", "tagValue": "抗老/紧致" } ] }
+{
+  "tags": [
+    { "tagId": "9ce355bfacca49c4a9e9322a9317c196" },
+    { "tagValue": "敏感肌" }
+  ]
+}
 ```
 
-> 每个元素是 `{ "tagId"?, "tagValue"? }`：
-> - 带 `tagId`：必须是标签主数据中已存在的 id，标签组/标签名以主数据为准（`tagValue` 可省）。
-> - 不带 `tagId`：按 `tagValue` 新建标签（标签组固定为 `客户画像`，类别为 `自定义标签`），系统生成 `tagId` 并回写到任务标签。
+`tags` 是**该任务提交后的完整标签列表**（整体覆盖）。每个元素是 `{ "tagId"?, "tagValue"? }`，按**有没有 `tagId`** 分两种含义：
+
+| 元素写法 | 含义 | 系统行为 |
+|---|---|---|
+| **带 `tagId`** | 选中一个**已存在**的标签 | 按 `tagId` 到**标签主数据**查询：查到 → 直接采用其标签组/标签名（元素里的 `tagValue` 会被忽略，可省略）；查不到 → `400 BAD_REQUEST`。**不会新建、也不会修改主数据**。 |
+| **不带 `tagId`**（只给 `tagValue`） | **新增**一个标签 | 以 `tagValue` 作为标签名；标签组固定为 `客户画像`，类别固定为 `自定义标签`。先按（标签组 + 标签名）查重：已存在 → 复用其 `tagId`；不存在 → 新建并生成一个 `tagId`。 |
+
+- 两种写法最终都会得到 `tagId`，并**回写**到任务标签；响应里的 `tags` 就是回写后的结果（含 `tagId`）。
+- 同一元素同时给了 `tagId` 和 `tagValue` 时，**以 `tagId` 为准**。
+- 元素既没有 `tagId`、`tagValue` 也为空 → `400 BAD_REQUEST`。
+
+**示例：只选已存在的标签**
+
+```json
+{ "tags": [ { "tagId": "9ce355bfacca49c4a9e9322a9317c196" } ] }
+```
+
+**示例：新增一个标签（无需先有 id）**
+
+```json
+{ "tags": [ { "tagValue": "敏感肌" } ] }
+```
+（无需再单独提交 `tagValue` 对应的 id；提交后响应会返回它的 `tagId`。）
 
 **响应 `200`**（更新后的任务 + 本次记录的 activity）：
 
