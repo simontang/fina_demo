@@ -99,7 +99,8 @@ class BusinessObjectServiceAuthTest {
                 null,
                 List.of(new FieldDefinition("name", "string", true, 255, null, null, null)),
                 List.of(),
-                1
+                1,
+                null
         );
 
         assertThatThrownBy(() -> service.createObject(auth, request))

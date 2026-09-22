@@ -280,7 +280,8 @@ public class BusinessObjectService {
         String tableName = BusinessObjectSqlSupport.tableNameFor(objectKey);
         List<FieldDefinition> fields = BusinessObjectSqlSupport.normalizeFields(request.fields());
         List<IndexDefinition> indexes = BusinessObjectSqlSupport.normalizeIndexes(request.indexes(), fields);
-        ObjectSchema schema = new ObjectSchema(fields, indexes);
+        ObjectSchema schema = new ObjectSchema(fields, indexes,
+                BusinessObjectSqlSupport.normalizeDeleteMode(request.deleteMode()));
 
         JdbcTemplate store = storeRuntime(connection.storeId()).jdbc();
         List<String> ddl = new ArrayList<>();
@@ -314,6 +315,12 @@ public class BusinessObjectService {
         if (!requestedStore.equals(existing.storeKey())) {
             throw ApiException.badRequest("storeKey cannot be changed after object creation");
         }
+        String requestedMode = request.deleteMode() == null || request.deleteMode().isBlank()
+                ? existing.schema().deleteMode()
+                : BusinessObjectSqlSupport.normalizeDeleteMode(request.deleteMode());
+        if (!requestedMode.equals(existing.schema().deleteMode())) {
+            throw ApiException.badRequest("deleteMode cannot be changed after object creation; recreate the object");
+        }
         List<FieldDefinition> fields = BusinessObjectSqlSupport.normalizeFields(request.fields());
         List<IndexDefinition> indexes = BusinessObjectSqlSupport.normalizeIndexes(request.indexes(), fields);
         List<String> ddl = new ArrayList<>(BusinessObjectSqlSupport.alterTableSql(
@@ -321,7 +328,7 @@ public class BusinessObjectService {
         ddl.addAll(BusinessObjectSqlSupport.createIndexSql(existing.tableName(), existing.objectKey(), indexes));
         executeDdl(existing.storeId(), existing.objectKey(), storeRuntime(existing.storeId()).jdbc(), ddl);
 
-        ObjectSchema schema = new ObjectSchema(fields, indexes);
+        ObjectSchema schema = new ObjectSchema(fields, indexes, existing.schema().deleteMode());
         jdbcTemplate.update("""
                 UPDATE bo_object_definitions
                    SET display_name = ?, description = ?, schema_json = ?, status = ?, updated_at = now()
@@ -407,12 +414,19 @@ public class BusinessObjectService {
     public Map<String, Object> deleteRecord(BoAuthContext auth, String objectKey, String id) {
         ObjectDefinition definition = loadDefinition(auth, objectKey);
         requireGrant(auth, definition.storeId(), Grant.WRITE);
-        int updated = storeRuntime(definition.storeId()).dsl()
-                .update(table(definition))
-                .set(deletedField(), 1)
-                .set(field("updated_at", LocalDateTime.class), LocalDateTime.now())
-                .where(idField().eq(id).and(deletedField().eq(0)))
-                .execute();
+        DSLContext dsl = storeRuntime(definition.storeId()).dsl();
+        int updated;
+        if (definition.schema().softDelete()) {
+            updated = dsl.update(table(definition))
+                    .set(deletedField(), 1)
+                    .set(field("updated_at", LocalDateTime.class), LocalDateTime.now())
+                    .where(idField().eq(id).and(deletedField().eq(0)))
+                    .execute();
+        } else {
+            updated = dsl.deleteFrom(table(definition))
+                    .where(idField().eq(id))
+                    .execute();
+        }
         return Map.of("deleted", updated > 0, "id", id);
     }
 
@@ -463,9 +477,10 @@ public class BusinessObjectService {
     }
 
     /**
-     * Soft-delete many records by id atomically. Idempotent: ids that do not exist
-     * (or were already deleted) are ignored, not an error; {@code deleted} counts
-     * the rows actually updated. Runs in a transaction on the store database.
+     * Delete many records atomically. Hard-delete objects remove rows; soft-delete
+     * objects set deleted = 1. Idempotent: ids that do not exist are ignored, not an
+     * error; {@code deleted} counts the rows actually changed. Runs in a transaction
+     * on the store database.
      */
     public BatchDeleteResponse deleteRecords(BoAuthContext auth, String objectKey, BatchDeleteRequest request) {
         ObjectDefinition definition = loadDefinition(auth, objectKey);
@@ -493,11 +508,13 @@ public class BusinessObjectService {
             DSLContext tx = DSL.using(configuration);
             List<String> removed = new ArrayList<>(requested.size());
             for (String id : requested) {
-                int updated = tx.update(table)
-                        .set(deletedField(), 1)
-                        .set(field("updated_at", LocalDateTime.class), LocalDateTime.now())
-                        .where(idField().eq(id).and(deletedField().eq(0)))
-                        .execute();
+                int updated = definition.schema().softDelete()
+                        ? tx.update(table)
+                                .set(deletedField(), 1)
+                                .set(field("updated_at", LocalDateTime.class), LocalDateTime.now())
+                                .where(idField().eq(id).and(deletedField().eq(0)))
+                                .execute()
+                        : tx.deleteFrom(table).where(idField().eq(id)).execute();
                 if (updated > 0) {
                     removed.add(id);
                 }
@@ -772,7 +789,7 @@ public class BusinessObjectService {
                                                        String schemaJson, Integer status) {
         ObjectSchema schema = readSchema(schemaJson);
         return new ObjectDefinitionResponse(id, storeId, storeKey, objectKey, tableName,
-                displayName, description, schema.fields(), schema.indexes(), status);
+                displayName, description, schema.fields(), schema.indexes(), status, schema.deleteMode());
     }
 
     private StoreResponse getStoreById(Long id) {
@@ -1031,10 +1048,15 @@ public class BusinessObjectService {
                           boolean canRead, boolean canWrite, boolean canManage) {
     }
 
-    private record ObjectSchema(List<FieldDefinition> fields, List<IndexDefinition> indexes) {
+    private record ObjectSchema(List<FieldDefinition> fields, List<IndexDefinition> indexes, String deleteMode) {
         private ObjectSchema {
             fields = fields == null ? List.of() : List.copyOf(fields);
             indexes = indexes == null ? List.of() : List.copyOf(indexes);
+            deleteMode = BusinessObjectSqlSupport.normalizeDeleteMode(deleteMode);
+        }
+
+        boolean softDelete() {
+            return BusinessObjectSqlSupport.DELETE_MODE_SOFT.equals(deleteMode);
         }
     }
 
@@ -1043,7 +1065,7 @@ public class BusinessObjectService {
                                     ObjectSchema schema, Integer status) {
         ObjectDefinitionResponse toResponse() {
             return new ObjectDefinitionResponse(id, storeId, storeKey, objectKey, tableName,
-                    displayName, description, schema.fields(), schema.indexes(), status);
+                    displayName, description, schema.fields(), schema.indexes(), status, schema.deleteMode());
         }
     }
 

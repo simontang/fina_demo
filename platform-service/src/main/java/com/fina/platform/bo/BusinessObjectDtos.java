@@ -63,7 +63,8 @@ public final class BusinessObjectDtos {
             String description,
             List<FieldDefinition> fields,
             List<IndexDefinition> indexes,
-            Integer status
+            Integer status,
+            String deleteMode
     ) {
     }
 
@@ -77,7 +78,8 @@ public final class BusinessObjectDtos {
             String description,
             List<FieldDefinition> fields,
             List<IndexDefinition> indexes,
-            Integer status
+            Integer status,
+            String deleteMode
     ) {
     }
 
