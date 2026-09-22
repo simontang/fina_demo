@@ -233,11 +233,26 @@ describe("business objects plugin", () => {
     jest.restoreAllMocks();
   });
 
-  it("exposes only read-only tools to Open, all present in the middleware", async () => {
+  it("exposes read-only tools and record writes to Open, all present in the middleware", async () => {
     const expose = (businessObjectPlugin.meta.openExpose ?? []).map((e) =>
       typeof e === "string" ? { name: e, readOnly: false } : e,
     );
     expect(expose.map((e) => e.name).sort()).toEqual([
+      "create_record",
+      "create_records",
+      "delete_record",
+      "delete_records",
+      "get_object",
+      "get_record",
+      "list_objects",
+      "list_store_keys",
+      "list_stores",
+      "query_records",
+      "test_store",
+      "update_record",
+    ]);
+    const readOnlyNames = expose.filter((e) => e.readOnly).map((e) => e.name).sort();
+    expect(readOnlyNames).toEqual([
       "get_object",
       "get_record",
       "list_objects",
@@ -246,7 +261,6 @@ describe("business objects plugin", () => {
       "query_records",
       "test_store",
     ]);
-    for (const e of expose) expect(e.readOnly).toBe(true);
 
     const mw = await businessObjectPlugin.middleware!({});
     const toolNames = ((mw as { tools: Array<{ name: string }> }).tools ?? []).map((t) => t.name);

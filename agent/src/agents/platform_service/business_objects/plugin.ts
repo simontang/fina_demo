@@ -225,6 +225,11 @@ export const businessObjectPlugin: Plugin = {
       { name: "get_object", readOnly: true },
       { name: "query_records", readOnly: true },
       { name: "get_record", readOnly: true },
+      { name: "create_record", readOnly: false },
+      { name: "update_record", readOnly: false },
+      { name: "delete_record", readOnly: false },
+      { name: "create_records", readOnly: false },
+      { name: "delete_records", readOnly: false },
     ],
     configSchema: {
       type: "object",
