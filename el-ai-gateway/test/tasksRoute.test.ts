@@ -55,6 +55,12 @@ function deps(overrides: Record<string, unknown> = {}) {
       updateResult: vi.fn(async () => ({ raw: {} })),
       listTasks: vi.fn(async () => []),
     },
+    boTools: {
+      getRecord: vi.fn(async () => undefined),
+      queryRecords: vi.fn(async () => []),
+      createRecord: vi.fn(async () => ({})),
+      deleteRecords: vi.fn(async () => 0),
+    } as any,
     ...overrides,
   } as any;
 }

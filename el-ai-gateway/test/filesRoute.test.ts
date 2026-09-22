@@ -43,6 +43,7 @@ describe("POST /api/v1/files", () => {
       platformFiles: { upload, presign: vi.fn() } as any,
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
+      boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
     });
 
     const { payload, contentType } = multipartBody("a.wav", "RIFF");
@@ -76,6 +77,7 @@ describe("POST /api/v1/files", () => {
       platformFiles: { upload, presign: vi.fn() } as any,
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
+      boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
     });
     const { payload, contentType } = multipartBody("a.wav", "RIFF");
     const res = await app.inject({
@@ -96,6 +98,7 @@ describe("POST /api/v1/files", () => {
       platformFiles: { upload, presign: vi.fn() } as any,
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
+      boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
     });
     const { payload, contentType } = multipartBody("a.wav", "RIFF");
     const res = await app.inject({
@@ -116,6 +119,7 @@ describe("POST /api/v1/files", () => {
       platformFiles: { upload, presign: vi.fn() } as any,
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
+      boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
     });
     const { payload, contentType } = multipartBody("a.wav", "RIFF");
     const res = await app.inject({
@@ -135,6 +139,7 @@ describe("POST /api/v1/files", () => {
       platformFiles: { upload: vi.fn(), presign: vi.fn() } as any,
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
+      boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
     });
     const { payload, contentType } = multipartBody("a.wav", "RIFF");
     const res = await app.inject({
@@ -159,6 +164,7 @@ describe("GET /api/v1/files", () => {
       platformFiles: { upload: vi.fn(), presign: vi.fn(), list: vi.fn() } as any,
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
+      boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
     });
     const res = await app.inject({
       method: "GET",
@@ -175,6 +181,7 @@ describe("GET /api/v1/files", () => {
       platformFiles: { upload: vi.fn(), presign: vi.fn(), list: vi.fn() } as any,
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
+      boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
     });
     const res = await app.inject({
       method: "GET",
@@ -192,6 +199,7 @@ describe("GET /api/v1/files", () => {
       platformFiles: { upload: vi.fn(), presign: vi.fn(), list } as any,
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
+      boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
     });
     const res = await app.inject({
       method: "GET",
@@ -229,6 +237,7 @@ describe("GET /api/v1/files/:uuid/url", () => {
       platformFiles: { upload: vi.fn(), list: vi.fn(), presign } as any,
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
+      boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
     });
     const res = await app.inject({
       method: "GET",
@@ -252,6 +261,7 @@ describe("GET /api/v1/files/:uuid/url", () => {
       platformFiles: { upload: vi.fn(), list: vi.fn(), presign: vi.fn() } as any,
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
+      boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
     });
     const res = await app.inject({
       method: "GET",

@@ -28,6 +28,7 @@ function build(config: Config) {
     platformFiles: { upload: vi.fn(), presign: vi.fn() } as any,
     agentRuns: { startRun: vi.fn() } as any,
     taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
+    boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
   });
 }
 
