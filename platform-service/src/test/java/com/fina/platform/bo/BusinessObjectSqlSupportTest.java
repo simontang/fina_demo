@@ -85,4 +85,39 @@ class BusinessObjectSqlSupportTest {
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("not defined");
     }
+
+    @Test
+    void uniqueIndexesArePartialOverLiveRows() {
+        List<FieldDefinition> fields = BusinessObjectSqlSupport.normalizeFields(List.of(
+                new FieldDefinition("customer_no", "string", true, 64, null, null, null),
+                new FieldDefinition("tag_key", "string", true, 64, null, null, null)
+        ));
+        List<IndexDefinition> indexes = BusinessObjectSqlSupport.normalizeIndexes(List.of(
+                new IndexDefinition("uk_tag_customer_key", List.of("customer_no", "tag_key"), true),
+                new IndexDefinition("idx_tag_key", List.of("tag_key"), false)
+        ), fields);
+
+        List<String> sql = BusinessObjectSqlSupport.createIndexSql("bo_customer_tag", "customer_tag", indexes);
+
+        assertThat(sql).containsSubsequence(
+                "DROP INDEX IF EXISTS \"idx_customer_tag_uk_tag_customer_key\"",
+                "CREATE UNIQUE INDEX IF NOT EXISTS \"idx_customer_tag_uk_tag_customer_key\" "
+                        + "ON \"bo_customer_tag\" (\"customer_no\", \"tag_key\") WHERE \"deleted\" = 0");
+        assertThat(sql).contains(
+                "CREATE INDEX IF NOT EXISTS \"idx_customer_tag_idx_tag_key\" "
+                        + "ON \"bo_customer_tag\" (\"tag_key\")");
+        assertThat(sql).noneMatch(s -> s.contains("idx_tag_key") && s.contains("WHERE"));
+    }
+
+    @Test
+    void deleteModeDefaultsToHardAndRejectsOtherValues() {
+        assertThat(BusinessObjectSqlSupport.normalizeDeleteMode(null)).isEqualTo("hard");
+        assertThat(BusinessObjectSqlSupport.normalizeDeleteMode("  ")).isEqualTo("hard");
+        assertThat(BusinessObjectSqlSupport.normalizeDeleteMode("SOFT")).isEqualTo("soft");
+        assertThat(BusinessObjectSqlSupport.normalizeDeleteMode("hard")).isEqualTo("hard");
+
+        assertThatThrownBy(() -> BusinessObjectSqlSupport.normalizeDeleteMode("purge"))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("deleteMode must be");
+    }
 }

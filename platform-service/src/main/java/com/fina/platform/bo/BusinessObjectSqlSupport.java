@@ -17,6 +17,8 @@ final class BusinessObjectSqlSupport {
     private static final Set<String> BASE_COLUMNS = Set.of("id", "created_at", "updated_at", "deleted");
     private static final Set<String> FIELD_TYPES = Set.of(
             "string", "text", "integer", "long", "decimal", "boolean", "date", "datetime", "json");
+    static final String DELETE_MODE_SOFT = "soft";
+    static final String DELETE_MODE_HARD = "hard";
 
     private BusinessObjectSqlSupport() {
     }
@@ -97,6 +99,17 @@ final class BusinessObjectSqlSupport {
         return List.copyOf(normalized);
     }
 
+    static String normalizeDeleteMode(String value) {
+        if (value == null || value.isBlank()) {
+            return DELETE_MODE_HARD;
+        }
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        if (!DELETE_MODE_SOFT.equals(normalized) && !DELETE_MODE_HARD.equals(normalized)) {
+            throw ApiException.badRequest("deleteMode must be 'soft' or 'hard'");
+        }
+        return normalized;
+    }
+
     static String createTableSql(String tableName, List<FieldDefinition> fields) {
         StringBuilder sql = new StringBuilder();
         sql.append("CREATE TABLE IF NOT EXISTS ").append(quote(tableName)).append(" (");
@@ -118,11 +131,17 @@ final class BusinessObjectSqlSupport {
             if (indexName.length() > 63) {
                 indexName = indexName.substring(0, 63);
             }
-            String unique = Boolean.TRUE.equals(index.unique()) ? "UNIQUE " : "";
+            boolean unique = Boolean.TRUE.equals(index.unique());
             String columns = index.fields().stream().map(BusinessObjectSqlSupport::quote)
                     .collect(java.util.stream.Collectors.joining(", "));
-            sql.add("CREATE " + unique + "INDEX IF NOT EXISTS " + quote(indexName)
-                    + " ON " + quote(tableName) + " (" + columns + ")");
+            if (unique) {
+                sql.add("DROP INDEX IF EXISTS " + quote(indexName));
+                sql.add("CREATE UNIQUE INDEX IF NOT EXISTS " + quote(indexName)
+                        + " ON " + quote(tableName) + " (" + columns + ") WHERE \"deleted\" = 0");
+            } else {
+                sql.add("CREATE INDEX IF NOT EXISTS " + quote(indexName)
+                        + " ON " + quote(tableName) + " (" + columns + ")");
+            }
         }
         return sql;
     }
