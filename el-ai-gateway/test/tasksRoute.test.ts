@@ -43,7 +43,7 @@ function deps(overrides: Record<string, unknown> = {}) {
         status: "in_progress",
         title: "Voice tagging: 471c20082b524316accc1b23cba8a4de",
         createdAt: "2026-09-15T06:13:00Z",
-        metadata: { uuid: "471c20082b524316accc1b23cba8a4de" },
+        metadata: { uuid: "471c20082b524316accc1b23cba8a4de", baId: "ba_001", customerId: "cus_8899" },
         result: JSON.stringify([
           { tagId: "9ce355bfacca49c4a9e9322a9317c196", name: "抗老/紧致", dimension: "concerns" },
         ]),
@@ -58,8 +58,8 @@ function deps(overrides: Record<string, unknown> = {}) {
     boTools: {
       getRecord: vi.fn(async () => undefined),
       queryRecords: vi.fn(async () => []),
-      createRecord: vi.fn(async () => ({})),
-      deleteRecords: vi.fn(async () => 0),
+      createRecord: vi.fn(async (_objectKey: string, _data: any) => ({})),
+      deleteRecords: vi.fn(async (_objectKey: string, _ids: string[]) => 0),
     } as any,
     ...overrides,
   } as any;
@@ -155,7 +155,11 @@ describe("GET /api/v1/voice-tagging/:id", () => {
     expect(body.fileId).toBe("471c20082b524316accc1b23cba8a4de");
     expect(body.status).toBe("in_progress");
     expect(body.tags).toHaveLength(1);
-    expect(body.tags[0]).toMatchObject({ tagId: "9ce355bfacca49c4a9e9322a9317c196", name: "抗老/紧致" });
+    expect(body.tags[0]).toMatchObject({
+      tagId: "9ce355bfacca49c4a9e9322a9317c196",
+      tagKey: "concerns",
+      tagValue: "抗老/紧致",
+    });
     expect(body.activities).toBeUndefined();
   });
 
@@ -256,23 +260,38 @@ describe("GET /api/v1/voice-tagging?baId=&customerId=", () => {
 
 describe("PUT /api/v1/voice-tagging/:id/tags", () => {
   const TASK = "b3ca978f-3832-4a2c-959b-40fa48c43352";
+  const DEF_ID = "9ce355bfacca49c4a9e9322a9317c196";
 
-  function statefulDeps() {
+  function boStub(overrides: Record<string, unknown> = {}) {
+    return {
+      getRecord: vi.fn(async (_objectKey: string, id: string) =>
+        id === DEF_ID
+          ? { id: DEF_ID, tag_id: DEF_ID, tag_group: "concerns", tag_name: "抗老/紧致" }
+          : undefined,
+      ),
+      queryRecords: vi.fn(async () => []),
+      createRecord: vi.fn(async (_objectKey: string, _data: any) => ({})),
+      deleteRecords: vi.fn(async (_objectKey: string, _ids: string[]) => 0),
+      ...overrides,
+    };
+  }
+
+  function statefulDeps(boOverrides: Record<string, unknown> = {}) {
     let current: any = {
       id: TASK,
       status: "in_progress",
       title: "Voice tagging: 2ccf6fef88b64a16b62fe491a8f7a132",
       createdAt: "2026-09-15T05:18:00Z",
-      metadata: { uuid: "2ccf6fef88b64a16b62fe491a8f7a132" },
-      result: JSON.stringify([
-        { tagId: "2f0a7d1c6b4e48a2b3c5d6e7f8091a2b", name: "保湿", dimension: "concerns" },
-      ]),
+      updatedAt: "2026-09-15T05:20:00Z",
+      metadata: { uuid: "2ccf6fef88b64a16b62fe491a8f7a132", baId: "ba_001", customerId: "cus_8899" },
+      result: "[]",
       activities: [
         { id: "act-1", action: "activity", detail: { markdown: "## t" }, createdAt: "2026-09-15T05:20:00Z" },
       ],
       raw: {},
     };
     return deps({
+      boTools: boStub(boOverrides),
       taskTools: {
         createTask: vi.fn(),
         getTask: vi.fn(async () => current),
@@ -287,46 +306,67 @@ describe("PUT /api/v1/voice-tagging/:id/tags", () => {
           };
           return { raw: {} };
         }),
+        listTasks: vi.fn(async () => [current]),
       },
     });
   }
 
-  it("replaces tags (stored in result) and records an activity", async () => {
+  it("resolves an existing tagId against tag_definition and writes {tagId,tagKey,tagValue}", async () => {
     const d = statefulDeps();
     const app = buildServer(d);
     const res = await app.inject({
       method: "PUT",
       url: `/api/v1/voice-tagging/${TASK}/tags`,
       headers: { authorization: "Bearer secret" },
-      payload: {
-        tags: ["9ce355bfacca49c4a9e9322a9317c196", "4a1b2c3d5e6f47089a0b1c2d3e4f5061"],
-      },
+      payload: { tags: [{ tagId: DEF_ID, tagValue: "ignored" }] },
     });
     expect(res.statusCode).toBe(200);
-    const body = res.json();
-    expect(body.tags).toHaveLength(2);
-    expect(body.tags[0]).toMatchObject({ tagId: "9ce355bfacca49c4a9e9322a9317c196", name: "抗老/紧致" });
-    expect(body.activity.action).toBe("updated");
+    expect(d.boTools.getRecord).toHaveBeenCalledWith("tag_definition", DEF_ID);
     expect(d.taskTools.updateResult).toHaveBeenCalledWith({
       id: TASK,
-      result: JSON.stringify([
-        { tagId: "9ce355bfacca49c4a9e9322a9317c196", name: "抗老/紧致", dimension: "concerns" },
-        { tagId: "4a1b2c3d5e6f47089a0b1c2d3e4f5061", name: "黑钻光灿面霜", dimension: "interested_products" },
-      ]),
+      result: JSON.stringify([{ tagId: DEF_ID, tagKey: "concerns", tagValue: "抗老/紧致" }]),
     });
+    expect(res.json().tags).toEqual([{ tagId: DEF_ID, tagKey: "concerns", tagValue: "抗老/紧致" }]);
+  });
 
-    const acts = await app.inject({
-      method: "GET",
-      url: `/api/v1/voice-tagging/${TASK}/activities`,
+  it("creates a new tag_definition (group 客户画像) when no tagId is given", async () => {
+    const createRecord = vi.fn(async (_objectKey: string, _data: any) => ({}));
+    const d = statefulDeps({ queryRecords: vi.fn(async () => []), createRecord });
+    const app = buildServer(d);
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/voice-tagging/${TASK}/tags`,
       headers: { authorization: "Bearer secret" },
+      payload: { tags: [{ tagValue: "新标签" }] },
     });
-    expect(acts.statusCode).toBe(200);
-    expect(acts.json().total).toBe(2);
-    expect(acts.json().activities[0].action).toBe("updated");
+    expect(res.statusCode).toBe(200);
+    const created = createRecord.mock.calls.find((c) => c[0] === "tag_definition");
+    expect(created?.[1]).toMatchObject({
+      tag_group: "客户画像", category: "自定义标签", tag_name: "新标签",
+    });
+    expect((created?.[1] as any).tag_id).toMatch(/^[0-9a-f]{32}$/);
+  });
+
+  it("reuses an existing master entry for a new tagValue", async () => {
+    const createRecord = vi.fn(async (_objectKey: string, _data: any) => ({}));
+    const d = statefulDeps({
+      queryRecords: vi.fn(async () => [{ id: "rec1", tag_id: "abc", tag_group: "客户画像", tag_name: "新标签" }]),
+      createRecord,
+    });
+    const app = buildServer(d);
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/voice-tagging/${TASK}/tags`,
+      headers: { authorization: "Bearer secret" },
+      payload: { tags: [{ tagValue: "新标签" }] },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(createRecord.mock.calls.some((c) => c[0] === "tag_definition")).toBe(false);
+    expect(res.json().tags).toEqual([{ tagId: "abc", tagKey: "客户画像", tagValue: "新标签" }]);
   });
 
   it("rejects an unknown tagId", async () => {
-    const app = buildServer(deps());
+    const app = buildServer(statefulDeps());
     const res = await app.inject({
       method: "PUT",
       url: `/api/v1/voice-tagging/${TASK}/tags`,
@@ -334,10 +374,11 @@ describe("PUT /api/v1/voice-tagging/:id/tags", () => {
       payload: { tags: ["00000000000000000000000000000000"] },
     });
     expect(res.statusCode).toBe(400);
+    expect(res.json().code).toBe("BAD_REQUEST");
   });
 
   it("rejects a non-array tags body", async () => {
-    const app = buildServer(deps());
+    const app = buildServer(statefulDeps());
     const res = await app.inject({
       method: "PUT",
       url: `/api/v1/voice-tagging/${TASK}/tags`,
@@ -345,6 +386,39 @@ describe("PUT /api/v1/voice-tagging/:id/tags", () => {
       payload: { tags: "nope" },
     });
     expect(res.statusCode).toBe(400);
+  });
+
+  it("reconciles customer_tag to the union of the customer's task tags", async () => {
+    const staleId = "cccccccccccccccccccccccccccccccc";
+    const createRecord = vi.fn(async (_objectKey: string, _data: any) => ({}));
+    const deleteRecords = vi.fn(async (_objectKey: string, _ids: string[]) => 1);
+    const d = statefulDeps({
+      getRecord: vi.fn(async (_o: string, id: string) =>
+        id === DEF_ID
+          ? { id: DEF_ID, tag_id: DEF_ID, tag_group: "concerns", tag_name: "抗老/紧致" }
+          : { id, tag_id: id, tag_group: "g", tag_name: "n" },
+      ),
+      queryRecords: vi.fn(async (objectKey: string) =>
+        objectKey === "customer_tag"
+          ? [{ id: "row-stale", tag_id: staleId, source: "voice", customer_no: "cus_8899" }]
+          : [],
+      ),
+      createRecord,
+      deleteRecords,
+    });
+    const app = buildServer(d);
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/voice-tagging/${TASK}/tags`,
+      headers: { authorization: "Bearer secret" },
+      payload: { tags: [{ tagId: DEF_ID, tagValue: "x" }] },
+    });
+    expect(res.statusCode).toBe(200);
+    const customerCreate = createRecord.mock.calls.find((c) => c[0] === "customer_tag");
+    expect(customerCreate?.[1]).toMatchObject({
+      customer_no: "cus_8899", tag_id: DEF_ID, tag_key: "concerns", tag_value: "抗老/紧致", source: "voice",
+    });
+    expect(deleteRecords).toHaveBeenCalledWith("customer_tag", ["row-stale"]);
   });
 
   it("returns 404 for an unknown task", async () => {

@@ -10,6 +10,7 @@ export type TaskRecord = {
   result?: string;
   metadata?: Record<string, unknown>;
   createdAt?: string;
+  updatedAt?: string;
   activities: unknown[];
   raw: unknown;
 };
@@ -77,6 +78,7 @@ export function createTaskToolClient(mcp: McpCaller): TaskToolClient {
         result: task.result,
         metadata: task.metadata,
         createdAt: task.createdAt,
+        updatedAt: task.updatedAt,
         activities: data?.activities ?? task.activities ?? [],
         raw: data,
       };
@@ -97,6 +99,7 @@ export function createTaskToolClient(mcp: McpCaller): TaskToolClient {
         result: task.result,
         metadata: task.metadata,
         createdAt: task.createdAt,
+        updatedAt: task.updatedAt,
         activities: task.activities ?? [],
         raw: task,
       }));
