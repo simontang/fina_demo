@@ -10,6 +10,10 @@
 
 **Design spec:** `docs/superpowers/specs/2026-09-22-bo-delete-mode-design.md`
 
+> **No local JDK:** platform-service builds/tests run through Docker with the preinstalled `gradle:8.6-jdk17` image:
+> `docker run --rm -v "$PWD":/app -w /app gradle:8.6-jdk17 gradle test --no-daemon --console=plain [--tests '<pattern>']`
+> Run this from `platform-service/` (the `$PWD` mount must point at the module root).
+
 ---
 
 ## File Structure
@@ -79,7 +83,7 @@ Append these two tests to `BusinessObjectSqlSupportTest` (before the closing `}`
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `./gradlew test --tests 'com.fina.platform.bo.BusinessObjectSqlSupportTest'`
+Run: `docker run --rm -v "$PWD":/app -w /app gradle:8.6-jdk17 gradle test --no-daemon --console=plain --tests 'com.fina.platform.bo.BusinessObjectSqlSupportTest'`
 Expected: FAIL — `normalizeDeleteMode` does not exist; index SQL has no `WHERE "deleted" = 0`.
 
 - [ ] **Step 3: Implement the SQL support changes**
@@ -134,7 +138,7 @@ Replace the body of `createIndexSql` with:
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `./gradlew test --tests 'com.fina.platform.bo.BusinessObjectSqlSupportTest'`
+Run: `docker run --rm -v "$PWD":/app -w /app gradle:8.6-jdk17 gradle test --no-daemon --console=plain --tests 'com.fina.platform.bo.BusinessObjectSqlSupportTest'`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -308,12 +312,12 @@ Also update the `deleteRecords` javadoc first line so it no longer claims uncond
 
 - [ ] **Step 7: Compile**
 
-Run: `./gradlew compileJava`
+Run: `docker run --rm -v "$PWD":/app -w /app gradle:8.6-jdk17 gradle compileJava --no-daemon --console=plain`
 Expected: BUILD SUCCESSFUL.
 
 - [ ] **Step 8: Run the BO unit tests**
 
-Run: `./gradlew test --tests 'com.fina.platform.bo.*'`
+Run: `docker run --rm -v "$PWD":/app -w /app gradle:8.6-jdk17 gradle test --no-daemon --console=plain --tests 'com.fina.platform.bo.*'`
 Expected: PASS (existing tests still green).
 
 - [ ] **Step 9: Commit**
@@ -377,7 +381,7 @@ class GlobalExceptionHandlerTest {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `./gradlew test --tests 'com.fina.platform.exception.GlobalExceptionHandlerTest'`
+Run: `docker run --rm -v "$PWD":/app -w /app gradle:8.6-jdk17 gradle test --no-daemon --console=plain --tests 'com.fina.platform.exception.GlobalExceptionHandlerTest'`
 Expected: FAIL — `handleDataAccess` does not exist.
 
 - [ ] **Step 3: Implement the handler**
@@ -419,7 +423,7 @@ and add the handler + helper methods:
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `./gradlew test --tests 'com.fina.platform.exception.GlobalExceptionHandlerTest'`
+Run: `docker run --rm -v "$PWD":/app -w /app gradle:8.6-jdk17 gradle test --no-daemon --console=plain --tests 'com.fina.platform.exception.GlobalExceptionHandlerTest'`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -609,7 +613,7 @@ git commit -m "feat(bo): expose deleteMode in BO plugin and builder policy"
 
 - [ ] **Step 1: platform-service full test suite**
 
-Run: `cd platform-service && ./gradlew test`
+Run: `cd platform-service && docker run --rm -v "$PWD":/app -w /app gradle:8.6-jdk17 gradle test --no-daemon --console=plain`
 Expected: BUILD SUCCESSFUL, all tests pass.
 
 - [ ] **Step 2: agent test suite**
