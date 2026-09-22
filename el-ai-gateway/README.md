@@ -20,7 +20,6 @@ Estée Lauder AI project API gateway for **voice-file tagging and customer/file/
 | GET | `/api/v1/voice-tagging/:id` | task status + tags |
 | GET | `/api/v1/voice-tagging/:id/activities` | task activity timeline |
 | PUT | `/api/v1/voice-tagging/:id/tags` | **overwrite** this task's tags `{tags:[tagId,...]}`; records an activity (**task-level, not customer-level**) |
-| POST | `/api/v1/voice-tagging/:id/feedback` | `{content,summary?}`; relays feedback to the agent via a background run (agent appends activity) |
 | GET | `/api/v1/customers/:customerId/tags` | a customer's business tags (name + tag uuid); **customer-level, query-only** (updated internally) |
 
 ## Run
@@ -55,8 +54,8 @@ pnpm typecheck
 
 - Transcription/tagging results are read through the query endpoints; the gateway does not deliver callbacks.
 - Task/activity state lives in the agent platform (`task_manage_task`); the gateway is stateless.
-- The gateway only creates tasks and reads status. `add_activity` / `set_status` are performed by the agent,
-  so feedback is relayed to the agent as a run.
+- The gateway creates tasks, lists/reads them, and overwrites a task's tags. `add_activity` / `set_status`
+  are performed by the agent.
 - The agent trigger is **fire-and-forget**: the gateway logs in (session token, cached), POSTs a background
   run to `/api/runs` carrying only the `taskId`, and returns immediately (errors are logged). Task status is
   read from the task created via MCP.

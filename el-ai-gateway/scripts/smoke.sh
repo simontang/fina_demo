@@ -24,8 +24,3 @@ TASK_ID=$(printf '%s' "$TASK" | python3 -c 'import sys,json;print(json.load(sys.
 
 echo "== task status =="
 curl -sS "$BASE/api/v1/voice-tagging/$TASK_ID" -H "Authorization: Bearer $KEY"; echo
-
-echo "== feedback =="
-curl -sS -X POST "$BASE/api/v1/voice-tagging/$TASK_ID/feedback" \
-  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d '{"content":"Smoke test feedback."}'; echo

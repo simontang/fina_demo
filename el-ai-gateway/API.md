@@ -21,13 +21,13 @@
 
 - 上传语音文件，拿到 `uuid`；
 - 触发处理：**语音转文本** → 按客户画像**多维度打标签**（肤质、诉求、感兴趣产品、购买意向、服务机会、自定义标签…），每条标签都带原文 **evidence**；
-- 业务可**查询任务状态与结果**（转写全文、打标结果），并可**回填反馈**（写回任务时间线）。
+- 业务可**查询任务状态与结果**（转写全文、打标结果），并可**修正任务标签**。
 
 **2. 业务 / 界面管理接口**
 支撑"客户详情"等界面的读取与管理：
 
 - **文件管理**：上传、按 BA + 客户查询文件、获取音频播放链接；
-- **任务管理**：发起打标、按 BA + 客户列任务、任务详情、时间线、修正标签、提交反馈；
+- **任务管理**：发起打标、按 BA + 客户列任务、任务详情、时间线、修正标签；
 - **客户标签**：查询客户画像标签（由内部系统更新，外部只读）。
 
 > 当前转写为 mock（结果里 `mock:true`），接口契约与真实链路一致。
@@ -77,7 +77,7 @@ Authorization: Bearer <API_KEY>
   ```
 - **路径拼接**：下文所有接口路径都**相对 Base URL**，最终 URL = `Base + 路径`（Base 末尾无斜杠）。例：`https://ada.alphafina.cn/api/el-ai-gateway/files`。
 - **时间字段**：均为 ISO 8601（如 `2026-09-15T06:13:00Z`）；不同接口精度可能是秒或微秒，解析请容错。
-- **发起 / 反馈是异步的**：调用立即返回，系统在后台处理并写入任务时间线。前端可**每 3–5 秒轮询一次** [查询任务状态](#83-查询任务状态)，直到 `status` 进入**终态**（`completed` / `failed` / `cancelled`）后再停止。
+- **发起是异步的**：调用立即返回，系统在后台处理并写入任务时间线。前端可**每 3–5 秒轮询一次** [查询任务状态](#83-查询任务状态)，直到 `status` 进入**终态**（`completed` / `failed` / `cancelled`）后再停止。
 - 当前转写为 **mock**（处理结果里 `mock: true`）。
 - 结果读取方式：转写与打标结果**全部通过查询接口获取**（无 webhook / 无回调）。
 
@@ -96,14 +96,7 @@ Authorization: Bearer <API_KEY>
   - 客户维度的标签更新由**内部系统**完成，外部不提供写接口。
 - `PUT /voice-tagging/:taskId/tags` 是**覆盖式**：传入的数组会**替换该任务原有的全部标签**，不是追加。若要在原基础上加，请先 `GET /voice-tagging/:taskId` 读出 `tags`，合并后再整体 PUT。
 
-**任务上的两个写操作，别混淆**：
-
-| 操作 | 接口 | 作用 | 是否改变任务标签 |
-|---|---|---|---|
-| **修改任务标签** | `PUT /voice-tagging/:taskId/tags` | 整体**覆盖**该任务的标签集合 | ✅ 会改标签 |
-| **提交反馈** | `POST /voice-tagging/:taskId/feedback` | 往任务**时间线**追加一条**纯文本** | ❌ **不改**标签，只加一条记录 |
-
-> 两者都会在任务时间线留痕，但**只有 `PUT .../tags` 会改变标签结果**；反馈只是备注/更正文本。
+> 修改标签是任务上**唯一的写操作**：会覆盖标签结果并自动在任务时间线追加一条记录。
 
 ## 3. 场景：客户详情（主界面）
 
@@ -127,12 +120,12 @@ Authorization: Bearer <API_KEY>
 
 ## 4. 场景：全部记录
 
-展示该 BA 在某客户名下的语音任务时间线（标签 & 反馈）。
+展示该 BA 在某客户名下的语音任务时间线（标签 & 修改记录）。
 
 | 动作 | 接口 |
 |---|---|
 | 列出该 BA + 客户名下的语音任务 | [`GET /voice-tagging?baId=&customerId=`](#82-查询任务列表) |
-| 展开某任务的转写 / 打标 / 反馈时间线 | [`GET /voice-tagging/:taskId/activities`](#84-查询任务时间线) |
+| 展开某任务的转写 / 打标 / 修改记录时间线 | [`GET /voice-tagging/:taskId/activities`](#84-查询任务时间线) |
 
 **调用顺序**：列表页 `GET /voice-tagging?baId=&customerId=` 拿到 `tasks[]`（含 `taskId`）→ 点开某条任务时用其 `taskId` 调 `GET /voice-tagging/:taskId/activities`。
 
@@ -150,7 +143,7 @@ Authorization: Bearer <API_KEY>
 
 ## 6. 场景：语音手记 / 任务详情
 
-上传录音 → 查看转写与打标结果、修正标签、回填反馈。
+上传录音 → 查看转写与打标结果、修正标签。
 
 | 步骤 | 接口 |
 |---|---|
@@ -160,9 +153,8 @@ Authorization: Bearer <API_KEY>
 | 查看转写与打标结果 | [`GET /voice-tagging/:taskId`](#83-查询任务状态) |
 | 查看时间线 | [`GET /voice-tagging/:taskId/activities`](#84-查询任务时间线) |
 | 修正**本次打标**标签（覆盖） | [`PUT /voice-tagging/:taskId/tags`](#85-修改任务标签) |
-| 回填反馈 | [`POST /voice-tagging/:taskId/feedback`](#86-提交反馈) |
 
-**时序**：上传 → 发起（立即返回 `taskId`）→ 后台转写 + 打标 → 轮询状态可看到 `tags` 与 activity → 反馈再次写入任务时间线。
+**时序**：上传 → 发起（立即返回 `taskId`）→ 后台转写 + 打标 → 轮询状态可看到 `tags` 与 activity → 修正标签再写入任务时间线。
 
 ---
 
@@ -360,7 +352,7 @@ Content-Type: application/json
 - `file.url` 为该文件的限时预签名下载地址。
 - `agent.dispatched=true` 表示任务已受理、后台处理中（派发失败不影响本响应）。
 
-> **衔接**：前置是上一步的 `uuid`。返回的 `taskId` 供 [查询状态](#83-查询任务状态) / [提交反馈](#86-提交反馈) 使用。
+> **衔接**：前置是上一步的 `uuid`。返回的 `taskId` 供 [查询状态](#83-查询任务状态) / [修改标签](#85-修改任务标签) 使用。
 
 ### 8.2 查询任务列表
 
@@ -430,7 +422,7 @@ GET /voice-tagging/:taskId
 - `tags`：该任务已生成的标签（`tagId` 32 位 hex / `name` / `dimension`）
 - 任务不存在 → `404 NOT_FOUND`
 
-> **衔接**：用发起接口返回的 `taskId` 查询；`activities` 会随转写/打标与反馈而增长。
+> **衔接**：用发起接口返回的 `taskId` 查询；`activities` 会随转写/打标与修改标签而增长。
 
 ### 8.4 查询任务时间线
 
@@ -442,7 +434,7 @@ GET /voice-tagging/:taskId/activities
 { "taskId": "…", "total": 1, "activities": [ { "id": "…", "action": "updated", "markdown": "", "createdAt": "…" } ] }
 ```
 
-- `activities[].markdown`：转写全文、打标结果、反馈等正文（如有）。
+- `activities[].markdown`：转写全文、打标结果等正文（如有）。
 - `activities[].createdAt`：记录时间（ISO 8601）。
 - 任务不存在 → `404 NOT_FOUND`。
 
@@ -452,7 +444,6 @@ GET /voice-tagging/:taskId/activities
 
 > ⚠️ 这是**任务级、覆盖式**接口，只影响该 `taskId` 这一条打标任务的标签；
 > 它**不会**修改客户画像，也**不是**在客户维度"追加"标签（客户标签见 [§9](#9-客户标签)，由系统内部更新，外部仅查询）。
-> 与 [§8.6 提交反馈](#86-提交反馈) 不同：**本接口会改变标签结果**，反馈不会。
 
 ```
 PUT /voice-tagging/:taskId/tags
@@ -490,44 +481,6 @@ Content-Type: application/json
 - 未知 `tagId` / `tags` 非数组 / tagId 非 32-hex → `400 BAD_REQUEST`
 - 任务不存在 → `404 NOT_FOUND`
 - 说明：该接口会**整体替换**本任务已生成的标签；同时自动在该任务时间线上追加一条记录（`action: updated`）。
-
-### 8.6 提交反馈
-
-把一段**自由文本反馈**追加到任务时间线（用于更正/补充本次打标结果或留下沟通备注）。
-
-> 反馈是**纯文本**，不是"打分/评分"：请求体没有分数或星级字段；如需数值评分，请另行约定字段。
-> 与 [§8.5 修改任务标签](#85-修改任务标签) 不同：**反馈不会改变任务标签**，只在时间线追加一条记录。
-
-```
-POST /voice-tagging/:taskId/feedback
-Content-Type: application/json
-```
-
-**请求体**（只需 `content`）：
-
-```json
-{
-  "content": "客户反馈：purchase_intent 应为「低」，并补充回访建议。"
-}
-```
-
-| 参数 | 必填 | 说明 |
-|---|---|---|
-| `content` | 是 | 反馈正文（纯文本） |
-
-**响应 `200`**：
-
-```json
-{
-  "taskId": "c3915a5a-85ed-4e31-a09e-492b3c11e938",
-  "forwarded": true,
-  "agent": { "dispatched": true }
-}
-```
-
-随后（约 10–30s）该任务的 `activities` 会多出一条 `## 客户反馈…`。`content` 为空/缺失 → `400 BAD_REQUEST`。
-
-> **衔接**：用发起接口返回的 `taskId`；与"发起"一样是**异步处理**，稍后追加一条 activity，不影响本响应的 `200`。
 
 ## 9. 客户标签
 
@@ -579,7 +532,7 @@ GET /customers/:customerId/tags
 | HTTP | code | 说明 |
 |---|---|---|
 | 401 | `UNAUTHORIZED` | 缺少或错误的 API Key |
-| 400 | `BAD_REQUEST` | 参数非法（缺 `uuid` / `content` 为空等） |
+| 400 | `BAD_REQUEST` | 参数非法（缺 `uuid` / `baId` / `customerId` / `tags` 非法等） |
 | 404 | `NOT_FOUND` | 任务 / 客户不存在 |
 | 413 | `PAYLOAD_TOO_LARGE` | 上传超限 |
 | 502 | `UPSTREAM_ERROR` | 上游服务错误 |
@@ -605,13 +558,13 @@ TASK=$(curl -s -X POST "$BASE/voice-tagging" \
 # 3) 查询状态（tags；转写/打标正文在 activities[].markdown）
 curl -s "$BASE/voice-tagging/$TASK" -H "Authorization: Bearer $KEY" | jq
 
-# 4) 反馈
-curl -s -X POST "$BASE/voice-tagging/$TASK/feedback" \
+# 4) 修正标签（整体覆盖）
+curl -s -X PUT "$BASE/voice-tagging/$TASK/tags" \
   -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d '{"content":"客户反馈：purchase_intent 应为低。"}' | jq
+  -d '{"tags":["9ce355bfacca49c4a9e9322a9317c196"]}' | jq
 
 # 5) 客户标签（客户详情界面）
 curl -s "$BASE/customers/cus_8899/tags" -H "Authorization: Bearer $KEY" | jq
 ```
 
-**时序**：上传 → 发起（立即返回 `taskId`）→ 后台转写+打标 → 轮询状态可看到 `tags` 与 activity → 反馈再次写入任务时间线。
+**时序**：上传 → 发起（立即返回 `taskId`）→ 后台转写+打标 → 轮询状态可看到 `tags` 与 activity → 修正标签再写入任务时间线。

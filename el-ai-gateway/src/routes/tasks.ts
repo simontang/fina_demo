@@ -30,10 +30,6 @@ export function renderRunMessage(
   return `Voice tagging task ${vars.taskId}. Read the task to get the associated file, then transcribe the audio and tag the text.`;
 }
 
-export function renderFeedbackMessage(vars: { taskId: string; content: string }): string {
-  return `Feedback for task ${vars.taskId}. Append it to this task's activity timeline (add_activity):\n${vars.content}`;
-}
-
 function parseTags(result: string | undefined): Array<{ tagId: string; name: string; dimension: string }> {
   if (!result) return [];
   try {
@@ -198,27 +194,5 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
     const updated = await deps.taskTools.getTask({ id });
     const activities = mapActivities(updated.activities);
     return { ...toDetail(updated), activity: activities[0] };
-  });
-
-  app.post("/api/v1/voice-tagging/:id/feedback", async (request) => {
-    requirePrincipal(deps.authenticator, request.headers.authorization);
-    const { id } = request.params as { id: string };
-    const body = (request.body ?? {}) as { content?: string; summary?: string; assistantId?: string };
-    if (typeof body.content !== "string" || body.content.trim() === "") {
-      throw new GatewayError(400, "BAD_REQUEST", "content is required");
-    }
-    const assistantId = body.assistantId ?? deps.config.voiceTaggingAssistantId;
-    if (!assistantId) {
-      throw new GatewayError(
-        400,
-        "BAD_REQUEST",
-        "assistantId is required (or set VOICE_TAGGING_ASSISTANT_ID)",
-      );
-    }
-    const text = body.summary
-      ? `${renderFeedbackMessage({ taskId: id, content: body.content })}\n\nSummary: ${body.summary}`
-      : renderFeedbackMessage({ taskId: id, content: body.content });
-    dispatchRun(assistantId, text, id);
-    return { taskId: id, forwarded: true, agent: { dispatched: true } };
   });
 }

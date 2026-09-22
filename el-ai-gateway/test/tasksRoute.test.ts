@@ -169,36 +169,6 @@ describe("GET /api/v1/voice-tagging/:id", () => {
   });
 });
 
-describe("POST /api/v1/voice-tagging/:id/feedback", () => {
-  it("relays feedback to the agent over A2A", async () => {
-    const d = deps();
-    const app = buildServer(d);
-    const res = await app.inject({
-      method: "POST",
-      url: "/api/v1/voice-tagging/task-1/feedback",
-      headers: { authorization: "Bearer secret" },
-      payload: { content: "tag corrected" },
-    });
-    expect(res.statusCode).toBe(200);
-    expect(res.json()).toMatchObject({ taskId: "task-1", forwarded: true });
-    const runArg = d.agentRuns.startRun.mock.calls[0][0];
-    expect(runArg.assistantId).toBe("voice-agent");
-    expect(runArg.text).toContain("task-1");
-    expect(runArg.text).toContain("tag corrected");
-  });
-
-  it("returns 400 when content is empty", async () => {
-    const app = buildServer(deps());
-    const res = await app.inject({
-      method: "POST",
-      url: "/api/v1/voice-tagging/task-1/feedback",
-      headers: { authorization: "Bearer secret" },
-      payload: { content: "   " },
-    });
-    expect(res.statusCode).toBe(400);
-  });
-});
-
 describe("GET /api/v1/voice-tagging?baId=&customerId=", () => {
   function listDeps() {
     return deps({
