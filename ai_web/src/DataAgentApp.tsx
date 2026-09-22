@@ -238,12 +238,8 @@ function DataAgentShell() {
           enableSkillSlot: false,
           enableDatabaseSlot: false,
           resourceFolders: [
-            { name: "/project", displayName: "Project Root", allowUpload: true },
-            // { name: "tmp", displayName: "Working Directory", allowUpload: true },
-            // { name: "metrics", displayName: "Metrics", allowUpload: true },
-            { name: "/agent", displayName: "agent", allowUpload: false },
-            // { name: "agent", displayName: "Agent", allowUpload: false },
-
+            { name: "/project", displayName: "project", allowUpload: true },
+            { name: "/root/.agents", displayName: "company", allowUpload: false },
           ],
           enableWorkspace: true,
           enableThreadCreation: true,
