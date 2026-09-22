@@ -264,13 +264,12 @@ describe("PUT /api/v1/voice-tagging/:id/tags", () => {
 
   function boStub(overrides: Record<string, unknown> = {}) {
     return {
-      getRecord: vi.fn(async (_objectKey: string, id: string) =>
-        id === DEF_ID
-          ? { id: DEF_ID, tag_id: DEF_ID, tag_group: "concerns", tag_name: "抗老/紧致" }
-          : undefined,
+      getRecord: vi.fn(async () => undefined),
+      queryRecords: vi.fn(async (objectKey: string) =>
+        objectKey === "tag_definition" ? [] : [],
       ),
-      queryRecords: vi.fn(async () => []),
       createRecord: vi.fn(async (_objectKey: string, _data: any) => ({})),
+      updateRecord: vi.fn(async (_objectKey: string, _id: string, _data: any) => ({})),
       deleteRecords: vi.fn(async (_objectKey: string, _ids: string[]) => 0),
       ...overrides,
     };
@@ -311,8 +310,12 @@ describe("PUT /api/v1/voice-tagging/:id/tags", () => {
     });
   }
 
-  it("resolves an existing tagId against tag_definition and writes {tagId,tagKey,tagValue}", async () => {
-    const d = statefulDeps();
+  const DEF_ROW = { id: "rec-def", tag_id: DEF_ID, tag_group: "concerns", tag_name: "抗老/紧致" };
+
+  it("resolves an existing tagId via the tag_id field and writes {tagId,tagKey,tagValue}", async () => {
+    const d = statefulDeps({
+      queryRecords: vi.fn(async (objectKey: string) => (objectKey === "tag_definition" ? [DEF_ROW] : [])),
+    });
     const app = buildServer(d);
     const res = await app.inject({
       method: "PUT",
@@ -321,7 +324,9 @@ describe("PUT /api/v1/voice-tagging/:id/tags", () => {
       payload: { tags: [{ tagId: DEF_ID, tagValue: "ignored" }] },
     });
     expect(res.statusCode).toBe(200);
-    expect(d.boTools.getRecord).toHaveBeenCalledWith("tag_definition", DEF_ID);
+    expect(d.boTools.queryRecords).toHaveBeenCalledWith("tag_definition", [
+      { field: "tag_id", op: "eq", value: DEF_ID },
+    ]);
     expect(d.taskTools.updateResult).toHaveBeenCalledWith({
       id: TASK,
       result: JSON.stringify([{ tagId: DEF_ID, tagKey: "concerns", tagValue: "抗老/紧致" }]),
@@ -350,7 +355,11 @@ describe("PUT /api/v1/voice-tagging/:id/tags", () => {
   it("reuses an existing master entry for a new tagValue", async () => {
     const createRecord = vi.fn(async (_objectKey: string, _data: any) => ({}));
     const d = statefulDeps({
-      queryRecords: vi.fn(async () => [{ id: "rec1", tag_id: "abc", tag_group: "客户画像", tag_name: "新标签" }]),
+      queryRecords: vi.fn(async (objectKey: string) =>
+        objectKey === "tag_definition"
+          ? [{ id: "rec1", tag_id: "abc", tag_group: "客户画像", tag_name: "新标签" }]
+          : [],
+      ),
       createRecord,
     });
     const app = buildServer(d);
@@ -388,22 +397,23 @@ describe("PUT /api/v1/voice-tagging/:id/tags", () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it("reconciles customer_tag to the union of the customer's task tags", async () => {
+  it("reconciles customer_tag to the union: creates new, deletes stale, refreshes denormalized", async () => {
     const staleId = "cccccccccccccccccccccccccccccccc";
     const createRecord = vi.fn(async (_objectKey: string, _data: any) => ({}));
+    const updateRecord = vi.fn(async (_objectKey: string, _id: string, _data: any) => ({}));
     const deleteRecords = vi.fn(async (_objectKey: string, _ids: string[]) => 1);
     const d = statefulDeps({
-      getRecord: vi.fn(async (_o: string, id: string) =>
-        id === DEF_ID
-          ? { id: DEF_ID, tag_id: DEF_ID, tag_group: "concerns", tag_name: "抗老/紧致" }
-          : { id, tag_id: id, tag_group: "g", tag_name: "n" },
-      ),
-      queryRecords: vi.fn(async (objectKey: string) =>
-        objectKey === "customer_tag"
-          ? [{ id: "row-stale", tag_id: staleId, source: "voice", customer_no: "cus_8899" }]
-          : [],
-      ),
+      queryRecords: vi.fn(async (objectKey: string) => {
+        if (objectKey === "tag_definition") {
+          return [{ id: "rec-def", tag_id: DEF_ID, tag_group: "concerns", tag_name: "抗老/紧致" }];
+        }
+        return [
+          { id: "row-stale", tag_id: staleId, source: "voice", customer_no: "cus_8899" },
+          { id: "row-old", tag_id: DEF_ID, tag_key: "old", tag_value: "old", source: "voice", customer_no: "cus_8899" },
+        ];
+      }),
       createRecord,
+      updateRecord,
       deleteRecords,
     });
     const app = buildServer(d);
@@ -414,11 +424,12 @@ describe("PUT /api/v1/voice-tagging/:id/tags", () => {
       payload: { tags: [{ tagId: DEF_ID, tagValue: "x" }] },
     });
     expect(res.statusCode).toBe(200);
-    const customerCreate = createRecord.mock.calls.find((c) => c[0] === "customer_tag");
-    expect(customerCreate?.[1]).toMatchObject({
-      customer_no: "cus_8899", tag_id: DEF_ID, tag_key: "concerns", tag_value: "抗老/紧致", source: "voice",
+    expect(updateRecord).toHaveBeenCalledWith("customer_tag", "row-old", {
+      tag_key: "concerns",
+      tag_value: "抗老/紧致",
     });
     expect(deleteRecords).toHaveBeenCalledWith("customer_tag", ["row-stale"]);
+    expect(createRecord.mock.calls.some((c) => c[0] === "tag_definition")).toBe(false);
   });
 
   it("returns 404 for an unknown task", async () => {

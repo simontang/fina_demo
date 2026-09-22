@@ -99,19 +99,27 @@ async function reconcileCustomerTags(
     const existing = await deps.boTools.queryRecords("customer_tag", [
       { field: "customer_no", op: "eq", value: input.customerId },
     ]);
-    const existingIds = new Set(existing.map((row) => String(row.tag_id)));
+    const byTagId = new Map(existing.map((row) => [String(row.tag_id), row]));
     for (const [tagId, when] of union) {
-      if (existingIds.has(tagId)) continue;
-      const def = await deps.boTools.getRecord("tag_definition", tagId);
-      await deps.boTools.createRecord("customer_tag", {
-        customer_no: input.customerId,
-        tag_key: String(def?.tag_group ?? ""),
-        tag_value: String(def?.tag_name ?? ""),
-        tag_id: tagId,
-        source: "voice",
-        confidence: null,
-        tagged_at: when ?? new Date().toISOString(),
-      });
+      const defRows = await deps.boTools.queryRecords("tag_definition", [
+        { field: "tag_id", op: "eq", value: tagId },
+      ]);
+      const tagKey = String(defRows[0]?.tag_group ?? "");
+      const tagValue = String(defRows[0]?.tag_name ?? "");
+      const row = byTagId.get(tagId);
+      if (!row) {
+        await deps.boTools.createRecord("customer_tag", {
+          customer_no: input.customerId,
+          tag_key: tagKey,
+          tag_value: tagValue,
+          tag_id: tagId,
+          source: "voice",
+          confidence: null,
+          tagged_at: when ?? new Date().toISOString(),
+        });
+      } else if (String(row.tag_key ?? "") !== tagKey || String(row.tag_value ?? "") !== tagValue) {
+        await deps.boTools.updateRecord("customer_tag", String(row.id), { tag_key: tagKey, tag_value: tagValue });
+      }
     }
     const staleIds = existing
       .filter((row) => row.source === "voice" && !union.has(String(row.tag_id)))
@@ -261,10 +269,13 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
       let tagKey: string;
       let tagValue: string;
       if (typeof input.tagId === "string" && input.tagId.trim() !== "") {
-        const def = await deps.boTools.getRecord("tag_definition", input.tagId);
-        if (!def) {
+        const rows = await deps.boTools.queryRecords("tag_definition", [
+          { field: "tag_id", op: "eq", value: input.tagId },
+        ]);
+        if (rows.length === 0) {
           throw new GatewayError(400, "BAD_REQUEST", `Unknown tagId: ${input.tagId}`);
         }
+        const def = rows[0];
         tagId = String(def.tag_id ?? input.tagId);
         tagKey = String(def.tag_group ?? "");
         tagValue = String(def.tag_name ?? "");

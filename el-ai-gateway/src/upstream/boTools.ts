@@ -9,6 +9,7 @@ export type BoTools = {
   getRecord(objectKey: string, id: string): Promise<BoRecord | undefined>;
   queryRecords(objectKey: string, filters: BoFilter[]): Promise<BoRecord[]>;
   createRecord(objectKey: string, data: BoRecord): Promise<BoRecord>;
+  updateRecord(objectKey: string, id: string, data: BoRecord): Promise<BoRecord>;
   deleteRecords(objectKey: string, ids: string[]): Promise<number>;
 };
 
@@ -58,6 +59,13 @@ export function createBoTools(mcp: McpCaller): BoTools {
       if (!data || data.success === false || data.error) fail(data, "create_record");
       const record = data.record ?? data;
       return { ...(record.data ?? {}), id: record.id };
+    },
+
+    async updateRecord(objectKey, id, input) {
+      const data = await call("update_record", { objectKey, id, data: input });
+      if (!data || data.success === false || data.error) fail(data, "update_record");
+      const record = data.record ?? data;
+      return { ...(record.data ?? {}), id: record.id ?? id };
     },
 
     async deleteRecords(objectKey, ids) {

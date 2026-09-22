@@ -52,6 +52,20 @@ describe("boTools", () => {
     });
   });
 
+  it("updateRecord calls business-objects_update_record with objectKey/id/data", async () => {
+    const mcp = mcpReturning({ id: "c1", objectKey: "customer_tag", data: { tag_key: "g2" } });
+    const bo = createBoTools(mcp);
+    await expect(bo.updateRecord("customer_tag", "c1", { tag_key: "g2" })).resolves.toEqual({
+      tag_key: "g2",
+      id: "c1",
+    });
+    expect(mcp.callTool).toHaveBeenCalledWith("business-objects_update_record", {
+      objectKey: "customer_tag",
+      id: "c1",
+      data: { tag_key: "g2" },
+    });
+  });
+
   it("deleteRecords passes confirm:true and returns the count", async () => {
     const mcp = mcpReturning({ objectKey: "customer_tag", deleted: 2, ids: ["a", "b"] });
     const bo = createBoTools(mcp);
