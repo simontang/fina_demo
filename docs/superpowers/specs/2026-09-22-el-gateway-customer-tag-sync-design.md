@@ -27,7 +27,7 @@
 | `customer_tag` 唯一键 | `(customer_no, tag_id)` |
 | `customer_tag` 其他索引 | `tag_id`（按标签反查客户）、`customer_no` |
 | 有 `tagId` | 校验 `tag_definition` 存在；不修改主数据；标签组/名以主数据为准（请求里的 `tagValue` 忽略） |
-| 无 `tagId` | 先按 `(tag_group="客户画像", tag_name=tagValue)` 查主数据，命中则**复用其 `tag_id`**；否则新增 `tag_definition`：`tag_group="客户画像"`、`tag_name=tagValue`、`tag_id=网关生成32hex`、`category=null`、`is_xiaofu=null` |
+| 无 `tagId` | 先按 `(tag_group="客户画像", tag_name=tagValue)` 查主数据，命中则**复用其 `tag_id`**；否则新增 `tag_definition`：`tag_group="客户画像"`、`category="自定义标签"`、`tag_name=tagValue`、`tag_id=网关生成32hex`、`is_xiaofu=null` |
 | 对账 | `PUT` 后自动重算该客户：`listTasks` 并集 → `customer_tag` 增/删 |
 | 汇总行字段 | `source="voice"`、`confidence=null`、`tagged_at`=该标签在各任务中的最新时间（无则 now） |
 | 任务标签 | `result` 存 `[{ tagId, tagKey, tagValue }]` |
@@ -73,7 +73,7 @@
    - **有 `tagId`**：`business-objects_get_record("tag_definition", tagId)`；
      - 不存在 → `400 BAD_REQUEST`（`Unknown tagId`）；
      - 取主数据的 `tag_group`/`tag_name`（请求里的 `tagValue` 忽略）。
-   - **无 `tagId`**：先 `query_records("tag_definition", filters:[{field:"tag_group",op:"eq",value:"客户画像"},{field:"tag_name",op:"eq",value:tagValue}])`；命中则复用其 `tag_id`，否则 `create_record("tag_definition", { tag_group:"客户画像", tag_name:tagValue, tag_id:<32hex>, category:null, is_xiaofu:null })` → 得到 `tag_id`。
+   - **无 `tagId`**：先 `query_records("tag_definition", filters:[{field:"tag_group",op:"eq",value:"客户画像"},{field:"tag_name",op:"eq",value:tagValue}])`；命中则复用其 `tag_id`，否则 `create_record("tag_definition", { tag_group:"客户画像", category:"自定义标签", tag_name:tagValue, tag_id:<32hex>, is_xiaofu:null })` → 得到 `tag_id`。
 3. `updateResult(id, JSON.stringify(tagsOut))`，`tagsOut = [{ tagId, tagKey, tagValue }]`。
 4. **对账**该客户 `customer_tag`：
    - `listTasks({ ownerId, baId, customerId })` → 汇总所有任务 `result` 里的标签并集（按 `tagId` 去重；兼容旧形状 `{tagId,name,dimension}`，`tagValue` 回退到 `name`）。
