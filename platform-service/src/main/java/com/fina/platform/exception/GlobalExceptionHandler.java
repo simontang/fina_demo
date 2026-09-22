@@ -1,6 +1,7 @@
 package com.fina.platform.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MissingRequestValueException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -8,6 +9,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
+import java.sql.SQLException;
 import java.util.Map;
 
 @Slf4j
@@ -48,6 +50,31 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleApi(ApiException e) {
         return ResponseEntity.status(e.getStatus())
                 .body(Map.of("code", e.getCode(), "message", e.getMessage()));
+    }
+
+    /** jOOQ and Spring wrap store-database errors; unique violations are a client conflict, not a server fault. */
+    @ExceptionHandler({org.jooq.exception.DataAccessException.class,
+            org.springframework.dao.DataAccessException.class})
+    public ResponseEntity<Map<String, Object>> handleDataAccess(Exception e) {
+        if (isUniqueViolation(e)) {
+            return ResponseEntity.status(409)
+                    .body(Map.of("code", "CONFLICT", "message", "unique constraint violated"));
+        }
+        log.error("database error", e);
+        return ResponseEntity.status(500)
+                .body(Map.of("code", "INTERNAL_ERROR", "message", "database error"));
+    }
+
+    private boolean isUniqueViolation(Throwable e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            if (t instanceof SQLException sql && "23505".equals(sql.getSQLState())) {
+                return true;
+            }
+            if (t instanceof DuplicateKeyException) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @ExceptionHandler(Exception.class)
