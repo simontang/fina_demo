@@ -28,7 +28,7 @@
 
 - **文件管理**：上传、按 BA + 客户查询文件、获取音频播放链接；
 - **任务管理**：发起打标、按 BA + 客户列任务、任务详情、时间线、修正标签；
-- **客户标签**：查询客户画像标签（由内部系统更新，外部只读）。
+- **客户标签**：查询客户画像标签（由任务标签自动汇总，外部只读）。
 
 > 当前转写为 mock（结果里 `mock:true`），接口契约与真实链路一致。
 
@@ -87,13 +87,13 @@ Authorization: Bearer <API_KEY>
 
 | 层级 | 归属对象 | 语义 | 接口 |
 |---|---|---|---|
-| **客户标签** | 客户（`customerId`） | 该客户当前的业务标签（由系统内部更新），即"客户画像" | `GET /customers/:customerId/tags`（**仅查询**） |
+| **客户标签** | 客户（`customerId`） | 该客户当前的业务标签，由该客户的任务标签自动汇总（最终一致） | `GET /customers/:customerId/tags`（**仅查询**） |
 | **任务标签** | 打标任务（`taskId`） | **某一次**语音打标算出的标签 | 读 `GET /voice-tagging/:taskId`；写 `PUT /voice-tagging/:taskId/tags`（**整体覆盖，非追加**） |
 
-- **任务标签**是"某条语音的结论"；**客户标签**是"客户维度的汇总画像"。两者不要混用。
-- **客户标签由系统内部更新**，外部（本网关对接方）**只能查询、不能写入**——这是**设计如此**，不是待补接口：
+- 任务标签是"某条语音的结论"；客户标签是该客户所有任务标签的汇总（最终一致）。两者不要混用。
+- 客户标签由**任务标签汇总**而来：编辑某任务的标签（`PUT /voice-tagging/:taskId/tags`）后，系统会重算该客户的标签汇总。外部**没有客户级写接口**，只能查询。
   - 要"补充 / 修正**某次打标**结果" → 改**任务标签**，用 `PUT /voice-tagging/:taskId/tags`；
-  - 客户维度的标签更新由**内部系统**完成，外部不提供写接口。
+  - 客户维度的标签由任务标签自动汇总，不需要（也不提供）单独的客户级写接口。
 - `PUT /voice-tagging/:taskId/tags` 是**覆盖式**：传入的数组会**替换该任务原有的全部标签**，不是追加。若要在原基础上加，请先 `GET /voice-tagging/:taskId` 读出 `tags`，合并后再整体 PUT。
 
 > 修改标签是任务上**唯一的写操作**：会覆盖标签结果并自动在任务时间线追加一条记录。
@@ -134,7 +134,7 @@ Authorization: Bearer <API_KEY>
 | 动作 | 接口 | 说明 |
 |---|---|---|
 | 回显客户现有标签 | [`GET /customers/:customerId/tags`](#91-查询客户业务标签) | **客户级、只读** |
-| 补充 / 更新客户标签 | 无（内部系统更新） | 客户标签由**系统内部更新**，外部**只能查询** |
+| 补充 / 更新客户标签 | 无（由任务标签自动汇总） | 编辑任务标签后，客户汇总会自动更新 |
 | 若是修正"某条语音"的标签 | `GET /voice-tagging/:taskId` 读取 → 合并 → [`PUT /voice-tagging/:taskId/tags`](#85-修改任务标签) | **任务级、覆盖式**，不是客户级追加 |
 
 > ⚠️ 详见 [§2 核心概念](#2-核心概念两层标签客户标签-vs-任务标签)：**客户标签只读**；可写的是**任务标签**，且为**覆盖**。
@@ -383,8 +383,8 @@ GET /voice-tagging?baId=<id>&customerId=<id>
       "tags": [
         {
           "tagId": "9ce355bfacca49c4a9e9322a9317c196",
-          "name": "抗老/紧致",
-          "dimension": "concerns"
+          "tagKey": "concerns",
+          "tagValue": "抗老/紧致"
         }
       ]
     }
@@ -412,14 +412,14 @@ GET /voice-tagging/:taskId
   "createdAt": "2026-09-15T06:13:00Z",
   "title": "Voice tagging: 471c20082b524316accc1b23cba8a4de",
   "tags": [
-    { "tagId": "9ce355bfacca49c4a9e9322a9317c196", "name": "抗老/紧致", "dimension": "concerns" }
+    { "tagId": "9ce355bfacca49c4a9e9322a9317c196", "tagKey": "concerns", "tagValue": "抗老/紧致" }
   ]
 }
 ```
 
 - `status`：`pending | in_progress | review | failed | interrupted | completed | cancelled`
 - `fileId`：本次任务关联的文件 uuid（用于播放 / 追问）。
-- `tags`：该任务已生成的标签（`tagId` 32 位 hex / `name` / `dimension`）
+- `tags`：该任务已生成的标签（`tagId` 32 位 hex / `tagKey` 标签组 / `tagValue` 标签名）
 - 任务不存在 → `404 NOT_FOUND`
 
 > **衔接**：用发起接口返回的 `taskId` 查询；`activities` 会随转写/打标与修改标签而增长。
@@ -443,7 +443,7 @@ GET /voice-tagging/:taskId/activities
 整体**覆盖**某**任务**的标签集合，并记录一条 activity。
 
 > ⚠️ 这是**任务级、覆盖式**接口，只影响该 `taskId` 这一条打标任务的标签；
-> 它**不会**修改客户画像，也**不是**在客户维度"追加"标签（客户标签见 [§9](#9-客户标签)，由系统内部更新，外部仅查询）。
+> 它**不会**直接写客户画像，而是在提交后由系统按该客户的任务标签**汇总刷新**（见 [§9](#9-客户标签)）。
 
 ```
 PUT /voice-tagging/:taskId/tags
@@ -451,10 +451,12 @@ Content-Type: application/json
 ```
 
 ```json
-{ "tags": ["9ce355bfacca49c4a9e9322a9317c196", "4a1b2c3d5e6f47089a0b1c2d3e4f5061"] }
+{ "tags": [ { "tagId": "9ce355bfacca49c4a9e9322a9317c196", "tagValue": "抗老/紧致" } ] }
 ```
 
-> `tags` 也可写成 `[{ "tagId": "…" }, …]`；元素必须是目录中已存在的 32-hex tagId。
+> 每个元素是 `{ "tagId"?, "tagValue"? }`：
+> - 带 `tagId`：必须是标签主数据中已存在的 id，标签组/标签名以主数据为准（`tagValue` 可省）。
+> - 不带 `tagId`：按 `tagValue` 新建标签（标签组固定为 `客户画像`，类别为 `自定义标签`），系统生成 `tagId` 并回写到任务标签。
 
 **响应 `200`**（更新后的任务 + 本次记录的 activity）：
 
@@ -466,8 +468,8 @@ Content-Type: application/json
   "createdAt": "2026-09-15T05:18:00Z",
   "title": "Voice tagging: 2ccf6fef88b64a16b62fe491a8f7a132",
   "tags": [
-    { "tagId": "9ce355bfacca49c4a9e9322a9317c196", "name": "抗老/紧致", "dimension": "concerns" },
-    { "tagId": "4a1b2c3d5e6f47089a0b1c2d3e4f5061", "name": "黑钻光灿面霜", "dimension": "interested_products" }
+    { "tagId": "9ce355bfacca49c4a9e9322a9317c196", "tagKey": "concerns", "tagValue": "抗老/紧致" },
+    { "tagId": "4a1b2c3d5e6f47089a0b1c2d3e4f5061", "tagKey": "interested_products", "tagValue": "黑钻光灿面霜" }
   ],
   "activity": {
     "id": "…",
@@ -478,17 +480,17 @@ Content-Type: application/json
 }
 ```
 
-- 未知 `tagId` / `tags` 非数组 / tagId 非 32-hex → `400 BAD_REQUEST`
+- `tags` 非数组 / 元素同时缺 `tagId` 与 `tagValue` / `tagId` 不存在 → `400 BAD_REQUEST`
 - 任务不存在 → `404 NOT_FOUND`
-- 说明：该接口会**整体替换**本任务已生成的标签；同时自动在该任务时间线上追加一条记录（`action: updated`）。
+- 说明：该接口会**整体替换**本任务已生成的标签；同时自动在该任务时间线上追加一条记录（`action: updated`），并**重算该客户的标签汇总**（最终一致）。
 
 ## 9. 客户标签
 
 ### 9.1 查询客户业务标签
 
-查询某客户的全部业务标签（**标签名称 + 标签 uuid**）。
+查询某客户的全部业务标签（**标签组 + 标签名 + 标签 id**）。
 
-> 这是**客户级、仅查询**接口：返回该客户当前的业务标签汇总（客户画像）。**客户标签由系统内部更新，外部不能通过本接口写入/追加**；它**不是**某条语音任务的结果（见 [§2 核心概念](#2-核心概念两层标签客户标签-vs-任务标签)）。
+> 这是**客户级、仅查询**接口：返回该客户当前的业务标签汇总（客户画像）。**客户标签由任务标签自动汇总，外部不能通过本接口写入/追加**；它不是某条语音任务的结果（见 [§2 核心概念](#2-核心概念两层标签客户标签-vs-任务标签)）。
 
 ```
 GET /customers/:customerId/tags
@@ -499,13 +501,15 @@ GET /customers/:customerId/tags
 ```json
 {
   "customerId": "cus_8899",
-  "total": 3,
+  "total": 1,
   "tags": [
     {
       "tagId": "9ce355bfacca49c4a9e9322a9317c196",
-      "name": "抗老/紧致",
-      "dimension": "concerns",
-      "evidence": "很喜欢用黑钻光灿面霜"
+      "tagKey": "concerns",
+      "tagValue": "抗老/紧致",
+      "source": "voice",
+      "confidence": null,
+      "taggedAt": "2026-09-15T06:00:00Z"
     }
   ]
 }
@@ -515,13 +519,15 @@ GET /customers/:customerId/tags
 |---|---|
 | `customerId` | 客户 id |
 | `total` | 标签数量 |
-| `tags[].tagId` | 标签 uuid（32 位十六进制，如 `9ce355bfacca49c4a9e9322a9317c196`） |
-| `tags[].name` | 标签名称 |
-| `tags[].dimension` | 维度：`concerns` / `interested_products` / `purchase_intent` / `price_sensitivity` / `service_opportunities` / `custom_tags` 等 |
-| `tags[].evidence` | 依据原文（可选） |
+| `tags[].tagId` | 标签值 id（32 位十六进制，如 `9ce355bfacca49c4a9e9322a9317c196`） |
+| `tags[].tagKey` | 标签组 |
+| `tags[].tagValue` | 标签名 |
+| `tags[].source` | 来源：`voice`（语音打标汇总）/ `manual` |
+| `tags[].confidence` | 置信度（可空） |
+| `tags[].taggedAt` | 打标时间（ISO 8601） |
 
-- 客户不存在 → `404 NOT_FOUND`。
-- 说明：当前为 **mock 数据**（示例客户 `cus_8899`、`cus_1001`）；接入真实标签存储后接口契约不变。
+- 客户没有标签时返回 `200` + 空数组（`total: 0`）。
+- 数据来源为标签主数据与任务标签的汇总，**最终一致**（刚编辑完任务标签后可能有短暂延迟）。
 
 ---
 
@@ -532,8 +538,8 @@ GET /customers/:customerId/tags
 | HTTP | code | 说明 |
 |---|---|---|
 | 401 | `UNAUTHORIZED` | 缺少或错误的 API Key |
-| 400 | `BAD_REQUEST` | 参数非法（缺 `uuid` / `baId` / `customerId` / `tags` 非法等） |
-| 404 | `NOT_FOUND` | 任务 / 客户不存在 |
+| 400 | `BAD_REQUEST` | 参数非法（缺 `uuid` / `baId` / `customerId`；`tags` 非法或 `tagId` 不存在等） |
+| 404 | `NOT_FOUND` | 任务不存在 |
 | 413 | `PAYLOAD_TOO_LARGE` | 上传超限 |
 | 502 | `UPSTREAM_ERROR` | 上游服务错误 |
 | 504 | `UPSTREAM_TIMEOUT` | 上游超时 |
