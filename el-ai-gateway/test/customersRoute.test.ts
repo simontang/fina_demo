@@ -21,23 +21,44 @@ const config: Config = {
   upstreamTimeoutMs: 1000,
 };
 
-function build(auth: (h?: string) => { tenantId: string; keyLabel: string } | null) {
+function build(
+  auth: (h?: string) => { tenantId: string; keyLabel: string } | null,
+  rows: any[] = [],
+) {
   return buildServer({
     config,
     authenticator: auth,
     platformFiles: { upload: vi.fn(), presign: vi.fn(), list: vi.fn() } as any,
     agentRuns: { startRun: vi.fn() } as any,
     taskTools: { createTask: vi.fn(), getTask: vi.fn() } as any,
-    boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
+    boTools: {
+      getRecord: vi.fn(),
+      queryRecords: vi.fn(async () => rows),
+      createRecord: vi.fn(),
+      deleteRecords: vi.fn(),
+    } as any,
   });
 }
 
 const auth = (h?: string) =>
   h === "Bearer secret" ? { tenantId: "tenant_a", keyLabel: "k" } : null;
 
+const ROWS = [
+  {
+    id: "row1",
+    customer_no: "cus_8899",
+    tag_key: "concerns",
+    tag_value: "抗老/紧致",
+    tag_id: "9ce355bfacca49c4a9e9322a9317c196",
+    source: "voice",
+    confidence: null,
+    tagged_at: "2026-09-15T06:00:00Z",
+  },
+];
+
 describe("GET /api/v1/customers/:customerId/tags", () => {
-  it("returns the customer's tags with name + tag uuid", async () => {
-    const app = build(auth);
+  it("maps customer_tag rows to tagId/tagKey/tagValue", async () => {
+    const app = build(auth, ROWS);
     const res = await app.inject({
       method: "GET",
       url: "/api/v1/customers/cus_8899/tags",
@@ -46,28 +67,30 @@ describe("GET /api/v1/customers/:customerId/tags", () => {
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.customerId).toBe("cus_8899");
-    expect(body.total).toBe(body.tags.length);
-    expect(body.total).toBeGreaterThan(0);
-    for (const tag of body.tags) {
-      expect(tag.tagId).toMatch(/^[0-9a-f]{32}$/);
-      expect(typeof tag.name).toBe("string");
-      expect(typeof tag.dimension).toBe("string");
-    }
+    expect(body.total).toBe(1);
+    expect(body.tags[0]).toEqual({
+      tagId: "9ce355bfacca49c4a9e9322a9317c196",
+      tagKey: "concerns",
+      tagValue: "抗老/紧致",
+      source: "voice",
+      confidence: null,
+      taggedAt: "2026-09-15T06:00:00Z",
+    });
   });
 
-  it("returns 404 for an unknown customer", async () => {
-    const app = build(auth);
+  it("returns 200 with an empty list when the customer has no tags", async () => {
+    const app = build(auth, []);
     const res = await app.inject({
       method: "GET",
-      url: "/api/v1/customers/nope/tags",
+      url: "/api/v1/customers/nobody/tags",
       headers: { authorization: "Bearer secret" },
     });
-    expect(res.statusCode).toBe(404);
-    expect(res.json().code).toBe("NOT_FOUND");
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ customerId: "nobody", total: 0, tags: [] });
   });
 
   it("returns 401 without a valid key", async () => {
-    const app = build(() => null);
+    const app = build(() => null, ROWS);
     const res = await app.inject({ method: "GET", url: "/api/v1/customers/cus_8899/tags" });
     expect(res.statusCode).toBe(401);
   });
