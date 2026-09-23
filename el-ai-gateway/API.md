@@ -4,15 +4,19 @@
 
 - **Base URL（线上）**：`https://ada.alphafina.cn/api/el-ai-gateway`
 - **协议**：HTTPS，JSON / multipart
-- **版本**：v1.3
+- **版本**：v1.4
 
 ---
 
 ## 修订日志
 
+### v1.4（2026-09-23）
+
+- **文档**：§12 移除 `voice.transcribed`（转写完成）事件说明，**仅保留打标完成事件**（`job.completed` / `voice.tagged`）。
+
 ### v1.3（2026-09-23）
 
-- **文档**：新增 [§12 Webhook 事件（`job.completed`）](#12-webhook-事件jobcompleted)，说明任务完成事件的类型、阶段与事件数据（`voice.transcribed` / `voice.tagged`）。
+- **文档**：新增 [§12 Webhook 事件（`job.completed`）](#12-webhook-事件jobcompleted)，说明**打标完成**事件的数据（`eventType=job.completed`、`event=voice.tagged`）。
 - 说明：事件仅作**通知**用途，最终结果仍以查询接口为准；异步结果可轮询，或订阅 `job.completed` 后再查任务详情。
 
 ### v1.2（2026-09-23）
@@ -672,41 +676,12 @@ curl -s "$BASE/customers/cus_8899/tags" -H "Authorization: Bearer $KEY" | jq
 
 ## 12. Webhook 事件（`job.completed`）
 
-任务处理过程中，平台会向**已注册的接收端**投递 webhook 事件，事件类型（`eventType`）为 **`job.completed`**。
+任务**打标完成**时，平台会向**已注册的接收端**投递 webhook 事件：事件类型（`eventType`）为 **`job.completed`**，body 的 `event` 字段为 **`voice.tagged`**。
 
-- 一个任务会发 **2 次**：**转写完成** 与 **打标完成**；两次 `eventType` 都是 `job.completed`，**阶段由 body 的 `event` 字段区分**：
-  - `voice.transcribed`：语音转写完成；
-  - `voice.tagged`：打标完成。
 - 投递语义：Standard Webhooks 签名（`webhook-*` 头，部分实现用别名 `svix-*`）、**at-least-once**、失败自动重试。
 - 事件 body 里的 `task_id` / `file_id` 分别对应 [发起打标任务](#81-发起打标任务) 返回的 `taskId` 与 [上传文件](#71-上传文件) 返回的 `uuid`。
 
-### 12.1 `voice.transcribed`（转写完成）
-
-```json
-{
-  "event": "voice.transcribed",
-  "stage_status": "success",
-  "task_id": "c3915a5a-85ed-4e31-a09e-492b3c11e938",
-  "file_id": "471c20082b524316accc1b23cba8a4de",
-  "local_path": "/project/…/audio.wav",
-  "text": "……完整转写原文……",
-  "mock": true,
-  "language": "zh-CN",
-  "download_ok": true
-}
-```
-
-| 字段 | 说明 |
-|---|---|
-| `event` | 固定 `voice.transcribed` |
-| `stage_status` | `success` / `failed` |
-| `task_id` / `file_id` | 任务 id / 文件 uuid |
-| `text` | 转写全文 |
-| `mock` | 是否 mock 转写 |
-| `language` | 语言（如 `zh-CN`） |
-| `download_ok` | 音频是否下载成功 |
-
-### 12.2 `voice.tagged`（打标完成）
+### 12.1 `voice.tagged`（打标完成）
 
 ```json
 {
