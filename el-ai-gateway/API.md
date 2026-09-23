@@ -8,6 +8,26 @@
 
 ---
 
+## 修订日志
+
+### v1.2（2026-09-23）
+
+- **任务结果聚合**：任务 `result` 统一为 `{ transcript, tags, like }`。
+  - `GET /voice-tagging/:taskId` 返回 `transcript` / `tags` / `like`；`tags` 元素为 `{ tagId, tagKey, tagValue, evidence? }`。
+  - `GET /voice-tagging` 列表返回 `tasks[].tags` / `tasks[].like`（**不含 `transcript`**）。
+- **新增** `PUT /voice-tagging/:taskId/like`：点赞 `true` / 取消（或未点赞）`null`。
+- **变更** `PUT /voice-tagging/:taskId/tags`：
+  - 由"整体 replace `result`"改为**只覆盖 `tags`**，保留 `transcript` / `like`；每个标签按 `tagId` 继承原有 `evidence`。
+  - 请求体只取 `tags`；请求中若带 `transcript` / `like` 会被忽略。
+  - 标签元素：`{ tagId }`（引用已存在标签）或 `{ tagValue }`（新增标签）。
+- **新增** `DELETE /voice-tagging/:taskId`：删除任务（不可恢复）。
+- **变更** `GET /customers/:customerId/tags`：返回字段为 `tagId` / `tagKey` / `tagValue` / `source` / `confidence` / `taggedAt`；客户无标签时返回 `200` + 空数组（不再 `404`）。
+- **移除** 任务时间线接口 `GET /voice-tagging/:taskId/activities`（暂不提供，后续按需再加）。
+- **说明**：任务标签字段由 `name` / `dimension` 调整为 `tagKey`（标签组） / `tagValue`（标签名）。
+- **接入建议**：接口由**应用后台**调用（API Key 为租户级，无法识别具体终端用户）；浏览器直连仅用于开发联调；异步结果建议**每 60 秒轮询**任务详情直到终态。
+
+---
+
 ## 适用对象
 
 本文面向**对接开发同学**（业务应用 / 前端 / 集成方）：说明如何调用网关接口、每个业务/界面需要先调什么后调什么、每步拿到什么、字段怎么衔接。内部实现细节不在此展开。
