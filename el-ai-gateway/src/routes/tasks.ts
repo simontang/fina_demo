@@ -90,15 +90,6 @@ function toDetail(task: TaskRecord) {
   };
 }
 
-function mapActivities(activities: unknown[]) {
-  return (activities as Array<Record<string, any>>).map((a) => ({
-    id: a?.id,
-    action: a?.action,
-    markdown: a?.detail?.markdown ?? a?.markdown ?? "",
-    createdAt: a?.createdAt,
-  }));
-}
-
 // Best-effort: rewrite the customer's aggregate tags (customer_tag) to the union
 // of all that customer's task tags. Never throws — a failed reconcile must not
 // fail the PUT (the next edit reconciles again).
@@ -257,15 +248,6 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
     return toDetail(task);
   });
 
-  // Activity log for a task (records tag edits etc.).
-  app.get("/api/v1/voice-tagging/:id/activities", async (request) => {
-    requirePrincipal(deps.authenticator, request.headers.authorization);
-    const { id } = request.params as { id: string };
-    const task = await deps.taskTools.getTask({ id });
-    const activities = mapActivities(task.activities);
-    return { taskId: id, total: activities.length, activities };
-  });
-
   // Replace a task's tags (stored in the task `result` object), preserving
   // transcript/like; then reconcile the customer's aggregate tags.
   app.put("/api/v1/voice-tagging/:id/tags", async (request) => {
@@ -345,8 +327,7 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
     await reconcileCustomerTags(deps, { ownerId: principal.tenantId, baId, customerId });
 
     const updated = await deps.taskTools.getTask({ id });
-    const activities = mapActivities(updated.activities);
-    return { ...toDetail(updated), activity: activities[0] };
+    return toDetail(updated);
   });
 
   // Set the user's like feedback on the task result (true | null).
@@ -366,8 +347,7 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
     };
     await deps.taskTools.updateResult({ id, result: JSON.stringify(next) });
     const updated = await deps.taskTools.getTask({ id });
-    const activities = mapActivities(updated.activities);
-    return { ...toDetail(updated), activity: activities[0] };
+    return toDetail(updated);
   });
 
   // Delete a task, then reconcile the customer's aggregate tags so the deleted

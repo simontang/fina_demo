@@ -27,7 +27,7 @@
 支撑"客户详情"等界面的读取与管理：
 
 - **文件管理**：上传、按 BA + 客户查询文件、获取音频播放链接；
-- **任务管理**：发起打标、按 BA + 客户列任务、任务详情、时间线、修正标签；
+- **任务管理**：发起打标、按 BA + 客户列任务、任务详情（含原文/标签/点赞）、修正标签；
 - **客户标签**：查询客户画像标签（由任务标签自动汇总，外部只读）。
 
 > 当前转写为 mock（结果里 `mock:true`），接口契约与真实链路一致。
@@ -85,7 +85,7 @@ Authorization: Bearer <API_KEY>
   ```
 - **路径拼接**：下文所有接口路径都**相对 Base URL**，最终 URL = `Base + 路径`（Base 末尾无斜杠）。例：`https://ada.alphafina.cn/api/el-ai-gateway/files`。
 - **时间字段**：均为 ISO 8601（如 `2026-09-15T06:13:00Z`）；不同接口精度可能是秒或微秒，解析请容错。
-- **发起是异步的**：调用立即返回，系统在后台处理并写入任务时间线。前端可**每 60 秒轮询一次** [查询任务状态](#83-查询任务状态)，直到 `status` 进入**终态**（`completed` / `failed` / `cancelled`）后再停止。
+- **发起是异步的**：调用立即返回，系统在后台处理并把结果写入任务。前端可**每 60 秒轮询一次** [查询任务详情](#83-查询任务详情)，直到 `status` 进入**终态**（`completed` / `failed` / `cancelled`）后再停止。
 - 当前转写为 **mock**（处理结果里 `mock: true`）。
 - 结果读取方式：转写与打标结果**全部通过查询接口获取**（无 webhook / 无回调）。
 
@@ -104,7 +104,7 @@ Authorization: Bearer <API_KEY>
   - 客户维度的标签由任务标签自动汇总，不需要（也不提供）单独的客户级写接口。
 - `PUT /voice-tagging/:taskId/tags` 是**覆盖式**：传入的数组会**替换该任务原有的全部标签**，不是追加。若要在原基础上加，请先 `GET /voice-tagging/:taskId` 读出 `tags`，合并后再整体 PUT。
 
-> 修改标签是任务上**唯一的写操作**：会覆盖标签结果并自动在任务时间线追加一条记录。
+> 任务上的写操作有两个：**修改标签**（覆盖式，`PUT .../tags`）与**点赞/取消**（`PUT .../like`）。
 
 ## 3. 场景：客户详情（主界面）
 
@@ -128,15 +128,15 @@ Authorization: Bearer <API_KEY>
 
 ## 4. 场景：全部记录
 
-展示该 BA 在某客户名下的语音任务时间线（标签 & 修改记录）。
+展示该 BA 在某客户名下的语音任务列表（标签 & 修改）。
 
 | 动作 | 接口 |
 |---|---|
 | 列出该 BA + 客户名下的语音任务 | [`GET /voice-tagging?baId=&customerId=`](#82-查询任务列表) |
-| 展开某任务的转写 / 打标 / 修改记录时间线 | [`GET /voice-tagging/:taskId/activities`](#84-查询任务时间线) |
-| 删除某条任务 | [`DELETE /voice-tagging/:taskId`](#86-删除任务) |
+| 查看某任务的转写 / 打标结果 | [`GET /voice-tagging/:taskId`](#83-查询任务详情) |
+| 删除某条任务 | [`DELETE /voice-tagging/:taskId`](#85-删除任务) |
 
-**调用顺序**：列表页 `GET /voice-tagging?baId=&customerId=` 拿到 `tasks[]`（含 `taskId`）→ 点开某条任务时用其 `taskId` 调 `GET /voice-tagging/:taskId/activities`。
+**调用顺序**：列表页 `GET /voice-tagging?baId=&customerId=` 拿到 `tasks[]`（含 `taskId`）→ 点开某条任务时用其 `taskId` 调 `GET /voice-tagging/:taskId`。
 
 ## 5. 场景：补充客户标签
 
@@ -144,7 +144,7 @@ Authorization: Bearer <API_KEY>
 |---|---|---|
 | 回显客户现有标签 | [`GET /customers/:customerId/tags`](#91-查询客户业务标签) | **客户级、只读** |
 | 补充 / 更新客户标签 | 无（由任务标签自动汇总） | 编辑任务标签后，客户汇总会自动更新 |
-| 若是修正"某条语音"的标签 | `GET /voice-tagging/:taskId` 读取 → 合并 → [`PUT /voice-tagging/:taskId/tags`](#85-修改任务标签) | **任务级、覆盖式**，不是客户级追加 |
+| 若是修正"某条语音"的标签 | `GET /voice-tagging/:taskId` 读取 → 合并 → [`PUT /voice-tagging/:taskId/tags`](#84-修改任务标签) | **任务级、覆盖式**，不是客户级追加 |
 
 > ⚠️ 详见 [§2 核心概念](#2-核心概念两层标签客户标签-vs-任务标签)：**客户标签只读**；可写的是**任务标签**，且为**覆盖**。
 
@@ -159,11 +159,11 @@ Authorization: Bearer <API_KEY>
 | 录音上传 | [`POST /files?baId=&customerId=&fileCategory=raw&usage=voice-tagging`](#71-上传文件) → 得 `uuid` |
 | 触发转写 + 打标 | [`POST /voice-tagging`](#81-发起打标任务) `{uuid, baId, customerId}` → 得 `taskId` |
 | 手记列表 / 音频播放 | [`GET /voice-tagging?baId=&customerId=`](#82-查询任务列表)、[`GET /files/:uuid/url`](#73-获取文件播放下载链接) |
-| 查看转写与打标结果 | [`GET /voice-tagging/:taskId`](#83-查询任务状态) |
-| 查看时间线 | [`GET /voice-tagging/:taskId/activities`](#84-查询任务时间线) |
-| 修正**本次打标**标签（覆盖） | [`PUT /voice-tagging/:taskId/tags`](#85-修改任务标签) |
+| 查看转写与打标结果 | [`GET /voice-tagging/:taskId`](#83-查询任务详情) |
+| 修正**本次打标**标签（覆盖） | [`PUT /voice-tagging/:taskId/tags`](#84-修改任务标签) |
+| 点赞 / 取消点赞 | [`PUT /voice-tagging/:taskId/like`](#86-任务点赞) |
 
-**时序**：上传 → 发起（立即返回 `taskId`）→ 后台转写 + 打标 → 轮询状态可看到 `tags` 与 activity → 修正标签再写入任务时间线。
+**时序**：上传 → 发起（立即返回 `taskId`）→ 后台转写 + 打标 → 轮询状态可看到 `tags` / `transcript` → 修正标签或点赞。
 
 ---
 
@@ -361,7 +361,7 @@ Content-Type: application/json
 - `file.url` 为该文件的限时预签名下载地址。
 - `agent.dispatched=true` 表示任务已受理、后台处理中（派发失败不影响本响应）。
 
-> **衔接**：前置是上一步的 `uuid`。返回的 `taskId` 供 [查询状态](#83-查询任务状态) / [修改标签](#85-修改任务标签) 使用。
+> **衔接**：前置是上一步的 `uuid`。返回的 `taskId` 供 [查询任务详情](#83-查询任务详情) / [修改标签](#84-修改任务标签) 使用。
 
 ### 8.2 查询任务列表
 
@@ -404,11 +404,11 @@ GET /voice-tagging?baId=<id>&customerId=<id>
 ```
 
 - 缺 `baId` 或 `customerId` → `400 BAD_REQUEST`。
-- `tasks[].status` 枚举同 [§8.3 查询任务状态](#83-查询任务状态)。
-- `tasks[].tags` / `tasks[].like` 同 [§8.3](#83-查询任务状态)；**列表不含 `transcript`**（原文请用任务详情接口获取）。
+- `tasks[].status` 枚举同 [§8.3 查询任务详情](#83-查询任务详情)。
+- `tasks[].tags` / `tasks[].like` 同 [§8.3](#83-查询任务详情)；**列表不含 `transcript`**（原文请用任务详情接口获取）。
 - 说明：按任务的 `baId` + `customerId` **元数据精确过滤**（由 [发起打标任务](#81-发起打标任务) 创建时写入）；无匹配时返回空列表（`total:0`）。
 
-### 8.3 查询任务状态
+### 8.3 查询任务详情
 
 ```
 GET /voice-tagging/:taskId
@@ -438,25 +438,11 @@ GET /voice-tagging/:taskId
 - `like`：用户点赞反馈，`true` 或 `null`（从未点赞 / 已取消均为 `null`）。
 - 任务不存在 → `404 NOT_FOUND`
 
-> **衔接**：用发起接口返回的 `taskId` 查询；`activities` 会随转写/打标与修改标签而增长。
+> **衔接**：用发起接口返回的 `taskId` 查询转写/标签结果。
 
-### 8.4 查询任务时间线
+### 8.4 修改任务标签
 
-```
-GET /voice-tagging/:taskId/activities
-```
-
-```json
-{ "taskId": "…", "total": 1, "activities": [ { "id": "…", "action": "updated", "markdown": "", "createdAt": "…" } ] }
-```
-
-- `activities[].markdown`：转写全文、打标结果等正文（如有）。
-- `activities[].createdAt`：记录时间（ISO 8601）。
-- 任务不存在 → `404 NOT_FOUND`。
-
-### 8.5 修改任务标签
-
-整体**覆盖**某**任务**的标签集合，并记录一条 activity。
+整体**覆盖**某**任务**的标签集合。
 
 > ⚠️ 这是**任务级、覆盖式**接口，只影响该 `taskId` 这一条打标任务的标签；
 > 它**不会**直接写客户画像，而是在提交后由系统按该客户的任务标签**汇总刷新**（见 [§9](#9-客户标签)）。
@@ -501,7 +487,7 @@ Content-Type: application/json
 ```
 （无需再单独提交 `tagValue` 对应的 id；提交后响应会返回它的 `tagId`。）
 
-**响应 `200`**（更新后的任务 + 本次记录的 activity）：
+**响应 `200`**（更新后的任务详情）：
 
 ```json
 {
@@ -510,26 +496,22 @@ Content-Type: application/json
   "status": "in_progress",
   "createdAt": "2026-09-15T05:18:00Z",
   "title": "Voice tagging: 2ccf6fef88b64a16b62fe491a8f7a132",
+  "transcript": "……完整语音原文……",
   "tags": [
     { "tagId": "9ce355bfacca49c4a9e9322a9317c196", "tagKey": "concerns", "tagValue": "抗老/紧致" },
     { "tagId": "4a1b2c3d5e6f47089a0b1c2d3e4f5061", "tagKey": "interested_products", "tagValue": "黑钻光灿面霜" }
   ],
-  "activity": {
-    "id": "…",
-    "action": "updated",
-    "markdown": "",
-    "createdAt": "2026-09-15T07:20:00Z"
-  }
+  "like": true
 }
 ```
 
 - `tags` 非数组 / 元素同时缺 `tagId` 与 `tagValue` / `tagId` 不存在 → `400 BAD_REQUEST`
 - 任务不存在 → `404 NOT_FOUND`
 - 只替换 `tags`；`transcript` 与 `like` 保持不变；每个标签按 `tagId` 保留原有的 `evidence`。
-- 请求体**只取 `tags`**；若请求里还带了 `transcript` / `like`，会被**忽略**（原文由系统/agent 维护，点赞见 [§8.7](#87-任务点赞)）。
-- 说明：该接口会**整体替换**本任务已生成的标签；同时自动在该任务时间线上追加一条记录（`action: updated`），并**重算该客户的标签汇总**（最终一致）。
+- 请求体**只取 `tags`**；若请求里还带了 `transcript` / `like`，会被**忽略**（原文由系统/agent 维护，点赞见 [§8.6](#86-任务点赞)）。
+- 说明：该接口会**整体替换**本任务已生成的标签，并**重算该客户的标签汇总**（最终一致）。
 
-### 8.6 删除任务
+### 8.5 删除任务
 
 删除一条打标任务（**不可恢复**）；删除后系统会重算该客户的标签汇总。
 
@@ -548,7 +530,7 @@ DELETE /voice-tagging/:taskId
 - 任务不存在 → `404 NOT_FOUND`
 - 说明：删除后，该任务贡献的标签会从该客户汇总（见 [§9 客户标签](#9-客户标签)）中移除（最终一致）。
 
-### 8.7 任务点赞
+### 8.6 任务点赞
 
 对任务结果点赞 / 取消点赞（用户反馈）。
 
@@ -566,7 +548,7 @@ Content-Type: application/json
 | `true` | 点赞 |
 | `null` | 取消点赞 / 未点赞 |
 
-**响应 `200`**：更新后的任务详情（同 [§8.3](#83-查询任务状态)，含 `transcript` / `tags` / `like`）+ `activity`。
+**响应 `200`**：更新后的任务详情（同 [§8.3](#83-查询任务详情)，含 `transcript` / `tags` / `like`）。
 
 - `like` 缺失或非 `true`/`null`（如 `false`）→ `400 BAD_REQUEST`
 - 任务不存在 → `404 NOT_FOUND`
@@ -626,7 +608,7 @@ GET /customers/:customerId/tags
 | HTTP | code | 说明 |
 |---|---|---|
 | 401 | `UNAUTHORIZED` | 缺少或错误的 API Key |
-| 400 | `BAD_REQUEST` | 参数非法（缺 `uuid` / `baId` / `customerId`；`tags` 非法或 `tagId` 不存在等） |
+| 400 | `BAD_REQUEST` | 参数非法（缺 `uuid` / `baId` / `customerId`；`tags` 非法、`tagId` 不存在、`like` 非 `true`/`null` 等） |
 | 404 | `NOT_FOUND` | 任务不存在 |
 | 413 | `PAYLOAD_TOO_LARGE` | 上传超限 |
 | 502 | `UPSTREAM_ERROR` | 上游服务错误 |
@@ -649,16 +631,16 @@ TASK=$(curl -s -X POST "$BASE/voice-tagging" \
   -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
   -d "{\"uuid\":\"$UUID\",\"baId\":\"ba_001\",\"customerId\":\"cus_8899\"}" | jq -r .taskId)
 
-# 3) 查询状态（tags；转写/打标正文在 activities[].markdown）
+# 3) 查询任务详情（transcript / tags / like）
 curl -s "$BASE/voice-tagging/$TASK" -H "Authorization: Bearer $KEY" | jq
 
 # 4) 修正标签（整体覆盖）
 curl -s -X PUT "$BASE/voice-tagging/$TASK/tags" \
   -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d '{"tags":["9ce355bfacca49c4a9e9322a9317c196"]}' | jq
+  -d '{"tags":[{"tagId":"9ce355bfacca49c4a9e9322a9317c196"}]}' | jq
 
 # 5) 客户标签（客户详情界面）
 curl -s "$BASE/customers/cus_8899/tags" -H "Authorization: Bearer $KEY" | jq
 ```
 
-**时序**：上传 → 发起（立即返回 `taskId`）→ 后台转写+打标 → 轮询状态可看到 `tags` 与 activity → 修正标签再写入任务时间线。
+**时序**：上传 → 发起（立即返回 `taskId`）→ 后台转写+打标 → 轮询任务详情可看到 `transcript` / `tags` → 修正标签或点赞。

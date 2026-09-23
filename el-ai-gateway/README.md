@@ -17,10 +17,11 @@ Estée Lauder AI project API gateway for **voice-file tagging and customer/file/
 | GET | `/api/v1/files/:uuid/url` | presigned playback/download URL for an `<audio>` |
 | POST | `/api/v1/voice-tagging` | `{uuid?,baId,customerId,title?,description?,assistantId?}`; presigns, creates a task (metadata carries uuid+baId+customerId), dispatches an agent run (background) with only the task id (`uuid` defaults to `VOICE_TAGGING_FILE_UUID`) |
 | GET | `/api/v1/voice-tagging?baId=&customerId=` | list a BA's tasks for a customer via task metadata filter (fileId/taskId/status/tags) |
-| GET | `/api/v1/voice-tagging/:id` | task status + tags |
-| GET | `/api/v1/voice-tagging/:id/activities` | task activity timeline |
-| PUT | `/api/v1/voice-tagging/:id/tags` | **overwrite** this task's tags `{tags:[tagId,...]}`; records an activity (**task-level, not customer-level**) |
-| GET | `/api/v1/customers/:customerId/tags` | a customer's business tags (name + tag uuid); **customer-level, query-only** (updated internally) |
+| GET | `/api/v1/voice-tagging/:id` | task detail: `transcript` / `tags` (`{tagId,tagKey,tagValue,evidence?}`) / `like` |
+| PUT | `/api/v1/voice-tagging/:id/tags` | **overwrite** this task's tags `{tags:[{tagId?}|{tagValue?}]}`; preserves `transcript`/`like` (**task-level, not customer-level**) |
+| PUT | `/api/v1/voice-tagging/:id/like` | set user like `{like:true|null}` |
+| DELETE | `/api/v1/voice-tagging/:id` | delete a task (hard); reconciles the customer's tags |
+| GET | `/api/v1/customers/:customerId/tags` | a customer's business tags; **customer-level, query-only** |
 
 ## Run
 
