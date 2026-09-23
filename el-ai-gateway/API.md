@@ -4,11 +4,16 @@
 
 - **Base URL（线上）**：`https://ada.alphafina.cn/api/el-ai-gateway`
 - **协议**：HTTPS，JSON / multipart
-- **版本**：v1.2
+- **版本**：v1.3
 
 ---
 
 ## 修订日志
+
+### v1.3（2026-09-23）
+
+- **文档**：新增 [§12 Webhook 事件（`job.completed`）](#12-webhook-事件jobcompleted)，说明任务完成事件的类型、阶段与事件数据（`voice.transcribed` / `voice.tagged`）。
+- 说明：事件仅作**通知**用途，最终结果仍以查询接口为准；异步结果可轮询，或订阅 `job.completed` 后再查任务详情。
 
 ### v1.2（2026-09-23）
 
@@ -24,7 +29,7 @@
 - **变更** `GET /customers/:customerId/tags`：返回字段为 `tagId` / `tagKey` / `tagValue` / `source` / `confidence` / `taggedAt`；客户无标签时返回 `200` + 空数组（不再 `404`）。
 - **移除** 任务时间线接口 `GET /voice-tagging/:taskId/activities`（暂不提供，后续按需再加）。
 - **说明**：任务标签字段由 `name` / `dimension` 调整为 `tagKey`（标签组） / `tagValue`（标签名）。
-- **接入建议**：接口由**应用后台**调用（API Key 为租户级，无法识别具体终端用户）；浏览器直连仅用于开发联调；异步结果建议**每 60 秒轮询**任务详情直到终态，或订阅 `job.completed` 事件（见 §12）后再查详情。
+- **接入建议**：接口由**应用后台**调用（API Key 为租户级，无法识别具体终端用户）；浏览器直连仅用于开发联调；异步结果建议**每 60 秒轮询**任务详情直到终态。
 
 ---
 
