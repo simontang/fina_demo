@@ -24,7 +24,7 @@
 - **变更** `GET /customers/:customerId/tags`：返回字段为 `tagId` / `tagKey` / `tagValue` / `source` / `confidence` / `taggedAt`；客户无标签时返回 `200` + 空数组（不再 `404`）。
 - **移除** 任务时间线接口 `GET /voice-tagging/:taskId/activities`（暂不提供，后续按需再加）。
 - **说明**：任务标签字段由 `name` / `dimension` 调整为 `tagKey`（标签组） / `tagValue`（标签名）。
-- **接入建议**：接口由**应用后台**调用（API Key 为租户级，无法识别具体终端用户）；浏览器直连仅用于开发联调；异步结果建议**每 60 秒轮询**任务详情直到终态。
+- **接入建议**：接口由**应用后台**调用（API Key 为租户级，无法识别具体终端用户）；浏览器直连仅用于开发联调；异步结果建议**每 60 秒轮询**任务详情直到终态，或订阅 `job.completed` 事件（见 §12）后再查详情。
 
 ---
 
@@ -107,7 +107,7 @@ Authorization: Bearer <API_KEY>
 - **时间字段**：均为 ISO 8601（如 `2026-09-15T06:13:00Z`）；不同接口精度可能是秒或微秒，解析请容错。
 - **发起是异步的**：调用立即返回，系统在后台处理并把结果写入任务。前端可**每 60 秒轮询一次** [查询任务详情](#83-查询任务详情)，直到 `status` 进入**终态**（`completed` / `failed` / `cancelled`）后再停止。
 - 当前转写为 **mock**（处理结果里 `mock: true`）。
-- 结果读取方式：转写与打标结果**全部通过查询接口获取**（无 webhook / 无回调）。
+- 结果读取方式：**以查询接口为准**；任务处理过程也会投递 `job.completed` 事件（见 [§12](#12-webhook-事件jobcompleted)），可作通知，收到后仍建议调查询接口取最终结果。
 
 ## 2. 核心概念：两层标签（客户标签 vs 任务标签）
 
@@ -664,3 +664,73 @@ curl -s "$BASE/customers/cus_8899/tags" -H "Authorization: Bearer $KEY" | jq
 ```
 
 **时序**：上传 → 发起（立即返回 `taskId`）→ 后台转写+打标 → 轮询任务详情可看到 `transcript` / `tags` → 修正标签或点赞。
+
+## 12. Webhook 事件（`job.completed`）
+
+任务处理过程中，平台会向**已注册的接收端**投递 webhook 事件，事件类型（`eventType`）为 **`job.completed`**。
+
+- 一个任务会发 **2 次**：**转写完成** 与 **打标完成**；两次 `eventType` 都是 `job.completed`，**阶段由 body 的 `event` 字段区分**：
+  - `voice.transcribed`：语音转写完成；
+  - `voice.tagged`：打标完成。
+- 投递语义：Standard Webhooks 签名（`webhook-*` 头，部分实现用别名 `svix-*`）、**at-least-once**、失败自动重试。
+- 事件 body 里的 `task_id` / `file_id` 分别对应 [发起打标任务](#81-发起打标任务) 返回的 `taskId` 与 [上传文件](#71-上传文件) 返回的 `uuid`。
+
+### 12.1 `voice.transcribed`（转写完成）
+
+```json
+{
+  "event": "voice.transcribed",
+  "stage_status": "success",
+  "task_id": "c3915a5a-85ed-4e31-a09e-492b3c11e938",
+  "file_id": "471c20082b524316accc1b23cba8a4de",
+  "local_path": "/project/…/audio.wav",
+  "text": "……完整转写原文……",
+  "mock": true,
+  "language": "zh-CN",
+  "download_ok": true
+}
+```
+
+| 字段 | 说明 |
+|---|---|
+| `event` | 固定 `voice.transcribed` |
+| `stage_status` | `success` / `failed` |
+| `task_id` / `file_id` | 任务 id / 文件 uuid |
+| `text` | 转写全文 |
+| `mock` | 是否 mock 转写 |
+| `language` | 语言（如 `zh-CN`） |
+| `download_ok` | 音频是否下载成功 |
+
+### 12.2 `voice.tagged`（打标完成）
+
+```json
+{
+  "event": "voice.tagged",
+  "stage_status": "success",
+  "task_id": "c3915a5a-85ed-4e31-a09e-492b3c11e938",
+  "file_id": "471c20082b524316accc1b23cba8a4de",
+  "mock": true,
+  "summary": "客户为干性肌，关注抗老与细纹改善，品牌认可度高。",
+  "tags": {
+    "skin_type": [{ "tag": "干性", "evidence": "皮肤偏干" }],
+    "concerns": [{ "tag": "抗老", "evidence": "希望改善细纹" }],
+    "interested_products": [],
+    "purchase_intent": [],
+    "price_sensitivity": [],
+    "competitor_mentions": [],
+    "service_opportunities": [],
+    "custom_tags": []
+  }
+}
+```
+
+| 字段 | 说明 |
+|---|---|
+| `event` | 固定 `voice.tagged` |
+| `stage_status` | `success` / `failed` |
+| `task_id` / `file_id` | 任务 id / 文件 uuid |
+| `summary` | 客户画像摘要 |
+| `tags` | 8 个维度，每维为 `{ tag（标签名）, evidence（原文依据） }` 数组：`skin_type` / `concerns` / `interested_products` / `purchase_intent` / `price_sensitivity` / `competitor_mentions` / `service_opportunities` / `custom_tags` |
+| `mock` | 是否 mock 打标 |
+
+> 说明：事件是**通知**用途。任务最终结果（含 `transcript` / `tags` / `like`，标签为主数据形状 `{tagId,tagKey,tagValue,evidence?}`）请以 [§8.3 查询任务详情](#83-查询任务详情) 为准。
