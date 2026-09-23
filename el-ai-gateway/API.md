@@ -528,6 +528,8 @@ Content-Type: application/json
 DELETE /voice-tagging/:taskId
 ```
 
+> 该接口**无请求体**（不要带 `Content-Type: application/json` 的空 body）。
+
 **响应 `200`**：
 
 ```json
