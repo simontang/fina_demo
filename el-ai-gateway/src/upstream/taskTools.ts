@@ -26,6 +26,7 @@ export type TaskToolClient = {
   getTask(input: { id: string }): Promise<TaskRecord>;
   listTasks(input: { ownerId: string; baId: string; customerId: string }): Promise<TaskRecord[]>;
   updateResult(input: { id: string; result: string }): Promise<{ raw: unknown }>;
+  deleteTask(input: { id: string }): Promise<{ raw: unknown }>;
 };
 
 function parseResult(text: string, structured: unknown): any {
@@ -107,6 +108,10 @@ export function createTaskToolClient(mcp: McpCaller): TaskToolClient {
 
     async updateResult({ id, result }) {
       return { raw: await invoke({ action: "update", id, result }) };
+    },
+
+    async deleteTask({ id }) {
+      return { raw: await invoke({ action: "delete", id }) };
     },
   };
 }

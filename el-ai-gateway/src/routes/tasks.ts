@@ -313,4 +313,20 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
     const activities = mapActivities(updated.activities);
     return { ...toDetail(updated), activity: activities[0] };
   });
+
+  // Delete a task, then reconcile the customer's aggregate tags so the deleted
+  // task's tags drop out of customer_tag immediately.
+  app.delete("/api/v1/voice-tagging/:id", async (request) => {
+    const principal = requirePrincipal(deps.authenticator, request.headers.authorization);
+    const { id } = request.params as { id: string };
+    const task = await deps.taskTools.getTask({ id });
+    const metadata = (task.metadata ?? {}) as Record<string, unknown>;
+    const baId = typeof metadata.baId === "string" ? metadata.baId : undefined;
+    const customerId = typeof metadata.customerId === "string" ? metadata.customerId : undefined;
+    await deps.taskTools.deleteTask({ id });
+    if (baId && customerId) {
+      await reconcileCustomerTags(deps, { ownerId: principal.tenantId, baId, customerId });
+    }
+    return { taskId: id, deleted: true };
+  });
 }

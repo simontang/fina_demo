@@ -99,4 +99,11 @@ describe("taskTools", () => {
       tools.listTasks({ ownerId: "tenant_a", baId: "ba_x", customerId: "cus_y" }),
     ).resolves.toEqual([]);
   });
+
+  it("deletes a task by id", async () => {
+    const caller = callerReturning(JSON.stringify({ success: true, data: { deleted: ["t1"] } }));
+    const tools = createTaskToolClient(caller);
+    await expect(tools.deleteTask({ id: "t1" })).resolves.toEqual({ raw: { deleted: ["t1"] } });
+    expect(caller.callTool).toHaveBeenCalledWith("task_manage_task", { action: "delete", id: "t1" });
+  });
 });

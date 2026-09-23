@@ -134,6 +134,7 @@ Authorization: Bearer <API_KEY>
 |---|---|
 | 列出该 BA + 客户名下的语音任务 | [`GET /voice-tagging?baId=&customerId=`](#82-查询任务列表) |
 | 展开某任务的转写 / 打标 / 修改记录时间线 | [`GET /voice-tagging/:taskId/activities`](#84-查询任务时间线) |
+| 删除某条任务 | [`DELETE /voice-tagging/:taskId`](#86-删除任务) |
 
 **调用顺序**：列表页 `GET /voice-tagging?baId=&customerId=` 拿到 `tasks[]`（含 `taskId`）→ 点开某条任务时用其 `taskId` 调 `GET /voice-tagging/:taskId/activities`。
 
@@ -518,6 +519,23 @@ Content-Type: application/json
 - `tags` 非数组 / 元素同时缺 `tagId` 与 `tagValue` / `tagId` 不存在 → `400 BAD_REQUEST`
 - 任务不存在 → `404 NOT_FOUND`
 - 说明：该接口会**整体替换**本任务已生成的标签；同时自动在该任务时间线上追加一条记录（`action: updated`），并**重算该客户的标签汇总**（最终一致）。
+
+### 8.6 删除任务
+
+删除一条打标任务（**不可恢复**）；删除后系统会重算该客户的标签汇总。
+
+```
+DELETE /voice-tagging/:taskId
+```
+
+**响应 `200`**：
+
+```json
+{ "taskId": "c3915a5a-85ed-4e31-a09e-492b3c11e938", "deleted": true }
+```
+
+- 任务不存在 → `404 NOT_FOUND`
+- 说明：删除后，该任务贡献的标签会从该客户汇总（见 [§9 客户标签](#9-客户标签)）中移除（最终一致）。
 
 ## 9. 客户标签
 

@@ -447,3 +447,56 @@ describe("PUT /api/v1/voice-tagging/:id/tags", () => {
     expect(res.statusCode).toBe(404);
   });
 });
+
+describe("DELETE /api/v1/voice-tagging/:id", () => {
+  const TASK = "b3ca978f-3832-4a2c-959b-40fa48c43352";
+
+  function deleteDeps() {
+    const deleteTask = vi.fn(async (_input: { id: string }) => ({ raw: {} }));
+    return deps({
+      taskTools: {
+        createTask: vi.fn(),
+        getTask: vi.fn(async () => ({
+          id: TASK,
+          status: "completed",
+          metadata: { uuid: "u1", baId: "ba_001", customerId: "cus_8899" },
+          result: "[]",
+          activities: [],
+          raw: {},
+        })),
+        listTasks: vi.fn(async () => []),
+        deleteTask,
+      },
+    });
+  }
+
+  it("deletes the task and reconciles the customer's tags", async () => {
+    const d = deleteDeps();
+    const app = buildServer(d);
+    const res = await app.inject({
+      method: "DELETE",
+      url: `/api/v1/voice-tagging/${TASK}`,
+      headers: { authorization: "Bearer secret" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ taskId: TASK, deleted: true });
+    expect(d.taskTools.deleteTask).toHaveBeenCalledWith({ id: TASK });
+    expect(d.boTools.queryRecords).toHaveBeenCalledWith("customer_tag", [
+      { field: "customer_no", op: "eq", value: "cus_8899" },
+    ]);
+  });
+
+  it("returns 404 for an unknown task", async () => {
+    const d = deps();
+    d.taskTools.getTask = vi.fn(async () => {
+      throw new GatewayError(404, "NOT_FOUND", "Task 'nope' not found");
+    });
+    const app = buildServer(d);
+    const res = await app.inject({
+      method: "DELETE",
+      url: "/api/v1/voice-tagging/nope",
+      headers: { authorization: "Bearer secret" },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+});
