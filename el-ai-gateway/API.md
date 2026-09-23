@@ -393,9 +393,11 @@ GET /voice-tagging?baId=<id>&customerId=<id>
         {
           "tagId": "9ce355bfacca49c4a9e9322a9317c196",
           "tagKey": "concerns",
-          "tagValue": "抗老/紧致"
+          "tagValue": "抗老/紧致",
+          "evidence": "很喜欢用黑钻光灿面霜"
         }
-      ]
+      ],
+      "like": true
     }
   ]
 }
@@ -403,6 +405,7 @@ GET /voice-tagging?baId=<id>&customerId=<id>
 
 - 缺 `baId` 或 `customerId` → `400 BAD_REQUEST`。
 - `tasks[].status` 枚举同 [§8.3 查询任务状态](#83-查询任务状态)。
+- `tasks[].tags` / `tasks[].like` 同 [§8.3](#83-查询任务状态)；**列表不含 `transcript`**（原文请用任务详情接口获取）。
 - 说明：按任务的 `baId` + `customerId` **元数据精确过滤**（由 [发起打标任务](#81-发起打标任务) 创建时写入）；无匹配时返回空列表（`total:0`）。
 
 ### 8.3 查询任务状态
@@ -420,15 +423,19 @@ GET /voice-tagging/:taskId
   "status": "completed",
   "createdAt": "2026-09-15T06:13:00Z",
   "title": "Voice tagging: 471c20082b524316accc1b23cba8a4de",
+  "transcript": "……完整语音原文……",
   "tags": [
-    { "tagId": "9ce355bfacca49c4a9e9322a9317c196", "tagKey": "concerns", "tagValue": "抗老/紧致" }
-  ]
+    { "tagId": "9ce355bfacca49c4a9e9322a9317c196", "tagKey": "concerns", "tagValue": "抗老/紧致", "evidence": "很喜欢用黑钻光灿面霜" }
+  ],
+  "like": true
 }
 ```
 
 - `status`：`pending | in_progress | review | failed | interrupted | completed | cancelled`
 - `fileId`：本次任务关联的文件 uuid（用于播放 / 追问）。
-- `tags`：该任务已生成的标签（`tagId` 32 位 hex / `tagKey` 标签组 / `tagValue` 标签名）
+- `transcript`：语音原文（string，无则 `null`）。
+- `tags`：该任务已生成的标签，元素 `{ tagId, tagKey（标签组）, tagValue（标签名）, evidence?（原文依据） }`。
+- `like`：用户点赞反馈，`true` 或 `null`（从未点赞 / 已取消均为 `null`）。
 - 任务不存在 → `404 NOT_FOUND`
 
 > **衔接**：用发起接口返回的 `taskId` 查询；`activities` 会随转写/打标与修改标签而增长。
@@ -518,6 +525,7 @@ Content-Type: application/json
 
 - `tags` 非数组 / 元素同时缺 `tagId` 与 `tagValue` / `tagId` 不存在 → `400 BAD_REQUEST`
 - 任务不存在 → `404 NOT_FOUND`
+- 只替换 `tags`；`transcript` 与 `like` 保持不变；每个标签按 `tagId` 保留原有的 `evidence`。
 - 说明：该接口会**整体替换**本任务已生成的标签；同时自动在该任务时间线上追加一条记录（`action: updated`），并**重算该客户的标签汇总**（最终一致）。
 
 ### 8.6 删除任务
@@ -538,6 +546,30 @@ DELETE /voice-tagging/:taskId
 
 - 任务不存在 → `404 NOT_FOUND`
 - 说明：删除后，该任务贡献的标签会从该客户汇总（见 [§9 客户标签](#9-客户标签)）中移除（最终一致）。
+
+### 8.7 任务点赞
+
+对任务结果点赞 / 取消点赞（用户反馈）。
+
+```
+PUT /voice-tagging/:taskId/like
+Content-Type: application/json
+```
+
+```json
+{ "like": true }
+```
+
+| 值 | 含义 |
+|---|---|
+| `true` | 点赞 |
+| `null` | 取消点赞 / 未点赞 |
+
+**响应 `200`**：更新后的任务详情（同 [§8.3](#83-查询任务状态)，含 `transcript` / `tags` / `like`）+ `activity`。
+
+- `like` 缺失或非 `true`/`null`（如 `false`）→ `400 BAD_REQUEST`
+- 任务不存在 → `404 NOT_FOUND`
+- 说明：只更新 `like`，`tags` / `transcript` 保持不变。
 
 ## 9. 客户标签
 
