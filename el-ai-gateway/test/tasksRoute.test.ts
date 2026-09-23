@@ -329,7 +329,11 @@ describe("PUT /api/v1/voice-tagging/:id/tags", () => {
     ]);
     expect(d.taskTools.updateResult).toHaveBeenCalledWith({
       id: TASK,
-      result: JSON.stringify([{ tagId: DEF_ID, tagKey: "concerns", tagValue: "抗老/紧致" }]),
+      result: JSON.stringify({
+        transcript: null,
+        tags: [{ tagId: DEF_ID, tagKey: "concerns", tagValue: "抗老/紧致" }],
+        like: null,
+      }),
     });
     expect(res.json().tags).toEqual([{ tagId: DEF_ID, tagKey: "concerns", tagValue: "抗老/紧致" }]);
   });
@@ -446,6 +450,65 @@ describe("PUT /api/v1/voice-tagging/:id/tags", () => {
     });
     expect(res.statusCode).toBe(404);
   });
+
+  it("preserves transcript/like and inherits evidence by tagId", async () => {
+    let current: any = {
+      id: TASK,
+      status: "in_progress",
+      createdAt: "2026-09-15T05:18:00Z",
+      updatedAt: "2026-09-15T05:20:00Z",
+      metadata: { uuid: "u1", baId: "ba_001", customerId: "cus_8899" },
+      result: JSON.stringify({
+        transcript: "原文A",
+        tags: [{ tagId: DEF_ID, tagKey: "concerns", tagValue: "抗老/紧致", evidence: "证据A" }],
+        like: true,
+      }),
+      activities: [],
+      raw: {},
+    };
+    const updateResult = vi.fn(async ({ result }: { result: string }) => {
+      current = { ...current, result };
+      return { raw: {} };
+    });
+    const d = deps({
+      boTools: boStub({ queryRecords: vi.fn(async () => [DEF_ROW]) }),
+      taskTools: {
+        createTask: vi.fn(),
+        getTask: vi.fn(async () => current),
+        updateResult,
+        listTasks: vi.fn(async () => [current]),
+      },
+    });
+    const app = buildServer(d);
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/voice-tagging/${TASK}/tags`,
+      headers: { authorization: "Bearer secret" },
+      payload: { tags: [{ tagId: DEF_ID }] },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(updateResult.mock.calls[0][0].result)).toEqual({
+      transcript: "原文A",
+      like: true,
+      tags: [{ tagId: DEF_ID, tagKey: "concerns", tagValue: "抗老/紧致", evidence: "证据A" }],
+    });
+  });
+
+  it("writes transcript/like as null for a legacy array result", async () => {
+    const d = statefulDeps({ queryRecords: vi.fn(async () => [DEF_ROW]) });
+    const app = buildServer(d);
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/voice-tagging/${TASK}/tags`,
+      headers: { authorization: "Bearer secret" },
+      payload: { tags: [{ tagId: DEF_ID }] },
+    });
+    expect(res.statusCode).toBe(200);
+    const written = JSON.parse(d.taskTools.updateResult.mock.calls[0][0].result);
+    expect(written).toMatchObject({ transcript: null, like: null });
+    expect(written.tags).toEqual([{ tagId: DEF_ID, tagKey: "concerns", tagValue: "抗老/紧致" }]);
+  });
+
 });
 
 describe("DELETE /api/v1/voice-tagging/:id", () => {

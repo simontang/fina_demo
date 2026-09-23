@@ -266,12 +266,13 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
     return { taskId: id, total: activities.length, activities };
   });
 
-  // Replace a task's tags (stored as JSON in the task `result`), then reconcile
-  // the customer's aggregate tags (customer_tag) to the union of task tags.
+  // Replace a task's tags (stored in the task `result` object), preserving
+  // transcript/like; then reconcile the customer's aggregate tags.
   app.put("/api/v1/voice-tagging/:id/tags", async (request) => {
     const principal = requirePrincipal(deps.authenticator, request.headers.authorization);
     const { id } = request.params as { id: string };
     const task = await deps.taskTools.getTask({ id });
+    const prev = parseResult(task.result);
 
     const metadata = (task.metadata ?? {}) as Record<string, unknown>;
     const baId = typeof metadata.baId === "string" ? metadata.baId : undefined;
@@ -285,7 +286,10 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
       throw new GatewayError(400, "BAD_REQUEST", "tags must be an array");
     }
 
-    const out: Array<{ tagId: string; tagKey: string; tagValue: string }> = [];
+    const evidenceByTag = new Map(
+      prev.tags.filter((t) => t.evidence).map((t) => [t.tagId, t.evidence as string]),
+    );
+    const out: ResultTag[] = [];
     const seen = new Set<string>();
     for (const item of body.tags) {
       const input = (typeof item === "string" ? { tagId: item } : (item ?? {})) as {
@@ -330,10 +334,14 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
       }
       if (!tagId || seen.has(tagId)) continue;
       seen.add(tagId);
-      out.push({ tagId, tagKey, tagValue });
+      const tag: ResultTag = { tagId, tagKey, tagValue };
+      const evidence = evidenceByTag.get(tagId);
+      if (evidence) tag.evidence = evidence;
+      out.push(tag);
     }
 
-    await deps.taskTools.updateResult({ id, result: JSON.stringify(out) });
+    const next: TaskResult = { transcript: prev.transcript, tags: out, like: prev.like };
+    await deps.taskTools.updateResult({ id, result: JSON.stringify(next) });
     await reconcileCustomerTags(deps, { ownerId: principal.tenantId, baId, customerId });
 
     const updated = await deps.taskTools.getTask({ id });
