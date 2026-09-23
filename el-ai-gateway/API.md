@@ -526,6 +526,7 @@ Content-Type: application/json
 - `tags` 非数组 / 元素同时缺 `tagId` 与 `tagValue` / `tagId` 不存在 → `400 BAD_REQUEST`
 - 任务不存在 → `404 NOT_FOUND`
 - 只替换 `tags`；`transcript` 与 `like` 保持不变；每个标签按 `tagId` 保留原有的 `evidence`。
+- 请求体**只取 `tags`**；若请求里还带了 `transcript` / `like`，会被**忽略**（原文由系统/agent 维护，点赞见 [§8.7](#87-任务点赞)）。
 - 说明：该接口会**整体替换**本任务已生成的标签；同时自动在该任务时间线上追加一条记录（`action: updated`），并**重算该客户的标签汇总**（最终一致）。
 
 ### 8.6 删除任务

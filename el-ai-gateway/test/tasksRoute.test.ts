@@ -509,6 +509,42 @@ describe("PUT /api/v1/voice-tagging/:id/tags", () => {
     expect(written.tags).toEqual([{ tagId: DEF_ID, tagKey: "concerns", tagValue: "抗老/紧致" }]);
   });
 
+
+  it("ignores transcript/like fields in the PUT request body", async () => {
+    let current: any = {
+      id: TASK,
+      status: "completed",
+      metadata: { uuid: "u1", baId: "ba_001", customerId: "cus_8899" },
+      result: JSON.stringify({ transcript: "原文", tags: [], like: true }),
+      activities: [],
+      raw: {},
+    };
+    const updateResult = vi.fn(async ({ result }: { result: string }) => {
+      current = { ...current, result };
+      return { raw: {} };
+    });
+    const d = deps({
+      boTools: boStub({ queryRecords: vi.fn(async () => [DEF_ROW]) }),
+      taskTools: {
+        createTask: vi.fn(),
+        getTask: vi.fn(async () => current),
+        updateResult,
+        listTasks: vi.fn(async () => [current]),
+      },
+    });
+    const app = buildServer(d);
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/voice-tagging/${TASK}/tags`,
+      headers: { authorization: "Bearer secret" },
+      payload: { tags: [{ tagId: DEF_ID }], transcript: "伪造原文", like: null },
+    });
+    expect(res.statusCode).toBe(200);
+    const written = JSON.parse(updateResult.mock.calls[0][0].result);
+    expect(written.transcript).toBe("原文");
+    expect(written.like).toBe(true);
+  });
+
 });
 
 describe("DELETE /api/v1/voice-tagging/:id", () => {
