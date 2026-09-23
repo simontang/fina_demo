@@ -31,37 +31,62 @@ export function renderRunMessage(
   return `Voice tagging task ${vars.taskId}. Read the task to get the associated file, then transcribe the audio and tag the text.`;
 }
 
-export type TaskTag = { tagId: string; tagKey?: string; tagValue?: string; name?: string; dimension?: string };
+export type ResultTag = { tagId: string; tagKey: string; tagValue: string; evidence?: string };
+export type TaskResult = { transcript: string | null; tags: ResultTag[]; like: boolean | null };
 
-function parseTags(result: string | undefined): TaskTag[] {
-  if (!result) return [];
-  try {
-    const parsed = JSON.parse(result);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
+function normalizeResultTags(input: unknown): ResultTag[] {
+  if (!Array.isArray(input)) return [];
+  const out: ResultTag[] = [];
+  for (const item of input) {
+    if (!item || typeof item !== "object") continue;
+    const t = item as Record<string, unknown>;
+    if (typeof t.tagId !== "string") continue;
+    const tag: ResultTag = {
+      tagId: t.tagId,
+      tagKey: String(t.tagKey ?? t.dimension ?? ""),
+      tagValue: String(t.tagValue ?? t.name ?? ""),
+    };
+    if (typeof t.evidence === "string") tag.evidence = t.evidence;
+    out.push(tag);
   }
+  return out;
 }
 
-function normalizeTags(result: string | undefined): Array<{ tagId: string; tagKey: string; tagValue: string }> {
-  return parseTags(result)
-    .filter((t) => typeof t?.tagId === "string")
-    .map((t) => ({
-      tagId: t.tagId,
-      tagKey: (t.tagKey ?? t.dimension ?? "") as string,
-      tagValue: (t.tagValue ?? t.name ?? "") as string,
-    }));
+export function parseResult(result: string | undefined): TaskResult {
+  const empty: TaskResult = { transcript: null, tags: [], like: null };
+  if (!result) return empty;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(result);
+  } catch {
+    return empty;
+  }
+  if (Array.isArray(parsed)) {
+    return { ...empty, tags: normalizeResultTags(parsed) };
+  }
+  if (parsed && typeof parsed === "object") {
+    const obj = parsed as Record<string, unknown>;
+    return {
+      transcript: typeof obj.transcript === "string" ? obj.transcript : null,
+      tags: normalizeResultTags(obj.tags),
+      like: obj.like === true ? true : null,
+    };
+  }
+  return empty;
 }
 
 function toDetail(task: TaskRecord) {
   const metadata = (task.metadata ?? {}) as Record<string, unknown>;
+  const result = parseResult(task.result);
   return {
     taskId: task.id,
     fileId: typeof metadata.uuid === "string" ? metadata.uuid : undefined,
     status: task.status,
     createdAt: task.createdAt,
     title: task.title,
-    tags: normalizeTags(task.result),
+    transcript: result.transcript,
+    tags: result.tags,
+    like: result.like,
   };
 }
 
@@ -90,7 +115,7 @@ async function reconcileCustomerTags(
     const union = new Map<string, string | undefined>();
     for (const task of tasks) {
       const when = task.updatedAt ?? task.createdAt;
-      for (const tag of parseTags(task.result)) {
+      for (const tag of parseResult(task.result).tags) {
         if (typeof tag?.tagId !== "string") continue;
         const prev = union.get(tag.tagId);
         if (!prev || (when !== undefined && when > prev)) union.set(tag.tagId, when);
@@ -212,12 +237,14 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
     });
     const tasks = records.map((task) => {
       const metadata = (task.metadata ?? {}) as Record<string, unknown>;
+      const result = parseResult(task.result);
       return {
         taskId: task.id,
         fileId: typeof metadata.uuid === "string" ? metadata.uuid : undefined,
         status: task.status,
         createdAt: task.createdAt,
-        tags: normalizeTags(task.result),
+        tags: result.tags,
+        like: result.like,
       };
     });
     return { baId: query.baId, customerId: query.customerId, total: tasks.length, tasks };

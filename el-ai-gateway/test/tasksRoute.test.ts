@@ -500,3 +500,89 @@ describe("DELETE /api/v1/voice-tagging/:id", () => {
     expect(res.statusCode).toBe(404);
   });
 });
+
+describe("task result aggregate (transcript/tags/like)", () => {
+  const TAG_ID = "9ce355bfacca49c4a9e9322a9317c196";
+  const OBJ_RESULT = JSON.stringify({
+    transcript: "王女士提到皮肤偏干。",
+    tags: [{ tagId: TAG_ID, tagKey: "concerns", tagValue: "抗老/紧致", evidence: "皮肤偏干" }],
+    like: true,
+  });
+
+  function taskWith(result: string) {
+    return {
+      id: "task-agg",
+      status: "completed",
+      metadata: { uuid: "u1", baId: "ba_001", customerId: "cus_8899" },
+      result,
+      activities: [],
+      raw: {},
+    };
+  }
+
+  it("detail returns transcript / tags / like from an object result", async () => {
+    const d = deps({
+      taskTools: {
+        createTask: vi.fn(),
+        getTask: vi.fn(async () => taskWith(OBJ_RESULT)),
+        listTasks: vi.fn(async () => []),
+      },
+    });
+    const app = buildServer(d);
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/voice-tagging/task-agg",
+      headers: { authorization: "Bearer secret" },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.transcript).toBe("王女士提到皮肤偏干。");
+    expect(body.like).toBe(true);
+    expect(body.tags).toEqual([
+      { tagId: TAG_ID, tagKey: "concerns", tagValue: "抗老/紧致", evidence: "皮肤偏干" },
+    ]);
+  });
+
+  it("treats a legacy array result as tags only", async () => {
+    const legacy = JSON.stringify([{ tagId: TAG_ID, name: "抗老/紧致", dimension: "concerns" }]);
+    const d = deps({
+      taskTools: {
+        createTask: vi.fn(),
+        getTask: vi.fn(async () => taskWith(legacy)),
+        listTasks: vi.fn(async () => []),
+      },
+    });
+    const app = buildServer(d);
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/voice-tagging/task-agg",
+      headers: { authorization: "Bearer secret" },
+    });
+    const body = res.json();
+    expect(body.transcript).toBeNull();
+    expect(body.like).toBeNull();
+    expect(body.tags).toEqual([{ tagId: TAG_ID, tagKey: "concerns", tagValue: "抗老/紧致" }]);
+  });
+
+  it("list includes tags/like but not transcript", async () => {
+    const d = deps({
+      taskTools: {
+        createTask: vi.fn(),
+        getTask: vi.fn(),
+        updateResult: vi.fn(),
+        listTasks: vi.fn(async () => [taskWith(OBJ_RESULT)]),
+      },
+    });
+    const app = buildServer(d);
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/voice-tagging?baId=ba_001&customerId=cus_8899",
+      headers: { authorization: "Bearer secret" },
+    });
+    expect(res.statusCode).toBe(200);
+    const task = res.json().tasks[0];
+    expect(task.like).toBe(true);
+    expect(task.tags[0]).toMatchObject({ tagId: TAG_ID, tagKey: "concerns", tagValue: "抗老/紧致" });
+    expect(task.transcript).toBeUndefined();
+  });
+});
