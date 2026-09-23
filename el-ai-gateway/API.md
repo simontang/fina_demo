@@ -4,15 +4,11 @@
 
 - **Base URL（线上）**：`https://ada.alphafina.cn/api/el-ai-gateway`
 - **协议**：HTTPS，JSON / multipart
-- **版本**：v1.4
+- **版本**：v1.3
 
 ---
 
 ## 修订日志
-
-### v1.4（2026-09-23）
-
-- **文档**：§12 移除 `voice.transcribed`（转写完成）事件说明，**仅保留打标完成事件**（`job.completed` / `voice.tagged`）。
 
 ### v1.3（2026-09-23）
 
