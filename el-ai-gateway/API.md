@@ -4,7 +4,7 @@
 
 - **Base URL（线上）**：`https://ada.alphafina.cn/api/el-ai-gateway`
 - **协议**：HTTPS，JSON / multipart
-- **版本**：v1
+- **版本**：v1.2
 
 ---
 
