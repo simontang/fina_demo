@@ -349,6 +349,27 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
     return { ...toDetail(updated), activity: activities[0] };
   });
 
+  // Set the user's like feedback on the task result (true | null).
+  app.put("/api/v1/voice-tagging/:id/like", async (request) => {
+    requirePrincipal(deps.authenticator, request.headers.authorization);
+    const { id } = request.params as { id: string };
+    const task = await deps.taskTools.getTask({ id });
+    const body = (request.body ?? {}) as { like?: unknown };
+    if (!("like" in body) || (body.like !== true && body.like !== null)) {
+      throw new GatewayError(400, "BAD_REQUEST", "like must be true or null");
+    }
+    const prev = parseResult(task.result);
+    const next: TaskResult = {
+      transcript: prev.transcript,
+      tags: prev.tags,
+      like: body.like === true ? true : null,
+    };
+    await deps.taskTools.updateResult({ id, result: JSON.stringify(next) });
+    const updated = await deps.taskTools.getTask({ id });
+    const activities = mapActivities(updated.activities);
+    return { ...toDetail(updated), activity: activities[0] };
+  });
+
   // Delete a task, then reconcile the customer's aggregate tags so the deleted
   // task's tags drop out of customer_tag immediately.
   app.delete("/api/v1/voice-tagging/:id", async (request) => {

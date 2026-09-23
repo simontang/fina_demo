@@ -649,3 +649,75 @@ describe("task result aggregate (transcript/tags/like)", () => {
     expect(task.transcript).toBeUndefined();
   });
 });
+
+describe("PUT /api/v1/voice-tagging/:id/like", () => {
+  const TASK = "b3ca978f-3832-4a2c-959b-40fa48c43352";
+
+  function likeDeps(result: string) {
+    let current: any = {
+      id: TASK,
+      status: "completed",
+      metadata: { uuid: "u1", baId: "ba_001", customerId: "cus_8899" },
+      result,
+      activities: [{ id: "act-1", action: "updated", detail: { markdown: "" }, createdAt: "t" }],
+      raw: {},
+    };
+    return deps({
+      taskTools: {
+        createTask: vi.fn(),
+        getTask: vi.fn(async () => current),
+        listTasks: vi.fn(async () => []),
+        updateResult: vi.fn(async ({ result: r }: { result: string }) => {
+          current = { ...current, result: r };
+          return { raw: {} };
+        }),
+      },
+    });
+  }
+
+  it("sets like true and preserves tags/transcript", async () => {
+    const d = likeDeps(
+      JSON.stringify({ transcript: "原文", tags: [{ tagId: "x", tagKey: "g", tagValue: "v" }], like: null }),
+    );
+    const app = buildServer(d);
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/voice-tagging/${TASK}/like`,
+      headers: { authorization: "Bearer secret" },
+      payload: { like: true },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().like).toBe(true);
+    expect(JSON.parse(d.taskTools.updateResult.mock.calls[0][0].result)).toEqual({
+      transcript: "原文",
+      tags: [{ tagId: "x", tagKey: "g", tagValue: "v" }],
+      like: true,
+    });
+  });
+
+  it("clears like with null", async () => {
+    const d = likeDeps(JSON.stringify({ transcript: null, tags: [], like: true }));
+    const app = buildServer(d);
+    const res = await app.inject({
+      method: "PUT",
+      url: `/api/v1/voice-tagging/${TASK}/like`,
+      headers: { authorization: "Bearer secret" },
+      payload: { like: null },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().like).toBeNull();
+  });
+
+  it("rejects false / missing / non-boolean like", async () => {
+    const app = buildServer(likeDeps("{}"));
+    for (const payload of [{ like: false }, {}, { like: "x" }]) {
+      const res = await app.inject({
+        method: "PUT",
+        url: `/api/v1/voice-tagging/${TASK}/like`,
+        headers: { authorization: "Bearer secret" },
+        payload,
+      });
+      expect(res.statusCode).toBe(400);
+    }
+  });
+});
