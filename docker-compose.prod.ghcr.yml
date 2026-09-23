@@ -97,6 +97,9 @@ services:
       MICROSANDBOX_IMAGE: ${MICROSANDBOX_IMAGE:-kioko12520/sandbox:0.1.0}
       # Embed assets (loader.js 等) 位于 gateway 包内，pnpm 路径下框架自动探测失败，需显式指定
       AXIOM_EMBED_ASSETS_DIR: ${AXIOM_EMBED_ASSETS_DIR:-/app/agent/node_modules/@axiom-lattice/gateway/dist/embed}
+      # 重复工具调用熔断阈值（框架默认 warn=3, stop=5）
+      AGENT_REPEATED_TOOL_CALL_WARN: ${AGENT_REPEATED_TOOL_CALL_WARN:-20}
+      AGENT_REPEATED_TOOL_CALL_STOP: ${AGENT_REPEATED_TOOL_CALL_STOP:-25}
 
     volumes:
       - ./uploads:/app/uploads
