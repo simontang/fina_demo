@@ -336,15 +336,50 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
 
     const { url } = await deps.platformFiles.presign({ tenantId: principal.tenantId, uuid });
     const range = request.headers.range;
-    const method = request.method === "HEAD" ? "HEAD" : "GET";
     const controller = new AbortController();
     request.raw.on("close", () => controller.abort());
-
     const doFetch = (globalThis as { fetch: (input: string, init?: unknown) => Promise<any> }).fetch;
+
+    // HEAD: presigned URLs are GET-only, so probe with a 1-byte GET and answer with headers only.
+    if (request.method === "HEAD") {
+      let probe: any;
+      try {
+        probe = await doFetch(url, {
+          method: "GET",
+          headers: { Range: "bytes=0-0" },
+          signal: controller.signal,
+        });
+      } catch (err) {
+        throw new GatewayError(502, "UPSTREAM_ERROR", `audio probe failed: ${(err as Error).message}`);
+      }
+      if (!probe.ok && probe.status !== 206) {
+        throw new GatewayError(502, "UPSTREAM_ERROR", `audio probe failed: ${probe.status}`);
+      }
+      const contentRange = probe.headers.get("content-range") as string | null;
+      const totalMatch = contentRange ? /\/(\d+)$/.exec(contentRange) : null;
+      const total = totalMatch
+        ? Number(totalMatch[1])
+        : Number(probe.headers.get("content-length")) || undefined;
+      const headers: Record<string, string> = {
+        "content-type": (probe.headers.get("content-type") as string | null) ?? "application/octet-stream",
+        "accept-ranges": (probe.headers.get("accept-ranges") as string | null) ?? "bytes",
+      };
+      if (total) headers["content-length"] = String(total);
+      try {
+        await probe.body?.cancel?.();
+      } catch {
+        /* ignore */
+      }
+      reply.hijack();
+      reply.raw.writeHead(200, headers);
+      reply.raw.end();
+      return reply;
+    }
+
     let upstream: any;
     try {
       upstream = await doFetch(url, {
-        method,
+        method: "GET",
         headers: range ? { Range: range } : {},
         signal: controller.signal,
       });
@@ -372,10 +407,6 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
 
     reply.hijack();
     reply.raw.writeHead(upstream.status, headers);
-    if (method === "HEAD" || !upstream.body) {
-      reply.raw.end();
-      return reply;
-    }
     try {
       for await (const chunk of upstream.body as AsyncIterable<Uint8Array>) {
         reply.raw.write(chunk);

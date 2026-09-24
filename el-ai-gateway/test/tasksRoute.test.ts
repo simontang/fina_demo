@@ -869,6 +869,41 @@ describe("GET /api/v1/voice-tagging/:id/audio", () => {
     fetchSpy.mockRestore();
   });
 
+  it("answers HEAD with size + accept-ranges via a GET probe", async () => {
+    const d = deps({
+      taskTools: {
+        createTask: vi.fn(),
+        getTask: vi.fn(async () => taskWith({ uuid: "u1", baId: "ba_001", customerId: "cus_1" })),
+        listTasks: vi.fn(async () => []),
+        updateResult: vi.fn(),
+      },
+    });
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 206,
+      headers: new Headers({
+        "content-type": "audio/wav",
+        "content-range": "bytes 0-0/8236",
+        "accept-ranges": "bytes",
+      }),
+      body: (async function* () {
+        yield Buffer.from("R");
+      })(),
+    } as any);
+    const app = buildServer(d);
+    const res = await app.inject({
+      method: "HEAD",
+      url: `/api/v1/voice-tagging/${TASK}/audio`,
+      headers: { authorization: "Bearer secret" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-length"]).toBe("8236");
+    expect(res.headers["accept-ranges"]).toBe("bytes");
+    expect(res.headers["content-type"]).toBe("audio/wav");
+    expect((fetchSpy.mock.calls[0][1] as any).headers.Range).toBe("bytes=0-0");
+    fetchSpy.mockRestore();
+  });
+
   it("returns 404 when the task has no file", async () => {
     const d = deps({
       taskTools: {
