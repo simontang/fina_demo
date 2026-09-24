@@ -69,6 +69,29 @@ describe("POST /api/v1/files", () => {
     expect(arg.meta).toEqual({ src: "wms", baId: "u1", customerId: "c2" });
   });
 
+  it("records durationSec into the file meta", async () => {
+    const upload = vi.fn(async (_input: any) => ({ uuid: "abc" }));
+    const app = buildServer({
+      config,
+      authenticator: (h) => (h === "Bearer secret" ? { tenantId: "tenant_a", keyLabel: "k" } : null),
+      platformFiles: { upload, presign: vi.fn() } as any,
+      agentRuns: { startRun: vi.fn() } as any,
+      taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
+      boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
+    });
+
+    const { payload, contentType } = multipartBody("a.wav", "RIFF");
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/files?baId=u1&customerId=c2&durationSec=42",
+      headers: { authorization: "Bearer secret", "content-type": contentType },
+      payload,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(upload.mock.calls[0][0].meta).toEqual({ baId: "u1", customerId: "c2", durationSec: 42 });
+  });
+
   it("rejects invalid meta JSON", async () => {
     const upload = vi.fn(async (_input: any) => ({ uuid: "abc" }));
     const app = buildServer({

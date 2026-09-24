@@ -9,7 +9,7 @@ echo "== health =="
 curl -sS "$BASE/health"; echo
 
 echo "== upload =="
-UPLOAD=$(curl -sS -X POST "$BASE/api/v1/files?path=voice&baId=ba_001&customerId=cus_8899" \
+UPLOAD=$(curl -sS -X POST "$BASE/api/v1/files?path=voice&baId=ba_001&customerId=cus_8899&durationSec=12" \
   -H "Authorization: Bearer $KEY" \
   -F "file=@${FILE}")
 echo "$UPLOAD"
@@ -18,7 +18,7 @@ UUID=$(printf '%s' "$UPLOAD" | python3 -c 'import sys,json;print(json.load(sys.s
 echo "== start task =="
 TASK=$(curl -sS -X POST "$BASE/api/v1/voice-tagging" \
   -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d "{\"uuid\":\"$UUID\"}")
+  -d "{\"uuid\":\"$UUID\",\"baId\":\"ba_001\",\"customerId\":\"cus_8899\",\"durationSec\":12}")
 echo "$TASK"
 TASK_ID=$(printf '%s' "$TASK" | python3 -c 'import sys,json;print(json.load(sys.stdin)["taskId"])')
 

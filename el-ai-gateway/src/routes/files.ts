@@ -25,6 +25,7 @@ export function registerFileRoutes(app: FastifyInstance, deps: FileRouteDeps): v
       usage?: string;
       baId?: string;
       customerId?: string;
+      durationSec?: string;
       meta?: string;
     };
     if (typeof query.baId !== "string" || query.baId.trim() === "") {
@@ -50,6 +51,13 @@ export function registerFileRoutes(app: FastifyInstance, deps: FileRouteDeps): v
     }
     if (query.baId) meta.baId = query.baId;
     if (query.customerId) meta.customerId = query.customerId;
+    if (query.durationSec !== undefined && query.durationSec !== "") {
+      const durationSec = Number(query.durationSec);
+      if (!Number.isFinite(durationSec) || durationSec <= 0) {
+        throw new GatewayError(400, "BAD_REQUEST", "durationSec must be a positive number");
+      }
+      meta.durationSec = durationSec;
+    }
 
     const receipt = await deps.platformFiles.upload({
       tenantId: principal.tenantId,

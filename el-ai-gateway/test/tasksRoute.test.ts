@@ -73,7 +73,7 @@ describe("POST /api/v1/voice-tagging", () => {
       method: "POST",
       url: "/api/v1/voice-tagging",
       headers: { authorization: "Bearer secret" },
-      payload: { uuid: "u1", title: "My task", baId: "ba_001", customerId: "cus_8899" },
+      payload: { uuid: "u1", title: "My task", baId: "ba_001", customerId: "cus_8899", durationSec: 12.5 },
     });
     expect(res.statusCode).toBe(200);
     const body = res.json();
@@ -85,7 +85,7 @@ describe("POST /api/v1/voice-tagging", () => {
       description: undefined,
       status: "in_progress",
       ownerId: "tenant_a",
-      metadata: { uuid: "u1", url: "https://signed", baId: "ba_001", customerId: "cus_8899" },
+      metadata: { uuid: "u1", url: "https://signed", baId: "ba_001", customerId: "cus_8899", durationSec: 12.5 },
     });
     const runArg = d.agentRuns.startRun.mock.calls[0][0];
     expect(runArg.assistantId).toBe("voice-agent");
@@ -99,7 +99,7 @@ describe("POST /api/v1/voice-tagging", () => {
       method: "POST",
       url: "/api/v1/voice-tagging",
       headers: { authorization: "Bearer secret" },
-      payload: { baId: "ba_001", customerId: "cus_8899" },
+      payload: { baId: "ba_001", customerId: "cus_8899", durationSec: 3 },
     });
     expect(res.statusCode).toBe(200);
     expect(d.platformFiles.presign).toHaveBeenCalledWith({
@@ -118,7 +118,18 @@ describe("POST /api/v1/voice-tagging", () => {
       method: "POST",
       url: "/api/v1/voice-tagging",
       headers: { authorization: "Bearer secret" },
-      payload: { baId: "ba_001", customerId: "cus_8899" },
+      payload: { baId: "ba_001", customerId: "cus_8899", durationSec: 3 },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("returns 400 when durationSec is missing", async () => {
+    const app = buildServer(deps());
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/voice-tagging",
+      headers: { authorization: "Bearer secret" },
+      payload: { uuid: "u1", baId: "ba_001", customerId: "cus_8899" },
     });
     expect(res.statusCode).toBe(400);
   });
@@ -133,7 +144,7 @@ describe("POST /api/v1/voice-tagging", () => {
       method: "POST",
       url: "/api/v1/voice-tagging",
       headers: { authorization: "Bearer secret" },
-      payload: { uuid: "u1", baId: "ba_001", customerId: "cus_8899" },
+      payload: { uuid: "u1", baId: "ba_001", customerId: "cus_8899", durationSec: 5 },
     });
     expect(res.statusCode).toBe(200);
     expect(res.json().taskId).toBe("task-1");
@@ -755,5 +766,152 @@ describe("PUT /api/v1/voice-tagging/:id/like", () => {
       });
       expect(res.statusCode).toBe(400);
     }
+  });
+});
+
+function multipartBody(filename: string, content: string) {
+  const boundary = "----elgtest";
+  const payload = Buffer.concat([
+    Buffer.from(
+      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\n` +
+        "Content-Type: audio/wav\r\n\r\n",
+    ),
+    Buffer.from(content),
+    Buffer.from(`\r\n--${boundary}--\r\n`),
+  ]);
+  return { payload, contentType: `multipart/form-data; boundary=${boundary}` };
+}
+
+describe("POST /api/v1/voice-tagging/upload", () => {
+  it("uploads, presigns, creates the task and dispatches", async () => {
+    const upload = vi.fn(async (_i: any) => ({ uuid: "u" }));
+    const d = deps({
+      platformFiles: {
+        upload,
+        presign: vi.fn(async () => ({ url: "https://signed", kind: "presigned", expiresInSeconds: 600 })),
+        list: vi.fn(),
+      },
+    });
+    const app = buildServer(d);
+    const { payload, contentType } = multipartBody("clip.wav", "RIFF");
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/voice-tagging/upload?baId=ba_001&customerId=cus_8899&durationSec=9&title=My",
+      headers: { authorization: "Bearer secret", "content-type": contentType },
+      payload,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().file.url).toBe("https://signed");
+    expect(upload).toHaveBeenCalled();
+    expect(d.taskTools.createTask.mock.calls[0][0].metadata).toMatchObject({
+      baId: "ba_001",
+      customerId: "cus_8899",
+      durationSec: 9,
+      url: "https://signed",
+    });
+    expect(d.agentRuns.startRun).toHaveBeenCalled();
+  });
+
+  it("requires baId / customerId / durationSec", async () => {
+    const app = buildServer(deps());
+    const { payload, contentType } = multipartBody("clip.wav", "RIFF");
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/voice-tagging/upload?customerId=cus_8899&durationSec=9",
+      headers: { authorization: "Bearer secret", "content-type": contentType },
+      payload,
+    });
+    expect(res.statusCode).toBe(400);
+  });
+});
+
+describe("GET /api/v1/voice-tagging/:id/audio", () => {
+  const TASK = "t-audio";
+  function taskWith(meta: Record<string, unknown>) {
+    return { id: TASK, status: "completed", metadata: meta, result: "{}", activities: [], raw: {} };
+  }
+
+  it("proxies the presigned audio and passes Range/206", async () => {
+    const d = deps({
+      taskTools: {
+        createTask: vi.fn(),
+        getTask: vi.fn(async () => taskWith({ uuid: "u1", baId: "ba_001", customerId: "cus_1" })),
+        listTasks: vi.fn(async () => []),
+        updateResult: vi.fn(),
+      },
+    });
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 206,
+      headers: new Headers({
+        "content-type": "audio/wav",
+        "content-range": "bytes 0-2/3",
+        "content-length": "3",
+        "accept-ranges": "bytes",
+      }),
+      body: (async function* () {
+        yield Buffer.from("abc");
+      })(),
+    } as any);
+    const app = buildServer(d);
+    const res = await app.inject({
+      method: "GET",
+      url: `/api/v1/voice-tagging/${TASK}/audio`,
+      headers: { authorization: "Bearer secret", range: "bytes=0-2" },
+    });
+    expect(res.statusCode).toBe(206);
+    expect(res.headers["content-range"]).toBe("bytes 0-2/3");
+    expect(res.headers["accept-ranges"]).toBe("bytes");
+    expect(res.body).toBe("abc");
+    const [calledUrl, init] = fetchSpy.mock.calls[0];
+    expect(String(calledUrl)).toBe("https://signed");
+    expect((init as any).headers.Range).toBe("bytes=0-2");
+    fetchSpy.mockRestore();
+  });
+
+  it("returns 404 when the task has no file", async () => {
+    const d = deps({
+      taskTools: {
+        createTask: vi.fn(),
+        getTask: vi.fn(async () => taskWith({})),
+        listTasks: vi.fn(async () => []),
+        updateResult: vi.fn(),
+      },
+    });
+    const app = buildServer(d);
+    const res = await app.inject({
+      method: "GET",
+      url: `/api/v1/voice-tagging/${TASK}/audio`,
+      headers: { authorization: "Bearer secret" },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+});
+
+describe("task duration/audio fields", () => {
+  it("detail includes durationSec and audioUrl", async () => {
+    const d = deps({
+      taskTools: {
+        createTask: vi.fn(),
+        getTask: vi.fn(async () => ({
+          id: "t1",
+          status: "completed",
+          metadata: { uuid: "u1", baId: "ba_001", customerId: "c", durationSec: 8 },
+          result: "{}",
+          activities: [],
+          raw: {},
+        })),
+        listTasks: vi.fn(async () => []),
+        updateResult: vi.fn(),
+      },
+    });
+    const app = buildServer(d);
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/voice-tagging/t1",
+      headers: { authorization: "Bearer secret" },
+    });
+    expect(res.json().durationSec).toBe(8);
+    expect(res.json().audioUrl).toBe("/voice-tagging/t1/audio");
   });
 });

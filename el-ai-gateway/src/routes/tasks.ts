@@ -84,6 +84,8 @@ function toDetail(task: TaskRecord) {
     status: task.status,
     createdAt: task.createdAt,
     title: task.title,
+    durationSec: typeof metadata.durationSec === "number" ? metadata.durationSec : null,
+    audioUrl: `/voice-tagging/${task.id}/audio`,
     transcript: result.transcript,
     tags: result.tags,
     like: result.like,
@@ -169,6 +171,7 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
       uuid?: string;
       baId?: string;
       customerId?: string;
+      durationSec?: unknown;
       title?: string;
       description?: string;
       assistantId?: string;
@@ -183,6 +186,10 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
     if (typeof body.customerId !== "string" || body.customerId.trim() === "") {
       throw new GatewayError(400, "BAD_REQUEST", "customerId is required");
     }
+    const durationSec = Number(body.durationSec);
+    if (!Number.isFinite(durationSec) || durationSec <= 0) {
+      throw new GatewayError(400, "BAD_REQUEST", "durationSec is required (positive seconds)");
+    }
 
     const { url } = await deps.platformFiles.presign({ tenantId: principal.tenantId, uuid });
     const title = body.title ?? `Voice tagging: ${uuid}`;
@@ -191,7 +198,7 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
       description: body.description,
       status: "in_progress",
       ownerId: principal.tenantId,
-      metadata: { uuid, url, baId: body.baId, customerId: body.customerId },
+      metadata: { uuid, url, baId: body.baId, customerId: body.customerId, durationSec },
     });
 
     const assistantId = body.assistantId ?? deps.config.voiceTaggingAssistantId;
@@ -202,6 +209,73 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
         "assistantId is required (or set VOICE_TAGGING_ASSISTANT_ID)",
       );
     }
+    dispatchRun(
+      assistantId,
+      renderRunMessage(deps.config.voiceTaggingMessageTemplate, { uuid, url, taskId }),
+      taskId,
+    );
+
+    return { taskId, status: "in_progress", file: { uuid, url }, agent: { dispatched: true } };
+  });
+
+  // Upload a recording and dispatch the tagging task in one multipart request.
+  app.post("/api/v1/voice-tagging/upload", async (request) => {
+    const principal = requirePrincipal(deps.authenticator, request.headers.authorization);
+    const query = request.query as {
+      baId?: string;
+      customerId?: string;
+      durationSec?: string;
+      title?: string;
+      description?: string;
+      assistantId?: string;
+      path?: string;
+      fileName?: string;
+      fileCategory?: string;
+      usage?: string;
+    };
+    if (typeof query.baId !== "string" || query.baId.trim() === "") {
+      throw new GatewayError(400, "BAD_REQUEST", "baId is required");
+    }
+    if (typeof query.customerId !== "string" || query.customerId.trim() === "") {
+      throw new GatewayError(400, "BAD_REQUEST", "customerId is required");
+    }
+    const durationSec = Number(query.durationSec);
+    if (!Number.isFinite(durationSec) || durationSec <= 0) {
+      throw new GatewayError(400, "BAD_REQUEST", "durationSec is required (positive seconds)");
+    }
+    const assistantId = query.assistantId ?? deps.config.voiceTaggingAssistantId;
+    if (!assistantId) {
+      throw new GatewayError(
+        400,
+        "BAD_REQUEST",
+        "assistantId is required (or set VOICE_TAGGING_ASSISTANT_ID)",
+      );
+    }
+    const data = await request.file();
+    if (!data) throw new GatewayError(400, "BAD_REQUEST", "multipart field 'file' is required");
+
+    const uuid = randomUUID().replace(/-/g, "");
+    await deps.platformFiles.upload({
+      tenantId: principal.tenantId,
+      body: data.file,
+      uuid,
+      filename: data.filename,
+      mime: data.mimetype,
+      path: query.path,
+      fileName: query.fileName,
+      fileCategory: query.fileCategory,
+      usage: query.usage,
+      meta: { baId: query.baId, customerId: query.customerId, durationSec },
+    });
+    const { url } = await deps.platformFiles.presign({ tenantId: principal.tenantId, uuid });
+    const title = query.title ?? `Voice tagging: ${uuid}`;
+    const { taskId } = await deps.taskTools.createTask({
+      title,
+      description: query.description,
+      status: "in_progress",
+      ownerId: principal.tenantId,
+      metadata: { uuid, url, baId: query.baId, customerId: query.customerId, durationSec },
+    });
     dispatchRun(
       assistantId,
       renderRunMessage(deps.config.voiceTaggingMessageTemplate, { uuid, url, taskId }),
@@ -234,6 +308,8 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
         fileId: typeof metadata.uuid === "string" ? metadata.uuid : undefined,
         status: task.status,
         createdAt: task.createdAt,
+        durationSec: typeof metadata.durationSec === "number" ? metadata.durationSec : null,
+        audioUrl: `/voice-tagging/${task.id}/audio`,
         tags: result.tags,
         like: result.like,
       };
@@ -246,6 +322,69 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
     const { id } = request.params as { id: string };
     const task = await deps.taskTools.getTask({ id });
     return toDetail(task);
+  });
+
+  // Stable playback URL: presign on demand and stream the audio through the
+  // gateway (Range/206 passthrough) so the client keeps one fixed URL.
+  app.get("/api/v1/voice-tagging/:id/audio", async (request, reply) => {
+    const principal = requirePrincipal(deps.authenticator, request.headers.authorization);
+    const { id } = request.params as { id: string };
+    const task = await deps.taskTools.getTask({ id });
+    const metadata = (task.metadata ?? {}) as Record<string, unknown>;
+    const uuid = typeof metadata.uuid === "string" ? metadata.uuid : undefined;
+    if (!uuid) throw new GatewayError(404, "NOT_FOUND", "task has no associated file");
+
+    const { url } = await deps.platformFiles.presign({ tenantId: principal.tenantId, uuid });
+    const range = request.headers.range;
+    const method = request.method === "HEAD" ? "HEAD" : "GET";
+    const controller = new AbortController();
+    request.raw.on("close", () => controller.abort());
+
+    const doFetch = (globalThis as { fetch: (input: string, init?: unknown) => Promise<any> }).fetch;
+    let upstream: any;
+    try {
+      upstream = await doFetch(url, {
+        method,
+        headers: range ? { Range: range } : {},
+        signal: controller.signal,
+      });
+    } catch (err) {
+      throw new GatewayError(502, "UPSTREAM_ERROR", `audio fetch failed: ${(err as Error).message}`);
+    }
+    if (!upstream.ok && upstream.status !== 206) {
+      throw new GatewayError(502, "UPSTREAM_ERROR", `audio fetch failed: ${upstream.status}`);
+    }
+
+    const headers: Record<string, string> = {};
+    for (const name of [
+      "content-type",
+      "content-length",
+      "content-range",
+      "accept-ranges",
+      "etag",
+      "last-modified",
+    ]) {
+      const value = upstream.headers.get(name);
+      if (value) headers[name] = value;
+    }
+    if (!headers["content-type"]) headers["content-type"] = "application/octet-stream";
+    if (!headers["accept-ranges"]) headers["accept-ranges"] = "bytes";
+
+    reply.hijack();
+    reply.raw.writeHead(upstream.status, headers);
+    if (method === "HEAD" || !upstream.body) {
+      reply.raw.end();
+      return reply;
+    }
+    try {
+      for await (const chunk of upstream.body as AsyncIterable<Uint8Array>) {
+        reply.raw.write(chunk);
+      }
+    } catch {
+      /* client aborted or upstream stream error */
+    }
+    reply.raw.end();
+    return reply;
   });
 
   // Replace a task's tags (stored in the task `result` object), preserving
