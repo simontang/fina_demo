@@ -4,11 +4,18 @@
 
 - **Base URL（线上）**：`https://ada.alphafina.cn/api/el-ai-gateway`
 - **协议**：HTTPS，JSON / multipart
-- **版本**：v1.3
+- **版本**：v1.4
 
 ---
 
 ## 修订日志
+
+### v1.4（2026-09-23）
+
+- **新增** `POST /voice-tagging/upload`：**合并"上传 + 发起"**为一个 multipart 请求（[§8.1.1](#811-合并上传并发起推荐)）。
+- **新增** `durationSec`（录音时长，秒）：`POST /voice-tagging` 与 `POST /voice-tagging/upload` **必填**；`POST /files` 可选写入文件 meta；任务详情/列表返回 `durationSec`。
+- **新增** 固定播放地址 `GET /voice-tagging/:taskId/audio`（[§8.3.1](#831-播放录音固定地址)）：现取预签名并**代理音频流**（支持 `Range`/`206`/`HEAD`），任务详情/列表返回 `audioUrl`。
+- **变更** 任务详情/列表新增 `durationSec` 与 `audioUrl` 字段。
 
 ### v1.3（2026-09-23）
 
@@ -355,6 +362,7 @@ Content-Type: application/json
   "uuid": "471c20082b524316accc1b23cba8a4de",
   "baId": "ba_001",
   "customerId": "cus_8899",
+  "durationSec": 12.5,
   "title": "可选，任务名；缺省 Voice tagging: <uuid>",
   "description": "可选",
   "assistantId": "可选，覆盖服务端默认配置"
@@ -366,6 +374,7 @@ Content-Type: application/json
 | `uuid` | 是 | 上一步上传返回的文件 uuid（缺省可用服务端配置的 `VOICE_TAGGING_FILE_UUID`） |
 | `baId` | 是 | 业务员 id；写入任务元数据，供 [任务列表](#82-查询任务列表) 过滤 |
 | `customerId` | 是 | 客户 id；写入任务元数据，供 [任务列表](#82-查询任务列表) 过滤 |
+| `durationSec` | 是 | 录音时长（秒，正数）；写入任务元数据，供详情/列表返回 |
 | `title` / `description` | 否 | 任务名 / 描述 |
 | `assistantId` | 否 | 覆盖服务端默认配置 |
 
@@ -387,6 +396,39 @@ Content-Type: application/json
 - `agent.dispatched=true` 表示任务已受理、后台处理中（派发失败不影响本响应）。
 
 > **衔接**：前置是上一步的 `uuid`。返回的 `taskId` 供 [查询任务详情](#83-查询任务详情) / [修改标签](#84-修改任务标签) 使用。
+
+### 8.1.1 合并上传并发起（推荐）
+
+把"上传 → 发起"合并为**一个 multipart 请求**，省去先上传拿 `uuid` 的往返。
+
+```
+POST /voice-tagging/upload            # multipart/form-data
+```
+
+**Query 参数**
+
+| 参数 | 必填 | 说明 |
+|---|---|---|
+| `baId` | 是 | 业务员 id |
+| `customerId` | 是 | 客户 id |
+| `durationSec` | 是 | 录音时长（秒，正数） |
+| `title` / `description` | 否 | 任务名 / 描述 |
+| `assistantId` | 否 | 覆盖服务端默认配置 |
+| `path` / `fileName` / `fileCategory` / `usage` | 否 | 透传给文件上传（同 [§7.1](#71-上传文件)） |
+
+**multipart**：文件字段名 `file`（必填）。
+
+**响应 `200`**：同 [§8.1](#81-发起打标任务)：
+```json
+{
+  "taskId": "c3915a5a-85ed-4e31-a09e-492b3c11e938",
+  "status": "in_progress",
+  "file": { "uuid": "471c20082b524316accc1b23cba8a4de", "url": "https://…（预签名）" },
+  "agent": { "dispatched": true }
+}
+```
+
+- 缺 `baId` / `customerId` / `durationSec` → `400 BAD_REQUEST`；缺 `file` → `400`。
 
 ### 8.2 查询任务列表
 
@@ -414,6 +456,8 @@ GET /voice-tagging?baId=<id>&customerId=<id>
       "fileId": "471c20082b524316accc1b23cba8a4de",
       "status": "completed",
       "createdAt": "2026-09-15T06:13:00Z",
+      "durationSec": 12.5,
+      "audioUrl": "/voice-tagging/c3915a5a-85ed-4e31-a09e-492b3c11e938/audio",
       "tags": [
         {
           "tagId": "9ce355bfacca49c4a9e9322a9317c196",
@@ -430,7 +474,7 @@ GET /voice-tagging?baId=<id>&customerId=<id>
 
 - 缺 `baId` 或 `customerId` → `400 BAD_REQUEST`。
 - `tasks[].status` 枚举同 [§8.3 查询任务详情](#83-查询任务详情)。
-- `tasks[].tags` / `tasks[].like` 同 [§8.3](#83-查询任务详情)；**列表不含 `transcript`**（原文请用任务详情接口获取）。
+- `tasks[].durationSec` / `tasks[].audioUrl` / `tasks[].tags` / `tasks[].like` 同 [§8.3](#83-查询任务详情)；**列表不含 `transcript`**（原文请用任务详情接口获取）。
 - 说明：按任务的 `baId` + `customerId` **元数据精确过滤**（由 [发起打标任务](#81-发起打标任务) 创建时写入）；无匹配时返回空列表（`total:0`）。
 
 ### 8.3 查询任务详情
@@ -448,6 +492,8 @@ GET /voice-tagging/:taskId
   "status": "completed",
   "createdAt": "2026-09-15T06:13:00Z",
   "title": "Voice tagging: 471c20082b524316accc1b23cba8a4de",
+  "durationSec": 12.5,
+  "audioUrl": "/voice-tagging/c3915a5a-85ed-4e31-a09e-492b3c11e938/audio",
   "transcript": "……完整语音原文……",
   "tags": [
     { "tagId": "9ce355bfacca49c4a9e9322a9317c196", "tagKey": "concerns", "tagValue": "抗老/紧致", "evidence": "很喜欢用黑钻光灿面霜" }
@@ -457,13 +503,28 @@ GET /voice-tagging/:taskId
 ```
 
 - `status`：`pending | in_progress | review | failed | interrupted | completed | cancelled`
-- `fileId`：本次任务关联的文件 uuid（用于播放 / 追问）。
+- `fileId`：本次任务关联的文件 uuid。
+- `durationSec`：录音时长（秒，number，无则 `null`）。
+- `audioUrl`：**固定播放地址**（相对 Base 的路径），见 [§8.3.1 播放录音](#831-播放录音固定地址)。
 - `transcript`：语音原文（string，无则 `null`）。
 - `tags`：该任务已生成的标签，元素 `{ tagId, tagKey（标签组）, tagValue（标签名）, evidence?（原文依据） }`。
 - `like`：用户点赞反馈，`true` 或 `null`（从未点赞 / 已取消均为 `null`）。
 - 任务不存在 → `404 NOT_FOUND`
 
 > **衔接**：用发起接口返回的 `taskId` 查询转写/标签结果。
+
+### 8.3.1 播放录音（固定地址）
+
+`audioUrl` 是一个**固定不变**的播放地址：每次访问时由服务端**现取预签名并转发音频流**，因此**不受 TOS 链接过期影响**，客户端始终用同一个 URL。
+
+```
+GET /voice-tagging/:taskId/audio          # 需 Authorization（同其他接口）
+```
+
+- 请求头可带 `Range: bytes=…`，返回 `206` + `Content-Range`（支持拖动进度）；支持 `HEAD`。
+- 响应为音频流（`audio/*`）。
+- 鉴权：`Authorization: Bearer <API_KEY>`（与其它接口一致）。因 `<audio>` / 小程序 `innerAudioContext` 不能带请求头，**由你们后端携带 Key 调用本接口、再把流转发给前端**。
+- 任务不存在或无文件 → `404 NOT_FOUND`；上游取流失败 → `502 UPSTREAM_ERROR`。
 
 ### 8.4 修改任务标签
 
@@ -654,7 +715,7 @@ UUID=$(curl -s -X POST "$BASE/files?path=voice-tagging&fileName=clip.wav&baId=ba
 # 2) 发起（baId / customerId 必填）
 TASK=$(curl -s -X POST "$BASE/voice-tagging" \
   -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d "{\"uuid\":\"$UUID\",\"baId\":\"ba_001\",\"customerId\":\"cus_8899\"}" | jq -r .taskId)
+  -d "{\"uuid\":\"$UUID\",\"baId\":\"ba_001\",\"customerId\":\"cus_8899\",\"durationSec\":12}" | jq -r .taskId)
 
 # 3) 查询任务详情（transcript / tags / like）
 curl -s "$BASE/voice-tagging/$TASK" -H "Authorization: Bearer $KEY" | jq
