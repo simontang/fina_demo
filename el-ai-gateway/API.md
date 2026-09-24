@@ -24,7 +24,7 @@
 
 ### v1.3（2026-09-23）
 
-- **文档**：新增 §12 Webhook 事件说明（当时为 `job.completed`；v1.5 已改为 `customer_tag.updated`）。
+- **文档**：新增 §12 Webhook 事件说明（当时为 `job.completed`；v1.5 起 body 用 `payload.type=customer_tag.updated`）。
 - 说明：事件仅作**通知**用途，最终结果仍以查询接口为准。
 
 ### v1.2（2026-09-23）
