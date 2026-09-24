@@ -81,6 +81,7 @@ describe("upload integration (real fetch streaming)", () => {
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn() } as any,
       boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
+      events: { customerTagUpdated: vi.fn(async () => {}) } as any,
     });
 
     const content = "RIFFfakewavbytes-0123456789";
@@ -114,6 +115,7 @@ describe("upload integration (real fetch streaming)", () => {
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn() } as any,
       boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
+      events: { customerTagUpdated: vi.fn(async () => {}) } as any,
     });
     const { payload, contentType } = multipartBody("clip.wav", "x");
     const res = await app.inject({

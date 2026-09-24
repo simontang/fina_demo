@@ -6,6 +6,7 @@ import { createAgentRunsClient } from "./upstream/agentRuns";
 import { createMcpClient } from "./upstream/mcp";
 import { createTaskToolClient } from "./upstream/taskTools";
 import { createBoTools } from "./upstream/boTools";
+import { createEventPublisher } from "./upstream/events";
 import { buildServer } from "./server";
 
 async function main(): Promise<void> {
@@ -18,6 +19,7 @@ async function main(): Promise<void> {
     agentRuns: createAgentRunsClient(config),
     taskTools: createTaskToolClient(mcp),
     boTools: createBoTools(mcp),
+    events: createEventPublisher(mcp),
   });
   await app.listen({ port: config.port, host: "0.0.0.0" });
   app.log.info(`el-ai-gateway listening on :${config.port}`);

@@ -13,7 +13,7 @@
 ### v1.5（2026-09-23）
 
 - **文档移除** `POST /files`（单独上传）与 `POST /voice-tagging`（按 uuid 发起）；统一使用合并接口 `POST /voice-tagging/upload`（[§8.1](#81-发起打标任务)）。接口仍保留兼容，仅不再对外提供文档。
-- **变更** Webhook 事件改为 **`customer_tag.updated`**（[§12](#12-webhook-事件customer_tagupdated)）：**只带 `customerId`、不带标签数据**，收到后调查询接口取最新标签。
+- **变更** Webhook 事件（[§12](#12-webhook-事件jobcompleted)）：`eventType=job.completed`，`payload.type=customer_tag.updated`；**只带 `customerId`、不带标签数据**，收到后调查询接口取最新标签。
 
 ### v1.4（2026-09-23）
 
@@ -124,7 +124,7 @@ Authorization: Bearer <API_KEY>
 - **时间字段**：均为 ISO 8601（如 `2026-09-15T06:13:00Z`）；不同接口精度可能是秒或微秒，解析请容错。
 - **发起是异步的**：调用立即返回，系统在后台处理并把结果写入任务。前端可**每 60 秒轮询一次** [查询任务详情](#83-查询任务详情)，直到 `status` 进入**终态**（`completed` / `failed` / `cancelled`）后再停止。
 - 当前转写为 **mock**（处理结果里 `mock: true`）。
-- 结果读取方式：**以查询接口为准**；客户标签汇总更新后会投递 `customer_tag.updated` 事件（见 [§12](#12-webhook-事件customer_tagupdated)），可作通知，收到后请调查询接口取最新标签。
+- 结果读取方式：**以查询接口为准**；客户标签汇总更新后会投递 `job.completed` 事件（`payload.type=customer_tag.updated`，见 [§12](#12-webhook-事件jobcompleted)），可作通知，收到后请调查询接口取最新标签。
 
 ## 2. 核心概念：两层标签（客户标签 vs 任务标签）
 
@@ -618,24 +618,30 @@ curl -s "$BASE/customers/cus_8899/tags" -H "Authorization: Bearer $KEY" | jq
 
 **时序**：上传并发起（立即返回 `taskId`）→ 后台转写+打标 → 轮询任务详情可看到 `transcript` / `tags` → 修正标签或点赞。
 
-## 12. Webhook 事件（`customer_tag.updated`）
+## 12. Webhook 事件（`job.completed`）
 
 某客户的**标签汇总被更新**后（编辑任务标签、删除任务等触发汇总重算），平台会向**已注册的接收端**投递 webhook 事件。
 
-- 事件类型（`eventType`）：**`customer_tag.updated`**。
-- **不携带标签数据**，只带**客户 id**；收到后请调 [§9.1 查询客户业务标签](#91-查询客户业务标签) 取最新标签。
+- 事件类型（`eventType`）：**`job.completed`**。
+- body 的 **`payload.type`** 标明业务类型：**`customer_tag.updated`**（客户标签已更新）。
+- **不携带标签数据**，只带**客户 id**（`customerId`）；收到后请调 [§9.1 查询客户业务标签](#91-查询客户业务标签) 取最新标签。
 - 投递语义：Standard Webhooks 签名（`webhook-*` 头，部分实现用别名 `svix-*`）、**at-least-once**、失败自动重试。
+- 订阅时用 `filterTypes: ["job.completed"]`。
 
 事件 body：
 
 ```json
 {
-  "event": "customer_tag.updated",
-  "customerId": "cus_8899"
+  "eventType": "job.completed",
+  "payload": {
+    "type": "customer_tag.updated",
+    "customerId": "cus_8899"
+  }
 }
 ```
 
 | 字段 | 说明 |
 |---|---|
-| `event` | 固定 `customer_tag.updated` |
-| `customerId` | 标签发生变化（汇总更新）的客户 id |
+| `eventType` | 固定 `job.completed` |
+| `payload.type` | 固定 `customer_tag.updated`（客户标签已更新） |
+| `payload.customerId` | 标签发生变化的客户 id |

@@ -8,6 +8,7 @@ import type { PlatformFilesClient } from "../upstream/platformFiles";
 import type { AgentRunsClient } from "../upstream/agentRuns";
 import type { TaskToolClient, TaskRecord } from "../upstream/taskTools";
 import type { BoTools } from "../upstream/boTools";
+import type { EventPublisher } from "../upstream/events";
 
 export type TaskRouteDeps = {
   config: Config;
@@ -16,6 +17,7 @@ export type TaskRouteDeps = {
   agentRuns: AgentRunsClient;
   taskTools: TaskToolClient;
   boTools: BoTools;
+  events: EventPublisher;
 };
 
 export function renderRunMessage(
@@ -143,6 +145,7 @@ async function reconcileCustomerTags(
       .filter((row) => row.source === "voice" && !union.has(String(row.tag_id)))
       .map((row) => String(row.id));
     if (staleIds.length > 0) await deps.boTools.deleteRecords("customer_tag", staleIds);
+    await deps.events.customerTagUpdated(input.customerId);
   } catch (err) {
     console.error(
       `[voice-tagging] customer tag reconcile failed for ${input.customerId}: ${(err as Error).message}`,

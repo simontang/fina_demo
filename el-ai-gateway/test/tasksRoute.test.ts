@@ -61,6 +61,7 @@ function deps(overrides: Record<string, unknown> = {}) {
       createRecord: vi.fn(async (_objectKey: string, _data: any) => ({})),
       deleteRecords: vi.fn(async (_objectKey: string, _ids: string[]) => 0),
     } as any,
+    events: { customerTagUpdated: vi.fn(async () => {}) } as any,
     ...overrides,
   } as any;
 }
@@ -444,6 +445,7 @@ describe("PUT /api/v1/voice-tagging/:id/tags", () => {
       tag_value: "抗老/紧致",
     });
     expect(deleteRecords).toHaveBeenCalledWith("customer_tag", ["row-stale"]);
+    expect(d.events.customerTagUpdated).toHaveBeenCalledWith("cus_8899");
     expect(createRecord.mock.calls.some((c) => c[0] === "tag_definition")).toBe(false);
   });
 
@@ -594,6 +596,7 @@ describe("DELETE /api/v1/voice-tagging/:id", () => {
     expect(d.boTools.queryRecords).toHaveBeenCalledWith("customer_tag", [
       { field: "customer_no", op: "eq", value: "cus_8899" },
     ]);
+    expect(d.events.customerTagUpdated).toHaveBeenCalledWith("cus_8899");
   });
 
   it("returns 404 for an unknown task", async () => {

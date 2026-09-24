@@ -37,6 +37,7 @@ function build(
       createRecord: vi.fn(),
       deleteRecords: vi.fn(),
     } as any,
+    events: { customerTagUpdated: vi.fn(async () => {}) } as any,
   });
 }
 

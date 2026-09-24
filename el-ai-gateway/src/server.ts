@@ -8,6 +8,7 @@ import type { PlatformFilesClient } from "./upstream/platformFiles";
 import type { AgentRunsClient } from "./upstream/agentRuns";
 import type { TaskToolClient } from "./upstream/taskTools";
 import type { BoTools } from "./upstream/boTools";
+import type { EventPublisher } from "./upstream/events";
 import { registerFileRoutes } from "./routes/files";
 import { registerTaskRoutes } from "./routes/tasks";
 import { registerCustomerRoutes } from "./routes/customers";
@@ -19,6 +20,7 @@ export type ServerDeps = {
   agentRuns: AgentRunsClient;
   taskTools: TaskToolClient;
   boTools: BoTools;
+  events: EventPublisher;
 };
 
 export function buildServer(deps: ServerDeps): FastifyInstance {

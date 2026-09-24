@@ -44,6 +44,7 @@ describe("POST /api/v1/files", () => {
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
       boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
+      events: { customerTagUpdated: vi.fn(async () => {}) } as any,
     });
 
     const { payload, contentType } = multipartBody("a.wav", "RIFF");
@@ -78,6 +79,7 @@ describe("POST /api/v1/files", () => {
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
       boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
+      events: { customerTagUpdated: vi.fn(async () => {}) } as any,
     });
 
     const { payload, contentType } = multipartBody("a.wav", "RIFF");
@@ -101,6 +103,7 @@ describe("POST /api/v1/files", () => {
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
       boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
+      events: { customerTagUpdated: vi.fn(async () => {}) } as any,
     });
     const { payload, contentType } = multipartBody("a.wav", "RIFF");
     const res = await app.inject({
@@ -122,6 +125,7 @@ describe("POST /api/v1/files", () => {
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
       boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
+      events: { customerTagUpdated: vi.fn(async () => {}) } as any,
     });
     const { payload, contentType } = multipartBody("a.wav", "RIFF");
     const res = await app.inject({
@@ -143,6 +147,7 @@ describe("POST /api/v1/files", () => {
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
       boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
+      events: { customerTagUpdated: vi.fn(async () => {}) } as any,
     });
     const { payload, contentType } = multipartBody("a.wav", "RIFF");
     const res = await app.inject({
@@ -163,6 +168,7 @@ describe("POST /api/v1/files", () => {
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
       boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
+      events: { customerTagUpdated: vi.fn(async () => {}) } as any,
     });
     const { payload, contentType } = multipartBody("a.wav", "RIFF");
     const res = await app.inject({
@@ -188,6 +194,7 @@ describe("GET /api/v1/files", () => {
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
       boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
+      events: { customerTagUpdated: vi.fn(async () => {}) } as any,
     });
     const res = await app.inject({
       method: "GET",
@@ -205,6 +212,7 @@ describe("GET /api/v1/files", () => {
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
       boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
+      events: { customerTagUpdated: vi.fn(async () => {}) } as any,
     });
     const res = await app.inject({
       method: "GET",
@@ -223,6 +231,7 @@ describe("GET /api/v1/files", () => {
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
       boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
+      events: { customerTagUpdated: vi.fn(async () => {}) } as any,
     });
     const res = await app.inject({
       method: "GET",
@@ -261,6 +270,7 @@ describe("GET /api/v1/files/:uuid/url", () => {
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
       boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
+      events: { customerTagUpdated: vi.fn(async () => {}) } as any,
     });
     const res = await app.inject({
       method: "GET",
@@ -285,6 +295,7 @@ describe("GET /api/v1/files/:uuid/url", () => {
       agentRuns: { startRun: vi.fn() } as any,
       taskTools: { createTask: vi.fn(), getTask: vi.fn(), addActivity: vi.fn() } as any,
       boTools: { getRecord: vi.fn(async () => undefined), queryRecords: vi.fn(async () => []), createRecord: vi.fn(async () => ({})), deleteRecords: vi.fn(async () => 0) } as any,
+      events: { customerTagUpdated: vi.fn(async () => {}) } as any,
     });
     const res = await app.inject({
       method: "GET",
