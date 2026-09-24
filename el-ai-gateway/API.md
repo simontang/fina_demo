@@ -4,23 +4,28 @@
 
 - **Base URL（线上）**：`https://ada.alphafina.cn/api/el-ai-gateway`
 - **协议**：HTTPS，JSON / multipart
-- **版本**：v1.4
+- **版本**：v1.5
 
 ---
 
 ## 修订日志
 
+### v1.5（2026-09-23）
+
+- **文档移除** `POST /files`（单独上传）与 `POST /voice-tagging`（按 uuid 发起）；统一使用合并接口 `POST /voice-tagging/upload`（[§8.1](#81-发起打标任务)）。接口仍保留兼容，仅不再对外提供文档。
+- **变更** Webhook 事件改为 **`customer_tag.updated`**（[§12](#12-webhook-事件customer_tagupdated)）：**只带 `customerId`、不带标签数据**，收到后调查询接口取最新标签。
+
 ### v1.4（2026-09-23）
 
-- **新增** `POST /voice-tagging/upload`：**合并"上传 + 发起"**为一个 multipart 请求（[§8.1.1](#811-合并上传并发起推荐)）。
+- **新增** `POST /voice-tagging/upload`：**合并"上传 + 发起"**为一个 multipart 请求（[§8.1](#81-发起打标任务)）。
 - **新增** `durationSec`（录音时长，秒）：`POST /voice-tagging` 与 `POST /voice-tagging/upload` **必填**；`POST /files` 可选写入文件 meta；任务详情/列表返回 `durationSec`。
 - **新增** 固定播放地址 `GET /voice-tagging/:taskId/audio`（[§8.3.1](#831-播放录音固定地址)）：现取预签名并**代理音频流**（支持 `Range`/`206`/`HEAD`），任务详情/列表返回 `audioUrl`。
 - **变更** 任务详情/列表新增 `durationSec` 与 `audioUrl` 字段。
 
 ### v1.3（2026-09-23）
 
-- **文档**：新增 [§12 Webhook 事件（`job.completed`）](#12-webhook-事件jobcompleted)，说明**打标完成**事件的数据（`eventType=job.completed`、`event=voice.tagged`）。
-- 说明：事件仅作**通知**用途，最终结果仍以查询接口为准；异步结果可轮询，或订阅 `job.completed` 后再查任务详情。
+- **文档**：新增 §12 Webhook 事件说明（当时为 `job.completed`；v1.5 已改为 `customer_tag.updated`）。
+- 说明：事件仅作**通知**用途，最终结果仍以查询接口为准。
 
 ### v1.2（2026-09-23）
 
@@ -51,7 +56,7 @@
 **1. 语音文件打标（核心）**
 把一段**客户语音**（导购/客服与客户的沟通录音）自动处理成**结构化客户画像标签**：
 
-- 上传语音文件，拿到 `uuid`；
+- 上传录音文件并发起打标任务（一步完成）；
 - 触发处理：**语音转文本** → 按客户画像**多维度打标签**（肤质、诉求、感兴趣产品、购买意向、服务机会、自定义标签…），每条标签都带原文 **evidence**；
 - 业务可**查询任务状态与结果**（转写全文、打标结果），并可**修正任务标签**。
 
@@ -119,7 +124,7 @@ Authorization: Bearer <API_KEY>
 - **时间字段**：均为 ISO 8601（如 `2026-09-15T06:13:00Z`）；不同接口精度可能是秒或微秒，解析请容错。
 - **发起是异步的**：调用立即返回，系统在后台处理并把结果写入任务。前端可**每 60 秒轮询一次** [查询任务详情](#83-查询任务详情)，直到 `status` 进入**终态**（`completed` / `failed` / `cancelled`）后再停止。
 - 当前转写为 **mock**（处理结果里 `mock: true`）。
-- 结果读取方式：**以查询接口为准**；任务处理过程也会投递 `job.completed` 事件（见 [§12](#12-webhook-事件jobcompleted)），可作通知，收到后仍建议调查询接口取最终结果。
+- 结果读取方式：**以查询接口为准**；客户标签汇总更新后会投递 `customer_tag.updated` 事件（见 [§12](#12-webhook-事件customer_tagupdated)），可作通知，收到后请调查询接口取最新标签。
 
 ## 2. 核心概念：两层标签（客户标签 vs 任务标签）
 
@@ -188,14 +193,13 @@ Authorization: Bearer <API_KEY>
 
 | 步骤 | 接口 |
 |---|---|
-| 录音上传 | [`POST /files?baId=&customerId=&fileCategory=raw&usage=voice-tagging`](#71-上传文件) → 得 `uuid` |
-| 触发转写 + 打标 | [`POST /voice-tagging`](#81-发起打标任务) `{uuid, baId, customerId}` → 得 `taskId` |
-| 手记列表 / 音频播放 | [`GET /voice-tagging?baId=&customerId=`](#82-查询任务列表)、[`GET /files/:uuid/url`](#73-获取文件播放下载链接) |
+| 上传录音并发起转写+打标 | [`POST /voice-tagging/upload`](#81-发起打标任务)（multipart：`file` + `baId`/`customerId`/`durationSec`）→ 得 `taskId` |
+| 手记列表 / 音频播放 | [`GET /voice-tagging?baId=&customerId=`](#82-查询任务列表)、固定播放地址 `GET /voice-tagging/:taskId/audio`（见 [§8.3.1](#831-播放录音固定地址)） |
 | 查看转写与打标结果 | [`GET /voice-tagging/:taskId`](#83-查询任务详情) |
 | 修正**本次打标**标签（覆盖） | [`PUT /voice-tagging/:taskId/tags`](#84-修改任务标签) |
 | 点赞 / 取消点赞 | [`PUT /voice-tagging/:taskId/like`](#86-任务点赞) |
 
-**时序**：上传 → 发起（立即返回 `taskId`）→ 后台转写 + 打标 → 轮询状态可看到 `tags` / `transcript` → 修正标签或点赞。
+**时序**：上传并发起（立即返回 `taskId`）→ 后台转写 + 打标 → 轮询详情可看到 `tags` / `transcript` → 修正标签或点赞。
 
 ---
 
@@ -203,70 +207,7 @@ Authorization: Bearer <API_KEY>
 
 ## 7. 文件
 
-### 7.1 上传文件
-
-上传语音文件，返回文件 `uuid`（后续发起任务用）。
-
-```
-POST /files?path=<dir>&fileName=<name>
-Content-Type: multipart/form-data
-```
-
-| 参数 | 位置 | 必填 | 说明 |
-|---|---|---|---|
-| `file` | form-data | 是 | 语音文件 |
-| `path` | query | 否 | 逻辑目录，如 `voice-tagging` |
-| `fileName` | query | 否 | 显示文件名；缺省用上传文件名 |
-| `baId` | query | 是 | 业务员（BA）id（并入 `meta.baId`） |
-| `customerId` | query | 是 | 关联客户 id（并入 `meta.customerId`） |
-| `fileCategory` | query | 否 | 文件分类，如 `raw` |
-| `usage` | query | 否 | 用途，如 `voice-tagging` |
-| `meta` | query | 否 | 自定义元数据，**URL 编码的 JSON 对象**，如 `{"src":"wms"}` |
-
-- `meta` 会与 `baId`/`customerId` 合并（后两者覆盖同名键），随文件一起保存，可在文件 `GET` 元数据里取回。
-- **`baId`、`customerId` 必填**；缺任一个 → `400 BAD_REQUEST`。
-- `meta` 非法 JSON 或非对象 → `400 BAD_REQUEST`。
-- **前端一般只传 `baId` / `customerId` 即可**，无需自己拼 `meta`；仅在需要附加业务字段（门店、来源等）时才传，且要 `encodeURIComponent(JSON.stringify({...}))`。
-- 响应里的 `meta` 是**JSON 字符串**（不是对象），如需读取请自行 `JSON.parse`。
-- 文件大小上限 **50MB**，超出 → `413 PAYLOAD_TOO_LARGE`。
-- 语音格式建议 `audio/wav` / `audio/mpeg` / `audio/mp4`（服务端不强制校验 MIME）。
-
-示例：
-
-```bash
-curl -X POST "https://ada.alphafina.cn/api/el-ai-gateway/files?path=voice-tagging\
-&baId=u_1001&customerId=cus_8899&fileCategory=raw&usage=voice-tagging\
-&meta=%7B%22store%22%3A%22XA001%22%7D" \
-  -H "Authorization: Bearer <API_KEY>" \
-  -F "file=@clip.wav;type=audio/wav"
-```
-
-**响应 `200`**（文件回执）：
-
-```json
-{
-  "uuid": "471c20082b524316accc1b23cba8a4de",
-  "fullPath": "voice-tagging/domain.wav",
-  "path": "voice-tagging",
-  "filename": "domain.wav",
-  "version": 1,
-  "sha256": "…",
-  "md5": "…",
-  "size": 34,
-  "mime": "audio/wav",
-  "fileCategory": "raw",
-  "usage": "voice-tagging",
-  "meta": "{\"store\":\"XA001\",\"baId\":\"u_1001\",\"customerId\":\"cus_8899\"}",
-  "status": "active",
-  "createdBy": "api",
-  "createdAt": "2026-09-15T06:13:00.000000",
-  "deduplicated": false
-}
-```
-
-> **衔接**：本接口返回的 `uuid` 是下一步（[发起打标任务](#81-发起打标任务)）的入参。
-
-### 7.2 查询文件
+### 7.1 查询文件
 
 按业务员与客户查询已上传的文件（**两个参数都必填**）。
 
@@ -313,7 +254,7 @@ GET /files?baId=<id>&customerId=<id>&path=&q=&recursive=&page=&size=
 - 过滤条件是 `baId` 与 `customerId` 的**同时精确匹配**。
 - 缺 `baId` 或 `customerId` → `400 BAD_REQUEST`。
 
-### 7.3 获取文件播放/下载链接
+### 7.2 获取文件播放/下载链接
 
 获取某个文件的限时预签名 URL，**可直接用于 `<audio>` 播放**（云存储直链，不经过网关）。
 
@@ -350,56 +291,7 @@ GET /files/:uuid/url?ttlSeconds=
 
 ### 8.1 发起打标任务
 
-用上一步的 `uuid` 创建一个打标任务；系统在后台执行**语音转写 + 客户画像打标签**。
-
-```
-POST /voice-tagging
-Content-Type: application/json
-```
-
-```json
-{
-  "uuid": "471c20082b524316accc1b23cba8a4de",
-  "baId": "ba_001",
-  "customerId": "cus_8899",
-  "durationSec": 12.5,
-  "title": "可选，任务名；缺省 Voice tagging: <uuid>",
-  "description": "可选",
-  "assistantId": "可选，覆盖服务端默认配置"
-}
-```
-
-| 参数 | 必填 | 说明 |
-|---|---|---|
-| `uuid` | 是 | 上一步上传返回的文件 uuid（缺省可用服务端配置的 `VOICE_TAGGING_FILE_UUID`） |
-| `baId` | 是 | 业务员 id；写入任务元数据，供 [任务列表](#82-查询任务列表) 过滤 |
-| `customerId` | 是 | 客户 id；写入任务元数据，供 [任务列表](#82-查询任务列表) 过滤 |
-| `durationSec` | 是 | 录音时长（秒，正数）；写入任务元数据，供详情/列表返回 |
-| `title` / `description` | 否 | 任务名 / 描述 |
-| `assistantId` | 否 | 覆盖服务端默认配置 |
-
-**响应 `200`**：
-
-```json
-{
-  "taskId": "c3915a5a-85ed-4e31-a09e-492b3c11e938",
-  "status": "in_progress",
-  "file": {
-    "uuid": "471c20082b524316accc1b23cba8a4de",
-    "url": "https://finademo.tos-s3-cn-beijing.volces.com/estee_lauder/471c2008…?X-Amz-Signature=…"
-  },
-  "agent": { "dispatched": true }
-}
-```
-
-- `file.url` 为该文件的限时预签名下载地址。
-- `agent.dispatched=true` 表示任务已受理、后台处理中（派发失败不影响本响应）。
-
-> **衔接**：前置是上一步的 `uuid`。返回的 `taskId` 供 [查询任务详情](#83-查询任务详情) / [修改标签](#84-修改任务标签) 使用。
-
-### 8.1.1 合并上传并发起（推荐）
-
-把"上传 → 发起"合并为**一个 multipart 请求**，省去先上传拿 `uuid` 的往返。
+上传录音并创建打标任务：**一个 multipart 请求**同时完成"上传 + 发起"，无需先上传拿 `uuid`。
 
 ```
 POST /voice-tagging/upload            # multipart/form-data
@@ -414,11 +306,11 @@ POST /voice-tagging/upload            # multipart/form-data
 | `durationSec` | 是 | 录音时长（秒，正数） |
 | `title` / `description` | 否 | 任务名 / 描述 |
 | `assistantId` | 否 | 覆盖服务端默认配置 |
-| `path` / `fileName` / `fileCategory` / `usage` | 否 | 透传给文件上传（同 [§7.1](#71-上传文件)） |
+| `path` / `fileName` / `fileCategory` / `usage` | 否 | 透传给文件上传 |
 
 **multipart**：文件字段名 `file`（必填）。
 
-**响应 `200`**：同 [§8.1](#81-发起打标任务)：
+**响应 `200`**：
 ```json
 {
   "taskId": "c3915a5a-85ed-4e31-a09e-492b3c11e938",
@@ -707,67 +599,43 @@ GET /customers/:customerId/tags
 BASE=https://ada.alphafina.cn/api/el-ai-gateway
 KEY=<API_KEY>
 
-# 1) 上传（baId / customerId 必填）
-UUID=$(curl -s -X POST "$BASE/files?path=voice-tagging&fileName=clip.wav&baId=ba_001&customerId=cus_8899" \
+# 1) 上传 + 发起（一步；baId / customerId / durationSec 必填）
+TASK=$(curl -s -X POST "$BASE/voice-tagging/upload?baId=ba_001&customerId=cus_8899&durationSec=12&path=voice-tagging&fileName=clip.wav" \
   -H "Authorization: Bearer $KEY" \
-  -F "file=@clip.wav;type=audio/wav" | jq -r .uuid)
+  -F "file=@clip.wav;type=audio/wav" | jq -r .taskId)
 
-# 2) 发起（baId / customerId 必填）
-TASK=$(curl -s -X POST "$BASE/voice-tagging" \
-  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d "{\"uuid\":\"$UUID\",\"baId\":\"ba_001\",\"customerId\":\"cus_8899\",\"durationSec\":12}" | jq -r .taskId)
-
-# 3) 查询任务详情（transcript / tags / like）
+# 2) 查询任务详情（transcript / tags / like）
 curl -s "$BASE/voice-tagging/$TASK" -H "Authorization: Bearer $KEY" | jq
 
-# 4) 修正标签（整体覆盖）
+# 3) 修正标签（整体覆盖）
 curl -s -X PUT "$BASE/voice-tagging/$TASK/tags" \
   -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
   -d '{"tags":[{"tagId":"9ce355bfacca49c4a9e9322a9317c196"}]}' | jq
 
-# 5) 客户标签（客户详情界面）
+# 4) 客户标签（客户详情界面）
 curl -s "$BASE/customers/cus_8899/tags" -H "Authorization: Bearer $KEY" | jq
 ```
 
-**时序**：上传 → 发起（立即返回 `taskId`）→ 后台转写+打标 → 轮询任务详情可看到 `transcript` / `tags` → 修正标签或点赞。
+**时序**：上传并发起（立即返回 `taskId`）→ 后台转写+打标 → 轮询任务详情可看到 `transcript` / `tags` → 修正标签或点赞。
 
-## 12. Webhook 事件（`job.completed`）
+## 12. Webhook 事件（`customer_tag.updated`）
 
-任务**打标完成**时，平台会向**已注册的接收端**投递 webhook 事件：事件类型（`eventType`）为 **`job.completed`**，body 的 `event` 字段为 **`voice.tagged`**。
+某客户的**标签汇总被更新**后（编辑任务标签、删除任务等触发汇总重算），平台会向**已注册的接收端**投递 webhook 事件。
 
+- 事件类型（`eventType`）：**`customer_tag.updated`**。
+- **不携带标签数据**，只带**客户 id**；收到后请调 [§9.1 查询客户业务标签](#91-查询客户业务标签) 取最新标签。
 - 投递语义：Standard Webhooks 签名（`webhook-*` 头，部分实现用别名 `svix-*`）、**at-least-once**、失败自动重试。
-- 事件 body 里的 `task_id` / `file_id` 分别对应 [发起打标任务](#81-发起打标任务) 返回的 `taskId` 与 [上传文件](#71-上传文件) 返回的 `uuid`。
 
-### 12.1 `voice.tagged`（打标完成）
+事件 body：
 
 ```json
 {
-  "event": "voice.tagged",
-  "stage_status": "success",
-  "task_id": "c3915a5a-85ed-4e31-a09e-492b3c11e938",
-  "file_id": "471c20082b524316accc1b23cba8a4de",
-  "mock": true,
-  "summary": "客户为干性肌，关注抗老与细纹改善，品牌认可度高。",
-  "tags": {
-    "skin_type": [{ "tag": "干性", "evidence": "皮肤偏干" }],
-    "concerns": [{ "tag": "抗老", "evidence": "希望改善细纹" }],
-    "interested_products": [],
-    "purchase_intent": [],
-    "price_sensitivity": [],
-    "competitor_mentions": [],
-    "service_opportunities": [],
-    "custom_tags": []
-  }
+  "event": "customer_tag.updated",
+  "customerId": "cus_8899"
 }
 ```
 
 | 字段 | 说明 |
 |---|---|
-| `event` | 固定 `voice.tagged` |
-| `stage_status` | `success` / `failed` |
-| `task_id` / `file_id` | 任务 id / 文件 uuid |
-| `summary` | 客户画像摘要 |
-| `tags` | 8 个维度，每维为 `{ tag（标签名）, evidence（原文依据） }` 数组：`skin_type` / `concerns` / `interested_products` / `purchase_intent` / `price_sensitivity` / `competitor_mentions` / `service_opportunities` / `custom_tags` |
-| `mock` | 是否 mock 打标 |
-
-> 说明：事件是**通知**用途。任务最终结果（含 `transcript` / `tags` / `like`，标签为主数据形状 `{tagId,tagKey,tagValue,evidence?}`）请以 [§8.3 查询任务详情](#83-查询任务详情) 为准。
+| `event` | 固定 `customer_tag.updated` |
+| `customerId` | 标签发生变化（汇总更新）的客户 id |
