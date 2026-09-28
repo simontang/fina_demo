@@ -322,7 +322,7 @@ describe("PUT /api/v1/voice-tagging/:id/tags", () => {
     });
   }
 
-  const DEF_ROW = { id: "rec-def", tag_id: DEF_ID, tag_group: "concerns", tag_name: "抗老/紧致" };
+  const DEF_ROW = { id: "rec-def", tag_id: DEF_ID, tag_key: "concerns", tag_value: "抗老/紧致" };
 
   it("resolves an existing tagId via the tag_id field and writes {tagId,tagKey,tagValue}", async () => {
     const d = statefulDeps({
@@ -363,7 +363,7 @@ describe("PUT /api/v1/voice-tagging/:id/tags", () => {
     expect(res.statusCode).toBe(200);
     const created = createRecord.mock.calls.find((c) => c[0] === "tag_definition");
     expect(created?.[1]).toMatchObject({
-      tag_group: "客户画像", category: "自定义标签", tag_name: "新标签",
+      tag_key: "客户画像", category: "自定义标签", tag_value: "新标签",
     });
     expect((created?.[1] as any).tag_id).toMatch(/^[0-9a-f]{32}$/);
   });
@@ -373,7 +373,7 @@ describe("PUT /api/v1/voice-tagging/:id/tags", () => {
     const d = statefulDeps({
       queryRecords: vi.fn(async (objectKey: string) =>
         objectKey === "tag_definition"
-          ? [{ id: "rec1", tag_id: "abc", tag_group: "客户画像", tag_name: "新标签" }]
+          ? [{ id: "rec1", tag_id: "abc", tag_key: "客户画像", tag_value: "新标签" }]
           : [],
       ),
       createRecord,
@@ -421,7 +421,7 @@ describe("PUT /api/v1/voice-tagging/:id/tags", () => {
     const d = statefulDeps({
       queryRecords: vi.fn(async (objectKey: string) => {
         if (objectKey === "tag_definition") {
-          return [{ id: "rec-def", tag_id: DEF_ID, tag_group: "concerns", tag_name: "抗老/紧致" }];
+          return [{ id: "rec-def", tag_id: DEF_ID, tag_key: "concerns", tag_value: "抗老/紧致" }];
         }
         return [
           { id: "row-stale", tag_id: staleId, source: "voice", customer_no: "cus_8899" },

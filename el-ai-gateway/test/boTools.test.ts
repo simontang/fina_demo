@@ -11,13 +11,13 @@ describe("boTools", () => {
     const mcp = mcpReturning({
       id: "t1",
       objectKey: "tag_definition",
-      data: { tag_id: "t1", tag_group: "g", tag_name: "n" },
+      data: { tag_id: "t1", tag_key: "g", tag_value: "n" },
     });
     const bo = createBoTools(mcp);
     await expect(bo.getRecord("tag_definition", "t1")).resolves.toEqual({
       tag_id: "t1",
-      tag_group: "g",
-      tag_name: "n",
+      tag_key: "g",
+      tag_value: "n",
       id: "t1",
     });
     expect(mcp.callTool).toHaveBeenCalledWith("business-objects_get_record", {

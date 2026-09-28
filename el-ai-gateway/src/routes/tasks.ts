@@ -124,8 +124,8 @@ async function reconcileCustomerTags(
       const defRows = await deps.boTools.queryRecords("tag_definition", [
         { field: "tag_id", op: "eq", value: tagId },
       ]);
-      const tagKey = String(defRows[0]?.tag_group ?? "");
-      const tagValue = String(defRows[0]?.tag_name ?? "");
+      const tagKey = String(defRows[0]?.tag_key ?? "");
+      const tagValue = String(defRows[0]?.tag_value ?? "");
       const row = byTagId.get(tagId);
       if (!row) {
         await deps.boTools.createRecord("customer_tag", {
@@ -463,8 +463,8 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
         }
         const def = rows[0];
         tagId = String(def.tag_id ?? input.tagId);
-        tagKey = String(def.tag_group ?? "");
-        tagValue = String(def.tag_name ?? "");
+        tagKey = String(def.tag_key ?? "");
+        tagValue = String(def.tag_value ?? "");
       } else {
         if (typeof input.tagValue !== "string" || input.tagValue.trim() === "") {
           throw new GatewayError(400, "BAD_REQUEST", "each tag needs a tagId or a tagValue");
@@ -472,8 +472,8 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
         tagValue = input.tagValue.trim();
         tagKey = "客户画像";
         const existing = await deps.boTools.queryRecords("tag_definition", [
-          { field: "tag_group", op: "eq", value: tagKey },
-          { field: "tag_name", op: "eq", value: tagValue },
+          { field: "tag_key", op: "eq", value: tagKey },
+          { field: "tag_value", op: "eq", value: tagValue },
         ]);
         if (existing.length > 0) {
           tagId = String(existing[0].tag_id);
@@ -481,8 +481,8 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
           tagId = randomBytes(16).toString("hex");
           await deps.boTools.createRecord("tag_definition", {
             category: "自定义标签",
-            tag_group: tagKey,
-            tag_name: tagValue,
+            tag_key: tagKey,
+            tag_value: tagValue,
             tag_id: tagId,
           });
         }
