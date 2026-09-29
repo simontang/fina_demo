@@ -257,11 +257,11 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
     const data = await request.file();
     if (!data) throw new GatewayError(400, "BAD_REQUEST", "multipart field 'file' is required");
 
-    const uuid = randomUUID().replace(/-/g, "");
-    await deps.platformFiles.upload({
+    const generatedUuid = randomUUID().replace(/-/g, "");
+    const receipt = await deps.platformFiles.upload({
       tenantId: principal.tenantId,
       body: data.file,
-      uuid,
+      uuid: generatedUuid,
       filename: data.filename,
       mime: data.mimetype,
       path: query.path,
@@ -270,6 +270,9 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
       usage: query.usage,
       meta: { baId: query.baId, customerId: query.customerId, durationSec },
     });
+    // Dedup returns the existing row's uuid (not the one we sent), so use the receipt's.
+    const uuid =
+      typeof receipt.uuid === "string" && receipt.uuid.trim() !== "" ? receipt.uuid : generatedUuid;
     const { url } = await deps.platformFiles.presign({ tenantId: principal.tenantId, uuid });
     const title = query.title ?? `Voice tagging: ${uuid}`;
     const { taskId } = await deps.taskTools.createTask({

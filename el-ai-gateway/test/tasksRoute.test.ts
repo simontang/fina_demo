@@ -806,13 +806,35 @@ describe("POST /api/v1/voice-tagging/upload", () => {
     expect(res.statusCode).toBe(200);
     expect(res.json().file.url).toBe("https://signed");
     expect(upload).toHaveBeenCalled();
+    expect(d.platformFiles.presign).toHaveBeenCalledWith({ tenantId: "tenant_a", uuid: "u" });
     expect(d.taskTools.createTask.mock.calls[0][0].metadata).toMatchObject({
+      uuid: "u",
       baId: "ba_001",
       customerId: "cus_8899",
       durationSec: 9,
       url: "https://signed",
     });
     expect(d.agentRuns.startRun).toHaveBeenCalled();
+  });
+
+  it("uses the receipt uuid when the upload is deduplicated", async () => {
+    const upload = vi.fn(async (_i: any) => ({ uuid: "existing-dedup-uuid", deduplicated: true }));
+    const presign = vi.fn(async () => ({ url: "https://signed", kind: "presigned", expiresInSeconds: 600 }));
+    const d = deps({
+      platformFiles: { upload, presign, list: vi.fn() },
+    });
+    const app = buildServer(d);
+    const { payload, contentType } = multipartBody("clip.wav", "RIFF");
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/voice-tagging/upload?baId=ba_001&customerId=cus_8899&durationSec=9",
+      headers: { authorization: "Bearer secret", "content-type": contentType },
+      payload,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(presign).toHaveBeenCalledWith({ tenantId: "tenant_a", uuid: "existing-dedup-uuid" });
+    expect(res.json().file.uuid).toBe("existing-dedup-uuid");
+    expect(d.taskTools.createTask.mock.calls[0][0].metadata).toMatchObject({ uuid: "existing-dedup-uuid" });
   });
 
   it("requires baId / customerId / durationSec", async () => {
