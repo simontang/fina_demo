@@ -345,7 +345,25 @@ describe("sapApiCallExecutor（与 curl 等价）", () => {
     expect(result.hint).toContain("$select=");
   });
 
-  it("返回 $top 满条数 → hasMore=true", async () => {
+  it("响应含 odata.nextLink → hasMore=true，且 nextLink 透传（$top>页大小也不误判结束）", async () => {
+    mockFetchOnce(() =>
+      new Response(
+        JSON.stringify({
+          value: new Array(20).fill({ DocEntry: 1 }),
+          "odata.nextLink": "Orders?$select=DocEntry&$skip=20",
+        }),
+        { status: 200 }
+      )
+    );
+    const result = await sapApiCallExecutor(
+      { entitySet: "Orders", method: "GET", queryOptions: "$top=50" },
+      { baseUrl: "https://x" }
+    );
+    expect(result.hasMore).toBe(true);
+    expect((result.data as any)["odata.nextLink"]).toBe("Orders?$select=DocEntry&$skip=20");
+  });
+
+  it("无 odata.nextLink → hasMore=false（即使回满 $top 条）", async () => {
     mockFetchOnce(() =>
       new Response(JSON.stringify({ value: new Array(20).fill({ DocEntry: 1 }) }), {
         status: 200,
@@ -355,17 +373,17 @@ describe("sapApiCallExecutor（与 curl 等价）", () => {
       { entitySet: "Orders", method: "GET", queryOptions: "$top=20" },
       { baseUrl: "https://x" }
     );
-    expect(result.hasMore).toBe(true);
+    expect(result.hasMore).toBe(false);
   });
 
-  it("不足 $top 条数 → hasMore=false", async () => {
+  it("$skip 取下一页且无 nextLink → hasMore=false", async () => {
     mockFetchOnce(() =>
       new Response(JSON.stringify({ value: new Array(5).fill({ DocEntry: 1 }) }), {
         status: 200,
       })
     );
     const result = await sapApiCallExecutor(
-      { entitySet: "Orders", method: "GET", queryOptions: "$top=20" },
+      { entitySet: "Orders", method: "GET", queryOptions: "$top=20&$skip=20" },
       { baseUrl: "https://x" }
     );
     expect(result.hasMore).toBe(false);
@@ -450,5 +468,11 @@ describe("trimNestedCollections / cleanODataNoise", () => {
     cleanODataNoise(data);
     expect(data["odata.metadata"]).toBeUndefined();
     expect(data.value[0]["odata.etag"]).toBeUndefined();
+  });
+
+  it("保留 odata.nextLink（供 agent 自行翻页）", () => {
+    const data: any = { "odata.metadata": "x", "odata.nextLink": "Orders?$skip=20", value: [] };
+    cleanODataNoise(data);
+    expect(data["odata.nextLink"]).toBe("Orders?$skip=20");
   });
 });

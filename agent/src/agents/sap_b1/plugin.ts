@@ -603,7 +603,87 @@ export const API_LIST: ApiEntry[] = [
 
 interface SapB1Config {
   baseUrl?: string;
+  connections?: unknown;
+  connectAll?: unknown;
+  connectionType?: string;
   _resolvedConnections?: { config: Record<string, unknown> }[];
+}
+
+const SAP_B1_CONNECTION_TYPE = "sap-b1";
+
+function firstResolvedConfig(container?: unknown): Record<string, unknown> {
+  const c = container as
+    | { _resolvedConnections?: Array<{ config?: Record<string, unknown> }> }
+    | undefined;
+  return c?._resolvedConnections?.[0]?.config ?? {};
+}
+
+function runConfigOf(exeConfig?: unknown): Record<string, unknown> {
+  return (
+    ((exeConfig as { configurable?: { runConfig?: Record<string, unknown> } })?.configurable
+      ?.runConfig as Record<string, unknown>) ?? {}
+  );
+}
+
+function normalizeBaseUrl(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed ? trimmed.replace(/\/+$/, "") : undefined;
+}
+
+/**
+ * Resolve the SAP B1 Service Layer base URL for a tool invocation.
+ *
+ * Prefers a host-injected, pre-resolved connection (build-time plugin config or
+ * invoke-time `runConfig._resolvedConnections`). Otherwise resolves the selected
+ * `sap-b1` connection from the tenant-scoped Connection Store via the plugin
+ * selector (`connections`/`connectAll`), so a customer-selected endpoint (e.g.
+ * Argo) is honored instead of silently falling back to the default host.
+ *
+ * @returns The resolved base URL, or `undefined` when no selector is configured
+ *   (caller falls back to env / default).
+ * @throws When a selector is configured but resolves to no connection.
+ */
+export async function resolveSapBaseUrl(
+  pluginConfig?: unknown,
+  exeConfig?: unknown
+): Promise<string | undefined> {
+  const preResolved = {
+    ...firstResolvedConfig(pluginConfig),
+    ...firstResolvedConfig(runConfigOf(exeConfig)),
+  };
+  const preBaseUrl = normalizeBaseUrl(preResolved.baseUrl);
+  if (preBaseUrl) return preBaseUrl;
+
+  const selector = (pluginConfig ?? {}) as SapB1Config;
+  const connections = Array.isArray(selector.connections)
+    ? selector.connections.filter((key): key is string => typeof key === "string")
+    : [];
+  const connectAll = selector.connectAll === true;
+  if (!connectAll && connections.length === 0) return undefined;
+
+  const tenantId = runConfigOf(exeConfig).tenantId;
+  if (typeof tenantId !== "string" || !tenantId.trim()) {
+    throw new Error(
+      `tenant context is missing: cannot resolve the "${SAP_B1_CONNECTION_TYPE}" connection.`
+    );
+  }
+
+  const { resolvePluginConnections } = await import("@axiom-lattice/core");
+  const resolved = await resolvePluginConnections(
+    SAP_B1_CONNECTION_TYPE,
+    { connections, connectAll },
+    { tenantId: tenantId.trim() }
+  );
+  const baseUrl = normalizeBaseUrl(resolved[0]?.config?.baseUrl);
+  if (!baseUrl) {
+    throw new Error(
+      `No "${SAP_B1_CONNECTION_TYPE}" connection is configured for tenant "${tenantId.trim()}". ` +
+        `Add a connection of type "${SAP_B1_CONNECTION_TYPE}" and select it (connections) or enable connectAll ` +
+        `in the agent's middleware config.`
+    );
+  }
+  return baseUrl;
 }
 
 // ============================================================
@@ -804,10 +884,12 @@ export async function sapApiCallExecutor(
         result.hint = `SAP 返回: ${slError}。400 多为字段名不存在（用 sap_api_search 核对）或特殊字符未正确编码；500 多为 $expand/主键路径问题。`;
       }
     } else {
-      const value = (data as { value?: unknown[] } | null)?.value;
+      const record =
+        data && typeof data === "object" ? (data as Record<string, unknown>) : undefined;
+      const value = record?.value;
       if (Array.isArray(value)) {
-        const top = extractTop(input.queryOptions);
-        result.hasMore = value.length === top;
+        const nextLink = record?.["odata.nextLink"];
+        result.hasMore = typeof nextLink === "string" && nextLink.length > 0;
       }
     }
 
@@ -828,11 +910,6 @@ function extractSlError(data: unknown): string | undefined {
   const err = (data as { error?: { message?: { value?: string } } }).error;
   const value = err?.message?.value;
   return typeof value === "string" && value.length > 0 ? value : undefined;
-}
-
-function extractTop(queryOptions?: string): number {
-  const m = queryOptions?.match(/\$top\s*=\s*(\d+)/);
-  return m ? parseInt(m[1], 10) : 20;
 }
 
 // ============================================================
@@ -917,7 +994,6 @@ export function cleanODataNoise(data: unknown): void {
 
   delete obj["odata.metadata"];
   delete obj["odata.etag"];
-  delete obj["odata.nextLink"];
 
   if (Array.isArray(obj.value)) {
     for (const record of obj.value) {
@@ -1038,7 +1114,8 @@ const sapApiCallDescription =
   "POST 创建: sap_api_search 返回的 lineFields 是 DocumentLines 子字段。" +
   "body 必含 DocObjectCode(DocType)、CardCode、DocDate；DocumentLines 为数组，每项必含 ItemCode、Quantity。" +
   "PATCH 只传变更字段；DELETE 需传 id。\n" +
-  "GET 自动注入保守 $select+$top=20（字段经真实 $metadata 校验），手动传入可覆盖；不要自己拼 %xx 编码，引号/特殊字符交给工具处理。" +
+  "GET 自动注入保守 $select+$top=20（字段经真实 $metadata 校验），手动传入可覆盖；不要自己拼 %xx 编码，引号/特殊字符交给工具处理。\n" +
+  "分页：服务端每页默认 20 条，$top 再大也只回一页。响应若含 odata.nextLink（或 hasMore=true）说明还有下一页，取 nextLink 里的 $skip（如 $top=20&$skip=20）再次调用同一 entitySet，直到无 nextLink —— 漏查后续页会得出错误结论，不得只看第一页就下判断。" +
   "嵌套集合(DocumentLines等)自动裁剪只保留常用字段，防 token 爆炸。" +
   "认证走代理时由服务端管理，无需额外配置。";
 
@@ -1057,9 +1134,10 @@ export const sapB1Plugin: Plugin = {
           widget: "connectionSelect",
           connectionType: "sap-b1",
         },
+        connectAll: { type: "boolean", title: "Connect all available connections" },
       },
     },
-    defaultConfig: { connections: [] },
+    defaultConfig: { connections: [], connectAll: false },
   },
 
   connection: {
@@ -1093,12 +1171,10 @@ export const sapB1Plugin: Plugin = {
   },
 
   middleware: (rawConfig) => {
-    const config: SapB1Config = { ...(rawConfig as Record<string, unknown>) };
-    const conns = config._resolvedConnections;
-    if (conns?.length) {
-      const connConfig = conns[0].config;
-      if (connConfig.baseUrl) config.baseUrl = connConfig.baseUrl as string;
-    }
+    const config: SapB1Config = {
+      ...(rawConfig as Record<string, unknown>),
+      connectionType: SAP_B1_CONNECTION_TYPE,
+    };
 
     return createMiddleware({
       name: "SapB1",
@@ -1128,7 +1204,13 @@ export const sapB1Plugin: Plugin = {
           } as any
         ),
         tool(
-          (input) => sapApiCallExecutor(input as unknown as Parameters<typeof sapApiCallExecutor>[0], config),
+          async (input, exeConfig) => {
+            const baseUrl = await resolveSapBaseUrl(config, exeConfig);
+            return sapApiCallExecutor(
+              input as unknown as Parameters<typeof sapApiCallExecutor>[0],
+              { ...config, baseUrl }
+            );
+          },
           {
             name: "sap_api_call",
             description: sapApiCallDescription,
