@@ -85,7 +85,8 @@ describe("POST /api/v1/voice-tagging", () => {
       title: "My task",
       description: undefined,
       status: "in_progress",
-      ownerId: "tenant_a",
+      ownerType: "agent",
+      ownerId: "voice-agent",
       metadata: { uuid: "u1", url: "https://signed", baId: "ba_001", customerId: "cus_8899", durationSec: 12.5 },
     });
     const runArg = d.agentRuns.startRun.mock.calls[0][0];
@@ -230,7 +231,6 @@ describe("GET /api/v1/voice-tagging?baId=&customerId=", () => {
     expect(body.customerId).toBe("cus_8899");
     expect(body.total).toBe(1);
     expect(d.taskTools.listTasks).toHaveBeenCalledWith({
-      ownerId: "tenant_a",
       baId: "ba_001",
       customerId: "cus_8899",
     });

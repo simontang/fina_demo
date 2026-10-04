@@ -81,13 +81,11 @@ describe("taskTools", () => {
       }),
     );
     const tools = createTaskToolClient(caller);
-    const tasks = await tools.listTasks({ ownerId: "tenant_a", baId: "ba_001", customerId: "cus_8899" });
+    const tasks = await tools.listTasks({ baId: "ba_001", customerId: "cus_8899" });
     expect(tasks).toHaveLength(1);
     expect(tasks[0]).toMatchObject({ id: "t1", status: "completed", metadata: { uuid: "u1" } });
     expect(caller.callTool).toHaveBeenCalledWith("task_manage_task", {
       action: "list",
-      ownerType: "user",
-      ownerId: "tenant_a",
       metadataFilter: { baId: "ba_001", customerId: "cus_8899" },
     });
   });
@@ -96,7 +94,7 @@ describe("taskTools", () => {
     const caller = callerReturning(JSON.stringify({ success: true, data: [], count: 0 }));
     const tools = createTaskToolClient(caller);
     await expect(
-      tools.listTasks({ ownerId: "tenant_a", baId: "ba_x", customerId: "cus_y" }),
+      tools.listTasks({ baId: "ba_x", customerId: "cus_y" }),
     ).resolves.toEqual([]);
   });
 

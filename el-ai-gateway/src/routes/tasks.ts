@@ -99,11 +99,10 @@ function toDetail(task: TaskRecord) {
 // fail the PUT (the next edit reconciles again).
 async function reconcileCustomerTags(
   deps: TaskRouteDeps,
-  input: { ownerId: string; baId: string; customerId: string },
+  input: { baId: string; customerId: string },
 ): Promise<void> {
   try {
     const tasks = await deps.taskTools.listTasks({
-      ownerId: input.ownerId,
       baId: input.baId,
       customerId: input.customerId,
     });
@@ -194,16 +193,6 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
       throw new GatewayError(400, "BAD_REQUEST", "durationSec is required (positive seconds)");
     }
 
-    const { url } = await deps.platformFiles.presign({ tenantId: principal.tenantId, uuid });
-    const title = body.title ?? `Voice tagging: ${uuid}`;
-    const { taskId } = await deps.taskTools.createTask({
-      title,
-      description: body.description,
-      status: "in_progress",
-      ownerId: principal.tenantId,
-      metadata: { uuid, url, baId: body.baId, customerId: body.customerId, durationSec },
-    });
-
     const assistantId = body.assistantId ?? deps.config.voiceTaggingAssistantId;
     if (!assistantId) {
       throw new GatewayError(
@@ -212,6 +201,18 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
         "assistantId is required (or set VOICE_TAGGING_ASSISTANT_ID)",
       );
     }
+
+    const { url } = await deps.platformFiles.presign({ tenantId: principal.tenantId, uuid });
+    const title = body.title ?? `Voice tagging: ${uuid}`;
+    const { taskId } = await deps.taskTools.createTask({
+      title,
+      description: body.description,
+      status: "in_progress",
+      ownerType: "agent",
+      ownerId: assistantId,
+      metadata: { uuid, url, baId: body.baId, customerId: body.customerId, durationSec },
+    });
+
     dispatchRun(
       assistantId,
       renderRunMessage(deps.config.voiceTaggingMessageTemplate, { uuid, url, taskId }),
@@ -279,7 +280,8 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
       title,
       description: query.description,
       status: "in_progress",
-      ownerId: principal.tenantId,
+      ownerType: "agent",
+      ownerId: assistantId,
       metadata: { uuid, url, baId: query.baId, customerId: query.customerId, durationSec },
     });
     dispatchRun(
@@ -302,7 +304,6 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
       throw new GatewayError(400, "BAD_REQUEST", "customerId is required");
     }
     const records = await deps.taskTools.listTasks({
-      ownerId: principal.tenantId,
       baId: query.baId,
       customerId: query.customerId,
     });
@@ -501,7 +502,7 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
 
     const next: TaskResult = { transcript: prev.transcript, tags: out, like: prev.like };
     await deps.taskTools.updateResult({ id, result: JSON.stringify(next) });
-    await reconcileCustomerTags(deps, { ownerId: principal.tenantId, baId, customerId });
+    await reconcileCustomerTags(deps, { baId, customerId });
 
     const updated = await deps.taskTools.getTask({ id });
     return toDetail(updated);
@@ -538,7 +539,7 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
     const customerId = typeof metadata.customerId === "string" ? metadata.customerId : undefined;
     await deps.taskTools.deleteTask({ id });
     if (baId && customerId) {
-      await reconcileCustomerTags(deps, { ownerId: principal.tenantId, baId, customerId });
+      await reconcileCustomerTags(deps, { baId, customerId });
     }
     return { taskId: id, deleted: true };
   });

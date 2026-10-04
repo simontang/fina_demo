@@ -20,11 +20,12 @@ export type TaskToolClient = {
     title: string;
     description?: string;
     status?: string;
+    ownerType?: "user" | "agent";
     ownerId: string;
     metadata?: Record<string, unknown>;
   }): Promise<{ taskId: string; raw: unknown }>;
   getTask(input: { id: string }): Promise<TaskRecord>;
-  listTasks(input: { ownerId: string; baId: string; customerId: string }): Promise<TaskRecord[]>;
+  listTasks(input: { baId: string; customerId: string }): Promise<TaskRecord[]>;
   updateResult(input: { id: string; result: string }): Promise<{ raw: unknown }>;
   deleteTask(input: { id: string }): Promise<{ raw: unknown }>;
 };
@@ -59,7 +60,7 @@ export function createTaskToolClient(mcp: McpCaller): TaskToolClient {
         title: input.title,
         description: input.description,
         status: input.status ?? "in_progress",
-        ownerType: "user",
+        ownerType: input.ownerType ?? "user",
         ownerId: input.ownerId,
         metadata: input.metadata,
       });
@@ -85,11 +86,9 @@ export function createTaskToolClient(mcp: McpCaller): TaskToolClient {
       };
     },
 
-    async listTasks({ ownerId, baId, customerId }) {
+    async listTasks({ baId, customerId }) {
       const data = await invoke({
         action: "list",
-        ownerType: "user",
-        ownerId,
         metadataFilter: { baId, customerId },
       });
       const list: any[] = Array.isArray(data) ? data : (data?.tasks ?? data?.data ?? []);
