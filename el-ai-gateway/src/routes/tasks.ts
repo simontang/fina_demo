@@ -314,6 +314,7 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
         fileId: typeof metadata.uuid === "string" ? metadata.uuid : undefined,
         status: task.status,
         createdAt: task.createdAt,
+        title: task.title,
         durationSec: typeof metadata.durationSec === "number" ? metadata.durationSec : null,
         audioUrl: `/voice-tagging/${task.id}/audio`,
         tags: result.tags,

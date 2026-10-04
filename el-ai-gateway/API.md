@@ -4,11 +4,15 @@
 
 - **Base URL（线上）**：`https://ada.alphafina.cn/api/el-ai-gateway`
 - **协议**：HTTPS，JSON / multipart
-- **版本**：v1.5
+- **版本**：v1.6
 
 ---
 
 ## 修订日志
+
+### v1.6（2026-10-04）
+
+- **修复** 任务列表 `GET /voice-tagging` 未返回 `title`（此前只有详情有），列表项新增 `title` 字段。
 
 ### v1.5（2026-09-23）
 
@@ -348,6 +352,7 @@ GET /voice-tagging?baId=<id>&customerId=<id>
       "fileId": "471c20082b524316accc1b23cba8a4de",
       "status": "completed",
       "createdAt": "2026-09-15T06:13:00Z",
+      "title": "Voice tagging: 471c20082b524316accc1b23cba8a4de",
       "durationSec": 12.5,
       "audioUrl": "/voice-tagging/c3915a5a-85ed-4e31-a09e-492b3c11e938/audio",
       "tags": [
@@ -366,6 +371,7 @@ GET /voice-tagging?baId=<id>&customerId=<id>
 
 - 缺 `baId` 或 `customerId` → `400 BAD_REQUEST`。
 - `tasks[].status` 枚举同 [§8.3 查询任务详情](#83-查询任务详情)。
+- `tasks[].title`：任务名（同 [§8.3](#83-查询任务详情)）。
 - `tasks[].durationSec` / `tasks[].audioUrl` / `tasks[].tags` / `tasks[].like` 同 [§8.3](#83-查询任务详情)；**列表不含 `transcript`**（原文请用任务详情接口获取）。
 - 说明：按任务的 `baId` + `customerId` **元数据精确过滤**（由 [发起打标任务](#81-发起打标任务) 创建时写入）；无匹配时返回空列表（`total:0`）。
 

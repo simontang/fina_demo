@@ -625,6 +625,7 @@ describe("task result aggregate (transcript/tags/like)", () => {
   function taskWith(result: string) {
     return {
       id: "task-agg",
+      title: "Voice tagging: u1",
       status: "completed",
       metadata: { uuid: "u1", baId: "ba_001", customerId: "cus_8899" },
       result,
@@ -694,6 +695,7 @@ describe("task result aggregate (transcript/tags/like)", () => {
     });
     expect(res.statusCode).toBe(200);
     const task = res.json().tasks[0];
+    expect(task.title).toBe("Voice tagging: u1");
     expect(task.like).toBe(true);
     expect(task.tags[0]).toMatchObject({ tagId: TAG_ID, tagKey: "concerns", tagValue: "抗老/紧致" });
     expect(task.transcript).toBeUndefined();
