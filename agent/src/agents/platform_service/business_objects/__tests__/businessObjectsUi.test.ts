@@ -26,6 +26,10 @@ describe("businessObjectsUi", () => {
       expect(html).toContain("ui/initialize");
       expect(html).toContain("ui/notifications/tool-result");
       expect(html).toContain("ui/notifications/size-changed");
+      expect(html).toContain("ui/notifications/initialized");
+      expect(html.indexOf("ui/notifications/tool-result")).toBeLessThan(
+        html.indexOf('rpc("ui/initialize"'),
+      );
     }
     expect(OBJECTS_APP_HTML).toContain("No objects");
     expect(RECORDS_APP_HTML).toContain('"rowsPath": "rows"');
@@ -34,8 +38,10 @@ describe("businessObjectsUi", () => {
   it("appends the matching fence for successful payloads", () => {
     const objects = withObjectsUi(JSON.stringify([{ objectKey: "customer" }]));
     expect(objects).toContain('"resource":"ui://business-objects/objects"');
+    expect(objects).toContain('"pluginType":"business-objects"');
     const records = withRecordsUi(JSON.stringify({ objectKey: "customer", rows: [] }));
     expect(records).toContain('"resource":"ui://business-objects/records"');
+    expect(records).toContain('"pluginType":"business-objects"');
   });
 
   it("returns error payloads and non-json unchanged", () => {
