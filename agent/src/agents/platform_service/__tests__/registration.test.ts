@@ -216,6 +216,10 @@ describe("webhooks plugin connection", () => {
 });
 
 describe("business objects plugin", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it("registers one business-objects plugin in the data category", () => {
     expect(PluginRegistry.register).toHaveBeenCalledWith(businessObjectPlugin);
     expect(businessObjectPlugin.meta.type).toBe("business-objects");
@@ -334,6 +338,43 @@ describe("business objects plugin", () => {
       "ui://business-objects/objects",
       "ui://business-objects/records",
     ]);
+  });
+
+  it("wraps the list_objects and query_records results with their MCP App fences, and not on errors", async () => {
+    const mw = (await businessObjectPlugin.middleware!({
+      _resolvedConnections: [
+        { config: { baseUrl: "http://svc:5707", apiKey: "k", boStoreKey: "bos_secret" } },
+      ],
+    })) as { tools: Array<{ name: string; invoke: (i: unknown, c: unknown) => Promise<string> }> };
+    const exeConfig = { configurable: { runConfig: { tenantId: "t1" } } };
+
+    jest.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => [{ objectKey: "customer" }],
+    } as Response);
+    const listTool = mw.tools.find((t) => t.name === "list_objects")!;
+    const objects = await listTool.invoke({}, exeConfig);
+    expect(objects).toContain("```mcp_app");
+    expect(objects).toContain('"resource":"ui://business-objects/objects"');
+
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ objectKey: "customer", page: 1, pageSize: 20, total: 0, rows: [] }),
+    } as Response);
+    const queryTool = mw.tools.find((t) => t.name === "query_records")!;
+    const records = await queryTool.invoke({ objectKey: "customer" }, exeConfig);
+    expect(records).toContain('"resource":"ui://business-objects/records"');
+
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 500,
+      text: async () => "boom",
+      statusText: "ERR",
+    } as Response);
+    const bad = await listTool.invoke({}, exeConfig);
+    expect(bad).not.toContain("```mcp_app");
   });
 
   it("names the modeling skill with the plugin prefix", () => {
