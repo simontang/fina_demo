@@ -20,6 +20,9 @@ describe("storageUi", () => {
     expect(FILES_APP_HTML).toContain("ui/notifications/size-changed");
     expect(FILES_APP_HTML).toContain('"rowsPath": "files"');
     expect(FILES_APP_HTML).toContain("No files");
+    expect(FILES_APP_HTML.indexOf("ui/notifications/tool-result")).toBeLessThan(
+      FILES_APP_HTML.indexOf('rpc("ui/initialize"'),
+    );
   });
 
   it("appends the fence with the storage plugin ref for a successful payload", () => {
@@ -33,5 +36,11 @@ describe("storageUi", () => {
     const err = JSON.stringify({ ok: false, code: "X", message: "nope" });
     expect(withFilesUi(err)).toBe(err);
     expect(withFilesUi("Error: boom")).toBe("Error: boom");
+  });
+
+  it("appends the fence for arrays, null, and ok:true payloads", () => {
+    for (const body of ["[]", "null", JSON.stringify({ ok: true, files: [] })]) {
+      expect(withFilesUi(body)).toContain("```mcp_app");
+    }
   });
 });
