@@ -39,6 +39,7 @@ export const META_APP_HTML = `<!doctype html>
       .dot.bad { background: #ef4444; }
       .dot.warn { background: #f59e0b; }
       table.detail th { width: 200px; color: #6b7280; font-weight: 500; text-transform: none; letter-spacing: 0; font-size: 12px; }
+      table.detail pre.json { margin: 0; white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; max-height: 320px; overflow: auto; }
       @media (prefers-color-scheme: dark) {
         body { color: #e5e7eb; }
         h1 { color: #f9fafb; }
@@ -192,8 +193,11 @@ export const META_APP_HTML = `<!doctype html>
         function renderDetail(data) {
           var html = '<table class="detail"><tbody>';
           for (var k in data) {
-            if (data[k] !== null && typeof data[k] === "object") continue;
-            html += "<tr><th>" + esc(k) + "</th><td>" + fmt("text", data[k]) + "</td></tr>";
+            var value = data[k];
+            var cell = value !== null && typeof value === "object"
+              ? '<pre class="json">' + esc(JSON.stringify(value, null, 2)) + "</pre>"
+              : fmt("text", value);
+            html += "<tr><th>" + esc(k) + "</th><td>" + cell + "</td></tr>";
           }
           html += "</tbody></table>";
           return html;

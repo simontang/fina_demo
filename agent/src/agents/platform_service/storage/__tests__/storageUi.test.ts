@@ -25,6 +25,10 @@ describe("storageUi", () => {
     );
   });
 
+  it("renders nested detail values as JSON", () => {
+    expect(FILES_APP_HTML).toContain('class="json"');
+  });
+
   it("appends the fence with the storage plugin ref for a successful payload", () => {
     const out = withFilesUi(JSON.stringify({ path: "", files: [], total: 0 }));
     expect(out).toContain("```mcp_app");

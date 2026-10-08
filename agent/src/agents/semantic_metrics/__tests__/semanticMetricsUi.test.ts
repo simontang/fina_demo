@@ -21,6 +21,10 @@ describe("semanticMetricsUi", () => {
     expect(META_APP_HTML).toContain("No entries");
   });
 
+  it("renders nested detail values as JSON", () => {
+    expect(META_APP_HTML).toContain('class="json"');
+  });
+
   it("appends the fence for successful payloads", () => {
     const out = withMetaUi(JSON.stringify({ items: [], total: 0 }));
     expect(out).toContain("```mcp_app");

@@ -35,6 +35,12 @@ describe("businessObjectsUi", () => {
     expect(RECORDS_APP_HTML).toContain('"rowsPath": "rows"');
   });
 
+  it("renders nested detail values as JSON", () => {
+    for (const html of [OBJECTS_APP_HTML, RECORDS_APP_HTML]) {
+      expect(html).toContain('class="json"');
+    }
+  });
+
   it("appends the matching fence for successful payloads", () => {
     const objects = withObjectsUi(JSON.stringify([{ objectKey: "customer" }]));
     expect(objects).toContain('"resource":"ui://business-objects/objects"');
