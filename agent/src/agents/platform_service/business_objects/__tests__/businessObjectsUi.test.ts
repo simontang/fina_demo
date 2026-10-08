@@ -53,6 +53,9 @@ describe("businessObjectsUi", () => {
   it("returns error payloads and non-json unchanged", () => {
     const err = JSON.stringify({ ok: false, code: "X", message: "nope" });
     expect(withObjectsUi(err)).toBe(err);
+    const guard = JSON.stringify({ success: false, error: "load skill" });
+    expect(withObjectsUi(guard)).toBe(guard);
+    expect(withRecordsUi(guard)).toBe(guard);
     expect(withRecordsUi("Error: boom")).toBe("Error: boom");
   });
 });

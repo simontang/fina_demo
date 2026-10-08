@@ -504,7 +504,11 @@ function append(result: string, ref: McpUiRef): string {
   } catch {
     return result;
   }
-  if (parsed && typeof parsed === "object" && (parsed as { ok?: unknown }).ok === false) {
+  if (
+    parsed &&
+    typeof parsed === "object" &&
+    ((parsed as { ok?: unknown }).ok === false || (parsed as { success?: unknown }).success === false)
+  ) {
     return result;
   }
   return appendUiFence(result, ref) as string;

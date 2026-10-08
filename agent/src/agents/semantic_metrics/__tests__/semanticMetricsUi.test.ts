@@ -36,5 +36,7 @@ describe("semanticMetricsUi", () => {
     expect(withMetaUi("Error: boom")).toBe("Error: boom");
     const err = JSON.stringify({ ok: false, code: "X" });
     expect(withMetaUi(err)).toBe(err);
+    const guard = JSON.stringify({ success: false, error: "load skill" });
+    expect(withMetaUi(guard)).toBe(guard);
   });
 });

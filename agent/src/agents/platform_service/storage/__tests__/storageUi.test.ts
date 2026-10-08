@@ -39,6 +39,8 @@ describe("storageUi", () => {
   it("returns error payloads and non-json unchanged", () => {
     const err = JSON.stringify({ ok: false, code: "X", message: "nope" });
     expect(withFilesUi(err)).toBe(err);
+    const guard = JSON.stringify({ success: false, error: "load skill" });
+    expect(withFilesUi(guard)).toBe(guard);
     expect(withFilesUi("Error: boom")).toBe("Error: boom");
   });
 

@@ -108,6 +108,19 @@ describe("metrics_meta_tool", () => {
     expect(parsed).toMatchObject({ metricName: "m" });
   });
 
+  it("fences and unwraps a single-element read_table_meta result", async () => {
+    jest.spyOn(SemanticMetricsV2Client.prototype, "getTable").mockResolvedValue([{ objectKey: "t1", payload: { a: 1 } }]);
+    const tool = createMetricsMetaTool(toolParams());
+    const out = await tool.invoke(
+      { action: "read_table_meta", connectionKey: "primary", datasourceId: "15", objectKey: "t1" },
+      runtimeConfig(),
+    );
+    expect(out).toContain("```mcp_app");
+    const parsed = JSON.parse(out.split("\n\n```mcp_app")[0]);
+    expect(Array.isArray(parsed)).toBe(false);
+    expect(parsed).toMatchObject({ objectKey: "t1" });
+  });
+
   it("returns an error when datasourceId is missing", async () => {
     const tool = createMetricsMetaTool(toolParams());
     const out = await tool.invoke({ action: "list_tables", connectionKey: "primary" }, runtimeConfig());
