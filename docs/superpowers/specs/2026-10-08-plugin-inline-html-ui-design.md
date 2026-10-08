@@ -155,7 +155,7 @@ type Format = "text" | "mono" | "number" | "bytes" | "datetime" | "status" | "bo
 - `FILES_UI_RESOURCE = "ui://storage/files"`
   - 数据：`storageList` → `PathListing{ path, recursive, query, directories[], files[], page, size, total, totalPages }`
   - `rowsPath: "files"`，`summary: ["path","total","page","size","totalPages"]`
-  - 列：`filename`、`fullPath`、`size`(bytes)、`mime`、`fileCategory`、`usage`、`version`、`status`、`createdAt`(datetime)、`uuid`(mono，截断)
+  - 列：`filename`、`fullPath`、`size`(bytes)、`mime`、`fileCategory`、`usage`、`version`、`status`、`createdAt`(datetime)、`uuid`(mono，截断)（`dynamic: false`，只显示这 10 列，避免 `sha256`/`md5`/`meta` 等额外列）
   - `title: "Files"`，`emptyText: "No files"`
 
 `plugin.ts` 改动：
@@ -171,7 +171,7 @@ type Format = "text" | "mono" | "number" | "bytes" | "datetime" | "status" | "bo
   - 数据（按 action）：
     - `list_tables` / `list_metrics` → `{ items[], total }` → 表格（`rowsPath: "items"`，`dynamic: true`，`summary: ["total"]`）
     - `read_table_meta` / `read_metric_meta` → 单对象 → 键值详情卡（`detail: true`）
-  - App 自动按数据形状区分：命中 `items` 数组渲染表格，否则渲染详情卡。
+  - App 自动按数据形状区分：命中 `items` 数组渲染表格，否则渲染详情卡；详情卡把嵌套对象/数组（如 `payload`）以格式化 JSON 展示。
   - `title: "Semantic Meta"`
 
 `plugin.ts` 改动：
@@ -179,11 +179,15 @@ type Format = "text" | "mono" | "number" | "bytes" | "datetime" | "status" | "bo
 - 加 `meta.uiResources`。
 - `metrics_meta_tool` handler 内，仅对只读动作追加 fence：
   ```ts
-  const text = JSON.stringify(...); // 现有返回值
-  return isReadAction ? withMetaUi(text) : text;
   // isReadAction = list_tables | list_metrics | read_table_meta | read_metric_meta
+  case "list_tables": return withMetaUi(JSON.stringify(await client.listTables(ds), null, 2));
+  case "read_table_meta":
+    return withMetaUi(JSON.stringify(unwrapSingle(await client.getTable(ds, input.objectKey)), null, 2));
+  // list_metrics / read_metric_meta 同理
   ```
   写动作（`create_*` / `update_*`）与异常分支不追加。
+
+  **`unwrapSingle`（实现期发现的偏差，已接受）**：`SemanticMetricsV2Client.getTable`/`getMetric` 返回服务端单条读取的 `data`，实际是**单元素数组 `[entry]`**（见 `SemanticMetricsV2Client.ts:451` 注释）。若不处理，App 会把 `[entry]` 当表格渲染成一行，与"键值详情卡"目标不符。因此在两个单条读取动作上把 `[entry]` 解包为 `entry` 再 fence。副作用：这两个动作给**模型**看到的文本也从 `[entry]` 变为 `entry`（§10 的"模型仍拿原始 JSON"在这两个动作上是例外），这是有意接受的归一化；`list_*` 动作不受影响。
 
 ## 7. 依赖升级
 
