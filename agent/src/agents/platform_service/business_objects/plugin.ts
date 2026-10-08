@@ -26,6 +26,14 @@ import {
   boStoreList,
   boStoreTest,
 } from "./executors";
+import {
+  OBJECTS_UI_RESOURCE,
+  OBJECTS_APP_HTML,
+  RECORDS_UI_RESOURCE,
+  RECORDS_APP_HTML,
+  withObjectsUi,
+  withRecordsUi,
+} from "./businessObjectsUi";
 import { BUSINESS_OBJECTS_BUILDER_PROMPT } from "./prompt";
 import { BUSINESS_OBJECTS_MODELING_SKILL } from "./skill";
 
@@ -178,6 +186,7 @@ export const businessObjectPlugin: Plugin = {
       {
         name: "list_objects",
         description: "List Business Object definitions visible to the configured BO store key.",
+        ui: { resource: OBJECTS_UI_RESOURCE, displayMode: "inline" },
       },
       { name: "get_object", description: "Get one Business Object definition by objectKey." },
       {
@@ -195,7 +204,11 @@ export const businessObjectPlugin: Plugin = {
         description:
           "Soft-delete a Business Object definition. Requires user confirmation, then pass confirm:true.",
       },
-      { name: "query_records", description: "Query Business Object records by objectKey." },
+      {
+        name: "query_records",
+        description: "Query Business Object records by objectKey.",
+        ui: { resource: RECORDS_UI_RESOURCE, displayMode: "inline" },
+      },
       { name: "get_record", description: "Get one Business Object record by objectKey and id." },
       {
         name: "create_record",
@@ -219,6 +232,10 @@ export const businessObjectPlugin: Plugin = {
           "Delete many Business Object records by id atomically (1-500), respecting the object's deleteMode. Idempotent: missing ids are ignored. Requires user confirmation, then pass confirm:true.",
       },
     ],
+    uiResources: {
+      [OBJECTS_UI_RESOURCE]: { html: OBJECTS_APP_HTML },
+      [RECORDS_UI_RESOURCE]: { html: RECORDS_APP_HTML },
+    },
     openExpose: [
       { name: "list_stores", readOnly: true },
       { name: "test_store", readOnly: true },
@@ -406,7 +423,7 @@ export const businessObjectPlugin: Plugin = {
             schema: schemas.storeKeyDelete,
           },
         ),
-        tool((input: z.infer<typeof schemas.empty>, exeConfig) => boObjectList(input, exeConfig, pluginConfig), {
+        tool(async (input: z.infer<typeof schemas.empty>, exeConfig) => withObjectsUi(await boObjectList(input, exeConfig, pluginConfig)), {
           name: "list_objects",
           description: "List Business Object definitions visible to the configured BO store key.",
           schema: schemas.empty,
@@ -451,8 +468,8 @@ export const businessObjectPlugin: Plugin = {
           },
         ),
         tool(
-          (input: z.infer<typeof schemas.recordQuery>, exeConfig) =>
-            boRecordQuery(input, exeConfig, pluginConfig),
+          async (input: z.infer<typeof schemas.recordQuery>, exeConfig) =>
+            withRecordsUi(await boRecordQuery(input, exeConfig, pluginConfig)),
           {
             name: "query_records",
             description:

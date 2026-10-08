@@ -326,6 +326,16 @@ describe("business objects plugin", () => {
     expect((skillMw!.config as { skills: string[] }).skills).toContain("business-objects-modeling");
   });
 
+  it("links the object/record ui resources to their tools", () => {
+    const byName = new Map(businessObjectPlugin.meta.tools?.map((t) => [t.name, t]));
+    expect(byName.get("list_objects")?.ui?.resource).toBe("ui://business-objects/objects");
+    expect(byName.get("query_records")?.ui?.resource).toBe("ui://business-objects/records");
+    expect(Object.keys(businessObjectPlugin.meta.uiResources ?? {}).sort()).toEqual([
+      "ui://business-objects/objects",
+      "ui://business-objects/records",
+    ]);
+  });
+
   it("names the modeling skill with the plugin prefix", () => {
     for (const key of Object.keys(businessObjectPlugin.skills ?? {})) {
       expect(key.startsWith("business-objects-")).toBe(true);
