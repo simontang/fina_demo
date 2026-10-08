@@ -52,5 +52,9 @@ export function createCoreMock() {
       list: () => [...registry.keys()],
       listMeta: () => [],
     },
+    appendUiFence: (content: unknown, ref: unknown) =>
+      typeof content === "string"
+        ? content + "\n\n```mcp_app\n" + JSON.stringify(ref) + "\n```"
+        : content,
   };
 }

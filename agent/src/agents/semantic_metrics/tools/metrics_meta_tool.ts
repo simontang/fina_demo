@@ -1,6 +1,7 @@
 import z from "zod";
 import { tool } from "langchain";
 import { resolveMetricsClientFromSelector } from "./SemanticMetricsV2Client";
+import { withMetaUi } from "../semanticMetricsUi";
 import { assertDatasourceSelected, effectiveDatasourceScope, readToolRunConfig, resolveDatasourceId, type SemanticMetricsToolParams } from "./types";
 
 const DESCRIPTION = `SEMANTIC ASSET REGISTRY (Builder/Admin only) — the only tool for reading and publishing the runtime's semantic layer: table meta (meta/tables) and metric meta (meta/metrics).
@@ -44,6 +45,11 @@ function requireModelingSkillLoaded(
     });
   }
   return undefined;
+}
+
+/** Unwrap a single-element array (server single-entry read envelope) into its element. */
+function unwrapSingle(data: unknown): unknown {
+  return Array.isArray(data) && data.length === 1 ? data[0] : data;
 }
 
 /** Whether an action requires a payload argument. */
@@ -126,11 +132,11 @@ export function createMetricsMetaTool(params: SemanticMetricsToolParams) {
 
         switch (input.action) {
           case "list_tables": {
-            return JSON.stringify(await client.listTables(ds), null, 2);
+            return withMetaUi(JSON.stringify(await client.listTables(ds), null, 2));
           }
           case "read_table_meta": {
             if (!input.objectKey) throw new Error("objectKey is required for read_table_meta");
-            return JSON.stringify(await client.getTable(ds, input.objectKey), null, 2);
+            return withMetaUi(JSON.stringify(unwrapSingle(await client.getTable(ds, input.objectKey)), null, 2));
           }
           case "create_table": {
             return JSON.stringify(await client.createTable(ds, payload), null, 2);
@@ -140,11 +146,11 @@ export function createMetricsMetaTool(params: SemanticMetricsToolParams) {
             return JSON.stringify(await client.updateTable(ds, input.objectKey, payload), null, 2);
           }
           case "list_metrics": {
-            return JSON.stringify(await client.listMetrics(ds), null, 2);
+            return withMetaUi(JSON.stringify(await client.listMetrics(ds), null, 2));
           }
           case "read_metric_meta": {
             if (!input.objectKey) throw new Error("objectKey is required for read_metric_meta");
-            return JSON.stringify(await client.getMetric(ds, input.objectKey), null, 2);
+            return withMetaUi(JSON.stringify(unwrapSingle(await client.getMetric(ds, input.objectKey)), null, 2));
           }
           case "create_metric": {
             return JSON.stringify(await client.createMetric(ds, payload), null, 2);

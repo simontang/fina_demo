@@ -81,6 +81,33 @@ describe("metrics_meta_tool", () => {
     expect(spy).toHaveBeenCalledWith(15, "hankel_sell_in_nes");
   });
 
+  it("attaches the MCP App fence to read actions only", async () => {
+    jest.spyOn(SemanticMetricsV2Client.prototype, "listTables").mockResolvedValue([]);
+    const tool = createMetricsMetaTool(toolParams());
+    const read = await tool.invoke({ action: "list_tables", connectionKey: "primary", datasourceId: "15" }, runtimeConfig());
+    expect(read).toContain("```mcp_app");
+
+    jest.spyOn(SemanticMetricsV2Client.prototype, "createTable").mockResolvedValue({ ok: true });
+    const write = await tool.invoke(
+      { action: "create_table", connectionKey: "primary", datasourceId: "15", payload: { objectKey: "x" } },
+      runtimeConfig(),
+    );
+    expect(write).not.toContain("```mcp_app");
+  });
+
+  it("unwraps a single-element array read result into an object", async () => {
+    jest.spyOn(SemanticMetricsV2Client.prototype, "getMetric").mockResolvedValue([{ metricName: "m", payload: { a: 1 } }]);
+    const tool = createMetricsMetaTool(toolParams());
+    const out = await tool.invoke(
+      { action: "read_metric_meta", connectionKey: "primary", datasourceId: "15", objectKey: "m" },
+      runtimeConfig(),
+    );
+    const json = out.split("\n\n```mcp_app")[0];
+    const parsed = JSON.parse(json);
+    expect(Array.isArray(parsed)).toBe(false);
+    expect(parsed).toMatchObject({ metricName: "m" });
+  });
+
   it("returns an error when datasourceId is missing", async () => {
     const tool = createMetricsMetaTool(toolParams());
     const out = await tool.invoke({ action: "list_tables", connectionKey: "primary" }, runtimeConfig());

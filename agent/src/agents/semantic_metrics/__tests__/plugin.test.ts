@@ -44,6 +44,12 @@ describe("semanticMetricsPlugin", () => {
     expect(typeof semanticMetricsPlugin.connection?.test).toBe("function");
   });
 
+  it("declares the meta ui resource linked to metrics_meta_tool", () => {
+    const metaTool = semanticMetricsPlugin.meta.tools?.find((t) => t.name === "metrics_meta_tool");
+    expect(metaTool?.ui?.resource).toBe("ui://semantic-metrics/meta");
+    expect(Object.keys(semanticMetricsPlugin.meta.uiResources ?? {})).toEqual(["ui://semantic-metrics/meta"]);
+  });
+
   it("declares the full standard plugin surface", () => {
     expect(semanticMetricsPlugin.meta.category).toBe("data");
     expect(semanticMetricsPlugin.meta.version).toBe("1.0.0");

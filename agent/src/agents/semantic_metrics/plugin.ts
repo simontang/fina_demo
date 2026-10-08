@@ -11,6 +11,7 @@ import { PluginRegistry } from "@axiom-lattice/core";
 import { createMetricsDatasourceTool } from "./tools/metrics_datasource_tool";
 import { createMetricsMetaTool } from "./tools/metrics_meta_tool";
 import { createMetricsRuntimeTool } from "./tools/metrics_runtime_tool";
+import { META_UI_RESOURCE, META_APP_HTML } from "./semanticMetricsUi";
 import { SEMANTIC_METRICS_MODELING_SKILL } from "./skill";
 import { SEMANTIC_METRICS_BUILDER_PROMPT } from "./prompt";
 import { AgentType, type Plugin } from "@axiom-lattice/protocols";
@@ -138,9 +139,16 @@ export const semanticMetricsPlugin: Plugin = {
     version: "1.0.0",
     tools: [
       { name: "metrics_datasource_tool", description: "Explore datasource structure within the tenant's granted scope" },
-      { name: "metrics_meta_tool", description: "Publish and maintain runtime semantic tables and metrics" },
+      {
+        name: "metrics_meta_tool",
+        description: "Publish and maintain runtime semantic tables and metrics",
+        ui: { resource: META_UI_RESOURCE, displayMode: "inline" },
+      },
       { name: "metrics_runtime_tool", description: "Read runtime meta and execute semantic metric queries" },
     ],
+    uiResources: {
+      [META_UI_RESOURCE]: { html: META_APP_HTML },
+    },
     configSchema: {
       type: "object",
       title: "Semantic Metrics Configuration",
