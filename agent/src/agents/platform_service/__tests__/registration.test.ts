@@ -2,7 +2,10 @@ jest.mock("@axiom-lattice/core", () => ({
   PluginRegistry: { register: jest.fn(), list: jest.fn(() => []), get: jest.fn() },
   getSandBoxManager: jest.fn(),
   resolvePluginConnections: jest.fn(),
-  appendUiFence: jest.fn((content: unknown) => content),
+  appendUiFence: (content: unknown, ref: unknown) =>
+    typeof content === "string"
+      ? content + "\n\n```mcp_app\n" + JSON.stringify(ref) + "\n```"
+      : content,
 }));
 jest.mock("langchain", () => ({
   createMiddleware: (o: unknown) => o,
@@ -16,6 +19,10 @@ import { storagePlugin } from "../storage/plugin";
 import { webhooksPlugin } from "../webhooks/plugin";
 
 describe("storage plugin", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it("registers a plugin with type storage", () => {
     expect(PluginRegistry.register).toHaveBeenCalledWith(storagePlugin);
     expect(storagePlugin.meta.type).toBe("storage");
@@ -53,6 +60,27 @@ describe("storage plugin", () => {
     const listTool = storagePlugin.meta.tools?.find((t) => t.name === "list");
     expect(listTool?.ui?.resource).toBe("ui://storage/files");
     expect(Object.keys(storagePlugin.meta.uiResources ?? {})).toEqual(["ui://storage/files"]);
+  });
+
+  it("wraps the list tool result with the MCP App fence, and not on errors", async () => {
+    const mw = (await storagePlugin.middleware!({
+      _resolvedConnections: [{ config: { baseUrl: "http://svc:5707", apiKey: "k" } }],
+    })) as { tools: Array<{ name: string; invoke: (i: unknown, c: unknown) => Promise<string> }> };
+    const listTool = mw.tools.find((t) => t.name === "list")!;
+    const exeConfig = { configurable: { runConfig: { tenantId: "t1" } } };
+
+    jest.spyOn(global, "fetch").mockResolvedValue({
+      ok: true, status: 200, json: async () => ({ path: "", files: [], total: 0 }),
+    } as Response);
+    const ok = await listTool.invoke({}, exeConfig);
+    expect(ok).toContain("```mcp_app");
+    expect(ok).toContain('"resource":"ui://storage/files"');
+
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false, status: 500, text: async () => "boom", statusText: "ERR",
+    } as Response);
+    const bad = await listTool.invoke({}, exeConfig);
+    expect(bad).not.toContain("```mcp_app");
   });
 
   it("openExpose names all exist among middleware tools (invariant)", async () => {
