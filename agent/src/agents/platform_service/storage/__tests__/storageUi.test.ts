@@ -20,6 +20,7 @@ describe("storageUi", () => {
     expect(FILES_APP_HTML).toContain("ui/notifications/size-changed");
     expect(FILES_APP_HTML).toContain('"rowsPath": "files"');
     expect(FILES_APP_HTML).toContain("No files");
+    expect(FILES_APP_HTML).toContain('"dynamic": false');
     expect(FILES_APP_HTML.indexOf("ui/notifications/tool-result")).toBeLessThan(
       FILES_APP_HTML.indexOf('rpc("ui/initialize"'),
     );

@@ -55,7 +55,7 @@ export const FILES_APP_HTML = `<!doctype html>
     <div id="root"><p class="state">Loading…</p></div>
     <script>
       (function () {
-        var CONFIG = { "title": "Files", "rowsPath": "files", "summary": ["path", "total", "page", "size", "totalPages"], "emptyText": "No files", "columns": [ { "key": "filename", "label": "Name" }, { "key": "fullPath", "label": "Path", "format": "mono" }, { "key": "size", "label": "Size", "format": "bytes" }, { "key": "mime", "label": "MIME" }, { "key": "fileCategory", "label": "Category" }, { "key": "usage", "label": "Usage" }, { "key": "version", "label": "Ver", "format": "number" }, { "key": "status", "label": "Status", "format": "status" }, { "key": "createdAt", "label": "Created", "format": "datetime" }, { "key": "uuid", "label": "UUID", "format": "mono" } ] };
+        var CONFIG = { "title": "Files", "rowsPath": "files", "summary": ["path", "total", "page", "size", "totalPages"], "emptyText": "No files", "dynamic": false, "columns": [ { "key": "filename", "label": "Name" }, { "key": "fullPath", "label": "Path", "format": "mono" }, { "key": "size", "label": "Size", "format": "bytes" }, { "key": "mime", "label": "MIME" }, { "key": "fileCategory", "label": "Category" }, { "key": "usage", "label": "Usage" }, { "key": "version", "label": "Ver", "format": "number" }, { "key": "status", "label": "Status", "format": "status" }, { "key": "createdAt", "label": "Created", "format": "datetime" }, { "key": "uuid", "label": "UUID", "format": "mono" } ] };
         var root = document.getElementById("root");
         function post(message) { window.parent.postMessage(message, "*"); }
         function notify(method, params) { post({ jsonrpc: "2.0", method: method, params: params }); }
