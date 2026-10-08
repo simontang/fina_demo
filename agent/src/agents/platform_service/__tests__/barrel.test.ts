@@ -1,6 +1,7 @@
 jest.mock("@axiom-lattice/core", () => ({
   PluginRegistry: { register: jest.fn(), list: jest.fn(() => []), get: jest.fn() },
   getSandBoxManager: jest.fn(),
+  appendUiFence: jest.fn((content: unknown) => content),
 }));
 jest.mock("langchain", () => ({
   createMiddleware: (o: unknown) => o,

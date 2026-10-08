@@ -11,6 +11,7 @@ import {
   storageList,
   storageUpload,
 } from "./executors";
+import { FILES_UI_RESOURCE, FILES_APP_HTML, withFilesUi } from "./storageUi";
 
 const SCHEMAS = {
   upload: z.object({
@@ -53,6 +54,16 @@ export const storagePlugin: Plugin = {
     description:
       "Tenant-scoped durable object store: uuid-addressed, content-deduplicated, versioned, with presigned download links. Distinct from the project sandbox's scratch files—use the sandbox file tools to write temporary files.",
     version: "1.0.0",
+    tools: [
+      { name: "upload", description: "Upload a file from the agent sandbox to unified storage." },
+      { name: "list", description: "List files in unified storage, filterable and paginated.", ui: { resource: FILES_UI_RESOURCE, displayMode: "inline" } },
+      { name: "get_metadata", description: "Get file metadata by uuid." },
+      { name: "get_download_url", description: "Get a time-limited download link for a file." },
+      { name: "delete", description: "Soft-delete one version of a file." },
+    ],
+    uiResources: {
+      [FILES_UI_RESOURCE]: { html: FILES_APP_HTML },
+    },
     configSchema: {
       type: "object",
       properties: {
@@ -90,8 +101,8 @@ export const storagePlugin: Plugin = {
           },
         ),
         tool(
-          (input: z.infer<typeof SCHEMAS.list>, exeConfig) =>
-            storageList(input, exeConfig, pluginConfig),
+          async (input: z.infer<typeof SCHEMAS.list>, exeConfig) =>
+            withFilesUi(await storageList(input, exeConfig, pluginConfig)),
           {
             name: "list",
             description:

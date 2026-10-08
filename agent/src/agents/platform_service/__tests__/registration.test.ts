@@ -2,6 +2,7 @@ jest.mock("@axiom-lattice/core", () => ({
   PluginRegistry: { register: jest.fn(), list: jest.fn(() => []), get: jest.fn() },
   getSandBoxManager: jest.fn(),
   resolvePluginConnections: jest.fn(),
+  appendUiFence: jest.fn((content: unknown) => content),
 }));
 jest.mock("langchain", () => ({
   createMiddleware: (o: unknown) => o,
@@ -39,6 +40,19 @@ describe("storage plugin", () => {
         expect.objectContaining({ name: "get_download_url", readOnly: true }),
       ]),
     );
+  });
+
+  it("declares the files ui resource and links it to the list tool", () => {
+    expect(storagePlugin.meta.tools?.map((t) => t.name).sort()).toEqual([
+      "delete",
+      "get_download_url",
+      "get_metadata",
+      "list",
+      "upload",
+    ]);
+    const listTool = storagePlugin.meta.tools?.find((t) => t.name === "list");
+    expect(listTool?.ui?.resource).toBe("ui://storage/files");
+    expect(Object.keys(storagePlugin.meta.uiResources ?? {})).toEqual(["ui://storage/files"]);
   });
 
   it("openExpose names all exist among middleware tools (invariant)", async () => {
