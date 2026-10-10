@@ -28,7 +28,6 @@ export const volcanoAsrConnection: PluginConnection = {
       type: "password",
       title: "API Key",
       widget: "password",
-      required: true,
       helpText:
         "火山引擎语音服务的 API Key（作为 X-Api-Key），可由 VOLC_ASR_API_KEY 环境变量提供",
     },
