@@ -5,3 +5,4 @@
 import "./sap_b1";
 import "./platform_service";
 import "./semantic_metrics";
+import "./volcano_asr";
