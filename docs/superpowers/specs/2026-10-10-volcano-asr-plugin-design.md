@@ -46,7 +46,10 @@ agent/src/agents/
     client.ts                   # 连接解析 + volc HTTP + 文本抽取 + 错误映射
     executors.ts                # 纯执行器（可单测）
     plugin.ts                   # Plugin 定义 + connection.test + middleware + register
-    __tests__/volcanoAsr.test.ts
+    __tests__/mockResponse.ts   # 测试用 fetch Response 工厂
+    __tests__/client.test.ts
+    __tests__/executors.test.ts
+    __tests__/plugin.test.ts
 ```
 
 ## 4. 连接
