@@ -19,6 +19,20 @@ spring:
       pool-name: platform-service-pool
       maximum-pool-size: ${FILE_POOL_MAX:10}
       minimum-idle: ${FILE_POOL_MIN:2}
+      connection-timeout: ${FILE_POOL_CONNECTION_TIMEOUT:30000}
+      validation-timeout: ${FILE_POOL_VALIDATION_TIMEOUT:5000}
+      # Probe idle connections so a socket the server silently dropped is
+      # evicted instead of handed out.
+      keepalive-time: ${FILE_POOL_KEEPALIVE:30000}
+      # pgjdbc defaults socketTimeout/loginTimeout to 0 (block forever). A
+      # half-open socket during the JDBC auth handshake would otherwise wedge
+      # Hikari's single connection-adder thread permanently, so no new
+      # connection can ever be created. Bound every phase instead.
+      data-source-properties:
+        socketTimeout: ${FILE_JDBC_SOCKET_TIMEOUT:60}
+        loginTimeout: ${FILE_JDBC_LOGIN_TIMEOUT:10}
+        connectTimeout: ${FILE_JDBC_CONNECT_TIMEOUT:10}
+        tcpKeepAlive: true
   jackson:
     default-property-inclusion: always
     time-zone: Asia/Shanghai
