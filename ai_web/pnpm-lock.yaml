@@ -15,8 +15,8 @@ importers:
         specifier: ^1.6.1
         version: 1.6.1(antd@5.28.1(date-fns@2.30.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@axiom-lattice/react-sdk':
-        specifier: ^4.9.0
-        version: 4.9.0(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(@types/react@19.2.4)(date-fns@2.30.0)(express@4.21.2)(i18next@25.6.3(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(zod@3.25.76)
+        specifier: ^4.10.0
+        version: 4.10.0(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(@types/react@19.2.4)(date-fns@2.30.0)(express@4.21.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(zod@3.25.76)
       '@refinedev/antd':
         specifier: ^6.0.1
         version: 6.0.3(@refinedev/core@5.0.6(@tanstack/react-query@5.90.8(react@19.2.0))(@types/react-dom@19.2.3(@types/react@19.2.4))(@types/react@19.2.4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@types/react-dom@19.2.3(@types/react@19.2.4))(@types/react@19.2.4)(antd@5.28.1(date-fns@2.30.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(dayjs@1.11.23)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -267,18 +267,23 @@ packages:
   '@antv/util@3.3.11':
     resolution: {integrity: sha512-FII08DFM4ABh2q5rPYdr0hMtKXRgeZazvXaFYCs7J7uTcWDHUhczab2qOCJLNDugoj8jFag1djb7wS9ehaRYBg==}
 
-  '@axiom-lattice/client-sdk@4.8.0':
-    resolution: {integrity: sha512-cftT/K6vSiMUs1pEiyG+rCB8OdBU4R9Ygti309fyeJBtlq7F+tcLHBZgSieoOZ/+AgcMJTQrXoYAhN1FzzsiSA==}
+  '@axiom-lattice/client-sdk@4.8.1':
+    resolution: {integrity: sha512-56e9YOjdhScLhCFKXDIWb471kDm1ElSrG2bZ/eKSG9DU/4VRuDtIbbJ7d4CT+Xxu6dTIc4eDppAqCQ4uNfuZ5A==}
 
-  '@axiom-lattice/protocols@4.8.0':
-    resolution: {integrity: sha512-ZjfbpuVjSPkhhUbWIjZnmUZ1gdvlaJg+lcobDlQPJoZvxP8tP/N9uFhurI/ZpmW1Gu3lQMnOj+7T4/5Y3FKY6w==}
+  '@axiom-lattice/i18n@0.1.0':
+    resolution: {integrity: sha512-8hJ/krBoK7EgHfXkIsoya7Ibe9QjhbUkQb+jRnrPi8nygjJ3rN2Gh4J/Ay/rBzAJB/1vZxZwAWBjOixPPoHsFQ==}
+    peerDependencies:
+      react: '>=18.0.0'
+
+  '@axiom-lattice/protocols@4.9.0':
+    resolution: {integrity: sha512-rM2Ndipw3LsjX0SerFI/8ZhyxEaDYQLQ4F2znP+3fBRPWSvsEDfBKDjr9tY/kUuKEtqlx6gFEs/inlgHQZpa1A==}
     peerDependencies:
       '@langchain/core': 1.1.30
       '@langchain/langgraph': 1.0.4
       zod: 3.25.76
 
-  '@axiom-lattice/react-sdk@4.9.0':
-    resolution: {integrity: sha512-35KpIS/f/o4eVOo3YWW9Wa7FhPr3+vf6jE069ZP6XA3uT3cOrUNG5AjTGMH1E25NLuC6M1+JXZqasZ/pnLb4rQ==}
+  '@axiom-lattice/react-sdk@4.10.0':
+    resolution: {integrity: sha512-uMlyJyqoemqwkqG+dLLX9FoJK+BVLy+zJLA6bs58GVqZOPovEWhglZN/JR9AcpeYJG/dP17nI2xA/uME8lssMg==}
     peerDependencies:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
@@ -862,8 +867,8 @@ packages:
     resolution: {integrity: sha512-tPjY7TUI/w5Jby93TBCENH3QlcuUi0cuq2hpQ3WO1rd3x3WULvdmtfDzLcLQC427oPMlOFuDI1NIvR89jxD6Ng==}
     engines: {node: '>=20'}
 
-  '@langchain/langgraph-checkpoint@1.1.6':
-    resolution: {integrity: sha512-CpDMGTY4Y6qzoGewMoL8MS9Ej35vyrrchbRpKCtUDWnHhrf4lbHp7wnu9dsHaavB3Z+M6aVRl+9GNQbIJVV1dg==}
+  '@langchain/langgraph-checkpoint@1.2.0':
+    resolution: {integrity: sha512-a9F1tO/bKGS4AlLR0FVa859oImD0iQiQLAAPkP66Nnp7a5dXPgys2IpzdJQ9slKiVznsSAFjxxNCmM25dBOvWA==}
     engines: {node: '>=18'}
     peerDependencies:
       '@langchain/core': ^1.1.48
@@ -1044,8 +1049,8 @@ packages:
       react: '>=16.9.0'
       react-dom: '>=16.9.0'
 
-  '@rc-component/util@1.13.0':
-    resolution: {integrity: sha512-IXf2zBfZrbQGT+G8LxnoICDBGnMHIPIiq5HCRn3EDfKUx28x1rnbZBj46ULJf4sM8ImTG1SepqfNBdxZziqQ4w==}
+  '@rc-component/util@1.14.0':
+    resolution: {integrity: sha512-qFpkGBCiyN3NNAU+FOnZdcdz7A/rXCg3JdQk+bujUKAExZgRqzf2yy1f4YN63Lwctic5FcK9rgjQ6aWbykqwEw==}
     peerDependencies:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
@@ -2385,8 +2390,8 @@ packages:
   dompurify@2.5.9:
     resolution: {integrity: sha512-i6mvVmWN4xo9LrhCOZrDgSs9noW6nOahbrmzjRbPF36YPyj5Ue5lgok0MHDWkG7xzpWFO2OYttXdzM7rJxHvNA==}
 
-  dompurify@3.4.16:
-    resolution: {integrity: sha512-sqo+pNp3qRhCIpbgRi1y8Tgk27Bo2Ry7w0dC1NBeNTdZChWjz9Xb/KOoZbRP/R6pQZ80Qw8YhXw13hWWBbMRnQ==}
+  dompurify@3.4.17:
+    resolution: {integrity: sha512-B/pSlYVHQ58kqISD/yDjuJ1yfzI34m1gF4lAod2bwSRhiN4K5Cl3H8Af7hqB2PmTL911tdEudnnXn5FnhRoz0w==}
 
   domutils@3.2.2:
     resolution: {integrity: sha512-6kZKyUajlDuqlHKVX1w7gyslj9MPIXzIFiz/rGu35uC1wMi+kMhQwGhl4lt9unC9Vb9INnY9Z3/ZA3+FhASLaw==}
@@ -2922,8 +2927,8 @@ packages:
   html-escaper@3.0.3:
     resolution: {integrity: sha512-RuMffC89BOWQoY0WKGpIhn5gX3iI54O6nRA0yC124NYVtzjmFWBIiFd8M0x+ZdX0P9R4lADg1mgP8C7PxGOWuQ==}
 
-  html-parse-stringify@3.1.0:
-    resolution: {integrity: sha512-E0oAXcELOtsXe+BmpJ2EZyedbldPpriV5vICzEuo6xjC/D1lDukOI7KrpfQGF2Qc4wWEy0nk3bFORS2K5ZAhFQ==}
+  html-parse-stringify@4.0.1:
+    resolution: {integrity: sha512-0zHsZJrK7S3K2aucXWL6ycoYJ/iNtIcFHC/nYQgFklPtrv5LpJctIiSCroWZWeuoXvuyFdzp6KzjJQ+OT5MfFw==}
 
   html-react-parser@5.2.17:
     resolution: {integrity: sha512-m+K/7Moq1jodAB4VL0RXSOmtwLUYoAsikZhwd+hGQe5Vtw2dbWfpFd60poxojMU0Tsh9w59mN1QLEcoHz0Dx9w==}
@@ -2966,10 +2971,10 @@ packages:
     resolution: {integrity: sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==}
     engines: {node: '>=10.17.0'}
 
-  i18next@25.6.3:
-    resolution: {integrity: sha512-AEQvoPDljhp67a1+NsnG/Wb1Nh6YoSvtrmeEd24sfGn3uujCtXCF3cXpr7ulhMywKNFF7p3TX1u2j7y+caLOJg==}
+  i18next@26.4.4:
+    resolution: {integrity: sha512-O+rqmQUi54OwAgnZ4SAwO6aRrbXZt36VZXWt6zvq0FpC3vJbH46oQRs6u4Uwm1vf8ZI7UqOXQiJhQVTor7vRiQ==}
     peerDependencies:
-      typescript: ^5
+      typescript: ^5 || ^6 || ^7
     peerDependenciesMeta:
       typescript:
         optional: true
@@ -3258,8 +3263,8 @@ packages:
     resolution: {integrity: sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw==}
     engines: {node: '>=0.10.0'}
 
-  langsmith@0.10.8:
-    resolution: {integrity: sha512-svLrSnytr4cwZvx5XAel93fXRB1/OmC/u7tfXhnmyMpxIazPLDKKaMQYxGIjCvCRGhprmp9P4RiKM8ecZU46Mg==}
+  langsmith@0.10.12:
+    resolution: {integrity: sha512-B/Z2i2ZRmd0YFnkiMScYzmg2OxGOi7fNmUDNiCXmD2qbxvAJQKq39qM15eehZuc+oor0lBLrAUT77NbOcRoIPg==}
     peerDependencies:
       '@opentelemetry/api': '*'
       '@opentelemetry/exporter-trace-otlp-proto': '*'
@@ -3976,8 +3981,8 @@ packages:
     resolution: {integrity: sha512-FfR8sjd4em2T6fb3I2MwAJU7HWVMr9zba+enmQeeWFfCbm+UOC/0X4DS8XtpUTMwWMGbjKYP7xjfNekzyGmB3A==}
     engines: {node: ^10 || ^12 || >=14}
 
-  postcss@8.5.29:
-    resolution: {integrity: sha512-49cGhUbXj8Qenv0iTMxA1cFBzxXoctpC9Ujd77t1WcbJIr6nF/eI7g/8MgxrYldFRuAXvja7xQRwavoW7kgrxQ==}
+  postcss@8.5.30:
+    resolution: {integrity: sha512-zkd+e9S1AQHhmaBKye9zlFHWjOwVgqXl1q3ECYy8561K7qxR2cREf/STLskulBFd78k6AOFeA+ff1TtEzk9bAA==}
     engines: {node: ^10 || ^12 || >=14}
 
   postcss@8.5.6:
@@ -4313,14 +4318,14 @@ packages:
   react-flow@1.0.3:
     resolution: {integrity: sha512-Rx4Oqqbe9y7NyrUGzCrmtNvuGuMJBVjfIeMFuwbtbMc9f22sUSmxMjIA0c8r6Z7iMtB1zOWoGkTgfpmmpH9ReQ==}
 
-  react-i18next@15.7.4:
-    resolution: {integrity: sha512-nyU8iKNrI5uDJch0z9+Y5XEr34b0wkyYj3Rp+tfbahxtlswxSCjcUL9H0nqXo9IR3/t5Y5PKIA3fx3MfUyR9Xw==}
+  react-i18next@17.0.16:
+    resolution: {integrity: sha512-7uImVD9hG5yUOaP5KHVied1x0A004Di/KU031ULR35Ma+9e9H5GdnNZHgQEIByyAz+IAXBkRDTedNVzjPUH8ZA==}
     peerDependencies:
-      i18next: '>= 23.4.0'
+      i18next: '>= 26.2.0'
       react: '>= 16.8.0'
       react-dom: '*'
       react-native: '*'
-      typescript: ^5
+      typescript: ^5 || ^6 || ^7
     peerDependenciesMeta:
       react-dom:
         optional: true
@@ -4376,8 +4381,8 @@ packages:
       react-dom:
         optional: true
 
-  react-syntax-highlighter@16.1.1:
-    resolution: {integrity: sha512-PjVawBGy80C6YbC5DDZJeUjBmC7skaoEUdvfFQediQHgCL7aKyVHe57SaJGfQsloGDac+gCpTfRdtxzWWKmCXA==}
+  react-syntax-highlighter@16.1.2:
+    resolution: {integrity: sha512-4dM0+mYtfnhgwYWAvFx56fgyjIYk2yFopfiICFvMDhRfeSGRNd+ngFALdPD9q7llyGAmiE6pzOSOwI8Lf9ca1w==}
     engines: {node: '>= 16.20.2'}
     peerDependencies:
       react: '>= 0.14.0'
@@ -5103,10 +5108,6 @@ packages:
       yaml:
         optional: true
 
-  void-elements@3.1.0:
-    resolution: {integrity: sha512-Dhxzh5HZuiHQhbvTW9AMetFfBHDMYpo23Uo9btPXgdYP+3T5S+p+jgNy7spra+veYhBP2dCSgxR/i2Y02h5/6w==}
-    engines: {node: '>=0.10.0'}
-
   warn-once@0.1.1:
     resolution: {integrity: sha512-VkQZJbO8zVImzYFteBXvBOZEl1qL175WH8VmZcxF2fZAoudNhNDvHi+doCaAEdU2l2vtcIwa2zn0QK5+I1HQ3Q==}
 
@@ -5276,7 +5277,7 @@ snapshots:
     dependencies:
       '@ant-design/cssinjs': 2.1.2(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@babel/runtime': 7.29.10
-      '@rc-component/util': 1.13.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@rc-component/util': 1.14.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
@@ -5297,7 +5298,7 @@ snapshots:
       '@babel/runtime': 7.29.10
       '@emotion/hash': 0.8.0
       '@emotion/unitless': 0.7.5
-      '@rc-component/util': 1.13.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@rc-component/util': 1.14.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       clsx: 2.1.1
       csstype: 3.2.3
       react: 19.2.0
@@ -5328,7 +5329,7 @@ snapshots:
     dependencies:
       '@ant-design/colors': 8.0.1
       '@ant-design/icons-svg': 4.6.0
-      '@rc-component/util': 1.13.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@rc-component/util': 1.14.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       clsx: 2.1.1
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
@@ -5394,7 +5395,7 @@ snapshots:
   '@ant-design/x-markdown@2.9.0(@types/react@19.2.4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
       clsx: 2.1.1
-      dompurify: 3.4.16
+      dompurify: 3.4.17
       html-react-parser: 5.2.17(@types/react@19.2.4)(react@19.2.0)
       katex: 0.16.47
       marked: 15.0.12
@@ -5428,14 +5429,14 @@ snapshots:
       '@babel/runtime': 7.29.10
       '@rc-component/motion': 1.3.3(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@rc-component/resize-observer': 1.1.2(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@rc-component/util': 1.13.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@rc-component/util': 1.14.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       antd: 5.28.1(date-fns@2.30.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       clsx: 2.1.1
       lodash.throttle: 4.1.1
       mermaid: 11.17.2
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
-      react-syntax-highlighter: 16.1.1(react@19.2.0)
+      react-syntax-highlighter: 16.1.2(react@19.2.0)
 
   '@antfu/install-pkg@2.1.0':
     dependencies:
@@ -5463,7 +5464,7 @@ snapshots:
       linkedom: 0.18.13
       lodash-es: 4.18.1
       measury: 0.1.5
-      postcss: 8.5.29
+      postcss: 8.5.30
       roughjs: 4.6.6
       round-polygon: 0.6.9
       tinycolor2: 1.6.0
@@ -5491,9 +5492,9 @@ snapshots:
       gl-matrix: 3.4.4
       tslib: 2.8.1
 
-  '@axiom-lattice/client-sdk@4.8.0(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(express@4.21.2)(zod@3.25.76)':
+  '@axiom-lattice/client-sdk@4.8.1(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(express@4.21.2)(zod@3.25.76)':
     dependencies:
-      '@axiom-lattice/protocols': 4.8.0(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(express@4.21.2)(zod@3.25.76)
+      '@axiom-lattice/protocols': 4.9.0(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(express@4.21.2)(zod@3.25.76)
       best-effort-json-parser: 1.5.1
     transitivePeerDependencies:
       - '@bufbuild/protobuf'
@@ -5503,7 +5504,11 @@ snapshots:
       - express
       - zod
 
-  '@axiom-lattice/protocols@4.8.0(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(express@4.21.2)(zod@3.25.76)':
+  '@axiom-lattice/i18n@0.1.0(react@19.2.0)':
+    dependencies:
+      react: 19.2.0
+
+  '@axiom-lattice/protocols@4.9.0(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(express@4.21.2)(zod@3.25.76)':
     dependencies:
       '@a2a-js/sdk': 0.3.14(express@4.21.2)
       '@langchain/core': 1.1.30(ws@8.18.3)
@@ -5514,15 +5519,16 @@ snapshots:
       - '@grpc/grpc-js'
       - express
 
-  '@axiom-lattice/react-sdk@4.9.0(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(@types/react@19.2.4)(date-fns@2.30.0)(express@4.21.2)(i18next@25.6.3(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(zod@3.25.76)':
+  '@axiom-lattice/react-sdk@4.10.0(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(@types/react@19.2.4)(date-fns@2.30.0)(express@4.21.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(zod@3.25.76)':
     dependencies:
       '@alexbruf/react-diff-viewer': 3.1.5(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@ant-design/icons': 6.3.4(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@ant-design/x': 2.9.0(antd@5.28.1(date-fns@2.30.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@ant-design/x-markdown': 2.9.0(@types/react@19.2.4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@antv/infographic': 0.2.20
-      '@axiom-lattice/client-sdk': 4.8.0(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(express@4.21.2)(zod@3.25.76)
-      '@axiom-lattice/protocols': 4.8.0(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(express@4.21.2)(zod@3.25.76)
+      '@axiom-lattice/client-sdk': 4.8.1(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(express@4.21.2)(zod@3.25.76)
+      '@axiom-lattice/i18n': 0.1.0(react@19.2.0)
+      '@axiom-lattice/protocols': 4.9.0(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(express@4.21.2)(zod@3.25.76)
       '@types/dagre': 0.7.54
       '@xyflow/react': 12.10.0(@types/react@19.2.4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       antd: 5.28.1(date-fns@2.30.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -5531,10 +5537,11 @@ snapshots:
       d3-force: 3.0.0
       dagre: 0.8.5
       dayjs: 1.11.23
-      dompurify: 3.4.16
+      dompurify: 3.4.17
       echarts: 5.6.0
       html-react-parser: 5.2.17(@types/react@19.2.4)(react@19.2.0)
       html2canvas: 1.4.1
+      i18next: 26.4.4(typescript@5.9.3)
       js-yaml: 4.3.2
       jspdf: 2.5.2
       lodash: 4.18.1
@@ -5544,7 +5551,7 @@ snapshots:
       morphdom: 2.7.8
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
-      react-i18next: 15.7.4(i18next@25.6.3(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
+      react-i18next: 17.0.16(i18next@26.4.4(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
       use-sync-external-store: 1.7.0(react@19.2.0)
       uuid: 11.1.1
     transitivePeerDependencies:
@@ -5556,7 +5563,6 @@ snapshots:
       - canvas
       - date-fns
       - express
-      - i18next
       - immer
       - luxon
       - moment
@@ -6180,7 +6186,7 @@ snapshots:
       camelcase: 6.3.0
       decamelize: 1.2.0
       js-tiktoken: 1.0.21
-      langsmith: 0.10.8(ws@8.18.3)
+      langsmith: 0.10.12(ws@8.18.3)
       mustache: 4.2.0
       p-queue: 6.6.2
       uuid: 11.1.1
@@ -6192,7 +6198,7 @@ snapshots:
       - openai
       - ws
 
-  '@langchain/langgraph-checkpoint@1.1.6(@langchain/core@1.1.30(ws@8.18.3))':
+  '@langchain/langgraph-checkpoint@1.2.0(@langchain/core@1.1.30(ws@8.18.3))':
     dependencies:
       '@langchain/core': 1.1.30(ws@8.18.3)
 
@@ -6209,7 +6215,7 @@ snapshots:
   '@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76)':
     dependencies:
       '@langchain/core': 1.1.30(ws@8.18.3)
-      '@langchain/langgraph-checkpoint': 1.1.6(@langchain/core@1.1.30(ws@8.18.3))
+      '@langchain/langgraph-checkpoint': 1.2.0(@langchain/core@1.1.30(ws@8.18.3))
       '@langchain/langgraph-sdk': 1.2.0(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       uuid: 10.0.0
       zod: 3.25.76
@@ -6332,7 +6338,7 @@ snapshots:
 
   '@rc-component/motion@1.3.3(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
-      '@rc-component/util': 1.13.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@rc-component/util': 1.14.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       clsx: 2.1.1
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
@@ -6362,7 +6368,7 @@ snapshots:
 
   '@rc-component/resize-observer@1.1.2(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
-      '@rc-component/util': 1.13.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@rc-component/util': 1.14.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
@@ -6387,7 +6393,7 @@ snapshots:
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
-  '@rc-component/util@1.13.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
+  '@rc-component/util@1.14.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
       is-mobile: 5.0.0
       react: 19.2.0
@@ -7958,7 +7964,7 @@ snapshots:
   dompurify@2.5.9:
     optional: true
 
-  dompurify@3.4.16:
+  dompurify@3.4.17:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
@@ -8652,9 +8658,7 @@ snapshots:
 
   html-escaper@3.0.3: {}
 
-  html-parse-stringify@3.1.0:
-    dependencies:
-      void-elements: 3.1.0
+  html-parse-stringify@4.0.1: {}
 
   html-react-parser@5.2.17(@types/react@19.2.4)(react@19.2.0):
     dependencies:
@@ -8718,9 +8722,7 @@ snapshots:
 
   human-signals@2.1.0: {}
 
-  i18next@25.6.3(typescript@5.9.3):
-    dependencies:
-      '@babel/runtime': 7.29.10
+  i18next@26.4.4(typescript@5.9.3):
     optionalDependencies:
       typescript: 5.9.3
 
@@ -8994,7 +8996,7 @@ snapshots:
 
   kind-of@6.0.3: {}
 
-  langsmith@0.10.8(ws@8.18.3):
+  langsmith@0.10.12(ws@8.18.3):
     dependencies:
       p-queue: 6.6.2
     optionalDependencies:
@@ -9385,7 +9387,7 @@ snapshots:
       d3-sankey: 0.12.3
       dagre-d3-es: 7.0.14
       dayjs: 1.11.23
-      dompurify: 3.4.16
+      dompurify: 3.4.17
       es-toolkit: 1.52.0
       fastdom: 1.0.12
       katex: 0.16.47
@@ -9957,7 +9959,7 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  postcss@8.5.29:
+  postcss@8.5.30:
     dependencies:
       nanoid: 3.3.20
       picocolors: 1.1.1
@@ -10383,12 +10385,13 @@ snapshots:
 
   react-flow@1.0.3: {}
 
-  react-i18next@15.7.4(i18next@25.6.3(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3):
+  react-i18next@17.0.16(i18next@26.4.4(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3):
     dependencies:
       '@babel/runtime': 7.29.10
-      html-parse-stringify: 3.1.0
-      i18next: 25.6.3(typescript@5.9.3)
+      html-parse-stringify: 4.0.1
+      i18next: 26.4.4(typescript@5.9.3)
       react: 19.2.0
+      use-sync-external-store: 1.7.0(react@19.2.0)
     optionalDependencies:
       react-dom: 19.2.0(react@19.2.0)
       typescript: 5.9.3
@@ -10456,7 +10459,7 @@ snapshots:
     optionalDependencies:
       react-dom: 19.2.0(react@19.2.0)
 
-  react-syntax-highlighter@16.1.1(react@19.2.0):
+  react-syntax-highlighter@16.1.2(react@19.2.0):
     dependencies:
       '@babel/runtime': 7.29.10
       highlight.js: 10.7.3
@@ -11244,8 +11247,6 @@ snapshots:
       '@types/node': 20.19.25
       fsevents: 2.3.3
       less: 4.4.2
-
-  void-elements@3.1.0: {}
 
   warn-once@0.1.1: {}
 
