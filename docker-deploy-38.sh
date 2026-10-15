@@ -37,7 +37,7 @@ log_error()   { echo -e "${RED}[ERROR]${NC} $1"; }
 
 get_compose_service_name() {
     case $1 in
-        "$SERVICE_1") echo "agent" ;;
+        "$SERVICE_1") echo "agent2 agent" ;;
         "$SERVICE_2") echo "prediction_app" ;;
         "$SERVICE_3") echo "ai_web_fina ai_web_evario" ;;
         "$SERVICE_4") echo "metrics_server" ;;
@@ -179,7 +179,10 @@ deploy() {
 
     if [[ -n "$compose_services" ]]; then
         ssh_cmd="$ssh_cmd && docker compose pull$compose_services"
-        ssh_cmd="$ssh_cmd && docker compose stop$compose_services && docker compose rm -f$compose_services && docker compose up -d$compose_services"
+        # 逐个滚动重建（多副本时避免同时下线；--no-deps 不连带重建依赖）
+        for cs in $compose_services; do
+            ssh_cmd="$ssh_cmd && docker compose up -d --no-deps --force-recreate $cs && sleep 15"
+        done
     else
         ssh_cmd="$ssh_cmd && docker compose pull"
         ssh_cmd="$ssh_cmd && docker compose down --remove-orphans && docker compose up --force-recreate -d"

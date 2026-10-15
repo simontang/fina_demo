@@ -50,7 +50,7 @@ services:
 
   agent:
     image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_USERNAME:-409zhangshu}/fina-demo-agent:latest
-    environment:
+    environment: &agent-env
       TZ: Asia/Shanghai
       NODE_ENV: production
       PORT: "5702"
@@ -100,6 +100,8 @@ services:
       # 重复工具调用熔断阈值（框架默认 warn=3, stop=5）
       AGENT_REPEATED_TOOL_CALL_WARN: ${AGENT_REPEATED_TOOL_CALL_WARN:-20}
       AGENT_REPEATED_TOOL_CALL_STOP: ${AGENT_REPEATED_TOOL_CALL_STOP:-25}
+      # 多副本：副本标识（须稳定且唯一）。设置后启用 thread 级 affinity/lease 归属
+      AXIOM_REPLICA_ID: ${AXIOM_REPLICA_ID:-agent-1}
 
     volumes:
       - ./uploads:/app/uploads
@@ -110,6 +112,22 @@ services:
       - cdp_service
     ports:
       - "127.0.0.1:5702:5702"
+    restart: unless-stopped
+
+  agent2:
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_USERNAME:-409zhangshu}/fina-demo-agent:latest
+    environment:
+      <<: *agent-env
+      AXIOM_REPLICA_ID: agent-2
+    volumes:
+      - ./uploads:/app/uploads
+      - ./lattice_store:/app/lattice_store
+      - ./prediction_app/config:/app/prediction_app/config:ro
+    depends_on:
+      - prediction_app
+      - cdp_service
+    ports:
+      - "127.0.0.1:5712:5702"
     restart: unless-stopped
 
   metrics_server:
