@@ -37,7 +37,7 @@ log_error()   { echo -e "${RED}[ERROR]${NC} $1"; }
 
 get_compose_service_name() {
     case $1 in
-        "$SERVICE_1") echo "agent" ;;
+        "$SERVICE_1") echo "agent2 agent" ;;
         "$SERVICE_2") echo "prediction_app" ;;
         "$SERVICE_3") echo "ai_web_fina ai_web_evario" ;;
         "$SERVICE_4") echo "metrics_server" ;;

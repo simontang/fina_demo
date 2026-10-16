@@ -50,7 +50,7 @@ services:
 
   agent:
     image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_USERNAME:-409zhangshu}/fina-demo-agent:latest
-    environment:
+    environment: &agent-env
       TZ: Asia/Shanghai
       NODE_ENV: production
       PORT: "5702"
@@ -112,6 +112,22 @@ services:
       - cdp_service
     ports:
       - "127.0.0.1:5702:5702"
+    restart: unless-stopped
+
+  agent2:
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_USERNAME:-409zhangshu}/fina-demo-agent:latest
+    environment:
+      <<: *agent-env
+      AXIOM_REPLICA_ID: agent-2
+    volumes:
+      - ./uploads:/app/uploads
+      - ./lattice_store:/app/lattice_store
+      - ./prediction_app/config:/app/prediction_app/config:ro
+    depends_on:
+      - prediction_app
+      - cdp_service
+    ports:
+      - "127.0.0.1:5712:5702"
     restart: unless-stopped
 
   metrics_server:
