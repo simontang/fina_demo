@@ -185,7 +185,17 @@ function sanitizeStoreResult(raw: string): string {
 }
 
 export async function boStoreList(_input: {}, exeConfig: unknown, rawConfig: unknown): Promise<string> {
-  return sanitizeStoreResult(await callPlatform(rawConfig, exeConfig, "GET", "/api/v1/bo/stores"));
+  const raw = await callBoObjectApi(rawConfig, exeConfig, "GET", "/api/v1/bo/stores/current");
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+  if (parsed && typeof parsed === "object" && (parsed as { ok?: unknown }).ok === false) {
+    return raw;
+  }
+  return sanitizeStoreResult(JSON.stringify(Array.isArray(parsed) ? parsed : [parsed]));
 }
 
 export async function boStoreCreate(input: StoreInput, exeConfig: unknown, rawConfig: unknown): Promise<string> {

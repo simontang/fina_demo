@@ -172,7 +172,10 @@ export const businessObjectPlugin: Plugin = {
     category: "data",
     capabilityBundleEligible: true,
     tools: [
-      { name: "list_stores", description: "List Business Object stores." },
+      {
+        name: "list_stores",
+        description: "List the Business Object store authorized by the configured store key.",
+      },
       {
         name: "create_store",
         description:
@@ -369,7 +372,7 @@ export const businessObjectPlugin: Plugin = {
       tools: [
         tool((input: z.infer<typeof schemas.empty>, exeConfig) => boStoreList(input, exeConfig, pluginConfig), {
           name: "list_stores",
-          description: "List Business Object stores.",
+          description: "List the Business Object store authorized by the configured store key.",
           schema: schemas.empty,
         }),
         tool(

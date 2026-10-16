@@ -275,7 +275,7 @@ describe("business objects plugin", () => {
       { tenantId: "estee_lauder" },
     );
     const [url] = fetchMock.mock.calls[0] as [string];
-    expect(url).toBe("https://ada.alphafina.cn/api/v1/bo/stores");
+    expect(url).toBe("https://ada.alphafina.cn/api/v1/bo/stores/current");
     jest.restoreAllMocks();
   });
 

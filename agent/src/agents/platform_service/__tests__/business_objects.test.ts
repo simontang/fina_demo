@@ -143,11 +143,11 @@ describe("business object executors", () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it("strips connection credentials from store listings", async () => {
+  it("lists only the store authorized by the connection BO key, without credentials", async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ([{
+      json: async () => ({
         id: 1,
         storeKey: "elc",
         name: "ELC",
@@ -156,10 +156,16 @@ describe("business object executors", () => {
         schemaName: "bo",
         username: "elc_bo_runtime",
         status: 1,
-      }]),
+      }),
     } as Response);
 
     const out = JSON.parse(await boStoreList({}, exeConfig, rawConfig));
+
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe("http://svc:5707/api/v1/bo/stores/current");
+    expect(init.method).toBe("GET");
+    expect(init.headers["X-BO-Connection-Key"]).toBe("bos_secret");
+    expect(init.headers["X-Tenant-Id"]).toBeUndefined();
     expect(out).toEqual([
       { storeKey: "elc", name: "ELC", description: "d", schemaName: "bo", status: 1 },
     ]);
