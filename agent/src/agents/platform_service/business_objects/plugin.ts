@@ -93,7 +93,7 @@ const schemas = {
     storeKey: identifier,
     name: z.string().optional(),
     description: z.string().optional(),
-    jdbcUrl: z.string().startsWith("jdbc:postgresql:"),
+    jdbcUrl: z.string().regex(/^jdbc:postgresql:/),
     username: z.string(),
     password: z.string(),
     status: z.number().int().optional(),
