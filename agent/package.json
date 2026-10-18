@@ -76,9 +76,6 @@
       "@langchain/openai": "1.2.12",
       "langchain": "1.0.6",
       "zod": "3.25.76"
-    },
-    "patchedDependencies": {
-      "@axiom-lattice/gateway@5.0.0": "patches/@axiom-lattice__gateway@5.0.0.patch"
     }
   }
 }
