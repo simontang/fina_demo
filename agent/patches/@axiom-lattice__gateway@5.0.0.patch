@@ -1,0 +1,28 @@
+diff --git a/dist/open-GNBMCHYA.mjs b/dist/open-GNBMCHYA.mjs
+index ebe9a032266f04fff4262a56ddf078fe2734f330..4ae6f246949508de42cf9d842639c6a47abbf291 100644
+--- a/dist/open-GNBMCHYA.mjs
++++ b/dist/open-GNBMCHYA.mjs
+@@ -293,6 +293,23 @@ function registerOpenRoutes(app, deps = {}) {
+     reply.hijack();
+     await built.transport.handleRequest(request.raw, reply.raw, body);
+   });
++  app.get("/open/mcp", async (request, reply) => {
++    const context = await openAuth.resolve(extractBearer(request));
++    if (!context) {
++      return reply.status(401).send({ error: "AUTH_FAILED" });
++    }
++    const sessionId = readSessionId(request);
++    if (!sessionId) {
++      return reply.status(400).send({ error: "SESSION_REQUIRED" });
++    }
++    const session = await getSession(sessionId);
++    if (!session || session.credential.credentialId !== context.credentialId) {
++      return reply.status(404).send({ error: "SESSION_NOT_FOUND" });
++    }
++    reply.hijack();
++    await session.transport.handleRequest(request.raw, reply.raw);
++    return;
++  });
+   app.delete(
+     "/open/mcp",
+     async (request, reply) => {

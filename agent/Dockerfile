@@ -4,6 +4,8 @@ WORKDIR /app/agent
 
 # Install dependencies first (better layer cache).
 COPY package.json pnpm-lock.yaml ./
+# pnpm patches (patchedDependencies recorded in pnpm-lock.yaml)
+COPY patches ./patches
 
 RUN corepack enable \
   && pnpm install --frozen-lockfile
