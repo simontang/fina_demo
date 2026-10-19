@@ -15,8 +15,8 @@ importers:
         specifier: ^1.6.1
         version: 1.6.1(antd@5.28.1(date-fns@2.30.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@axiom-lattice/react-sdk':
-        specifier: ^5.0.0
-        version: 5.0.0(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(@types/react@19.2.4)(date-fns@2.30.0)(express@4.21.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(zod@3.25.76)
+        specifier: ^6.0.0
+        version: 6.0.0(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(@types/react@19.2.4)(date-fns@2.30.0)(express@4.21.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(zod@3.25.76)
       '@refinedev/antd':
         specifier: ^6.0.1
         version: 6.0.3(@refinedev/core@5.0.6(@tanstack/react-query@5.90.8(react@19.2.0))(@types/react-dom@19.2.3(@types/react@19.2.4))(@types/react@19.2.4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@types/react-dom@19.2.3(@types/react@19.2.4))(@types/react@19.2.4)(antd@5.28.1(date-fns@2.30.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(dayjs@1.11.23)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -282,8 +282,8 @@ packages:
       '@langchain/langgraph': 1.0.4
       zod: 3.25.76
 
-  '@axiom-lattice/react-sdk@5.0.0':
-    resolution: {integrity: sha512-dGenaLW/xm7Xuds8ZFiLSNmD/IJylrq3v7KUbe7hopCXbA2Q2rReppVun5gbgZzH6stavo0rqqYeb0IlcYd96Q==}
+  '@axiom-lattice/react-sdk@6.0.0':
+    resolution: {integrity: sha512-g3ZXqUWFnnzwItJGYkUNqZD8wGQ7GWzH4g2awc181LMq9MF7qpzl4LrS4a3ffac8w6gJIOWNp5FCEuFM79B3fw==}
     peerDependencies:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
@@ -2971,8 +2971,8 @@ packages:
     resolution: {integrity: sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==}
     engines: {node: '>=10.17.0'}
 
-  i18next@26.4.7:
-    resolution: {integrity: sha512-p/3hqy6EcuqRs6wNwBYwGGC1fzBJSMxV9zMuN814ab/7QjdZbXfjXwuPZdQbngX6KDOTxM01uUiZyqmMB8ghZg==}
+  i18next@26.5.2:
+    resolution: {integrity: sha512-6fIXt//2MZNok3tULyjnypxe3vbsy3pV1bVg8p2x3yKrzZvp7z3T+wXx/88LQsATRdhyJeAUAvUxEtxsHdJ29w==}
     peerDependencies:
       typescript: ^5 || ^6 || ^7
     peerDependenciesMeta:
@@ -3981,8 +3981,8 @@ packages:
     resolution: {integrity: sha512-FfR8sjd4em2T6fb3I2MwAJU7HWVMr9zba+enmQeeWFfCbm+UOC/0X4DS8XtpUTMwWMGbjKYP7xjfNekzyGmB3A==}
     engines: {node: ^10 || ^12 || >=14}
 
-  postcss@8.5.30:
-    resolution: {integrity: sha512-zkd+e9S1AQHhmaBKye9zlFHWjOwVgqXl1q3ECYy8561K7qxR2cREf/STLskulBFd78k6AOFeA+ff1TtEzk9bAA==}
+  postcss@8.5.31:
+    resolution: {integrity: sha512-YUbWYCgErwnMAVkjUnYa+KlMBzGpHwiIt/DE7f0G33AuX2LH9UcTk6KgWxd3zRU+pN3u/C+Xl3EnMLM4Hea7Sg==}
     engines: {node: ^10 || ^12 || >=14}
 
   postcss@8.5.6:
@@ -4318,8 +4318,8 @@ packages:
   react-flow@1.0.3:
     resolution: {integrity: sha512-Rx4Oqqbe9y7NyrUGzCrmtNvuGuMJBVjfIeMFuwbtbMc9f22sUSmxMjIA0c8r6Z7iMtB1zOWoGkTgfpmmpH9ReQ==}
 
-  react-i18next@17.0.20:
-    resolution: {integrity: sha512-rzSSirf0NP9vfcUXHZAksIuyMWl7L/T/7nm8S+sSIFuIzku54qcyyVAOZXbawPNpUxGkDx/eosSv4DrpzcxuOQ==}
+  react-i18next@17.1.0:
+    resolution: {integrity: sha512-4VouOnTDyvhvqXx6WZ+s3/cgSiaLutILdYkO3P1Ms+4qcKR7At+JP4Vi7IeHkVLyVV+DmN1l23Pn73UcwSGGPA==}
     peerDependencies:
       i18next: '>= 26.2.0'
       react: '>= 16.8.0'
@@ -5464,7 +5464,7 @@ snapshots:
       linkedom: 0.18.13
       lodash-es: 4.18.1
       measury: 0.1.5
-      postcss: 8.5.30
+      postcss: 8.5.31
       roughjs: 4.6.6
       round-polygon: 0.6.9
       tinycolor2: 1.6.0
@@ -5519,7 +5519,7 @@ snapshots:
       - '@grpc/grpc-js'
       - express
 
-  '@axiom-lattice/react-sdk@5.0.0(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(@types/react@19.2.4)(date-fns@2.30.0)(express@4.21.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(zod@3.25.76)':
+  '@axiom-lattice/react-sdk@6.0.0(@langchain/core@1.1.30(ws@8.18.3))(@langchain/langgraph@1.0.4(@langchain/core@1.1.30(ws@8.18.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod-to-json-schema@3.25.1(zod@3.25.76))(zod@3.25.76))(@types/react@19.2.4)(date-fns@2.30.0)(express@4.21.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(zod@3.25.76)':
     dependencies:
       '@alexbruf/react-diff-viewer': 3.1.5(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@ant-design/icons': 6.3.4(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -5541,7 +5541,7 @@ snapshots:
       echarts: 5.6.0
       html-react-parser: 5.2.17(@types/react@19.2.4)(react@19.2.0)
       html2canvas: 1.4.1
-      i18next: 26.4.7(typescript@5.9.3)
+      i18next: 26.5.2(typescript@5.9.3)
       js-yaml: 4.3.2
       jspdf: 2.5.2
       lodash: 4.18.1
@@ -5551,7 +5551,7 @@ snapshots:
       morphdom: 2.7.8
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
-      react-i18next: 17.0.20(i18next@26.4.7(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
+      react-i18next: 17.1.0(i18next@26.5.2(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
       use-sync-external-store: 1.7.0(react@19.2.0)
       uuid: 11.1.1
     transitivePeerDependencies:
@@ -8722,7 +8722,7 @@ snapshots:
 
   human-signals@2.1.0: {}
 
-  i18next@26.4.7(typescript@5.9.3):
+  i18next@26.5.2(typescript@5.9.3):
     optionalDependencies:
       typescript: 5.9.3
 
@@ -9959,7 +9959,7 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  postcss@8.5.30:
+  postcss@8.5.31:
     dependencies:
       nanoid: 3.3.20
       picocolors: 1.1.1
@@ -10385,11 +10385,11 @@ snapshots:
 
   react-flow@1.0.3: {}
 
-  react-i18next@17.0.20(i18next@26.4.7(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3):
+  react-i18next@17.1.0(i18next@26.5.2(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3):
     dependencies:
       '@babel/runtime': 7.29.10
       html-parse-stringify: 4.0.1
-      i18next: 26.4.7(typescript@5.9.3)
+      i18next: 26.5.2(typescript@5.9.3)
       react: 19.2.0
       use-sync-external-store: 1.7.0(react@19.2.0)
     optionalDependencies:
