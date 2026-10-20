@@ -32,12 +32,21 @@ import {
   registerEmbeddingsLattice,
   registerSTTModelLattice,
   modelLatticeManager,
+  PersonalAssistantConfig,
 } from "@axiom-lattice/core";
 
 import "./agents";
 import "./tools/segmentCrud";
 import "./tools/marketingCampaignCrud";
 import { migrateLegacyMetricsConfigsToConnections } from "./agents/semantic_metrics/connectionMigration";
+
+// 新建的 Personal Assistant 默认带上企业微信卡片工具。
+// 工具本身由 gateway 在启动时注册（`cardTool.ts`），这里只把 key 加进 PA 默认配置；
+// 不需要环境变量，也不需要改 core。
+PersonalAssistantConfig.extend((config) => {
+  config.tools ??= [];
+  if (!config.tools.includes("wecom_card")) config.tools.push("wecom_card");
+});
 
 // 加载环境变量
 
