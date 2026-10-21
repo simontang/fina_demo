@@ -43,7 +43,7 @@ agent/src/agents/platform_service/
     plugin.ts                      // 新增：合并后的 Plugin（meta + connection + skills + agents + middleware）
     prompt.ts                      // 新增：business-objects-builder 提示词
     skill.ts                       // 新增：business-objects-modeling 技能内容
-    executors.ts                   // 不变：全部 schema + record 执行器（含 selectedEntities 校验）
+    executors.ts                   // 不变：全部 schema + record 执行器（不读取 selectedEntities）
     __tests__/business_objects.test.ts   // 不变：执行器测试
   __tests__/
     barrel.test.ts                 // 更新：期望类型
@@ -73,7 +73,7 @@ connection: {
 ```
 
 - `connection.test` 沿用 `platformServiceConnection.test`（`GET /actuator/health`）。
-- `discover` 返回 objectKey 实体，供连接 UI 选择，写入 `selectedEntities`；执行器用 `requireObjectAllowed` 做范围收窄。
+- `discover` 返回 objectKey 实体，供连接 UI 的 “Available Resources” 选择，写入 `selectedEntities`。该字段只用于连接 UI/discover，不是运行时 ACL；执行器不读取它。
 - 不发送 `X-Tenant-Id`（`client.ts` 仅在传入 `tenantId` 时注入，BO 调用不传）。
 
 ## 5. 插件 meta 与工具目录
@@ -201,13 +201,14 @@ agents: {
 ```
 Builder agent / 其他 agent
   → business-objects middleware（可选 allowedTools 裁剪）
-  → executors（requireObjectAllowed 校验 selectedEntities）
+  → executors（不读取 selectedEntities）
   → client.request（X-BO-Connection-Key，不带 X-Tenant-Id）
   → platform-service /api/v1/bo/*
 ```
 
-- 作用域：连接 `selectedEntities` 非空时，objectKey 必须命中，否则拒绝（现有 `executors.ts:85`）。
-- 租户：不发送 `X-Tenant-Id`；BO 作用域由 `X-BO-Connection-Key` 在服务端解析为 grant。
+- 作用域：`selectedEntities` 仅用于连接 UI 的资源发现/选择，不是运行时 ACL；工具对任意 objectKey 放行。这样新建对象（尚不在 discover 快照中）可立即读写与测试。
+- 授权：完全由 `X-BO-Connection-Key` 在服务端解析为 store 级 grant（READ/WRITE/MANAGE）；对象级授权如需要，应后续在 platform-service 实现。
+- 租户：不发送 `X-Tenant-Id`。
 
 ## 11. 错误处理
 

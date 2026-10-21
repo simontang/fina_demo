@@ -102,17 +102,6 @@ export function boStoreKey(conn: PlatformServiceConn): string {
   return key;
 }
 
-function requireObjectAllowed(conn: PlatformServiceConn, objectKey: string): void {
-  if (conn.selectedEntities.length === 0) return;
-  if (!conn.selectedEntities.includes(objectKey)) {
-    throw new Error(`business object "${objectKey}" is not allowed by the selected connection scope`);
-  }
-}
-
-function requireMaybeObjectAllowed(conn: PlatformServiceConn, input: { objectKey?: string }): void {
-  if (input.objectKey) requireObjectAllowed(conn, input.objectKey);
-}
-
 async function callPlatform(
   rawConfig: unknown,
   exeConfig: unknown,
@@ -236,33 +225,15 @@ export async function boObjectList(_input: {}, exeConfig: unknown, rawConfig: un
 }
 
 export async function boObjectGet(input: { objectKey: string }, exeConfig: unknown, rawConfig: unknown): Promise<string> {
-  try {
-    const conn = await connection(rawConfig, exeConfig);
-    requireObjectAllowed(conn, input.objectKey);
-    return await callBoObjectApi(rawConfig, exeConfig, "GET", `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}`);
-  } catch (err) {
-    return errorResult(err);
-  }
+  return callBoObjectApi(rawConfig, exeConfig, "GET", `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}`);
 }
 
 export async function boObjectCreate(input: ObjectDefinitionInput, exeConfig: unknown, rawConfig: unknown): Promise<string> {
-  try {
-    const conn = await connection(rawConfig, exeConfig);
-    requireMaybeObjectAllowed(conn, input);
-    return await callBoObjectApi(rawConfig, exeConfig, "POST", "/api/v1/bo/objects", input);
-  } catch (err) {
-    return errorResult(err);
-  }
+  return callBoObjectApi(rawConfig, exeConfig, "POST", "/api/v1/bo/objects", input);
 }
 
 export async function boObjectUpdate(input: ObjectDefinitionInput, exeConfig: unknown, rawConfig: unknown): Promise<string> {
-  try {
-    const conn = await connection(rawConfig, exeConfig);
-    requireObjectAllowed(conn, input.objectKey);
-    return await callBoObjectApi(rawConfig, exeConfig, "PUT", `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}`, input);
-  } catch (err) {
-    return errorResult(err);
-  }
+  return callBoObjectApi(rawConfig, exeConfig, "PUT", `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}`, input);
 }
 
 export async function boObjectDelete(input: { objectKey: string; confirm?: boolean }, exeConfig: unknown, rawConfig: unknown): Promise<string> {
@@ -273,48 +244,24 @@ export async function boObjectDelete(input: { objectKey: string; confirm?: boole
       message: "Explicit user confirmation is required before deleting an object definition.",
     });
   }
-  try {
-    const conn = await connection(rawConfig, exeConfig);
-    requireObjectAllowed(conn, input.objectKey);
-    return await callBoObjectApi(rawConfig, exeConfig, "DELETE", `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}`);
-  } catch (err) {
-    return errorResult(err);
-  }
+  return callBoObjectApi(rawConfig, exeConfig, "DELETE", `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}`);
 }
 
 export async function boRecordCreate(input: RecordInput, exeConfig: unknown, rawConfig: unknown): Promise<string> {
-  try {
-    const conn = await connection(rawConfig, exeConfig);
-    requireObjectAllowed(conn, input.objectKey);
-    return await callBoObjectApi(rawConfig, exeConfig, "POST",
-      `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}/records`,
-      { data: input.data });
-  } catch (err) {
-    return errorResult(err);
-  }
+  return callBoObjectApi(rawConfig, exeConfig, "POST",
+    `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}/records`,
+    { data: input.data });
 }
 
 export async function boRecordGet(input: RecordIdInput, exeConfig: unknown, rawConfig: unknown): Promise<string> {
-  try {
-    const conn = await connection(rawConfig, exeConfig);
-    requireObjectAllowed(conn, input.objectKey);
-    return await callBoObjectApi(rawConfig, exeConfig, "GET",
-      `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}/records/${encodeURIComponent(input.id)}`);
-  } catch (err) {
-    return errorResult(err);
-  }
+  return callBoObjectApi(rawConfig, exeConfig, "GET",
+    `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}/records/${encodeURIComponent(input.id)}`);
 }
 
 export async function boRecordUpdate(input: RecordIdInput & { data: JsonObject }, exeConfig: unknown, rawConfig: unknown): Promise<string> {
-  try {
-    const conn = await connection(rawConfig, exeConfig);
-    requireObjectAllowed(conn, input.objectKey);
-    return await callBoObjectApi(rawConfig, exeConfig, "PATCH",
-      `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}/records/${encodeURIComponent(input.id)}`,
-      { data: input.data });
-  } catch (err) {
-    return errorResult(err);
-  }
+  return callBoObjectApi(rawConfig, exeConfig, "PATCH",
+    `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}/records/${encodeURIComponent(input.id)}`,
+    { data: input.data });
 }
 
 export async function boRecordDelete(input: RecordIdInput & { confirm?: boolean }, exeConfig: unknown, rawConfig: unknown): Promise<string> {
@@ -325,26 +272,14 @@ export async function boRecordDelete(input: RecordIdInput & { confirm?: boolean 
       message: "Explicit user confirmation is required before deleting a record.",
     });
   }
-  try {
-    const conn = await connection(rawConfig, exeConfig);
-    requireObjectAllowed(conn, input.objectKey);
-    return await callBoObjectApi(rawConfig, exeConfig, "DELETE",
-      `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}/records/${encodeURIComponent(input.id)}`);
-  } catch (err) {
-    return errorResult(err);
-  }
+  return callBoObjectApi(rawConfig, exeConfig, "DELETE",
+    `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}/records/${encodeURIComponent(input.id)}`);
 }
 
 export async function boRecordCreateMany(input: RecordBatchInput, exeConfig: unknown, rawConfig: unknown): Promise<string> {
-  try {
-    const conn = await connection(rawConfig, exeConfig);
-    requireObjectAllowed(conn, input.objectKey);
-    return await callBoObjectApi(rawConfig, exeConfig, "POST",
-      `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}/records/batch`,
-      { records: input.records });
-  } catch (err) {
-    return errorResult(err);
-  }
+  return callBoObjectApi(rawConfig, exeConfig, "POST",
+    `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}/records/batch`,
+    { records: input.records });
 }
 
 export async function boRecordDeleteMany(input: RecordIdBatchInput, exeConfig: unknown, rawConfig: unknown): Promise<string> {
@@ -355,26 +290,14 @@ export async function boRecordDeleteMany(input: RecordIdBatchInput, exeConfig: u
       message: "Explicit user confirmation is required before deleting records.",
     });
   }
-  try {
-    const conn = await connection(rawConfig, exeConfig);
-    requireObjectAllowed(conn, input.objectKey);
-    return await callBoObjectApi(rawConfig, exeConfig, "POST",
-      `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}/records/batch-delete`,
-      { ids: input.ids });
-  } catch (err) {
-    return errorResult(err);
-  }
+  return callBoObjectApi(rawConfig, exeConfig, "POST",
+    `/api/v1/bo/objects/${encodeURIComponent(input.objectKey)}/records/batch-delete`,
+    { ids: input.ids });
 }
 
 export async function boRecordQuery(input: QueryRecordsInput, exeConfig: unknown, rawConfig: unknown): Promise<string> {
-  try {
-    const conn = await connection(rawConfig, exeConfig);
-    requireObjectAllowed(conn, input.objectKey);
-    const { objectKey, ...body } = input;
-    return await callBoObjectApi(rawConfig, exeConfig, "POST",
-      `/api/v1/bo/objects/${encodeURIComponent(objectKey)}/records/query`,
-      body);
-  } catch (err) {
-    return errorResult(err);
-  }
+  const { objectKey, ...body } = input;
+  return callBoObjectApi(rawConfig, exeConfig, "POST",
+    `/api/v1/bo/objects/${encodeURIComponent(objectKey)}/records/query`,
+    body);
 }

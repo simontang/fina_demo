@@ -1,6 +1,7 @@
 import {
   boObjectCreate,
   boObjectDelete,
+  boObjectGet,
   boRecordCreate,
   boRecordCreateMany,
   boRecordDelete,
@@ -91,6 +92,19 @@ describe("business object executors", () => {
     });
   });
 
+  it("creates objects outside the selected scope because the object does not exist yet", async () => {
+    const out = await boObjectCreate({
+      storeKey: "crm_store",
+      objectKey: "invoice",
+      fields: [{ key: "amount", type: "decimal" }],
+    }, exeConfig, rawConfig);
+
+    expect(JSON.parse(out)).toEqual({ ok: true });
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe("http://svc:5707/api/v1/bo/objects");
+    expect(init.method).toBe("POST");
+  });
+
   it("does not let record runtime callers pass a storeKey", async () => {
     await boRecordQuery({
       objectKey: "customer",
@@ -129,18 +143,25 @@ describe("business object executors", () => {
     expect(JSON.parse(init.body)).toEqual({ data: { tier: "gold" } });
   });
 
-  it("checks selectedEntities before record access", async () => {
+  it("does not enforce selectedEntities on record access", async () => {
     const out = await boRecordCreate({
       objectKey: "invoice",
       data: { amount: 1 },
     }, exeConfig, rawConfig);
 
-    expect(JSON.parse(out)).toMatchObject({
-      ok: false,
-      code: "ERROR",
-    });
-    expect(JSON.parse(out).message).toContain("not allowed");
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(JSON.parse(out)).toEqual({ ok: true });
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe("http://svc:5707/api/v1/bo/objects/invoice/records");
+    expect(init.method).toBe("POST");
+  });
+
+  it("does not enforce selectedEntities on object reads", async () => {
+    const out = await boObjectGet({ objectKey: "invoice" }, exeConfig, rawConfig);
+
+    expect(JSON.parse(out)).toEqual({ ok: true });
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe("http://svc:5707/api/v1/bo/objects/invoice");
+    expect(init.method).toBe("GET");
   });
 
   it("lists only the store authorized by the connection BO key, without credentials", async () => {
